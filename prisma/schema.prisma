@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Role {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  users User[]
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  roleId       Int
+  role         Role     @relation(fields: [roleId], references: [id])
+}
+
+model Client {
+  id          Int         @id @default(autoincrement())
+  name        String
+  document    String      @unique
+  contactInfo String?
+  address     String?
+  quotations  Quotation[]
+}
+
+model Provider {
+  id               Int         @id @default(autoincrement())
+  name             String
+  contactInfo      String?
+  commissionConfig Json?
+  hotels           Hotel[]
+  quotations       Quotation[]
+}
+
+model Hotel {
+  id         Int         @id @default(autoincrement())
+  name       String
+  location   String?
+  category   String?
+  providerId Int
+  provider   Provider    @relation(fields: [providerId], references: [id])
+  quotations Quotation[]
+}
+
+model Branch {
+  id         Int         @id @default(autoincrement())
+  code       String      @unique
+  name       String
+  quotations Quotation[]
+}
+
+model Implant {
+  id         Int         @id @default(autoincrement())
+  code       String      @unique
+  name       String
+  quotations Quotation[]
+}
+
+model Product {
+  id               Int                @id @default(autoincrement())
+  type             String
+  description      String
+  basePrice        Float
+  quotationProducts QuotationProduct[]
+}
+
+model Quotation {
+  id                   Int                  @id @default(autoincrement())
+  internalNumber       String               @unique
+  date                 DateTime             @default(now())
+  clientId             Int
+  client               Client               @relation(fields: [clientId], references: [id])
+  providerId           Int
+  provider             Provider             @relation(fields: [providerId], references: [id])
+  hotelId              Int
+  hotel                Hotel                @relation(fields: [hotelId], references: [id])
+  currency             String
+  exchangeRate         Float
+  tiqueteador          String?
+  branchId             Int
+  branch               Branch               @relation(fields: [branchId], references: [id])
+  implantId            Int
+  implant              Implant              @relation(fields: [implantId], references: [id])
+  checkInDate          DateTime
+  checkOutDate         DateTime
+  nights               Int
+  paxAdults            Int
+  paxChildren          Int
+  paxDocument          String?
+  baseCommissionable   Float
+  commissionPercentage Float
+  serviceType          String?
+  destination          String?
+  reservationCode      String?
+  chargesAndTaxes      Float
+  totalAmount          Float
+  products             QuotationProduct[]
+  additionalVariables  AdditionalVariable[]
+}
+
+model QuotationProduct {
+  quotationId Int
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId   Int
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity    Int
+  price       Float
+
+  @@id([quotationId, productId])
+}
+
+model AdditionalVariable {
+  id          Int       @id @default(autoincrement())
+  quotationId Int
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  name        String
+  value       String
+}

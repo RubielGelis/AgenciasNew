@@ -1,0 +1,285 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+    Settings,
+    Users,
+    Building2,
+    Tags,
+    Plus,
+    Search,
+    Trash2,
+    ShieldCheck,
+    Mail,
+    Key,
+    Database,
+    Loader2,
+    X,
+    Check
+} from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+type Tab = 'usuarios' | 'sucursales' | 'implants';
+
+export default function SettingsPage() {
+    const [activeTab, setActiveTab] = useState<Tab>('usuarios')
+    const [loading, setLoading] = useState(true)
+    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
+
+    // Data states
+    const [users, setUsers] = useState<any[]>([])
+    const [roles, setRoles] = useState<any[]>([])
+    const [branches, setBranches] = useState<any[]>([])
+    const [implants, setImplants] = useState<any[]>([])
+
+    // Form states
+    const [formData, setFormData] = useState<any>({})
+
+    useEffect(() => {
+        fetchData()
+    }, [])
+
+    const fetchData = async () => {
+        setLoading(true)
+        try {
+            const [u, r, b, i] = await Promise.all([
+                fetch('/api/config/users').then(res => res.json()),
+                fetch('/api/config/roles').then(res => res.json()),
+                fetch('/api/config/branches').then(res => res.json()),
+                fetch('/api/config/implants').then(res => res.json())
+            ])
+            setUsers(u)
+            setRoles(r)
+            setBranches(b)
+            setImplants(i)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleOpenModal = () => {
+        if (activeTab === 'usuarios') {
+            setFormData({ name: '', email: '', password: '', roleId: roles[0]?.id || '' })
+        } else {
+            setFormData({ code: '', name: '' })
+        }
+        setIsModalOpen(true)
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setSubmitting(true)
+
+        const endpoint = activeTab === 'usuarios' ? '/api/config/users' :
+            activeTab === 'sucursales' ? '/api/config/branches' :
+                '/api/config/implants'
+
+        try {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+
+            if (!res.ok) throw new Error((await res.json()).message || 'Error')
+
+            await fetchData()
+            setIsModalOpen(false)
+        } catch (err: any) {
+            alert(err.message)
+        } finally {
+            setSubmitting(false)
+        }
+    }
+
+    return (
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-8 md:p-12">
+            <header className="flex items-center justify-between mb-12">
+                <div>
+                    <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2 flex items-center gap-3">
+                        <Settings className="w-8 h-8 text-blue-600" /> Configuración del Sistema
+                    </h1>
+                    <p className="text-zinc-500 dark:text-zinc-400 font-medium font-outfit">Control de acceso, sucursales y parámetros operativos</p>
+                </div>
+                <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleOpenModal}
+                    className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
+                >
+                    <Plus className="w-5 h-5" />
+                    {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : 'Nuevo Implant'}
+                </motion.button>
+            </header>
+
+            {/* Tabs Layout */}
+            <div className="flex gap-1 p-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl mb-8 w-fit shadow-sm">
+                <TabButton active={activeTab === 'usuarios'} onClick={() => setActiveTab('usuarios')} icon={<Users className="w-4 h-4" />} label="Usuarios" />
+                <TabButton active={activeTab === 'sucursales'} onClick={() => setActiveTab('sucursales')} icon={<Building2 className="w-4 h-4" />} label="Sucursales" />
+                <TabButton active={activeTab === 'implants'} onClick={() => setActiveTab('implants')} icon={<Database className="w-4 h-4" />} label="Implants" />
+            </div>
+
+            {/* Content Area */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[500px]">
+                {loading ? (
+                    <div className="flex items-center justify-center h-full p-20">
+                        <Loader2 className="animate-spin w-12 h-12 text-blue-600" />
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-zinc-50 dark:bg-zinc-800/30">
+                                <tr>
+                                    {activeTab === 'usuarios' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Usuario</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Rol</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Descripción</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    )}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 font-medium">
+                                {activeTab === 'usuarios' && users.map(user => (
+                                    <tr key={user.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
+                                        <td className="px-8 py-6">
+                                            <div className="font-bold text-zinc-900 dark:text-white mb-0.5">{user.name}</div>
+                                            <div className="text-zinc-400 text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {user.email}</div>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 text-[10px] font-black rounded-lg uppercase tracking-wider border border-blue-100 dark:border-blue-900/30">
+                                                {user.role.name}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <button className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {(activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : []).map(item => (
+                                    <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code}</td>
+                                        <td className="px-8 py-6 text-zinc-600 dark:text-zinc-300 font-bold">{item.name}</td>
+                                        <td className="px-8 py-6 text-right">
+                                            <button className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+
+            {/* Modal - Unified for Settings */}
+            <AnimatePresence>
+                {isModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/50 backdrop-blur-md">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-[3rem] shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+                        >
+                            <div className="p-10 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-blue-600/10 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
+                                        {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-black dark:text-white">Nuevo {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : 'Implant'}</h3>
+                                        <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setIsModalOpen(false)} className="p-3 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSubmit} className="p-10 space-y-6">
+                                {activeTab === 'usuarios' ? (
+                                    <>
+                                        <Input label="Nombre Completo" value={formData.name} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Alex Smith" />
+                                        <Input label="Email de Acceso" value={formData.email} onChange={(v: string) => setFormData({ ...formData, email: v })} required type="email" placeholder="email@ejemplo.com" />
+                                        <Input label="Contraseña" value={formData.password} onChange={(v: string) => setFormData({ ...formData, password: v })} required type="password" placeholder="Min. 8 caracteres" />
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Rol de Usuario</label>
+                                            <select
+                                                className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                value={formData.roleId}
+                                                onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
+                                            >
+                                                {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                            </select>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Input label="Código Único" value={formData.code} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. BOG-01" />
+                                        <Input label="Nombre / Descripción" value={formData.name} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Sede Norte Bogotá" />
+                                    </>
+                                )}
+
+                                <div className="flex gap-4 pt-6">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="flex-1 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 font-bold text-zinc-600 hover:bg-zinc-200 transition-all"
+                                    >
+                                        Descartar
+                                    </button>
+                                    <button
+                                        disabled={submitting}
+                                        className="flex-[2] h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                                    >
+                                        {submitting ? <Loader2 className="animate-spin w-5 h-5" /> : <Check className="w-6 h-6" />}
+                                        Confirmar Registro
+                                    </button>
+                                </div>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+        </div>
+    )
+}
+
+function TabButton({ active, icon, label, onClick }: { active: boolean, icon: React.ReactNode, label: string, onClick: () => void }) {
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                "flex items-center gap-3 px-8 h-12 rounded-2xl font-bold transition-all text-sm",
+                active
+                    ? "bg-zinc-900 border border-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 text-white shadow-lg shadow-zinc-950/20"
+                    : "text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+            )}
+        >
+            {icon}
+            {label}
+        </button>
+    )
+}
+
+function Input({ label, value, onChange, ...props }: { label: string, value: string, onChange: (v: string) => void, [key: string]: any }) {
+    return (
+        <div className="space-y-2 group">
+            <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1 group-focus-within:text-blue-500 transition-colors">{label}</label>
+            <input
+                className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                {...props}
+            />
+        </div>
+    )
+}
