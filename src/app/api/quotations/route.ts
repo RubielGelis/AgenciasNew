@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
                 baseCommissionable: 0, // Should calculate from items
                 totalAmount: parseFloat(totalAmount),
                 products: {
-                    create: items.map((item: any) => ({
+                    create: items.filter((item: any) => item.productId).map((item: any) => ({
                         productId: parseInt(item.productId),
                         quantity: parseInt(item.quantity),
                         price: parseFloat(item.price)
@@ -62,8 +62,8 @@ export async function POST(req: NextRequest) {
         })
 
         return NextResponse.json({ message: 'Cotización guardada con éxito', quotation })
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error saving quotation:', error)
-        return NextResponse.json({ message: 'Error al guardar la cotización' }, { status: 500 })
+        return NextResponse.json({ message: error.message || 'Error al guardar la cotización' }, { status: 500 })
     }
 }

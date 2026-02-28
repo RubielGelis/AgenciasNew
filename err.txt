@@ -1,0 +1,40 @@
+
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].quotation.create()` invocation in
+C:\Proyectos\AgenciasNew\.next\dev\server\chunks\[root-of-the-server]__db5629dd._.js:108:173
+
+  105 const nights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24));
+  106 // Generate internal number (Simplified: QUO-YYYYMMDD-RAND)
+  107 const internalNumber = `QUO-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 1000)}`;
+→ 108 const quotation = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$route$5d$__$28$ecmascript$29$__["default"].quotation.create({
+        data: {
+          internalNumber: "QUO-20260228-455",
+          clientId: 1,
+          providerId: 1,
+          hotelId: 1,
+          branchId: 1,
+          implantId: 1,
+          checkInDate: new Date("2026-03-01T00:00:00.000Z"),
+          checkOutDate: new Date("2026-03-05T00:00:00.000Z"),
+          nights: 4,
+          currency: "USD",
+          exchangeRate: 1,
+          paxAdults: 2,
+          paxChildren: 0,
+          paxDocument: "",
+          commissionPercentage: 10,
+          chargesAndTaxes: 0,
+          baseCommissionable: 0,
+          totalAmount: 200,
+          products: {
+            create: [
+              {
+                productId: NaN,
+                quantity: 1,
+                price: 100
+              }
+            ]
+          }
+        }
+      })
+
+Argument `product` is missing.

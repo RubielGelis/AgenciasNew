@@ -2,6 +2,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "./ERD.svg"
+  theme    = "neutral"
+}
+
 datasource db {
   provider = "postgresql"
 }
@@ -106,6 +112,7 @@ model Quotation {
 }
 
 model QuotationProduct {
+  id          Int       @id @default(autoincrement())
   quotationId Int
   quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
   productId   Int
@@ -113,7 +120,29 @@ model QuotationProduct {
   quantity    Int
   price       Float
 
-  @@id([quotationId, productId])
+  appliedTaxes QuotationProductTax[]
+}
+
+model ChargeAndTax {
+  id          Int      @id @default(autoincrement())
+  name        String
+  type        String   // e.g., "TAX" (Impuestos), "CHARGE" (Cargos), "COMMISSION" (Comisión)
+  valueType   String   // e.g., "PERCENTAGE", "FIXED"
+  value       Float
+
+  appliedTo   QuotationProductTax[]
+}
+
+model QuotationProductTax {
+  id                 Int              @id @default(autoincrement())
+  quotationProductId Int
+  quotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
+  chargeAndTaxId     Int
+  chargeAndTax       ChargeAndTax     @relation(fields: [chargeAndTaxId], references: [id], onDelete: Restrict)
+  
+  // Guardamos un snapshot del valor al momento de cotizar para evitar que cambios futuros en el maestro alteren cotizaciones pasadas
+  valueSnapshot      Float
+  valueTypeSnapshot  String
 }
 
 model AdditionalVariable {

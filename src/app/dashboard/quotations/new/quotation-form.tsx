@@ -50,8 +50,8 @@ export default function QuotationForm() {
 
     const handleSave = async (e: React.FormEvent, downloadPdf = false) => {
         if (e) e.preventDefault()
-        if (!formData.clientId || !formData.providerId || !formData.hotelId || formData.items.length === 0) {
-            alert('Por favor completa los campos requeridos (Cliente, Proveedor, Hotel y al menos un producto)')
+        if (!formData.clientId || !formData.providerId || !formData.hotelId || !formData.branchId || !formData.implantId || formData.items.length === 0 || formData.items.some(i => !i.productId)) {
+            alert('Por favor completa los campos requeridos (Cliente, Proveedor, Hotel, Sucursal, Implant) y asegúrate de seleccionar un producto válido en el desglose.')
             return
         }
 
