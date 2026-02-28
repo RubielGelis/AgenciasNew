@@ -20,7 +20,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tab = 'usuarios' | 'sucursales' | 'implants';
+type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
@@ -33,6 +33,7 @@ export default function SettingsPage() {
     const [roles, setRoles] = useState<any[]>([])
     const [branches, setBranches] = useState<any[]>([])
     const [implants, setImplants] = useState<any[]>([])
+    const [taxes, setTaxes] = useState<any[]>([])
 
     // Form states
     const [formData, setFormData] = useState<any>({})
@@ -44,16 +45,18 @@ export default function SettingsPage() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [u, r, b, i] = await Promise.all([
+            const [u, r, b, i, t] = await Promise.all([
                 fetch('/api/config/users').then(res => res.json()),
                 fetch('/api/config/roles').then(res => res.json()),
                 fetch('/api/config/branches').then(res => res.json()),
-                fetch('/api/config/implants').then(res => res.json())
+                fetch('/api/config/implants').then(res => res.json()),
+                fetch('/api/config/taxes').then(res => res.json())
             ])
             setUsers(u)
             setRoles(r)
             setBranches(b)
             setImplants(i)
+            setTaxes(t || [])
         } finally {
             setLoading(false)
         }
@@ -62,6 +65,8 @@ export default function SettingsPage() {
     const handleOpenModal = () => {
         if (activeTab === 'usuarios') {
             setFormData({ name: '', email: '', password: '', roleId: roles[0]?.id || '' })
+        } else if (activeTab === 'impuestos') {
+            setFormData({ name: '', type: 'TAX', valueType: 'PERCENTAGE', value: '' })
         } else {
             setFormData({ code: '', name: '' })
         }
@@ -74,7 +79,8 @@ export default function SettingsPage() {
 
         const endpoint = activeTab === 'usuarios' ? '/api/config/users' :
             activeTab === 'sucursales' ? '/api/config/branches' :
-                '/api/config/implants'
+                activeTab === 'impuestos' ? '/api/config/taxes' :
+                    '/api/config/implants'
 
         try {
             const res = await fetch(endpoint, {
@@ -110,7 +116,7 @@ export default function SettingsPage() {
                     className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                 >
                     <Plus className="w-5 h-5" />
-                    {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : 'Nuevo Implant'}
+                    {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : 'Nuevo Implant'}
                 </motion.button>
             </header>
 
@@ -119,6 +125,7 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'usuarios'} onClick={() => setActiveTab('usuarios')} icon={<Users className="w-4 h-4" />} label="Usuarios" />
                 <TabButton active={activeTab === 'sucursales'} onClick={() => setActiveTab('sucursales')} icon={<Building2 className="w-4 h-4" />} label="Sucursales" />
                 <TabButton active={activeTab === 'implants'} onClick={() => setActiveTab('implants')} icon={<Database className="w-4 h-4" />} label="Implants" />
+                <TabButton active={activeTab === 'impuestos'} onClick={() => setActiveTab('impuestos')} icon={<Tags className="w-4 h-4" />} label="Cargos e Impuestos" />
             </div>
 
             {/* Content Area */}
@@ -136,6 +143,13 @@ export default function SettingsPage() {
                                         <>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Usuario</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Rol</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'impuestos' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre del Cargo</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Tipo</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Valor</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : (
@@ -158,6 +172,22 @@ export default function SettingsPage() {
                                             <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 text-[10px] font-black rounded-lg uppercase tracking-wider border border-blue-100 dark:border-blue-900/30">
                                                 {user.role.name}
                                             </span>
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <button className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {activeTab === 'impuestos' && taxes.map(tax => (
+                                    <tr key={tax.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{tax.name}</td>
+                                        <td className="px-8 py-6">
+                                            <span className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10px] font-black rounded-lg uppercase tracking-wider">
+                                                {tax.type === 'TAX' ? 'Impuesto' : tax.type === 'CHARGE' ? 'Cargo Adic.' : 'Comisión'}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6 font-black text-emerald-600">
+                                            {tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : `$${tax.value.toLocaleString()}`}
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <button className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
@@ -195,7 +225,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">Nuevo {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">Nuevo {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -219,6 +249,38 @@ export default function SettingsPage() {
                                             >
                                                 {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                             </select>
+                                        </div>
+                                    </>
+                                ) : activeTab === 'impuestos' ? (
+                                    <>
+                                        <Input label="Nombre (Ej. IVA 19%, Fee Bancario)" value={formData.name} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. IVA 19%" />
+
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Tipo de Cargo</label>
+                                            <select
+                                                className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                value={formData.type}
+                                                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                            >
+                                                <option value="TAX">Impuesto Tributario (Ej. IVA)</option>
+                                                <option value="CHARGE">Servicio / Cargo Extra</option>
+                                                <option value="COMMISSION">Comisión de Agencia</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Operación</label>
+                                                <select
+                                                    className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                    value={formData.valueType}
+                                                    onChange={(e) => setFormData({ ...formData, valueType: e.target.value })}
+                                                >
+                                                    <option value="PERCENTAGE">Porcentaje (%)</option>
+                                                    <option value="FIXED">Costo Fijo ($)</option>
+                                                </select>
+                                            </div>
+                                            <Input label="Valor" value={formData.value} onChange={(v: string) => setFormData({ ...formData, value: v })} required type="number" step="0.01" placeholder="Ej. 19" />
                                         </div>
                                     </>
                                 ) : (
