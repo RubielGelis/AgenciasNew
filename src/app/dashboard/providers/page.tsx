@@ -20,6 +20,8 @@ export default function ProvidersPage() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [submitting, setSubmitting] = useState(false)
 
+    const [editingProvider, setEditingProvider] = useState<Provider | null>(null)
+
     const [formData, setFormData] = useState({
         name: '',
         contactInfo: '',
@@ -39,15 +41,41 @@ export default function ProvidersPage() {
         }
     }
 
+    const handleOpenModal = (provider?: Provider) => {
+        if (provider) {
+            setEditingProvider(provider)
+            setFormData({
+                name: provider.name,
+                contactInfo: provider.contactInfo || ''
+            })
+        } else {
+            setEditingProvider(null)
+            setFormData({ name: '', contactInfo: '' })
+        }
+        setIsModalOpen(true)
+    }
+
+    const handleDelete = async (id: number) => {
+        if (!confirm('¿Estás seguro de que deseas eliminar este proveedor?')) return
+
+        try {
+            const res = await fetch(`/api/providers?id=${id}`, { method: 'DELETE' })
+            if (!res.ok) throw new Error('Error al eliminar')
+            await fetchProviders()
+        } catch (error: any) {
+            alert(error.message)
+        }
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setSubmitting(true)
 
         try {
             const res = await fetch('/api/providers', {
-                method: 'POST',
+                method: editingProvider ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(editingProvider ? { ...formData, id: editingProvider.id } : formData)
             })
 
             if (!res.ok) throw new Error('Error al guardar')
@@ -55,6 +83,7 @@ export default function ProvidersPage() {
             await fetchProviders()
             setIsModalOpen(false)
             setFormData({ name: '', contactInfo: '' })
+            setEditingProvider(null)
         } catch (error: any) {
             alert(error.message)
         } finally {
@@ -76,7 +105,7 @@ export default function ProvidersPage() {
                 <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => handleOpenModal()}
                     className="px-6 h-14 bg-indigo-600 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-indigo-500/20 font-bold"
                 >
                     <Plus className="w-5 h-5" />
@@ -115,16 +144,25 @@ export default function ProvidersPage() {
                                 <Building2 className="w-7 h-7" />
                             </div>
                             <div className="flex gap-2">
-                                <div className="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 text-xs font-bold rounded-lg flex items-center gap-1">
-                                    <Percent className="w-3 h-3" /> Configurado
-                                </div>
+                                <button
+                                    onClick={() => handleOpenModal(provider)}
+                                    className="p-2 text-zinc-400 hover:text-indigo-600 rounded-lg bg-zinc-50 dark:bg-zinc-800 transition-transform hover:scale-110"
+                                >
+                                    <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(provider.id)}
+                                    className="p-2 text-zinc-400 hover:text-red-500 rounded-lg bg-zinc-50 dark:bg-zinc-800 transition-transform hover:scale-110"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
 
                         <div className="space-y-4">
                             <h3 className="text-xl font-bold text-zinc-900 dark:text-white truncate">{provider.name}</h3>
                             <div className="flex items-center gap-2 text-zinc-500 text-sm">
-                                <Mail className="w-4 h-4 text-zinc-400" /> {provider.contactInfo || 'Sin contacto'}
+                                < Mail className="w-4 h-4 text-zinc-400" /> {provider.contactInfo || 'Sin contacto'}
                             </div>
 
                             <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
@@ -151,7 +189,9 @@ export default function ProvidersPage() {
                             className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
                         >
                             <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-800/20">
-                                <h3 className="text-xl font-bold dark:text-white">Registrar Nuevo Proveedor</h3>
+                                <h3 className="text-xl font-bold dark:text-white">
+                                    {editingProvider ? 'Editar Proveedor' : 'Registrar Nuevo Proveedor'}
+                                </h3>
                                 <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition-colors">
                                     <X className="w-6 h-6 text-zinc-500" />
                                 </button>
@@ -194,7 +234,7 @@ export default function ProvidersPage() {
                                         className="flex-[1.5] h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold shadow-lg shadow-indigo-500/20 transition-all flex items-center justify-center gap-2"
                                     >
                                         {submitting ? <Loader2 className="animate-spin w-5 h-5" /> : <Check className="w-5 h-5" />}
-                                        Guardar Proveedor
+                                        {editingProvider ? 'Actualizar' : 'Guardar'} Proveedor
                                     </button>
                                 </div>
                             </form>

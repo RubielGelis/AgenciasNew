@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Percent, Calculator, ArrowRight, Loader2, FileDown } from 'lucide-react'
+import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -21,12 +21,14 @@ interface QuotationFormData {
     paxAdults: number;
     paxChildren: number;
     paxDocument: string;
+    sellerId: string;
+    ticketPrinterId: string;
     commissionPercentage: number;
     chargesAndTaxes: number;
-    items: { productId: string; quantity: number; price: number }[];
+    items: { productId: string; quantity: number; price: number; mainTaxId?: number; appliedTaxes: { id: number, amount: number }[] }[];
 }
 
-export default function QuotationForm() {
+export default function QuotationForm({ quotationId }: { quotationId?: string }) {
     const [data, setData] = useState<any>(null)
     const [formData, setFormData] = useState<QuotationFormData>({
         clientId: '',
@@ -41,6 +43,8 @@ export default function QuotationForm() {
         paxAdults: 1,
         paxChildren: 0,
         paxDocument: '',
+        sellerId: '',
+        ticketPrinterId: '',
         commissionPercentage: 10,
         chargesAndTaxes: 0,
         items: []
@@ -57,10 +61,30 @@ export default function QuotationForm() {
 
         setSaving(true)
         try {
-            const res = await fetch('/api/quotations', {
-                method: 'POST',
+            const payload = {
+                ...formData,
+                commissionPercentage: 0,
+                chargesAndTaxes: 0,
+                totalAmount: total,
+                items: formData.items.map(item => {
+                    const taxes = [...(item.appliedTaxes || [])];
+                    if (item.mainTaxId && !taxes.find(t => t.id === item.mainTaxId)) {
+                        taxes.push({ id: item.mainTaxId, amount: item.price * item.quantity });
+                    } else if (item.mainTaxId) {
+                        const existing = taxes.find(t => t.id === item.mainTaxId);
+                        if (existing) existing.amount = item.price * item.quantity;
+                    }
+                    return { ...item, appliedTaxes: taxes };
+                })
+            }
+
+            const endpoint = quotationId ? `/api/quotations/${quotationId}` : '/api/quotations';
+            const method = quotationId ? 'PUT' : 'POST';
+
+            const res = await fetch(endpoint, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...formData, totalAmount: total })
+                body: JSON.stringify(payload)
             })
 
             const result = await res.json()
@@ -81,6 +105,7 @@ export default function QuotationForm() {
                     hotelName: hotel?.name,
                     nights: differenceInDays(new Date(formData.checkOut), new Date(formData.checkIn)),
                     totalAmount: total,
+                    taxSummary: taxSummary,
                     items: formData.items.map(item => ({
                         ...item,
                         productDescription: data.products.find((p: any) => p.id.toString() === item.productId)?.description
@@ -99,21 +124,117 @@ export default function QuotationForm() {
         }
     }
 
-    // Calculations
-    const subtotalItems = formData.items.reduce((sum, item) => sum + (item.quantity * item.price), 0)
-    const commissionValue = (subtotalItems * formData.commissionPercentage) / 100
-    const total = subtotalItems + formData.chargesAndTaxes + (formData.currency === 'USD' ? 0 : 0) // Simplify for now
+    // Get unique taxes that have been applied anywhere, and sum their amounts
+    const taxSummary = React.useMemo(() => {
+        const summary: Record<string, number> = {}
+        if (!data?.taxes) return summary;
+
+        formData.items.forEach(item => {
+            // Include main tax
+            if (item.mainTaxId) {
+                const master = data.taxes.find((t: any) => t.id === item.mainTaxId);
+                if (master) {
+                    summary[master.name] = (summary[master.name] || 0) + (item.price * item.quantity);
+                }
+            }
+
+            // Include applied taxes
+            (item.appliedTaxes || []).forEach(tax => {
+                const master = data.taxes.find((t: any) => t.id === tax.id);
+                if (master && item.mainTaxId !== tax.id) {
+                    summary[master.name] = (summary[master.name] || 0) + (tax.amount || 0);
+                }
+            })
+        });
+        return summary;
+    }, [formData.items, data?.taxes]);
+
+    const total = Object.values(taxSummary).reduce((sum, val) => sum + val, 0);
+
+    const handleCalculateTaxes = (index: number) => {
+        const item = formData.items[index];
+        if (!item.mainTaxId || item.price <= 0) {
+            alert("Selecciona un Cargo Principal y escribe su valor primero antes de calcular.");
+            return;
+        }
+        const baseValue = item.price * item.quantity;
+        const newAppliedTaxes = item.appliedTaxes.map(taxApp => {
+            const taxMaster = data.taxes.find((t: any) => t.id === taxApp.id);
+            if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
+                return { ...taxApp, amount: (baseValue * taxMaster.value) / 100 };
+            }
+            return taxApp;
+        });
+        updateItem(index, 'appliedTaxes', newAppliedTaxes);
+    }
 
     useEffect(() => {
-        fetch('/api/quotations/base-data')
-            .then(res => res.json())
-            .then(setData)
-    }, [])
+        const loadInitialData = async () => {
+            try {
+                const baseRes = await fetch('/api/quotations/base-data')
+                const baseData = await baseRes.json()
+                if (baseRes.ok && baseData?.clients) {
+                    setData(baseData)
+                } else {
+                    console.error("No valid data received from base-data:", baseData)
+                    setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [] })
+                }
+
+                if (quotationId) {
+                    const qRes = await fetch(`/api/quotations/${quotationId}`)
+                    if (qRes.ok) {
+                        const qData = await qRes.json()
+                        setFormData({
+                            clientId: qData.clientId?.toString() || '',
+                            providerId: qData.providerId?.toString() || '',
+                            hotelId: qData.hotelId?.toString() || '',
+                            branchId: qData.branchId?.toString() || '',
+                            implantId: qData.implantId?.toString() || '',
+                            checkIn: qData.checkInDate ? format(new Date(qData.checkInDate), 'yyyy-MM-dd') : '',
+                            checkOut: qData.checkOutDate ? format(new Date(qData.checkOutDate), 'yyyy-MM-dd') : '',
+                            currency: qData.currency || 'USD',
+                            exchangeRate: qData.exchangeRate,
+                            paxAdults: qData.paxAdults,
+                            paxChildren: qData.paxChildren,
+                            paxDocument: qData.paxDocument || '',
+                            sellerId: qData.sellerId?.toString() || '',
+                            ticketPrinterId: qData.ticketPrinterId?.toString() || '',
+                            commissionPercentage: 0,
+                            chargesAndTaxes: 0,
+                            items: qData.products.map((p: any) => {
+                                // Find main tax based on value equality (or arbitrary since we can't perfectly distiguish without new db column, so let's use the first one matching the value)
+                                // Actually, let's treat the first active tax equal to price * qty as main tax, or if not found, just don't set mainTaxId
+                                // But since it's hard to reliably infer `mainTaxId` from a flattened list without a `isMain` flag in DB, we'll try to find one where explicitAmount === price * quantity
+                                let mainTaxId: number | undefined = undefined;
+                                const baseVal = p.price * p.quantity;
+                                const possibleMain = p.appliedTaxes.find((t: any) => t.explicitAmount === baseVal);
+                                if (possibleMain) mainTaxId = possibleMain.chargeAndTaxId;
+
+                                return {
+                                    productId: p.productId?.toString() || '',
+                                    quantity: p.quantity,
+                                    price: p.price,
+                                    mainTaxId,
+                                    appliedTaxes: p.appliedTaxes.map((t: any) => ({
+                                        id: t.chargeAndTaxId,
+                                        amount: t.explicitAmount
+                                    }))
+                                }
+                            })
+                        })
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load generic or quotation data", err);
+            }
+        }
+        loadInitialData()
+    }, [quotationId])
 
     const addItem = () => {
         setFormData({
             ...formData,
-            items: [...formData.items, { productId: '', quantity: 1, price: 0 }]
+            items: [...formData.items, { productId: '', quantity: 1, price: 0, appliedTaxes: [] }]
         })
     }
 
@@ -194,14 +315,15 @@ export default function QuotationForm() {
                                 </select>
                             </div>
                             <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Pax Documento (Principal)</label>
-                                <input
-                                    type="text"
+                                <label className="text-sm font-semibold text-zinc-500">Vendedor</label>
+                                <select
                                     className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
-                                    placeholder="ID del pasajero principal"
-                                    value={formData.paxDocument}
-                                    onChange={(e) => setFormData({ ...formData, paxDocument: e.target.value })}
-                                />
+                                    value={formData.sellerId}
+                                    onChange={(e) => setFormData({ ...formData, sellerId: e.target.value })}
+                                >
+                                    <option value="">Seleccionar Vendedor</option>
+                                    {data.sellers?.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-500">Sucursal</label>
@@ -223,6 +345,17 @@ export default function QuotationForm() {
                                 >
                                     <option value="">Sel. Implant</option>
                                     {data.implants.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-zinc-500">Tiqueteador</label>
+                                <select
+                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={formData.ticketPrinterId}
+                                    onChange={(e) => setFormData({ ...formData, ticketPrinterId: e.target.value })}
+                                >
+                                    <option value="">Sel. Tiqueteador</option>
+                                    {data.ticketPrinters?.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
                                 </select>
                             </div>
                         </div>
@@ -317,18 +450,28 @@ export default function QuotationForm() {
                                         key={index}
                                         className="grid grid-cols-12 gap-4 items-end bg-zinc-50 dark:bg-zinc-800/50 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-700"
                                     >
-                                        <div className="col-span-12 md:col-span-5 space-y-1">
+                                        <div className="col-span-12 md:col-span-3 space-y-1">
                                             <label className="text-[10px] uppercase font-bold text-zinc-400">Producto</label>
                                             <select
                                                 className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-sm"
                                                 value={item.productId}
-                                                onChange={(e) => updateItem(index, 'productId', e.target.value)}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    const p = data.products.find((prod: any) => prod.id.toString() === val);
+                                                    const newItems = [...formData.items];
+                                                    newItems[index] = {
+                                                        ...newItems[index],
+                                                        productId: val,
+                                                        price: p ? p.basePrice : 0
+                                                    };
+                                                    setFormData({ ...formData, items: newItems });
+                                                }}
                                             >
                                                 <option value="">Seleccionar</option>
                                                 {data.products.map((p: any) => <option key={p.id} value={p.id}>{p.description} (${p.basePrice})</option>)}
                                             </select>
                                         </div>
-                                        <div className="col-span-5 md:col-span-2 space-y-1">
+                                        <div className="col-span-4 md:col-span-2 space-y-1">
                                             <label className="text-[10px] uppercase font-bold text-zinc-400">Cant.</label>
                                             <input
                                                 type="number"
@@ -338,25 +481,118 @@ export default function QuotationForm() {
                                                 onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
                                             />
                                         </div>
-                                        <div className="col-span-5 md:col-span-4 space-y-1">
-                                            <label className="text-[10px] uppercase font-bold text-zinc-400">Precio Unit.</label>
+                                        <div className="col-span-8 md:col-span-4 space-y-1">
+                                            <label className="text-[10px] uppercase font-bold text-zinc-400">Cargo Principal</label>
+                                            <select
+                                                className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500"
+                                                value={item.mainTaxId || ''}
+                                                onChange={(e) => updateItem(index, 'mainTaxId', parseInt(e.target.value))}
+                                            >
+                                                <option value="">Selecciona Master...</option>
+                                                {data.taxes.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="col-span-10 md:col-span-2 space-y-1">
+                                            <label className="text-[10px] uppercase font-bold text-zinc-400">Tarifa Unit.</label>
                                             <div className="relative">
-                                                <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                                                <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
                                                 <input
                                                     type="number"
-                                                    className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg pl-8 pr-3 border border-zinc-200 dark:border-zinc-800 outline-none text-sm"
+                                                    className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-2 border border-zinc-200 dark:border-zinc-800 outline-none text-sm font-bold"
                                                     value={item.price}
-                                                    onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value))}
+                                                    onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
                                                 />
                                             </div>
                                         </div>
                                         <div className="col-span-2 md:col-span-1 flex justify-center pb-2">
                                             <button
+                                                type="button"
                                                 onClick={() => removeItem(index)}
                                                 className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
                                             >
                                                 <Trash2 className="w-5 h-5" />
                                             </button>
+                                        </div>
+
+                                        {/* Product Taxes Row */}
+                                        <div className="col-span-12 mt-2 pt-4 border-t border-zinc-200 dark:border-zinc-700/50">
+                                            <p className="text-[10px] uppercase font-bold text-zinc-400 mb-3 flex items-center justify-between">
+                                                <span>Cargos e Impuestos Adicionales</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleCalculateTaxes(index)}
+                                                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-xs transition-all flex items-center gap-1 shadow-sm"
+                                                >
+                                                    <Calculator className="w-3 h-3" /> Calcular Impuestos (%)
+                                                </button>
+                                            </p>
+                                            <div className="flex flex-col gap-2">
+                                                {data.taxes.length === 0 && (
+                                                    <span className="text-xs text-zinc-400 font-medium">No hay cargos maestros configurados.</span>
+                                                )}
+                                                {data.taxes.filter((t: any) => t.id !== item.mainTaxId).map((tax: any) => {
+                                                    const appliedTax = item.appliedTaxes?.find((t: any) => t.id === tax.id);
+                                                    const isChecked = !!appliedTax;
+                                                    return (
+                                                        <div key={tax.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                                                            <label
+                                                                className={cn(
+                                                                    "flex items-center gap-2 cursor-pointer text-sm font-bold min-w-[200px]",
+                                                                    isChecked ? "text-blue-600 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-400"
+                                                                )}
+                                                            >
+                                                                <input
+                                                                    type="checkbox"
+                                                                    className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                                                    checked={isChecked}
+                                                                    onChange={(e) => {
+                                                                        const checked = e.target.checked;
+                                                                        const currentTaxes = item.appliedTaxes || [];
+                                                                        if (checked) {
+                                                                            // Calculate initial value based on main charge
+                                                                            let initialAmount = 0;
+                                                                            const baseValue = item.price * item.quantity;
+                                                                            if (tax.valueType === 'PERCENTAGE') {
+                                                                                initialAmount = (baseValue * tax.value) / 100;
+                                                                            } else {
+                                                                                initialAmount = tax.value * item.quantity;
+                                                                            }
+                                                                            updateItem(index, 'appliedTaxes', [...currentTaxes, { id: tax.id, amount: initialAmount }]);
+                                                                        } else {
+                                                                            updateItem(index, 'appliedTaxes', currentTaxes.filter((t: any) => t.id !== tax.id));
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <span>{tax.name}</span>
+                                                                <span className="opacity-50 text-xs ml-auto">({tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : `$${tax.value}`})</span>
+                                                            </label>
+
+                                                            {isChecked && (
+                                                                <div className="flex-1 flex flex-col md:flex-row md:items-center gap-2 border-l border-zinc-200 dark:border-zinc-700 pl-4 py-1">
+                                                                    <span className="text-xs font-bold text-zinc-500">Valor Cobrado:</span>
+                                                                    <div className="relative w-32">
+                                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold">$</span>
+                                                                        <input
+                                                                            type="number"
+                                                                            step="0.01"
+                                                                            className="w-full h-8 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-3 border border-zinc-200 dark:border-zinc-700 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                                                            value={appliedTax.amount}
+                                                                            onChange={(e) => {
+                                                                                const val = parseFloat(e.target.value) || 0;
+                                                                                const newTaxes = item.appliedTaxes.map((t: any) => t.id === tax.id ? { ...t, amount: val } : t);
+                                                                                updateItem(index, 'appliedTaxes', newTaxes);
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                    <div className="text-[10px] text-zinc-400 leading-tight md:ml-2">
+                                                                        Puedes modificar este valor <br className="hidden md:block" /> manualmente.
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
                                         </div>
                                     </motion.div>
                                 ))}
@@ -373,7 +609,7 @@ export default function QuotationForm() {
                             <Users className="w-5 h-5 text-orange-500" />
                             Pasajeros
                         </h3>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-500">Adultos</label>
                                 <div className="relative">
@@ -397,6 +633,18 @@ export default function QuotationForm() {
                                         className="w-full h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl pl-9 pr-3 border border-zinc-200 dark:border-zinc-700 outline-none"
                                         value={formData.paxChildren}
                                         onChange={(e) => setFormData({ ...formData, paxChildren: parseInt(e.target.value) })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-zinc-500">Documento (Pax 1)</label>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        className="w-full h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-3 border border-zinc-200 dark:border-zinc-700 outline-none"
+                                        placeholder="ID Pasajero"
+                                        value={formData.paxDocument}
+                                        onChange={(e) => setFormData({ ...formData, paxDocument: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -436,53 +684,30 @@ export default function QuotationForm() {
                                 </div>
                             </div>
 
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Comisión General (%)</label>
-                                <div className="relative">
-                                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                                    <input
-                                        type="number"
-                                        className="w-full h-11 bg-zinc-800 rounded-xl pl-10 pr-4 border border-zinc-700 outline-none text-sm font-bold"
-                                        value={formData.commissionPercentage}
-                                        onChange={(e) => setFormData({ ...formData, commissionPercentage: parseFloat(e.target.value) })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Impuestos y Cargos Adic.</label>
-                                <div className="relative">
-                                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                                    <input
-                                        type="number"
-                                        className="w-full h-11 bg-zinc-800 rounded-xl pl-10 pr-4 border border-zinc-700 outline-none text-sm font-bold"
-                                        value={formData.chargesAndTaxes}
-                                        onChange={(e) => setFormData({ ...formData, chargesAndTaxes: parseFloat(e.target.value) })}
-                                    />
-                                </div>
+                            <div className="space-y-4 relative z-10 pt-4">
+                                {Object.entries(taxSummary).length === 0 && (
+                                    <div className="text-zinc-500 text-sm font-medium text-center pb-4">Aún no se han configurado cargos en los productos.</div>
+                                )}
+                                {Object.entries(taxSummary).map(([name, amount]) => (
+                                    <div key={name} className="flex justify-between items-center text-sm font-bold text-zinc-300 border-b border-zinc-800 pb-3">
+                                        <span className="flex items-center gap-2">
+                                            <Tag className="w-4 h-4 text-emerald-400" />
+                                            {name}
+                                        </span>
+                                        <span className="text-white">${amount.toLocaleString()}</span>
+                                    </div>
+                                ))}
                             </div>
 
                             {/* Final Math */}
-                            <div className="pt-8 border-t border-zinc-800 space-y-4">
-                                <div className="flex justify-between text-zinc-400 font-medium">
-                                    <span>Subtotal Items</span>
-                                    <span>${subtotalItems.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between text-zinc-400 font-medium">
-                                    <span>Comisión ({formData.commissionPercentage}%)</span>
-                                    <span className="text-emerald-400">+${commissionValue.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between text-zinc-400 font-medium">
-                                    <span>Impuestos</span>
-                                    <span>${formData.chargesAndTaxes.toLocaleString()}</span>
-                                </div>
-                                <div className="pt-4 border-t border-zinc-800 flex justify-between items-end">
-                                    <span className="text-lg font-bold">Total Final</span>
+                            <div className="pt-8 space-y-4 relative z-10">
+                                <div className="flex justify-between items-end">
+                                    <span className="text-lg font-bold">Costo Real Total</span>
                                     <div className="text-right">
-                                        <div className="text-3xl font-black text-blue-500">
+                                        <div className="text-4xl font-black text-emerald-400">
                                             ${total.toLocaleString()}
                                         </div>
-                                        <p className="text-[10px] uppercase text-zinc-500 mt-1">Precio neto en {formData.currency}</p>
+                                        <p className="text-[10px] uppercase text-zinc-500 mt-1">Suma exacta en {formData.currency}</p>
                                     </div>
                                 </div>
                             </div>

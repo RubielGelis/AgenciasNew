@@ -22,7 +22,9 @@ export async function POST(req: NextRequest) {
             commissionPercentage,
             chargesAndTaxes,
             totalAmount,
-            items
+            items,
+            sellerId,
+            ticketPrinterId
         } = body
 
         // Calculate nights
@@ -30,6 +32,8 @@ export async function POST(req: NextRequest) {
 
         // Generate internal number (Simplified: QUO-YYYYMMDD-RAND)
         const internalNumber = `QUO-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(Math.random() * 1000)}`
+
+        const allTaxes = await prisma.chargeAndTax.findMany();
 
         const quotation = await prisma.quotation.create({
             data: {
@@ -47,16 +51,34 @@ export async function POST(req: NextRequest) {
                 paxAdults: parseInt(paxAdults),
                 paxChildren: parseInt(paxChildren),
                 paxDocument,
+                sellerId: sellerId ? parseInt(sellerId) : null,
+                ticketPrinterId: ticketPrinterId ? parseInt(ticketPrinterId) : null,
                 commissionPercentage: parseFloat(commissionPercentage),
                 chargesAndTaxes: parseFloat(chargesAndTaxes),
                 baseCommissionable: 0, // Should calculate from items
                 totalAmount: parseFloat(totalAmount),
                 products: {
-                    create: items.filter((item: any) => item.productId).map((item: any) => ({
-                        productId: parseInt(item.productId),
-                        quantity: parseInt(item.quantity),
-                        price: parseFloat(item.price)
-                    }))
+                    create: items.filter((item: any) => item.productId).map((item: any) => {
+                        const taxesToApply = (item.appliedTaxes || []).map((taxPayload: { id: number, amount: number }) => {
+                            const master = allTaxes.find((t: any) => t.id === taxPayload.id);
+                            if (!master) return null;
+                            return {
+                                chargeAndTaxId: master.id,
+                                valueSnapshot: master.value,
+                                valueTypeSnapshot: master.valueType,
+                                explicitAmount: taxPayload.amount
+                            };
+                        }).filter(Boolean);
+
+                        return {
+                            productId: parseInt(item.productId),
+                            quantity: parseInt(item.quantity),
+                            price: parseFloat(item.price),
+                            appliedTaxes: taxesToApply.length > 0 ? {
+                                create: taxesToApply
+                            } : undefined
+                        };
+                    })
                 }
             }
         })

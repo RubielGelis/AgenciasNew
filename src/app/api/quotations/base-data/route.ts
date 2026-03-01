@@ -5,12 +5,15 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
     try {
-        const [clients, providers, branches, implants, products] = await Promise.all([
+        const [clients, providers, branches, implants, products, taxes, sellers, ticketPrinters] = await Promise.all([
             prisma.client.findMany({ select: { id: true, name: true, document: true } }),
             prisma.provider.findMany({ include: { hotels: true } }),
             prisma.branch.findMany(),
             prisma.implant.findMany(),
-            prisma.product.findMany()
+            prisma.product.findMany(),
+            prisma.chargeAndTax.findMany(),
+            prisma.seller.findMany(),
+            prisma.ticketPrinter.findMany()
         ])
 
         return NextResponse.json({
@@ -18,10 +21,13 @@ export async function GET() {
             providers,
             branches,
             implants,
-            products
+            products,
+            taxes,
+            sellers,
+            ticketPrinters
         })
-    } catch (error) {
+    } catch (error: any) {
         console.error('Data fetch error:', error)
-        return NextResponse.json({ message: 'Error fetching base data' }, { status: 500 })
+        return NextResponse.json({ message: 'Error fetching base data', detail: error?.message || String(error) }, { status: 500 })
     }
 }

@@ -42,15 +42,43 @@ export default function ClientsPage() {
         }
     }
 
+    const handleOpenModal = (client?: Client) => {
+        if (client) {
+            setEditingClient(client)
+            setFormData({
+                name: client.name,
+                document: client.document,
+                contactInfo: client.contactInfo || '',
+                address: client.address || ''
+            })
+        } else {
+            setEditingClient(null)
+            setFormData({ name: '', document: '', contactInfo: '', address: '' })
+        }
+        setIsModalOpen(true)
+    }
+
+    const handleDelete = async (id: number) => {
+        if (!confirm('¿Estás seguro de que deseas eliminar este cliente?')) return
+
+        try {
+            const res = await fetch(`/api/clients?id=${id}`, { method: 'DELETE' })
+            if (!res.ok) throw new Error('Error al eliminar')
+            await fetchClients()
+        } catch (error: any) {
+            alert(error.message)
+        }
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setSubmitting(true)
 
         try {
             const res = await fetch('/api/clients', {
-                method: 'POST',
+                method: editingClient ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(editingClient ? { ...formData, id: editingClient.id } : formData)
             })
 
             if (!res.ok) {
@@ -61,6 +89,7 @@ export default function ClientsPage() {
             await fetchClients()
             setIsModalOpen(false)
             setFormData({ name: '', document: '', contactInfo: '', address: '' })
+            setEditingClient(null)
         } catch (error: any) {
             alert(error.message)
         } finally {
@@ -83,7 +112,7 @@ export default function ClientsPage() {
                 <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => handleOpenModal()}
                     className="px-6 h-14 bg-blue-600 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-blue-500/20 font-bold"
                 >
                     <Plus className="w-5 h-5" />
@@ -122,10 +151,16 @@ export default function ClientsPage() {
                                 <User className="w-6 h-6" />
                             </div>
                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button className="p-2 text-zinc-400 hover:text-blue-500 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:scale-110 transition-transform">
+                                <button
+                                    onClick={() => handleOpenModal(client)}
+                                    className="p-2 text-zinc-400 hover:text-blue-500 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:scale-110 transition-transform"
+                                >
                                     <Edit2 className="w-4 h-4" />
                                 </button>
-                                <button className="p-2 text-zinc-400 hover:text-red-500 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:scale-110 transition-transform">
+                                <button
+                                    onClick={() => handleDelete(client.id)}
+                                    className="p-2 text-zinc-400 hover:text-red-500 rounded-lg bg-zinc-50 dark:bg-zinc-800 hover:scale-110 transition-transform"
+                                >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
@@ -160,7 +195,9 @@ export default function ClientsPage() {
                             className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-[2.5rem] shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
                         >
                             <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-800/20">
-                                <h3 className="text-xl font-bold dark:text-white">Registrar Nuevo Cliente</h3>
+                                <h3 className="text-xl font-bold dark:text-white">
+                                    {editingClient ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}
+                                </h3>
                                 <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-full transition-colors">
                                     <X className="w-6 h-6 text-zinc-500" />
                                 </button>
@@ -221,7 +258,7 @@ export default function ClientsPage() {
                                         className="flex-[1.5] h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
                                     >
                                         {submitting ? <Loader2 className="animate-spin w-5 h-5" /> : <Check className="w-5 h-5" />}
-                                        Guardar Cliente
+                                        {editingClient ? 'Actualizar' : 'Guardar'} Cliente
                                     </button>
                                 </div>
                             </form>

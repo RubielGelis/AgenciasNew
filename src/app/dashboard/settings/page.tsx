@@ -16,11 +16,14 @@ import {
     Database,
     Loader2,
     X,
-    Check
+    Check,
+    UserCheck,
+    Printer,
+    Edit2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos';
+type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
@@ -34,6 +37,8 @@ export default function SettingsPage() {
     const [branches, setBranches] = useState<any[]>([])
     const [implants, setImplants] = useState<any[]>([])
     const [taxes, setTaxes] = useState<any[]>([])
+    const [sellers, setSellers] = useState<any[]>([])
+    const [ticketPrinters, setTicketPrinters] = useState<any[]>([])
 
     // Form states
     const [formData, setFormData] = useState<any>({})
@@ -45,30 +50,40 @@ export default function SettingsPage() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [u, r, b, i, t] = await Promise.all([
+            const [u, r, b, i, t, v, tp] = await Promise.all([
                 fetch('/api/config/users').then(res => res.json()),
                 fetch('/api/config/roles').then(res => res.json()),
                 fetch('/api/config/branches').then(res => res.json()),
                 fetch('/api/config/implants').then(res => res.json()),
-                fetch('/api/config/taxes').then(res => res.json())
+                fetch('/api/config/taxes').then(res => res.json()),
+                fetch('/api/config/sellers').then(res => res.json()),
+                fetch('/api/config/ticket-printers').then(res => res.json())
             ])
             setUsers(u)
             setRoles(r)
             setBranches(b)
             setImplants(i)
             setTaxes(t || [])
+            setSellers(v || [])
+            setTicketPrinters(tp || [])
         } finally {
             setLoading(false)
         }
     }
 
-    const handleOpenModal = () => {
-        if (activeTab === 'usuarios') {
-            setFormData({ name: '', email: '', password: '', roleId: roles[0]?.id || '' })
-        } else if (activeTab === 'impuestos') {
-            setFormData({ name: '', type: 'TAX', valueType: 'PERCENTAGE', value: '' })
+    const handleOpenModal = (item?: any) => {
+        if (item) {
+            setFormData({ ...item })
         } else {
-            setFormData({ code: '', name: '' })
+            if (activeTab === 'usuarios') {
+                setFormData({ name: '', email: '', password: '', roleId: roles[0]?.id || '' })
+            } else if (activeTab === 'impuestos') {
+                setFormData({ name: '', type: 'TAX', valueType: 'PERCENTAGE', value: '' })
+            } else if (activeTab === 'vendedores' || activeTab === 'tiqueteadores') {
+                setFormData({ code: '', name: '', email: '' })
+            } else {
+                setFormData({ code: '', name: '' })
+            }
         }
         setIsModalOpen(true)
     }
@@ -80,11 +95,13 @@ export default function SettingsPage() {
         const endpoint = activeTab === 'usuarios' ? '/api/config/users' :
             activeTab === 'sucursales' ? '/api/config/branches' :
                 activeTab === 'impuestos' ? '/api/config/taxes' :
-                    '/api/config/implants'
+                    activeTab === 'vendedores' ? '/api/config/sellers' :
+                        activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
+                            '/api/config/implants'
 
         try {
             const res = await fetch(endpoint, {
-                method: 'POST',
+                method: formData.id ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             })
@@ -100,6 +117,29 @@ export default function SettingsPage() {
         }
     }
 
+    const handleDelete = async (id: number) => {
+        if (!confirm(`¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.`)) return
+
+        const endpoint = activeTab === 'usuarios' ? '/api/config/users' :
+            activeTab === 'sucursales' ? '/api/config/branches' :
+                activeTab === 'impuestos' ? '/api/config/taxes' :
+                    activeTab === 'vendedores' ? '/api/config/sellers' :
+                        activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
+                            '/api/config/implants'
+
+        try {
+            const res = await fetch(`${endpoint}?id=${id}`, {
+                method: 'DELETE'
+            })
+
+            if (!res.ok) throw new Error((await res.json()).message || 'Error al eliminar')
+
+            await fetchData()
+        } catch (err: any) {
+            alert(err.message)
+        }
+    }
+
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-8 md:p-12">
             <header className="flex items-center justify-between mb-12">
@@ -112,11 +152,11 @@ export default function SettingsPage() {
                 <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    onClick={handleOpenModal}
+                    onClick={() => handleOpenModal()}
                     className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                 >
                     <Plus className="w-5 h-5" />
-                    {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : 'Nuevo Implant'}
+                    {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : 'Nuevo Implant'}
                 </motion.button>
             </header>
 
@@ -126,6 +166,8 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'sucursales'} onClick={() => setActiveTab('sucursales')} icon={<Building2 className="w-4 h-4" />} label="Sucursales" />
                 <TabButton active={activeTab === 'implants'} onClick={() => setActiveTab('implants')} icon={<Database className="w-4 h-4" />} label="Implants" />
                 <TabButton active={activeTab === 'impuestos'} onClick={() => setActiveTab('impuestos')} icon={<Tags className="w-4 h-4" />} label="Cargos e Impuestos" />
+                <TabButton active={activeTab === 'vendedores'} onClick={() => setActiveTab('vendedores')} icon={<UserCheck className="w-4 h-4" />} label="Vendedores" />
+                <TabButton active={activeTab === 'tiqueteadores'} onClick={() => setActiveTab('tiqueteadores')} icon={<Printer className="w-4 h-4" />} label="Tiqueteadores" />
             </div>
 
             {/* Content Area */}
@@ -152,6 +194,12 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Valor</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
+                                    ) : activeTab === 'vendedores' || activeTab === 'tiqueteadores' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre del {activeTab === 'vendedores' ? 'Vendedor' : 'Tiqueteador'}</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
                                     ) : (
                                         <>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
@@ -174,7 +222,10 @@ export default function SettingsPage() {
                                             </span>
                                         </td>
                                         <td className="px-8 py-6 text-right">
-                                            <button className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleOpenModal(user)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(user.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -190,16 +241,27 @@ export default function SettingsPage() {
                                             {tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : `$${tax.value.toLocaleString()}`}
                                         </td>
                                         <td className="px-8 py-6 text-right">
-                                            <button className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleOpenModal(tax)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(tax.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
-                                {(activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : []).map(item => (
+                                {(activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : []).map(item => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
-                                        <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code}</td>
-                                        <td className="px-8 py-6 text-zinc-600 dark:text-zinc-300 font-bold">{item.name}</td>
+                                        <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code || '-'}</td>
+                                        <td className="px-8 py-6">
+                                            <div className="text-zinc-600 dark:text-zinc-300 font-bold">{item.name}</div>
+                                            {(activeTab === 'vendedores' || activeTab === 'tiqueteadores') && item.email && (
+                                                <div className="text-zinc-400 text-xs flex items-center gap-1 mt-1"><Mail className="w-3 h-3" /> {item.email}</div>
+                                            )}
+                                        </td>
                                         <td className="px-8 py-6 text-right">
-                                            <button className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -225,7 +287,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">Nuevo {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -237,9 +299,9 @@ export default function SettingsPage() {
                             <form onSubmit={handleSubmit} className="p-10 space-y-6">
                                 {activeTab === 'usuarios' ? (
                                     <>
-                                        <Input label="Nombre Completo" value={formData.name} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Alex Smith" />
-                                        <Input label="Email de Acceso" value={formData.email} onChange={(v: string) => setFormData({ ...formData, email: v })} required type="email" placeholder="email@ejemplo.com" />
-                                        <Input label="Contraseña" value={formData.password} onChange={(v: string) => setFormData({ ...formData, password: v })} required type="password" placeholder="Min. 8 caracteres" />
+                                        <Input label="Nombre Completo" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Alex Smith" />
+                                        <Input label="Email de Acceso" value={formData.email || ''} onChange={(v: string) => setFormData({ ...formData, email: v })} required type="email" placeholder="email@ejemplo.com" />
+                                        <Input label="Contraseña" value={formData.password || ''} onChange={(v: string) => setFormData({ ...formData, password: v })} required={!formData.id} type="password" placeholder={formData.id ? "Dejar vacío para no cambiar" : "Min. 8 caracteres"} />
                                         <div className="space-y-2">
                                             <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Rol de Usuario</label>
                                             <select
@@ -282,6 +344,12 @@ export default function SettingsPage() {
                                             </div>
                                             <Input label="Valor" value={formData.value} onChange={(v: string) => setFormData({ ...formData, value: v })} required type="number" step="0.01" placeholder="Ej. 19" />
                                         </div>
+                                    </>
+                                ) : activeTab === 'vendedores' || activeTab === 'tiqueteadores' ? (
+                                    <>
+                                        <Input label="Código" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} placeholder="Ej. VEN-001 (Opcional)" />
+                                        <Input label="Nombre del Profesional" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder={`Ej. ${activeTab === 'vendedores' ? 'Pedro Perez' : 'Oficina Principal'}`} />
+                                        <Input label="Email de Contacto" value={formData.email || ''} onChange={(v: string) => setFormData({ ...formData, email: v })} type="email" placeholder="ejemplo@correo.com (Opcional)" />
                                     </>
                                 ) : (
                                     <>

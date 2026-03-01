@@ -35,3 +35,42 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Error creating user' }, { status: 500 })
     }
 }
+
+export async function PUT(req: NextRequest) {
+    try {
+        const body = await req.json()
+        const data: any = {
+            name: body.name,
+            email: body.email,
+            roleId: parseInt(body.roleId)
+        }
+
+        if (body.password) {
+            data.passwordHash = await bcrypt.hash(body.password, 10)
+        }
+
+        const user = await prisma.user.update({
+            where: { id: body.id },
+            data
+        })
+        return NextResponse.json(user)
+    } catch (error: any) {
+        if (error.code === 'P2002') return NextResponse.json({ message: 'El correo ya existe' }, { status: 400 })
+        return NextResponse.json({ message: 'Error updating user' }, { status: 500 })
+    }
+}
+
+export async function DELETE(req: NextRequest) {
+    try {
+        const { searchParams } = new URL(req.url)
+        const id = searchParams.get('id')
+        if (!id) return NextResponse.json({ message: 'ID is required' }, { status: 400 })
+
+        await prisma.user.delete({
+            where: { id: parseInt(id) }
+        })
+        return NextResponse.json({ message: 'User deleted successfully' })
+    } catch (error: any) {
+        return NextResponse.json({ message: 'Error deleting user', detail: error.message }, { status: 500 })
+    }
+}

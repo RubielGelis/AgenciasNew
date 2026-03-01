@@ -69,6 +69,22 @@ model Implant {
   quotations Quotation[]
 }
 
+model Seller {
+  id         Int         @id @default(autoincrement())
+  code       String?
+  name       String
+  email      String?
+  quotations Quotation[]
+}
+
+model TicketPrinter {
+  id         Int         @id @default(autoincrement())
+  code       String?
+  name       String
+  email      String?
+  quotations Quotation[]
+}
+
 model Product {
   id               Int                @id @default(autoincrement())
   type             String
@@ -89,11 +105,14 @@ model Quotation {
   hotel                Hotel                @relation(fields: [hotelId], references: [id])
   currency             String
   exchangeRate         Float
-  tiqueteador          String?
   branchId             Int
   branch               Branch               @relation(fields: [branchId], references: [id])
   implantId            Int
   implant              Implant              @relation(fields: [implantId], references: [id])
+  sellerId             Int?
+  seller               Seller?              @relation(fields: [sellerId], references: [id])
+  ticketPrinterId      Int?
+  ticketPrinter        TicketPrinter?       @relation(fields: [ticketPrinterId], references: [id])
   checkInDate          DateTime
   checkOutDate         DateTime
   nights               Int
@@ -143,6 +162,7 @@ model QuotationProductTax {
   // Guardamos un snapshot del valor al momento de cotizar para evitar que cambios futuros en el maestro alteren cotizaciones pasadas
   valueSnapshot      Float
   valueTypeSnapshot  String
+  explicitAmount     Float? // Almacena el valor monetario exacto ingresado o calculado
 }
 
 model AdditionalVariable {

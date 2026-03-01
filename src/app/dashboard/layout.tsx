@@ -16,10 +16,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     const navItems = [
         { icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard', href: '/dashboard', active: pathname === '/dashboard' },
-        { icon: <FileText className="w-5 h-5" />, label: 'Cotizaciones', href: '/dashboard/quotations', active: pathname === '/dashboard/quotations' },
+        { icon: <FileText className="w-5 h-5" />, label: 'Cotizaciones', href: '/dashboard/quotations/history', active: pathname.includes('/dashboard/quotations') },
         { icon: <PieChart className="w-5 h-5" />, label: 'Reportes', href: '/dashboard/reports', active: pathname === '/dashboard/reports' },
         { icon: <Users className="w-5 h-5" />, label: 'Clientes', href: '/dashboard/clients', active: pathname === '/dashboard/clients' },
         { icon: <ShoppingCart className="w-5 h-5" />, label: 'Proveedores', href: '/dashboard/providers', active: pathname === '/dashboard/providers' },
+        { icon: <ShoppingCart className="w-5 h-5" />, label: 'Catálogo', href: '/dashboard/products', active: pathname === '/dashboard/products' },
         { icon: <Settings className="w-5 h-5" />, label: 'Configuración', href: '/dashboard/settings', active: pathname === '/dashboard/settings' },
     ]
 

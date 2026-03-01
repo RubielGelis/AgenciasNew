@@ -71,17 +71,23 @@ export function generateQuotationPDF(data: any) {
     doc.line(140, finalY + 2, 190, finalY + 2);
 
     doc.setFontSize(10);
-    const itemsSubtotal = data.items.reduce((sum: number, item: any) => sum + (item.quantity * item.price), 0);
-    doc.text(`Subtotal Items:`, 140, finalY + 10);
-    doc.text(`$${itemsSubtotal.toLocaleString()}`, 175, finalY + 10, { align: 'right' });
 
-    doc.text(`Impuestos:`, 140, finalY + 17);
-    doc.text(`$${data.chargesAndTaxes.toLocaleString()}`, 175, finalY + 17, { align: 'right' });
+    let offsetY = 10;
+    if (data.taxSummary) {
+        Object.entries(data.taxSummary).forEach(([name, amount]: [string, any]) => {
+            doc.text(`${name}:`, 140, finalY + offsetY);
+            doc.text(`$${parseFloat(amount).toLocaleString()}`, 190, finalY + offsetY, { align: 'right' });
+            offsetY += 7;
+        });
+    } else {
+        doc.text(`Revisar Cargos...`, 140, finalY + offsetY);
+        offsetY += 7;
+    }
 
     doc.setFontSize(14);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.text(`TOTAL FINAL:`, 140, finalY + 30);
-    doc.text(`$${data.totalAmount.toLocaleString()} ${data.currency}`, 190, finalY + 30, { align: 'right' });
+    doc.text(`TOTAL FINAL:`, 140, finalY + offsetY + 5);
+    doc.text(`$${data.totalAmount?.toLocaleString() || '0'} ${data.currency || 'USD'}`, 190, finalY + offsetY + 5, { align: 'right' });
 
     // Footer
     doc.setFontSize(8);

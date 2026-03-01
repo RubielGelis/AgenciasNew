@@ -41,3 +41,14 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# Junk and temporary files
+debug_*.txt
+debug_history.*
+err.txt
+prisma.json
+response.html
+test-output.txt
+test.js
+test.ts
+ts_errors.txt
