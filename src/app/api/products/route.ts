@@ -16,12 +16,14 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
     try {
-        const { type, description, basePrice } = await req.json()
+        const { type, description, basePrice, billingConcept, serviceType } = await req.json()
         const product = await prisma.product.create({
             data: {
                 type,
                 description,
                 basePrice: parseFloat(basePrice.toString()),
+                billingConcept: billingConcept || null,
+                serviceType: serviceType || null,
             }
         })
         return NextResponse.json({ message: 'Producto creado', product })
@@ -32,13 +34,15 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
     try {
-        const { id, type, description, basePrice } = await req.json()
+        const { id, type, description, basePrice, billingConcept, serviceType } = await req.json()
         const product = await prisma.product.update({
             where: { id },
             data: {
                 type,
                 description,
                 basePrice: parseFloat(basePrice.toString()),
+                billingConcept: billingConcept || null,
+                serviceType: serviceType || null,
             }
         })
         return NextResponse.json({ message: 'Producto actualizado', product })

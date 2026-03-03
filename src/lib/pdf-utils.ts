@@ -31,9 +31,10 @@ export function generateQuotationPDF(data: any) {
     doc.line(10, 57, 50, 57);
 
     doc.setFontSize(10);
-    doc.text(`Nombre: ${data.clientName || 'N/A'}`, 10, 65);
-    doc.text(`Documento: ${data.clientDocument || 'N/A'}`, 10, 72);
-    doc.text(`Pax Principal: ${data.paxDocument || 'N/A'}`, 10, 79);
+    doc.text(`Nombre Titular: ${data.clientName || 'N/A'}`, 10, 65);
+    doc.text(`Documento Titular: ${data.clientDocument || 'N/A'}`, 10, 72);
+    doc.text(`Pasajero Principal: ${data.paxName || 'N/A'}`, 10, 79);
+    doc.text(`Documento Pax: ${data.paxDocument || 'N/A'}`, 10, 86);
 
     doc.text(`Adultos: ${data.paxAdults}`, 110, 65);
     doc.text(`Niños: ${data.paxChildren}`, 110, 72);

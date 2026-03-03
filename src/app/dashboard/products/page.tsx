@@ -12,7 +12,9 @@ import {
     Check,
     DollarSign,
     Box,
-    Edit2
+    Edit2,
+    Database,
+    Download
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -21,6 +23,8 @@ export default function ProductsPage() {
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [submitting, setSubmitting] = useState(false)
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = React.useRef<HTMLInputElement>(null)
 
     // Filters
     const [searchTerm, setSearchTerm] = useState('')
@@ -31,7 +35,9 @@ export default function ProductsPage() {
     const [formData, setFormData] = useState({
         type: 'HOTEL',
         description: '',
-        basePrice: ''
+        basePrice: '',
+        billingConcept: '',
+        serviceType: ''
     })
 
     useEffect(() => {
@@ -57,11 +63,13 @@ export default function ProductsPage() {
             setFormData({
                 type: product.type,
                 description: product.description,
-                basePrice: product.basePrice.toString()
+                basePrice: product.basePrice.toString(),
+                billingConcept: product.billingConcept || '',
+                serviceType: product.serviceType || ''
             })
         } else {
             setEditingProduct(null)
-            setFormData({ type: 'HOTEL', description: '', basePrice: '' })
+            setFormData({ type: 'HOTEL', description: '', basePrice: '', billingConcept: '', serviceType: '' })
         }
         setIsModalOpen(true)
     }
@@ -90,7 +98,7 @@ export default function ProductsPage() {
 
             await fetchProducts()
             setIsModalOpen(false)
-            setFormData({ type: 'HOTEL', description: '', basePrice: '' })
+            setFormData({ type: 'HOTEL', description: '', basePrice: '', billingConcept: '', serviceType: '' })
             setEditingProduct(null)
         } catch (error: any) {
             alert(error.message || 'Error al guardar')
@@ -103,6 +111,34 @@ export default function ProductsPage() {
         p.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.type.toLowerCase().includes(searchTerm.toLowerCase())
     )
+
+    const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setUploading(true)
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('type', 'productos')
+
+        try {
+            const res = await fetch('/api/config/bulk-upload', {
+                method: 'POST',
+                body: formData
+            })
+
+            const result = await res.json()
+            if (!res.ok) throw new Error(result.message || 'Error en la carga masiva')
+
+            alert(result.message + (result.errors ? '\nErrores:\n' + result.errors.join('\n') : ''))
+            await fetchProducts()
+        } catch (err: any) {
+            alert(err.message)
+        } finally {
+            setUploading(false)
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        }
+    }
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-8 md:p-12">
@@ -124,15 +160,44 @@ export default function ProductsPage() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
-                    <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={() => handleOpenModal()}
-                        className="px-8 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl shadow-blue-500/20 font-bold transition-all flex items-center gap-3 shrink-0"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Nuevo Servicio
-                    </motion.button>
+                    <div className="flex gap-3">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept=".xlsx, .xls, .csv"
+                            onChange={handleBulkUpload}
+                        />
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => window.open('/api/config/templates?type=productos')}
+                            className="px-6 h-14 bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all disabled:opacity-50"
+                            title="Descargar Plantilla Excel"
+                        >
+                            <Download className="w-5 h-5" />
+                            Plantilla
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                            className="px-6 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all disabled:opacity-50"
+                        >
+                            {uploading ? <Loader2 className="animate-spin w-5 h-5" /> : <Database className="w-5 h-5" />}
+                            Carga Masiva
+                        </motion.button>
+                        <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => handleOpenModal()}
+                            className="px-8 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl shadow-blue-500/20 font-bold transition-all flex items-center gap-3 shrink-0"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Nuevo Servicio
+                        </motion.button>
+                    </div>
                 </div>
             </header>
 
@@ -272,6 +337,26 @@ export default function ProductsPage() {
                                         />
                                     </div>
                                     <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-2 pl-2">Nota: Este precio base es referencial y puede alterarse en la cotización.</p>
+                                </div>
+
+                                <div className="space-y-2 group">
+                                    <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1 group-focus-within:text-blue-500 transition-colors">Concepto de Facturación</label>
+                                    <input
+                                        className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                        value={formData.billingConcept}
+                                        onChange={(e) => setFormData({ ...formData, billingConcept: e.target.value })}
+                                        placeholder="Concepto libre (opcional)"
+                                    />
+                                </div>
+
+                                <div className="space-y-2 group">
+                                    <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1 group-focus-within:text-blue-500 transition-colors">Tipo de Servicio Lib.</label>
+                                    <input
+                                        className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                        value={formData.serviceType}
+                                        onChange={(e) => setFormData({ ...formData, serviceType: e.target.value })}
+                                        placeholder="Descripción libre (opcional)"
+                                    />
                                 </div>
 
                                 <div className="flex gap-4 pt-6">

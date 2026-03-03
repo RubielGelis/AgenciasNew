@@ -10,39 +10,43 @@ import { generateQuotationPDF } from '@/lib/pdf-utils'
 
 interface QuotationFormData {
     clientId: string;
-    providerId: string;
-    hotelId: string;
     branchId: string;
     implantId: string;
-    checkIn: string;
-    checkOut: string;
     currency: string;
     exchangeRate: number;
-    paxAdults: number;
-    paxChildren: number;
-    paxDocument: string;
     sellerId: string;
     ticketPrinterId: string;
     commissionPercentage: number;
     chargesAndTaxes: number;
-    items: { productId: string; quantity: number; price: number; mainTaxId?: number; appliedTaxes: { id: number, amount: number }[] }[];
+    items: {
+        productId: string;
+        quantity: number;
+        price: number;
+        providerId: string;
+        hotelId: string;
+        checkIn: string;
+        checkOut: string;
+        paxAdults: number;
+        paxChildren: number;
+        destination: string;
+        serviceType: string;
+        reservationCode: string;
+        passengers: { name: string, document: string }[];
+        sellerCommission: number;
+        ticketPrinterCommission: number;
+        mainTaxId?: number;
+        appliedTaxes: { id: number, amount: number }[]
+    }[];
 }
 
 export default function QuotationForm({ quotationId }: { quotationId?: string }) {
     const [data, setData] = useState<any>(null)
     const [formData, setFormData] = useState<QuotationFormData>({
         clientId: '',
-        providerId: '',
-        hotelId: '',
         branchId: '',
         implantId: '',
-        checkIn: format(new Date(), 'yyyy-MM-dd'),
-        checkOut: format(new Date(Date.now() + 86400000), 'yyyy-MM-dd'),
         currency: 'USD',
         exchangeRate: 1,
-        paxAdults: 1,
-        paxChildren: 0,
-        paxDocument: '',
         sellerId: '',
         ticketPrinterId: '',
         commissionPercentage: 10,
@@ -54,8 +58,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
     const handleSave = async (e: React.FormEvent, downloadPdf = false) => {
         if (e) e.preventDefault()
-        if (!formData.clientId || !formData.providerId || !formData.hotelId || !formData.branchId || !formData.implantId || formData.items.length === 0 || formData.items.some(i => !i.productId)) {
-            alert('Por favor completa los campos requeridos (Cliente, Proveedor, Hotel, Sucursal, Implant) y asegúrate de seleccionar un producto válido en el desglose.')
+        if (!formData.clientId || !formData.branchId || formData.items.length === 0 || formData.items.some(i => !i.productId)) {
+            alert('Por favor completa los campos requeridos (Cliente, Sucursal) y asegúrate de seleccionar un producto válido en el desglose.')
             return
         }
 
@@ -93,17 +97,11 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             if (downloadPdf) {
                 // Enrich data with names for the PDF
                 const client = data.clients.find((c: any) => c.id.toString() === formData.clientId)
-                const provider = data.providers.find((p: any) => p.id.toString() === formData.providerId)
-                const hotel = provider?.hotels.find((h: any) => h.id.toString() === formData.hotelId)
-
                 const pdfData = {
                     ...formData,
                     internalNumber: result.quotation.internalNumber,
                     clientName: client?.name,
                     clientDocument: client?.document,
-                    providerName: provider?.name,
-                    hotelName: hotel?.name,
-                    nights: differenceInDays(new Date(formData.checkOut), new Date(formData.checkIn)),
                     totalAmount: total,
                     taxSummary: taxSummary,
                     items: formData.items.map(item => ({
@@ -186,22 +184,15 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                         const qData = await qRes.json()
                         setFormData({
                             clientId: qData.clientId?.toString() || '',
-                            providerId: qData.providerId?.toString() || '',
-                            hotelId: qData.hotelId?.toString() || '',
                             branchId: qData.branchId?.toString() || '',
                             implantId: qData.implantId?.toString() || '',
-                            checkIn: qData.checkInDate ? format(new Date(qData.checkInDate), 'yyyy-MM-dd') : '',
-                            checkOut: qData.checkOutDate ? format(new Date(qData.checkOutDate), 'yyyy-MM-dd') : '',
                             currency: qData.currency || 'USD',
                             exchangeRate: qData.exchangeRate,
-                            paxAdults: qData.paxAdults,
-                            paxChildren: qData.paxChildren,
-                            paxDocument: qData.paxDocument || '',
                             sellerId: qData.sellerId?.toString() || '',
                             ticketPrinterId: qData.ticketPrinterId?.toString() || '',
-                            commissionPercentage: 0,
-                            chargesAndTaxes: 0,
-                            items: qData.products.map((p: any) => {
+                            commissionPercentage: qData.commissionPercentage || 0,
+                            chargesAndTaxes: qData.chargesAndTaxes || 0,
+                            items: (qData.products || []).map((p: any) => {
                                 // Find main tax based on value equality (or arbitrary since we can't perfectly distiguish without new db column, so let's use the first one matching the value)
                                 // Actually, let's treat the first active tax equal to price * qty as main tax, or if not found, just don't set mainTaxId
                                 // But since it's hard to reliably infer `mainTaxId` from a flattened list without a `isMain` flag in DB, we'll try to find one where explicitAmount === price * quantity
@@ -214,6 +205,18 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     productId: p.productId?.toString() || '',
                                     quantity: p.quantity,
                                     price: p.price,
+                                    providerId: p.providerId?.toString() || '',
+                                    hotelId: p.hotelId?.toString() || '',
+                                    checkIn: p.checkInDate ? format(new Date(p.checkInDate), 'yyyy-MM-dd') : '',
+                                    checkOut: p.checkOutDate ? format(new Date(p.checkOutDate), 'yyyy-MM-dd') : '',
+                                    paxAdults: p.paxAdults || 1,
+                                    paxChildren: p.paxChildren || 0,
+                                    destination: p.destination || '',
+                                    serviceType: p.serviceType || '',
+                                    reservationCode: p.reservationCode || '',
+                                    passengers: Array.isArray(p.passengers) ? p.passengers : [],
+                                    sellerCommission: p.sellerCommission || 0,
+                                    ticketPrinterCommission: p.ticketPrinterCommission || 0,
                                     mainTaxId,
                                     appliedTaxes: p.appliedTaxes.map((t: any) => ({
                                         id: t.chargeAndTaxId,
@@ -226,6 +229,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 }
             } catch (err) {
                 console.error("Failed to load generic or quotation data", err);
+                setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [] })
             }
         }
         loadInitialData()
@@ -234,7 +238,13 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     const addItem = () => {
         setFormData({
             ...formData,
-            items: [...formData.items, { productId: '', quantity: 1, price: 0, appliedTaxes: [] }]
+            items: [...formData.items, {
+                productId: '', quantity: 1, price: 0,
+                providerId: '', hotelId: '', checkIn: '', checkOut: '',
+                paxAdults: 1, paxChildren: 0, destination: '', serviceType: '', reservationCode: '', passengers: [{ name: '', document: '' }],
+                sellerCommission: 0, ticketPrinterCommission: 0,
+                appliedTaxes: []
+            }]
         })
     }
 
@@ -311,7 +321,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
                                 >
                                     <option value="">Seleccionar Cliente</option>
-                                    {data.clients.map((c: any) => <option key={c.id} value={c.id}>{c.name} - {c.document}</option>)}
+                                    {data.clients.map((c: any) => <option key={c.id} value={String(c.id)}>{c.name} - {c.document}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">
@@ -322,7 +332,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     onChange={(e) => setFormData({ ...formData, sellerId: e.target.value })}
                                 >
                                     <option value="">Seleccionar Vendedor</option>
-                                    {data.sellers?.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    {data.sellers?.map((s: any) => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">
@@ -330,10 +340,10 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                 <select
                                     className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
                                     value={formData.branchId}
-                                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value, implantId: '' })}
                                 >
                                     <option value="">Sel. Sucursal</option>
-                                    {data.branches.map((b: any) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                    {data.branches.map((b: any) => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">
@@ -342,9 +352,12 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
                                     value={formData.implantId}
                                     onChange={(e) => setFormData({ ...formData, implantId: e.target.value })}
+                                    disabled={!formData.branchId}
                                 >
                                     <option value="">Sel. Implant</option>
-                                    {data.implants.map((i: any) => <option key={i.id} value={i.id}>{i.name}</option>)}
+                                    {data.implants
+                                        .filter((i: any) => i.branchId?.toString() === formData.branchId)
+                                        .map((i: any) => <option key={i.id} value={String(i.id)}>{i.name}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">
@@ -355,70 +368,13 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     onChange={(e) => setFormData({ ...formData, ticketPrinterId: e.target.value })}
                                 >
                                     <option value="">Sel. Tiqueteador</option>
-                                    {data.ticketPrinters?.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                    {data.ticketPrinters?.map((t: any) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
                                 </select>
                             </div>
                         </div>
                     </div>
 
-                    {/* Section: Provider & Hotel */}
-                    <div className="bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 dark:text-white">
-                            <Briefcase className="w-5 h-5 text-indigo-500" />
-                            Alojamiento y Proveedor
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Proveedor</label>
-                                <select
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={formData.providerId}
-                                    onChange={(e) => setFormData({ ...formData, providerId: e.target.value })}
-                                >
-                                    <option value="">Seleccionar Proveedor</option>
-                                    {data.providers.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Hotel</label>
-                                <select
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={formData.hotelId}
-                                    onChange={(e) => setFormData({ ...formData, hotelId: e.target.value })}
-                                    disabled={!formData.providerId}
-                                >
-                                    <option value="">Seleccionar Hotel</option>
-                                    {data.providers.find((p: any) => p.id.toString() === formData.providerId)?.hotels.map((h: any) => (
-                                        <option key={h.id} value={h.id}>{h.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Check-in</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
-                                    <input
-                                        type="date"
-                                        className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl pl-10 pr-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={formData.checkIn}
-                                        onChange={(e) => setFormData({ ...formData, checkIn: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Check-out</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
-                                    <input
-                                        type="date"
-                                        className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl pl-10 pr-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
-                                        value={formData.checkOut}
-                                        onChange={(e) => setFormData({ ...formData, checkOut: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+
 
                     {/* Section: Products Grid */}
                     <div className="bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
@@ -468,7 +424,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 }}
                                             >
                                                 <option value="">Seleccionar</option>
-                                                {data.products.map((p: any) => <option key={p.id} value={p.id}>{p.description} (${p.basePrice})</option>)}
+                                                {(data.products || []).map((p: any) => <option key={p.id} value={String(p.id)}>{p.description} (${p.basePrice})</option>)}
                                             </select>
                                         </div>
                                         <div className="col-span-4 md:col-span-2 space-y-1">
@@ -486,10 +442,10 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                             <select
                                                 className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500"
                                                 value={item.mainTaxId || ''}
-                                                onChange={(e) => updateItem(index, 'mainTaxId', parseInt(e.target.value))}
+                                                onChange={(e) => updateItem(index, 'mainTaxId', e.target.value ? parseInt(e.target.value) : undefined)}
                                             >
                                                 <option value="">Selecciona Master...</option>
-                                                {data.taxes.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                                {(data.taxes || []).map((t: any) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
                                             </select>
                                         </div>
                                         <div className="col-span-10 md:col-span-2 space-y-1">
@@ -512,6 +468,127 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                             >
                                                 <Trash2 className="w-5 h-5" />
                                             </button>
+                                        </div>
+
+                                        {/* Per-Product Details Row */}
+                                        <div className="col-span-12 mt-2 pt-4 border-t border-zinc-200 dark:border-zinc-700/50">
+                                            <p className="text-[10px] uppercase font-bold text-zinc-400 mb-3">Detalles de Proveedor y Pasajero</p>
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Proveedor</label>
+                                                    <select
+                                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs"
+                                                        value={item.providerId}
+                                                        onChange={(e) => updateItem(index, 'providerId', e.target.value)}
+                                                    >
+                                                        <option value="">Sel. Proveedor</option>
+                                                        {data.providers.map((p: any) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Hotel</label>
+                                                    <select
+                                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs"
+                                                        value={item.hotelId}
+                                                        onChange={(e) => updateItem(index, 'hotelId', e.target.value)}
+                                                        disabled={!item.providerId}
+                                                    >
+                                                        <option value="">Sel. Hotel</option>
+                                                        {(data.providers.find((p: any) => p.id.toString() === item.providerId)?.hotels || []).map((h: any) => (
+                                                            <option key={h.id} value={String(h.id)}>{h.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Check-In</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs p-1"
+                                                        value={item.checkIn}
+                                                        onChange={(e) => updateItem(index, 'checkIn', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Check-Out</label>
+                                                    <input
+                                                        type="date"
+                                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs p-1"
+                                                        value={item.checkOut}
+                                                        onChange={(e) => updateItem(index, 'checkOut', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Adultos</label>
+                                                    <input type="number" min="1" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={item.paxAdults} onChange={(e) => updateItem(index, 'paxAdults', parseInt(e.target.value))} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Niños</label>
+                                                    <input type="number" min="0" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={item.paxChildren} onChange={(e) => updateItem(index, 'paxChildren', parseInt(e.target.value))} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Destino</label>
+                                                    <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={item.destination} onChange={(e) => updateItem(index, 'destination', e.target.value)} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Servicio / Tipo</label>
+                                                    <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={item.serviceType} onChange={(e) => updateItem(index, 'serviceType', e.target.value)} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Reservación</label>
+                                                    <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={item.reservationCode} onChange={(e) => updateItem(index, 'reservationCode', e.target.value)} />
+                                                </div>
+                                            </div>
+
+                                            {/* Dynamic Passengers Array */}
+                                            <div className="mt-4 space-y-2">
+                                                <p className="text-[10px] uppercase font-bold text-zinc-400 flex justify-between items-center">
+                                                    Detalle de Pasajeros
+                                                    <button type="button" onClick={() => {
+                                                        const p = [...(item.passengers || [])];
+                                                        p.push({ name: '', document: '' });
+                                                        updateItem(index, 'passengers', p);
+                                                    }} className="text-blue-500 font-medium hover:underline lowercase text-xs flex items-center gap-1">+ agregar pasajero</button>
+                                                </p>
+                                                {(item.passengers || []).map((pax, pIdx) => (
+                                                    <div key={pIdx} className="flex gap-2">
+                                                        <input type="text" placeholder="Nombre" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={pax.name} onChange={(e) => {
+                                                            const newPass = [...item.passengers];
+                                                            newPass[pIdx] = { ...pax, name: e.target.value };
+                                                            updateItem(index, 'passengers', newPass);
+                                                        }} />
+                                                        <input type="text" placeholder="Documento" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={pax.document} onChange={(e) => {
+                                                            const newPass = [...item.passengers];
+                                                            newPass[pIdx] = { ...pax, document: e.target.value };
+                                                            updateItem(index, 'passengers', newPass);
+                                                        }} />
+                                                        <button type="button" onClick={() => {
+                                                            const newPass = item.passengers.filter((_, idx) => idx !== pIdx);
+                                                            updateItem(index, 'passengers', newPass);
+                                                        }} className="text-red-400 p-2 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Com. Vend. ($)</label>
+                                                    <input
+                                                        type="number"
+                                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold"
+                                                        value={item.sellerCommission}
+                                                        onChange={(e) => updateItem(index, 'sellerCommission', parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Com. Tiq. ($)</label>
+                                                    <input
+                                                        type="number"
+                                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold"
+                                                        value={item.ticketPrinterCommission}
+                                                        onChange={(e) => updateItem(index, 'ticketPrinterCommission', parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
 
                                         {/* Product Taxes Row */}
@@ -603,54 +680,6 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
                 {/* Right Column: Pricing & Guests */}
                 <div className="space-y-8">
-                    {/* Guests */}
-                    <div className="bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 dark:text-white">
-                            <Users className="w-5 h-5 text-orange-500" />
-                            Pasajeros
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Adultos</label>
-                                <div className="relative">
-                                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 w-4 h-4" />
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        className="w-full h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl pl-9 pr-3 border border-zinc-200 dark:border-zinc-700 outline-none"
-                                        value={formData.paxAdults}
-                                        onChange={(e) => setFormData({ ...formData, paxAdults: parseInt(e.target.value) })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Niños</label>
-                                <div className="relative">
-                                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 w-4 h-4" />
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        className="w-full h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl pl-9 pr-3 border border-zinc-200 dark:border-zinc-700 outline-none"
-                                        value={formData.paxChildren}
-                                        onChange={(e) => setFormData({ ...formData, paxChildren: parseInt(e.target.value) })}
-                                    />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Documento (Pax 1)</label>
-                                <div className="relative">
-                                    <input
-                                        type="text"
-                                        className="w-full h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-3 border border-zinc-200 dark:border-zinc-700 outline-none"
-                                        placeholder="ID Pasajero"
-                                        value={formData.paxDocument}
-                                        onChange={(e) => setFormData({ ...formData, paxDocument: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Pricing & Summary */}
                     <div className="bg-zinc-900 text-white p-8 rounded-3xl shadow-xl shadow-zinc-900/40 space-y-8 relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-10 bg-blue-600/10 blur-[60px] rounded-full" />
@@ -680,6 +709,15 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                         className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right"
                                         value={formData.exchangeRate}
                                         onChange={(e) => setFormData({ ...formData, exchangeRate: parseFloat(e.target.value) })}
+                                    />
+                                </div>
+                                <div className="space-y-1 flex-1">
+                                    <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Comisión (%)</label>
+                                    <input
+                                        type="number"
+                                        className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right"
+                                        value={formData.commissionPercentage}
+                                        onChange={(e) => setFormData({ ...formData, commissionPercentage: parseFloat(e.target.value) || 0 })}
                                     />
                                 </div>
                             </div>
@@ -715,6 +753,6 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                     </div>
                 </div>
             </div>
-        </form>
+        </form >
     )
 }

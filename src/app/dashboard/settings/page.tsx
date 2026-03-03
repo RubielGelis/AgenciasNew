@@ -19,17 +19,21 @@ import {
     Check,
     UserCheck,
     Printer,
-    Edit2
+    Edit2,
+    Download,
+    Hotel as HotelIcon
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores';
+type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'hoteles';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [submitting, setSubmitting] = useState(false)
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = React.useRef<HTMLInputElement>(null)
 
     // Data states
     const [users, setUsers] = useState<any[]>([])
@@ -39,6 +43,8 @@ export default function SettingsPage() {
     const [taxes, setTaxes] = useState<any[]>([])
     const [sellers, setSellers] = useState<any[]>([])
     const [ticketPrinters, setTicketPrinters] = useState<any[]>([])
+    const [hotels, setHotels] = useState<any[]>([])
+    const [providers, setProviders] = useState<any[]>([])
 
     // Form states
     const [formData, setFormData] = useState<any>({})
@@ -50,14 +56,16 @@ export default function SettingsPage() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [u, r, b, i, t, v, tp] = await Promise.all([
+            const [u, r, b, i, t, v, tp, h, provs] = await Promise.all([
                 fetch('/api/config/users').then(res => res.json()),
                 fetch('/api/config/roles').then(res => res.json()),
                 fetch('/api/config/branches').then(res => res.json()),
                 fetch('/api/config/implants').then(res => res.json()),
                 fetch('/api/config/taxes').then(res => res.json()),
                 fetch('/api/config/sellers').then(res => res.json()),
-                fetch('/api/config/ticket-printers').then(res => res.json())
+                fetch('/api/config/ticket-printers').then(res => res.json()),
+                fetch('/api/config/hotels').then(res => res.json()),
+                fetch('/api/providers').then(res => res.json())
             ])
             setUsers(u)
             setRoles(r)
@@ -66,6 +74,8 @@ export default function SettingsPage() {
             setTaxes(t || [])
             setSellers(v || [])
             setTicketPrinters(tp || [])
+            setHotels(h || [])
+            setProviders(provs || [])
         } finally {
             setLoading(false)
         }
@@ -81,6 +91,8 @@ export default function SettingsPage() {
                 setFormData({ name: '', type: 'TAX', valueType: 'PERCENTAGE', value: '' })
             } else if (activeTab === 'vendedores' || activeTab === 'tiqueteadores') {
                 setFormData({ code: '', name: '', email: '' })
+            } else if (activeTab === 'hoteles') {
+                setFormData({ name: '', category: '', location: '', providerId: '' })
             } else {
                 setFormData({ code: '', name: '' })
             }
@@ -96,8 +108,9 @@ export default function SettingsPage() {
             activeTab === 'sucursales' ? '/api/config/branches' :
                 activeTab === 'impuestos' ? '/api/config/taxes' :
                     activeTab === 'vendedores' ? '/api/config/sellers' :
-                        activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
-                            '/api/config/implants'
+                        activeTab === 'hoteles' ? '/api/config/hotels' :
+                            activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
+                                '/api/config/implants'
 
         try {
             const res = await fetch(endpoint, {
@@ -125,7 +138,8 @@ export default function SettingsPage() {
                 activeTab === 'impuestos' ? '/api/config/taxes' :
                     activeTab === 'vendedores' ? '/api/config/sellers' :
                         activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
-                            '/api/config/implants'
+                            activeTab === 'hoteles' ? '/api/config/hotels' :
+                                '/api/config/implants'
 
         try {
             const res = await fetch(`${endpoint}?id=${id}`, {
@@ -140,6 +154,34 @@ export default function SettingsPage() {
         }
     }
 
+    const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setUploading(true)
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('type', activeTab)
+
+        try {
+            const res = await fetch('/api/config/bulk-upload', {
+                method: 'POST',
+                body: formData
+            })
+
+            const result = await res.json()
+            if (!res.ok) throw new Error(result.message || 'Error en la carga masiva')
+
+            alert(result.message + (result.errors ? '\nErrores:\n' + result.errors.join('\n') : ''))
+            await fetchData()
+        } catch (err: any) {
+            alert(err.message)
+        } finally {
+            setUploading(false)
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        }
+    }
+
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-8 md:p-12">
             <header className="flex items-center justify-between mb-12">
@@ -149,15 +191,45 @@ export default function SettingsPage() {
                     </h1>
                     <p className="text-zinc-500 dark:text-zinc-400 font-medium font-outfit">Control de acceso, sucursales y parámetros operativos</p>
                 </div>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleOpenModal()}
-                    className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
-                >
-                    <Plus className="w-5 h-5" />
-                    {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : 'Nuevo Implant'}
-                </motion.button>
+                <div className="flex gap-3">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept=".xlsx, .xls, .csv"
+                        onChange={handleBulkUpload}
+                    />
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => window.open(`/api/config/templates?type=${activeTab}`)}
+                        disabled={false}
+                        className="px-6 h-14 bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all disabled:opacity-50"
+                        title="Descargar Plantilla Excel"
+                    >
+                        <Download className="w-5 h-5" />
+                        Plantilla
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="px-6 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all disabled:opacity-50"
+                    >
+                        {uploading ? <Loader2 className="animate-spin w-5 h-5" /> : <Database className="w-5 h-5" />}
+                        Carga Masiva
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleOpenModal()}
+                        className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
+                    >
+                        <Plus className="w-5 h-5" />
+                        {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'hoteles' ? 'Nuevo Hotel' : 'Nuevo Implant'}
+                    </motion.button>
+                </div>
             </header>
 
             {/* Tabs Layout */}
@@ -168,6 +240,7 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'impuestos'} onClick={() => setActiveTab('impuestos')} icon={<Tags className="w-4 h-4" />} label="Cargos e Impuestos" />
                 <TabButton active={activeTab === 'vendedores'} onClick={() => setActiveTab('vendedores')} icon={<UserCheck className="w-4 h-4" />} label="Vendedores" />
                 <TabButton active={activeTab === 'tiqueteadores'} onClick={() => setActiveTab('tiqueteadores')} icon={<Printer className="w-4 h-4" />} label="Tiqueteadores" />
+                <TabButton active={activeTab === 'hoteles'} onClick={() => setActiveTab('hoteles')} icon={<HotelIcon className="w-4 h-4" />} label="Hoteles" />
             </div>
 
             {/* Content Area */}
@@ -200,10 +273,18 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre del {activeTab === 'vendedores' ? 'Vendedor' : 'Tiqueteador'}</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
+                                    ) : activeTab === 'hoteles' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Hotel</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Proveedor</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Categoría</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
                                     ) : (
                                         <>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Descripción</th>
+                                            {activeTab === 'implants' && <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Sucursal</th>}
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     )}
@@ -248,7 +329,26 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {(activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : []).map(item => (
+                                {activeTab === 'hoteles' && hotels.map(hotel => (
+                                    <tr key={hotel.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{hotel.name}</td>
+                                        <td className="px-8 py-6 font-medium text-zinc-600 dark:text-zinc-300">
+                                            {hotel.provider?.name || <span className="text-zinc-400 text-xs italic">Sin proveedor</span>}
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 text-[10px] font-black rounded-lg uppercase tracking-wider border border-amber-100 dark:border-amber-900/30">
+                                                {hotel.category || '-'}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleOpenModal(hotel)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(hotel.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : []) || []).map(item => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code || '-'}</td>
                                         <td className="px-8 py-6">
@@ -257,6 +357,15 @@ export default function SettingsPage() {
                                                 <div className="text-zinc-400 text-xs flex items-center gap-1 mt-1"><Mail className="w-3 h-3" /> {item.email}</div>
                                             )}
                                         </td>
+                                        {activeTab === 'implants' && (
+                                            <td className="px-8 py-6">
+                                                {item.branch ? (
+                                                    <span className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10px] font-black rounded-lg uppercase tracking-wider">
+                                                        {item.branch.name}
+                                                    </span>
+                                                ) : <span className="text-zinc-400 text-xs italic">No asignada</span>}
+                                            </td>
+                                        )}
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
@@ -351,10 +460,43 @@ export default function SettingsPage() {
                                         <Input label="Nombre del Profesional" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder={`Ej. ${activeTab === 'vendedores' ? 'Pedro Perez' : 'Oficina Principal'}`} />
                                         <Input label="Email de Contacto" value={formData.email || ''} onChange={(v: string) => setFormData({ ...formData, email: v })} type="email" placeholder="ejemplo@correo.com (Opcional)" />
                                     </>
+                                ) : activeTab === 'hoteles' ? (
+                                    <>
+                                        <Input label="Nombre del Hotel" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Decameron San Luis" />
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <Input label="Estrellas/Cat." value={formData.category || ''} onChange={(v: string) => setFormData({ ...formData, category: v })} placeholder="Ej. 4*" />
+                                            <Input label="Ubicación" value={formData.location || ''} onChange={(v: string) => setFormData({ ...formData, location: v })} placeholder="Ej. San Andrés, Colombia" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Proveedor / Operador</label>
+                                            <select
+                                                className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                value={formData.providerId || ''}
+                                                onChange={(e) => setFormData({ ...formData, providerId: e.target.value })}
+                                                required
+                                            >
+                                                <option value="">Seleccionar Proveedor</option>
+                                                {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                            </select>
+                                        </div>
+                                    </>
                                 ) : (
                                     <>
                                         <Input label="Código Único" value={formData.code} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. BOG-01" />
                                         <Input label="Nombre / Descripción" value={formData.name} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Sede Norte Bogotá" />
+                                        {activeTab === 'implants' && (
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Sucursal Asociada</label>
+                                                <select
+                                                    className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                    value={formData.branchId || ''}
+                                                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                                >
+                                                    <option value="">Seleccionar Sucursal</option>
+                                                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                                </select>
+                                            </div>
+                                        )}
                                     </>
                                 )}
 

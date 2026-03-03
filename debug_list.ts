@@ -1,9 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/prisma'
+import prisma from './src/lib/prisma'
 
-export const dynamic = 'force-dynamic'
-
-export async function GET() {
+async function main() {
     try {
         const quotations = await prisma.quotation.findMany({
             include: {
@@ -20,10 +17,9 @@ export async function GET() {
                 date: 'desc'
             }
         })
-
-        return NextResponse.json(quotations)
-    } catch (error: any) {
-        console.error('Error fetching quotations:', error)
-        return NextResponse.json({ message: 'Error al obtener las cotizaciones', details: error.message }, { status: 500 })
+        console.log("Success! Fetched", quotations.length);
+    } catch (error) {
+        console.error("PRISMA ERROR:", error);
     }
 }
+main()

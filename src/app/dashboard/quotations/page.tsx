@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Plus, Filter, FileText, Download, Trash2, Eye, MoreVertical, FileDown } from 'lucide-react'
+import { Search, Plus, Filter, FileText, Download, Trash2, Eye, Edit2, MoreVertical, FileDown } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { generateQuotationPDF } from '@/lib/pdf-utils'
@@ -10,13 +10,20 @@ import { generateQuotationPDF } from '@/lib/pdf-utils'
 export default function QuotationsListPage() {
     const [quotations, setQuotations] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState('')
     const router = useRouter()
 
     useEffect(() => {
         fetch('/api/quotations/list')
             .then(res => res.json())
             .then(data => {
-                setQuotations(data)
+                if (Array.isArray(data)) {
+                    setQuotations(data)
+                } else {
+                    console.error("API returned error or non-array:", data)
+                    setQuotations([])
+                    alert("Error cargando cotizaciones: " + (data?.details || data?.message || "Desconocido"))
+                }
                 setLoading(false)
             })
             .catch(err => {
@@ -28,17 +35,24 @@ export default function QuotationsListPage() {
     const handleDownloadPdf = (q: any) => {
         // We need to fetch full data for the PDF or ensure the list has enough
         // For now, let's assume the list has basic info or mock enrichment
+        const firstProd = q.products && q.products.length > 0 ? q.products[0] : null;
+
         const pdfData = {
             ...q,
-            clientName: q.client.name,
-            clientDocument: q.client.document,
-            providerName: q.provider.name,
-            hotelName: q.hotel.name,
-            checkIn: format(new Date(q.checkInDate), 'yyyy-MM-dd'),
-            checkOut: format(new Date(q.checkOutDate), 'yyyy-MM-dd'),
-            items: q.products.map((p: any) => ({
+            clientName: q.client?.name || 'Cliente sin nombre',
+            clientDocument: q.client?.document || '',
+            providerName: firstProd?.provider?.name || 'Varios/Ninguno',
+            hotelName: firstProd?.hotel?.name || 'Varios/Ninguno',
+            checkIn: firstProd?.checkInDate ? format(new Date(firstProd.checkInDate), 'yyyy-MM-dd') : '',
+            checkOut: firstProd?.checkOutDate ? format(new Date(firstProd.checkOutDate), 'yyyy-MM-dd') : '',
+            paxName: firstProd?.passengers?.[0]?.name || 'N/A',
+            paxDocument: firstProd?.passengers?.[0]?.document || 'N/A',
+            paxAdults: firstProd?.paxAdults || 1,
+            paxChildren: firstProd?.paxChildren || 0,
+            nights: firstProd?.nights || 0,
+            items: (q.products || []).map((p: any) => ({
                 ...p,
-                productDescription: p.product.description
+                productDescription: p.product?.description || ''
             }))
         }
         generateQuotationPDF(pdfData)
@@ -70,6 +84,8 @@ export default function QuotationsListPage() {
                         type="text"
                         placeholder="Buscar por cliente, número o hotel..."
                         className="w-full h-12 pl-12 pr-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
                 <button className="h-12 px-6 flex items-center gap-2 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-zinc-600 dark:text-zinc-400 font-bold hover:bg-zinc-50 transition-all">
@@ -95,41 +111,59 @@ export default function QuotationsListPage() {
                         ) : quotations.length === 0 ? (
                             <tr><td colSpan={5} className="p-20 text-center text-zinc-500 font-medium">No se encontraron cotizaciones.</td></tr>
                         ) : (
-                            quotations.map((q) => (
-                                <tr key={q.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
-                                    <td className="px-6 py-4">
-                                        <div className="font-bold text-blue-600">{q.internalNumber}</div>
-                                        <div className="text-[10px] text-zinc-400 mt-0.5">{format(new Date(q.date), 'dd MMM, yyyy')}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="font-bold text-zinc-900 dark:text-white">{q.client.name}</div>
-                                        <div className="text-xs text-zinc-400">{q.hotel.name}</div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                                            {format(new Date(q.checkInDate), 'dd/MM/yy')} - {format(new Date(q.checkOutDate), 'dd/MM/yy')}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="font-black text-zinc-900 dark:text-white">
-                                            ${q.totalAmount.toLocaleString()} <span className="text-[10px] text-zinc-500 uppercase">{q.currency}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => handleDownloadPdf(q)}
-                                                className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all"
-                                            >
-                                                <FileDown className="w-5 h-5" />
-                                            </button>
-                                            <button className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all">
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
+                            quotations.filter(q => {
+                                const firstProd = q.products?.[0];
+                                const firstPaxName = firstProd?.passengers && Array.isArray(firstProd.passengers) && firstProd.passengers.length > 0 ? firstProd.passengers[0].name : '';
+                                return q.internalNumber.toLowerCase().includes(search.toLowerCase()) ||
+                                    (q.client?.name || '').toLowerCase().includes(search.toLowerCase()) ||
+                                    (firstPaxName && firstPaxName.toLowerCase().includes(search.toLowerCase())) ||
+                                    (firstProd?.hotel?.name && firstProd.hotel.name.toLowerCase().includes(search.toLowerCase()))
+                            }).map((q) => {
+                                const firstProd = q.products?.[0];
+                                return (
+                                    <tr key={q.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
+                                        <td className="px-6 py-4">
+                                            <div className="font-bold text-blue-600">{q.internalNumber}</div>
+                                            <div className="text-[10px] text-zinc-400 mt-0.5">{format(new Date(q.date), 'dd MMM, yyyy')}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="font-bold text-zinc-900 dark:text-white">{q.client?.name}</div>
+                                            <div className="text-[10px] text-zinc-500 font-medium">Pax: {(firstProd?.passengers && Array.isArray(firstProd.passengers) && firstProd.passengers.length > 0) ? firstProd.passengers[0].name : 'Mismo titular'}</div>
+                                            <div className="text-xs text-zinc-400 mt-1">{firstProd?.hotel?.name || 'Varios/Ninguno'}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                                                {firstProd?.checkInDate ? format(new Date(firstProd.checkInDate), 'dd/MM/yy') : '-'} - {firstProd?.checkOutDate ? format(new Date(firstProd.checkOutDate), 'dd/MM/yy') : '-'}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="font-black text-zinc-900 dark:text-white">
+                                                ${q.totalAmount.toLocaleString()} <span className="text-[10px] text-zinc-500 uppercase">{q.currency}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => handleDownloadPdf(q)}
+                                                    className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all"
+                                                >
+                                                    <FileDown className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => router.push(`/dashboard/quotations/${q.id}/edit`)}
+                                                    className="p-2 text-zinc-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-all"
+                                                    title="Editar Cotización"
+                                                >
+                                                    <Edit2 className="w-5 h-5" />
+                                                </button>
+                                                <button className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all">
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )
+                            })
                         )}
                     </tbody>
                 </table>

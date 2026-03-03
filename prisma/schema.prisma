@@ -23,6 +23,8 @@ model User {
   name         String
   email        String   @unique
   passwordHash String
+  resetPasswordToken   String?  @unique
+  resetPasswordExpires DateTime?
   roleId       Int
   role         Role     @relation(fields: [roleId], references: [id])
 }
@@ -42,7 +44,7 @@ model Provider {
   contactInfo      String?
   commissionConfig Json?
   hotels           Hotel[]
-  quotations       Quotation[]
+  quotationProducts QuotationProduct[]
 }
 
 model Hotel {
@@ -52,7 +54,7 @@ model Hotel {
   category   String?
   providerId Int
   provider   Provider    @relation(fields: [providerId], references: [id])
-  quotations Quotation[]
+  quotationProducts QuotationProduct[]
 }
 
 model Branch {
@@ -60,18 +62,21 @@ model Branch {
   code       String      @unique
   name       String
   quotations Quotation[]
+  implants   Implant[]
 }
 
 model Implant {
   id         Int         @id @default(autoincrement())
   code       String      @unique
   name       String
+  branchId   Int? // Opcional por ahora para no romper datos existentes
+  branch     Branch?     @relation(fields: [branchId], references: [id])
   quotations Quotation[]
 }
 
 model Seller {
   id         Int         @id @default(autoincrement())
-  code       String?
+  code       String?     @unique
   name       String
   email      String?
   quotations Quotation[]
@@ -79,7 +84,7 @@ model Seller {
 
 model TicketPrinter {
   id         Int         @id @default(autoincrement())
-  code       String?
+  code       String?     @unique
   name       String
   email      String?
   quotations Quotation[]
@@ -90,6 +95,8 @@ model Product {
   type             String
   description      String
   basePrice        Float
+  billingConcept   String? // Concepto de facturación libre
+  serviceType      String? // Tipo de servicio libre
   quotationProducts QuotationProduct[]
 }
 
@@ -99,10 +106,6 @@ model Quotation {
   date                 DateTime             @default(now())
   clientId             Int
   client               Client               @relation(fields: [clientId], references: [id])
-  providerId           Int
-  provider             Provider             @relation(fields: [providerId], references: [id])
-  hotelId              Int
-  hotel                Hotel                @relation(fields: [hotelId], references: [id])
   currency             String
   exchangeRate         Float
   branchId             Int
@@ -113,17 +116,8 @@ model Quotation {
   seller               Seller?              @relation(fields: [sellerId], references: [id])
   ticketPrinterId      Int?
   ticketPrinter        TicketPrinter?       @relation(fields: [ticketPrinterId], references: [id])
-  checkInDate          DateTime
-  checkOutDate         DateTime
-  nights               Int
-  paxAdults            Int
-  paxChildren          Int
-  paxDocument          String?
   baseCommissionable   Float
   commissionPercentage Float
-  serviceType          String?
-  destination          String?
-  reservationCode      String?
   chargesAndTaxes      Float
   totalAmount          Float
   products             QuotationProduct[]
@@ -138,6 +132,29 @@ model QuotationProduct {
   product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   quantity    Int
   price       Float
+
+  // Per-product passenger and provider details
+  providerId  Int?
+  provider    Provider? @relation(fields: [providerId], references: [id])
+  hotelId     Int?
+  hotel       Hotel?    @relation(fields: [hotelId], references: [id])
+  checkInDate DateTime?
+  checkOutDate DateTime?
+  nights      Int?
+  
+  // Passenger details support multiple (Json array)
+  passengers  Json? // [{ name: "...", document: "..." }]
+  paxAdults            Int?
+  paxChildren          Int?
+  
+  // Service specifics
+  serviceType          String?
+  destination          String?
+  reservationCode      String?
+
+  // Commissions specific to this product
+  sellerCommission         Float?
+  ticketPrinterCommission  Float?
 
   appliedTaxes QuotationProductTax[]
 }

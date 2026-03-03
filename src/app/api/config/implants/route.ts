@@ -5,10 +5,14 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
     try {
-        const implants = await prisma.implant.findMany({ orderBy: { name: 'asc' } })
+        const implants = await prisma.implant.findMany({
+            include: { branch: true },
+            orderBy: { name: 'asc' }
+        })
         return NextResponse.json(implants)
-    } catch (error) {
-        return NextResponse.json({ message: 'Error fetching implants' }, { status: 500 })
+    } catch (error: any) {
+        console.error('Error in implants GET', error)
+        return NextResponse.json({ message: 'Error fetching implants', detail: error.message }, { status: 500 })
     }
 }
 
@@ -18,7 +22,8 @@ export async function POST(req: NextRequest) {
         const implant = await prisma.implant.create({
             data: {
                 code: body.code,
-                name: body.name
+                name: body.name,
+                branchId: body.branchId ? parseInt(body.branchId) : null
             }
         })
         return NextResponse.json(implant)
@@ -35,7 +40,8 @@ export async function PUT(req: NextRequest) {
             where: { id: body.id },
             data: {
                 code: body.code,
-                name: body.name
+                name: body.name,
+                branchId: body.branchId ? parseInt(body.branchId) : null
             }
         })
         return NextResponse.json(implant)

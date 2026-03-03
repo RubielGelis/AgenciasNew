@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
         })
         return NextResponse.json(seller)
     } catch (error: any) {
+        if (error.code === 'P2002') return NextResponse.json({ message: 'El código ya existe' }, { status: 400 })
         return NextResponse.json({ message: 'Error creating seller' }, { status: 500 })
     }
 }
@@ -41,6 +42,7 @@ export async function PUT(req: NextRequest) {
         })
         return NextResponse.json(seller)
     } catch (error: any) {
+        if (error.code === 'P2002') return NextResponse.json({ message: 'El código ya existe' }, { status: 400 })
         return NextResponse.json({ message: 'Error updating seller' }, { status: 500 })
     }
 }

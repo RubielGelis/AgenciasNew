@@ -9,7 +9,7 @@ export async function GET() {
             prisma.client.findMany({ select: { id: true, name: true, document: true } }),
             prisma.provider.findMany({ include: { hotels: true } }),
             prisma.branch.findMany(),
-            prisma.implant.findMany(),
+            prisma.implant.findMany({ select: { id: true, name: true, branchId: true } }),
             prisma.product.findMany(),
             prisma.chargeAndTax.findMany(),
             prisma.seller.findMany(),

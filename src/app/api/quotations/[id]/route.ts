@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
     try {
         const { id: paramId } = await context.params
@@ -37,9 +39,8 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
 
         const body = await request.json()
         const {
-            clientId, providerId, hotelId, branchId, implantId,
-            checkIn, checkOut, currency, exchangeRate,
-            paxAdults, paxChildren, paxDocument,
+            clientId, branchId, implantId,
+            currency, exchangeRate,
             items, totalAmount,
             sellerId, ticketPrinterId
         } = body
@@ -69,10 +70,27 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
                 }
             }).filter(Boolean)
 
+            const nights = (item.checkIn && item.checkOut)
+                ? Math.max(1, Math.ceil((new Date(item.checkOut).getTime() - new Date(item.checkIn).getTime()) / (1000 * 60 * 60 * 24)))
+                : null;
+
             return {
                 productId: parseInt(item.productId),
                 quantity: parseInt(item.quantity),
                 price: parseFloat(item.price),
+                providerId: item.providerId ? parseInt(item.providerId) : null,
+                hotelId: item.hotelId ? parseInt(item.hotelId) : null,
+                checkInDate: item.checkIn ? new Date(item.checkIn) : null,
+                checkOutDate: item.checkOut ? new Date(item.checkOut) : null,
+                nights,
+                passengers: item.passengers || [],
+                paxAdults: item.paxAdults ? parseInt(item.paxAdults) : 0,
+                paxChildren: item.paxChildren ? parseInt(item.paxChildren) : 0,
+                serviceType: item.serviceType || null,
+                destination: item.destination || null,
+                reservationCode: item.reservationCode || null,
+                sellerCommission: item.sellerCommission ? parseFloat(item.sellerCommission) : null,
+                ticketPrinterCommission: item.ticketPrinterCommission ? parseFloat(item.ticketPrinterCommission) : null,
                 appliedTaxes: taxesToApply.length > 0 ? {
                     create: taxesToApply
                 } : undefined
@@ -84,17 +102,10 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
             where: { id },
             data: {
                 clientId: parseInt(clientId),
-                providerId: parseInt(providerId),
-                hotelId: parseInt(hotelId),
                 branchId: parseInt(branchId),
                 implantId: parseInt(implantId),
-                checkInDate: new Date(checkIn),
-                checkOutDate: new Date(checkOut),
                 currency,
                 exchangeRate: parseFloat(exchangeRate),
-                paxAdults: parseInt(paxAdults),
-                paxChildren: parseInt(paxChildren),
-                paxDocument,
                 sellerId: sellerId ? parseInt(sellerId) : null,
                 ticketPrinterId: ticketPrinterId ? parseInt(ticketPrinterId) : null,
                 totalAmount: parseFloat(totalAmount),

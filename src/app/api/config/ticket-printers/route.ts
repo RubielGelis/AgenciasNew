@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
         })
         return NextResponse.json(tp)
     } catch (error: any) {
+        if (error.code === 'P2002') return NextResponse.json({ message: 'El código ya existe' }, { status: 400 })
         return NextResponse.json({ message: 'Error creating ticket printer' }, { status: 500 })
     }
 }
@@ -41,6 +42,7 @@ export async function PUT(req: NextRequest) {
         })
         return NextResponse.json(tp)
     } catch (error: any) {
+        if (error.code === 'P2002') return NextResponse.json({ message: 'El código ya existe' }, { status: 400 })
         return NextResponse.json({ message: 'Error updating ticket printer' }, { status: 500 })
     }
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Plus, User, Mail, MapPin, Trash2, Edit2, Loader2, X, Check } from 'lucide-react'
+import { Search, Plus, User, Mail, MapPin, Trash2, Edit2, Loader2, X, Check, Database, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Client {
@@ -20,6 +20,8 @@ export default function ClientsPage() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [submitting, setSubmitting] = useState(false)
     const [editingClient, setEditingClient] = useState<Client | null>(null)
+    const [uploading, setUploading] = useState(false)
+    const fileInputRef = React.useRef<HTMLInputElement>(null)
 
     const [formData, setFormData] = useState({
         name: '',
@@ -102,6 +104,34 @@ export default function ClientsPage() {
         c.document.includes(search)
     )
 
+    const handleBulkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setUploading(true)
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('type', 'clientes')
+
+        try {
+            const res = await fetch('/api/config/bulk-upload', {
+                method: 'POST',
+                body: formData
+            })
+
+            const result = await res.json()
+            if (!res.ok) throw new Error(result.message || 'Error en la carga masiva')
+
+            alert(result.message + (result.errors ? '\nErrores:\n' + result.errors.join('\n') : ''))
+            await fetchClients()
+        } catch (err: any) {
+            alert(err.message)
+        } finally {
+            setUploading(false)
+            if (fileInputRef.current) fileInputRef.current.value = ''
+        }
+    }
+
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-8 md:p-12">
             <header className="flex items-center justify-between mb-12">
@@ -109,15 +139,44 @@ export default function ClientsPage() {
                     <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2">Clientes</h1>
                     <p className="text-zinc-500 dark:text-zinc-400 font-medium">Gestión de base de datos de pasajeros</p>
                 </div>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleOpenModal()}
-                    className="px-6 h-14 bg-blue-600 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-blue-500/20 font-bold"
-                >
-                    <Plus className="w-5 h-5" />
-                    Nuevo Cliente
-                </motion.button>
+                <div className="flex gap-3">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept=".xlsx, .xls, .csv"
+                        onChange={handleBulkUpload}
+                    />
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => window.open('/api/config/templates?type=clientes')}
+                        className="px-6 h-14 bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all disabled:opacity-50"
+                        title="Descargar Plantilla Excel"
+                    >
+                        <Download className="w-5 h-5" />
+                        Plantilla
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="px-6 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all disabled:opacity-50"
+                    >
+                        {uploading ? <Loader2 className="animate-spin w-5 h-5" /> : <Database className="w-5 h-5" />}
+                        Carga Masiva
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleOpenModal()}
+                        className="px-6 h-14 bg-blue-600 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-blue-500/20 font-bold"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Nuevo Cliente
+                    </motion.button>
+                </div>
             </header>
 
             {/* Search Bar */}
