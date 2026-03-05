@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown } from 'lucide-react'
+import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -35,7 +35,8 @@ interface QuotationFormData {
         sellerCommission: number;
         ticketPrinterCommission: number;
         mainTaxId?: number;
-        appliedTaxes: { id: number, amount: number }[]
+        mainTaxAmount?: number; // Manual override for main tax
+        appliedTaxes: { id?: number, name?: string, amount: number }[]
     }[];
 }
 
@@ -54,6 +55,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         items: []
     })
     const [saving, setSaving] = useState(false)
+    const [attachments, setAttachments] = useState<any[]>([])
+    const [uploadingAttachment, setUploadingAttachment] = useState(false)
     const router = useRouter()
 
     const handleSave = async (e: React.FormEvent, downloadPdf = false) => {
@@ -67,27 +70,45 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         try {
             const payload = {
                 ...formData,
-                commissionPercentage: 0,
-                chargesAndTaxes: 0,
                 totalAmount: total,
                 items: formData.items.map(item => {
-                    const taxes = [...(item.appliedTaxes || [])];
-                    if (item.mainTaxId && !taxes.find(t => t.id === item.mainTaxId)) {
-                        taxes.push({ id: item.mainTaxId, amount: item.price * item.quantity });
-                    } else if (item.mainTaxId) {
-                        const existing = taxes.find(t => t.id === item.mainTaxId);
-                        if (existing) existing.amount = item.price * item.quantity;
+                    const taxes: any[] = [];
+
+                    // Add main tax if exists
+                    if (item.mainTaxId) {
+                        const amount = item.mainTaxAmount !== undefined ? item.mainTaxAmount : (item.price * item.quantity);
+                        taxes.push({ chargeAndTaxId: item.mainTaxId, explicitAmount: amount });
                     }
-                    return { ...item, appliedTaxes: taxes };
+
+                    // Add secondary taxes
+                    (item.appliedTaxes || []).forEach(t => {
+                        if (t.id) {
+                            taxes.push({ chargeAndTaxId: t.id, explicitAmount: t.amount });
+                        } else {
+                            // Custom charge (we'll need to handle this in backend or just use a dummy id if not supported yet)
+                            // For now, let's only support editable master taxes as per current DB schema
+                            // If they are custom, we skip or we would need a DB change.
+                            // But usually "edit freely" means values of existing ones too.
+                        }
+                    });
+
+                    return {
+                        ...item,
+                        appliedTaxes: taxes
+                    };
                 })
             }
 
             const endpoint = quotationId ? `/api/quotations/${quotationId}` : '/api/quotations';
             const method = quotationId ? 'PUT' : 'POST';
+            const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
 
             const res = await fetch(endpoint, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Id': loggedUser.id?.toString() || ''
+                },
                 body: JSON.stringify(payload)
             })
 
@@ -122,6 +143,88 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         }
     }
 
+    const fetchAttachments = async () => {
+        if (!quotationId) return
+        try {
+            const res = await fetch(`/api/quotations/${quotationId}/attachments`)
+            if (res.ok) {
+                const data = await res.json()
+                setAttachments(data)
+            }
+        } catch (err) {
+            console.error("Error fetching attachments:", err)
+        }
+    }
+
+    const handleUploadAttachment = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file || !quotationId) return
+
+        setUploadingAttachment(true)
+        try {
+            const reader = new FileReader()
+            reader.readAsDataURL(file)
+            reader.onload = async () => {
+                const base64 = reader.result as string
+                const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                const res = await fetch(`/api/quotations/${quotationId}/attachments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': loggedUser.id?.toString() || ''
+                    },
+                    body: JSON.stringify({
+                        fileName: file.name,
+                        fileType: file.type,
+                        fileSize: file.size,
+                        fileUrl: base64
+                    })
+                })
+
+                if (res.ok) {
+                    fetchAttachments()
+                } else {
+                    const result = await res.json()
+                    alert(result.message || 'Error al cargar adjunto')
+                }
+            }
+        } catch (err) {
+            console.error(err)
+            alert('Error al procesar el archivo')
+        } finally {
+            setUploadingAttachment(false)
+            e.target.value = ''
+        }
+    }
+
+    const handleDeleteAttachment = async (id: number) => {
+        if (!confirm('¿Estás seguro de eliminar este adjunto?')) return
+        const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        try {
+            const res = await fetch(`/api/quotations/${quotationId}/attachments?attachmentId=${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-User-Id': loggedUser.id?.toString() || ''
+                }
+            })
+            if (res.ok) {
+                fetchAttachments()
+            }
+        } catch (err) {
+            console.error(err)
+            alert('Error al eliminar adjunto')
+        }
+    }
+
+    const handleDownloadAttachment = (attachment: any) => {
+        const link = document.createElement('a')
+        link.href = attachment.fileUrl
+        link.download = attachment.fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+    }
+
     // Get unique taxes that have been applied anywhere, and sum their amounts
     const taxSummary = React.useMemo(() => {
         const summary: Record<string, number> = {}
@@ -132,16 +235,16 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             if (item.mainTaxId) {
                 const master = data.taxes.find((t: any) => t.id === item.mainTaxId);
                 if (master) {
-                    summary[master.name] = (summary[master.name] || 0) + (item.price * item.quantity);
+                    const amount = item.mainTaxAmount !== undefined ? item.mainTaxAmount : (item.price * item.quantity);
+                    summary[master.name] = (summary[master.name] || 0) + amount;
                 }
             }
 
             // Include applied taxes
             (item.appliedTaxes || []).forEach(tax => {
-                const master = data.taxes.find((t: any) => t.id === tax.id);
-                if (master && item.mainTaxId !== tax.id) {
-                    summary[master.name] = (summary[master.name] || 0) + (tax.amount || 0);
-                }
+                const master = tax.id ? data.taxes.find((t: any) => t.id === tax.id) : null;
+                const name = master ? master.name : (tax.name || 'Otros');
+                summary[name] = (summary[name] || 0) + (tax.amount || 0);
             })
         });
         return summary;
@@ -179,6 +282,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 }
 
                 if (quotationId) {
+                    fetchAttachments()
                     const qRes = await fetch(`/api/quotations/${quotationId}`)
                     if (qRes.ok) {
                         const qData = await qRes.json()
@@ -437,16 +541,52 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
                                             />
                                         </div>
-                                        <div className="col-span-8 md:col-span-4 space-y-1">
-                                            <label className="text-[10px] uppercase font-bold text-zinc-400">Cargo Principal</label>
-                                            <select
-                                                className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500"
-                                                value={item.mainTaxId || ''}
-                                                onChange={(e) => updateItem(index, 'mainTaxId', e.target.value ? parseInt(e.target.value) : undefined)}
-                                            >
-                                                <option value="">Selecciona Master...</option>
-                                                {(data.taxes || []).map((t: any) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
-                                            </select>
+                                        <div className="col-span-12 md:col-span-4 space-y-1">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-[10px] uppercase font-bold text-zinc-400">Cargo Principal</label>
+                                                {item.mainTaxId && data.taxes.find((t: any) => t.id === item.mainTaxId)?.isEditable !== false && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => updateItem(index, 'mainTaxAmount', item.mainTaxAmount === undefined ? (item.price * item.quantity) : undefined)}
+                                                        className="text-[9px] text-blue-500 font-bold hover:underline"
+                                                    >
+                                                        {item.mainTaxAmount === undefined ? 'Editar Valor' : 'Usar Calc.'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <select
+                                                    className="flex-1 h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500"
+                                                    value={item.mainTaxId || ''}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value ? parseInt(e.target.value) : undefined;
+                                                        const master = data.taxes.find((t: any) => t.id === val);
+                                                        const newItems = [...formData.items];
+                                                        newItems[index] = {
+                                                            ...newItems[index],
+                                                            mainTaxId: val,
+                                                            price: master ? master.value : newItems[index].price,
+                                                            mainTaxAmount: undefined // Reset manual override when changing master
+                                                        };
+                                                        setFormData({ ...formData, items: newItems });
+                                                    }}
+                                                >
+                                                    <option value="">Selecciona Master...</option>
+                                                    {(data.taxes || []).map((t: any) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
+                                                </select>
+                                                {item.mainTaxAmount !== undefined && (
+                                                    <div className="relative w-32 animate-in slide-in-from-right-2 duration-200">
+                                                        <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-emerald-500" />
+                                                        <input
+                                                            type="number"
+                                                            className="w-full h-11 bg-emerald-50/30 dark:bg-emerald-500/10 rounded-lg pl-6 pr-2 border border-emerald-200 dark:border-emerald-500/30 outline-none text-xs font-bold text-emerald-600 dark:text-emerald-400"
+                                                            value={item.mainTaxAmount}
+                                                            onChange={(e) => updateItem(index, 'mainTaxAmount', parseFloat(e.target.value) || 0)}
+                                                            placeholder="Monto"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="col-span-10 md:col-span-2 space-y-1">
                                             <label className="text-[10px] uppercase font-bold text-zinc-400">Tarifa Unit.</label>
@@ -456,7 +596,25 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     type="number"
                                                     className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-2 border border-zinc-200 dark:border-zinc-800 outline-none text-sm font-bold"
                                                     value={item.price}
-                                                    onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
+                                                    onChange={(e) => {
+                                                        const newPrice = parseFloat(e.target.value) || 0;
+                                                        const baseValue = newPrice * item.quantity;
+                                                        const newAppliedTaxes = (item.appliedTaxes || []).map(taxApp => {
+                                                            const taxMaster = data.taxes.find((t: any) => t.id === taxApp.id);
+                                                            if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
+                                                                return { ...taxApp, amount: (baseValue * taxMaster.value) / 100 };
+                                                            }
+                                                            return taxApp;
+                                                        });
+
+                                                        const newItems = [...formData.items];
+                                                        newItems[index] = {
+                                                            ...newItems[index],
+                                                            price: newPrice,
+                                                            appliedTaxes: newAppliedTaxes
+                                                        };
+                                                        setFormData({ ...formData, items: newItems });
+                                                    }}
                                                 />
                                             </div>
                                         </div>
@@ -607,42 +765,44 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 {data.taxes.length === 0 && (
                                                     <span className="text-xs text-zinc-400 font-medium">No hay cargos maestros configurados.</span>
                                                 )}
+
+                                                {/* Render secondary taxes (Master only) */}
                                                 {data.taxes.filter((t: any) => t.id !== item.mainTaxId).map((tax: any) => {
                                                     const appliedTax = item.appliedTaxes?.find((t: any) => t.id === tax.id);
                                                     const isChecked = !!appliedTax;
+
                                                     return (
                                                         <div key={tax.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                                                            <label
-                                                                className={cn(
-                                                                    "flex items-center gap-2 cursor-pointer text-sm font-bold min-w-[200px]",
+                                                            <div className="flex items-center gap-2 min-w-[200px]">
+                                                                <label className={cn(
+                                                                    "flex items-center gap-2 cursor-pointer text-sm font-bold flex-1",
                                                                     isChecked ? "text-blue-600 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-400"
-                                                                )}
-                                                            >
-                                                                <input
-                                                                    type="checkbox"
-                                                                    className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                                                    checked={isChecked}
-                                                                    onChange={(e) => {
-                                                                        const checked = e.target.checked;
-                                                                        const currentTaxes = item.appliedTaxes || [];
-                                                                        if (checked) {
-                                                                            // Calculate initial value based on main charge
-                                                                            let initialAmount = 0;
-                                                                            const baseValue = item.price * item.quantity;
-                                                                            if (tax.valueType === 'PERCENTAGE') {
-                                                                                initialAmount = (baseValue * tax.value) / 100;
+                                                                )}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                                                        checked={isChecked}
+                                                                        onChange={(e) => {
+                                                                            const checked = e.target.checked;
+                                                                            const currentTaxes = item.appliedTaxes || [];
+                                                                            if (checked) {
+                                                                                let initialAmount = 0;
+                                                                                const baseValue = item.price * item.quantity;
+                                                                                if (tax.valueType === 'PERCENTAGE') {
+                                                                                    initialAmount = (baseValue * tax.value) / 100;
+                                                                                } else {
+                                                                                    initialAmount = tax.value * item.quantity;
+                                                                                }
+                                                                                updateItem(index, 'appliedTaxes', [...currentTaxes, { id: tax.id, amount: initialAmount }]);
                                                                             } else {
-                                                                                initialAmount = tax.value * item.quantity;
+                                                                                updateItem(index, 'appliedTaxes', currentTaxes.filter((t: any) => t.id !== tax.id));
                                                                             }
-                                                                            updateItem(index, 'appliedTaxes', [...currentTaxes, { id: tax.id, amount: initialAmount }]);
-                                                                        } else {
-                                                                            updateItem(index, 'appliedTaxes', currentTaxes.filter((t: any) => t.id !== tax.id));
-                                                                        }
-                                                                    }}
-                                                                />
-                                                                <span>{tax.name}</span>
-                                                                <span className="opacity-50 text-xs ml-auto">({tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : `$${tax.value}`})</span>
-                                                            </label>
+                                                                        }}
+                                                                    />
+                                                                    <span>{tax.name}</span>
+                                                                    <span className="opacity-50 text-[10px] ml-auto">({tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : `$${tax.value}`})</span>
+                                                                </label>
+                                                            </div>
 
                                                             {isChecked && (
                                                                 <div className="flex-1 flex flex-col md:flex-row md:items-center gap-2 border-l border-zinc-200 dark:border-zinc-700 pl-4 py-1">
@@ -652,11 +812,17 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                                         <input
                                                                             type="number"
                                                                             step="0.01"
-                                                                            className="w-full h-8 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-3 border border-zinc-200 dark:border-zinc-700 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                                                            className={cn(
+                                                                                "w-full h-8 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-3 border border-zinc-200 dark:border-zinc-700 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all",
+                                                                                tax.isEditable === false && "opacity-50 cursor-not-allowed bg-zinc-50 dark:bg-zinc-800"
+                                                                            )}
                                                                             value={appliedTax.amount}
+                                                                            disabled={tax.isEditable === false}
                                                                             onChange={(e) => {
                                                                                 const val = parseFloat(e.target.value) || 0;
-                                                                                const newTaxes = item.appliedTaxes.map((t: any) => t.id === tax.id ? { ...t, amount: val } : t);
+                                                                                const newTaxes = (item.appliedTaxes || []).map((t: any) =>
+                                                                                    t.id === tax.id ? { ...t, amount: val } : t
+                                                                                );
                                                                                 updateItem(index, 'appliedTaxes', newTaxes);
                                                                             }}
                                                                         />
@@ -751,6 +917,59 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                             </div>
                         </div>
                     </div>
+
+                    {quotationId && (
+                        <div className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm mt-8">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-sm font-bold flex items-center gap-2 dark:text-white">
+                                    <Paperclip className="w-4 h-4 text-blue-500" />
+                                    Adjuntos
+                                </h3>
+                                <label className="cursor-pointer bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-3 py-1.5 rounded-lg text-[10px] font-bold flex items-center gap-1.5 transition-all hover:bg-blue-100">
+                                    {uploadingAttachment ? <Loader2 className="animate-spin w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                                    Cargar
+                                    <input type="file" className="hidden" onChange={handleUploadAttachment} disabled={uploadingAttachment} />
+                                </label>
+                            </div>
+
+                            {attachments.length === 0 ? (
+                                <div className="text-center py-6 border border-dashed border-zinc-100 dark:border-zinc-800 rounded-2xl">
+                                    <FileText className="w-8 h-8 text-zinc-200 dark:text-zinc-800 mx-auto mb-2" />
+                                    <p className="text-zinc-400 text-[10px]">Sin documentos.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {attachments.map((att) => (
+                                        <div key={att.id} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800 group">
+                                            <div className="flex items-center gap-2 overflow-hidden flex-1">
+                                                <FileText className="w-4 h-4 text-blue-500 shrink-0" />
+                                                <div className="overflow-hidden">
+                                                    <p className="text-[11px] font-bold truncate dark:text-white" title={att.fileName}>{att.fileName}</p>
+                                                    <p className="text-[9px] text-zinc-400">{(att.fileSize / 1024).toFixed(0)} KB</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-1 ml-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDownloadAttachment(att)}
+                                                    className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md text-zinc-500 dark:text-zinc-400"
+                                                >
+                                                    <Download className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteAttachment(att.id)}
+                                                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md text-red-400"
+                                                >
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </form >

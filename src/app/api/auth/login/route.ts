@@ -5,13 +5,14 @@ import bcrypt from 'bcryptjs'
 export async function POST(req: NextRequest) {
     try {
         const { email, password } = await req.json()
+        const targetEmail = email?.toLowerCase()
 
-        if (!email || !password) {
+        if (!targetEmail || !password) {
             return NextResponse.json({ message: 'Email and password are required' }, { status: 400 })
         }
 
         const user = await prisma.user.findUnique({
-            where: { email },
+            where: { email: targetEmail },
             include: { role: true },
         })
 
@@ -39,6 +40,17 @@ export async function POST(req: NextRequest) {
 
         // (Dummy) Set a simple session cookie if needed
         // response.cookies.set('authenticated', 'true', { httpOnly: true, path: '/' })
+
+        // Log the successful login
+        import('@/lib/logger').then(({ logSystemEvent }) => {
+            logSystemEvent({
+                userId: user.id,
+                action: 'LOGIN',
+                module: 'USER',
+                description: `El usuario ${user.name} ha iniciado sesión.`,
+                metadata: { email: user.email, role: user.role.name }
+            });
+        });
 
         return response
     } catch (error) {

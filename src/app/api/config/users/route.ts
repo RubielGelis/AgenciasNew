@@ -20,6 +20,8 @@ export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
         const passwordHash = await bcrypt.hash(body.password, 10)
+        const userIdHeader = req.headers.get('X-User-Id')
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
 
         const user = await prisma.user.create({
             data: {
@@ -29,6 +31,17 @@ export async function POST(req: NextRequest) {
                 roleId: parseInt(body.roleId)
             }
         })
+
+        import('@/lib/logger').then(({ logSystemEvent }) => {
+            logSystemEvent({
+                userId: actingUserId,
+                action: 'CREATE',
+                module: 'USER',
+                description: `Usuario ${user.name} creado.`,
+                metadata: { email: user.email, roleId: user.roleId }
+            });
+        });
+
         return NextResponse.json(user)
     } catch (error: any) {
         if (error.code === 'P2002') return NextResponse.json({ message: 'El correo ya existe' }, { status: 400 })
@@ -39,6 +52,8 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json()
+        const userIdHeader = req.headers.get('X-User-Id')
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
         const data: any = {
             name: body.name,
             email: body.email,
@@ -53,6 +68,17 @@ export async function PUT(req: NextRequest) {
             where: { id: body.id },
             data
         })
+
+        import('@/lib/logger').then(({ logSystemEvent }) => {
+            logSystemEvent({
+                userId: actingUserId,
+                action: 'UPDATE',
+                module: 'USER',
+                description: `Usuario ${user.name} actualizado.`,
+                metadata: { id: user.id, email: user.email, roleId: user.roleId }
+            });
+        });
+
         return NextResponse.json(user)
     } catch (error: any) {
         if (error.code === 'P2002') return NextResponse.json({ message: 'El correo ya existe' }, { status: 400 })
@@ -64,11 +90,23 @@ export async function DELETE(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url)
         const id = searchParams.get('id')
+        const userIdHeader = req.headers.get('X-User-Id')
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
         if (!id) return NextResponse.json({ message: 'ID is required' }, { status: 400 })
 
         await prisma.user.delete({
             where: { id: parseInt(id) }
         })
+
+        import('@/lib/logger').then(({ logSystemEvent }) => {
+            logSystemEvent({
+                userId: actingUserId,
+                action: 'DELETE',
+                module: 'USER',
+                description: `Usuario con ID ${id} eliminado.`
+            });
+        });
+
         return NextResponse.json({ message: 'User deleted successfully' })
     } catch (error: any) {
         return NextResponse.json({ message: 'Error deleting user', detail: error.message }, { status: 500 })

@@ -12,6 +12,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'No se subió ningún archivo' }, { status: 400 })
         }
 
+        const userIdHeader = req.headers.get('X-User-Id')
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
+
         const buffer = await file.arrayBuffer()
         const workbook = XLSX.read(buffer, { type: 'buffer' })
         const sheetName = workbook.SheetNames[0]
@@ -140,6 +143,10 @@ export async function POST(req: NextRequest) {
                 errors.push(`Error en fila ${count + 1}: ${err.message}`)
             }
         }
+
+        import('@/lib/logger').then(({ logSystemEvent }) => {
+            logSystemEvent({ userId: actingUserId, action: 'IMPORT', module: type.toUpperCase(), description: `Importación masiva de ${count} registros en ${type}. ${errors.length} errores.`, metadata: { type, count, errors } });
+        });
 
         return NextResponse.json({
             message: `Importación completada: ${count} registros procesados`,

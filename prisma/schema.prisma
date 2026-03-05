@@ -27,6 +27,7 @@ model User {
   resetPasswordExpires DateTime?
   roleId       Int
   role         Role     @relation(fields: [roleId], references: [id])
+  logs         SystemLog[]
 }
 
 model Client {
@@ -110,8 +111,8 @@ model Quotation {
   exchangeRate         Float
   branchId             Int
   branch               Branch               @relation(fields: [branchId], references: [id])
-  implantId            Int
-  implant              Implant              @relation(fields: [implantId], references: [id])
+  implantId            Int?
+  implant              Implant?             @relation(fields: [implantId], references: [id])
   sellerId             Int?
   seller               Seller?              @relation(fields: [sellerId], references: [id])
   ticketPrinterId      Int?
@@ -122,6 +123,18 @@ model Quotation {
   totalAmount          Float
   products             QuotationProduct[]
   additionalVariables  AdditionalVariable[]
+  attachments          Attachment[]
+}
+
+model Attachment {
+  id          Int       @id @default(autoincrement())
+  quotationId Int
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  fileName    String
+  fileType    String
+  fileSize    Int
+  fileContent Bytes // Almacena el contenido binario del archivo
+  createdAt   DateTime  @default(now())
 }
 
 model QuotationProduct {
@@ -142,11 +155,11 @@ model QuotationProduct {
   checkOutDate DateTime?
   nights      Int?
   
-  // Passenger details support multiple (Json array)
-  passengers  Json? // [{ name: "...", document: "..." }]
+  // Passenger details support multiple
+  passengers  QuotationProductPassenger[]
   paxAdults            Int?
   paxChildren          Int?
-  
+
   // Service specifics
   serviceType          String?
   destination          String?
@@ -159,12 +172,24 @@ model QuotationProduct {
   appliedTaxes QuotationProductTax[]
 }
 
+model QuotationProductPassenger {
+  id                 Int              @id @default(autoincrement())
+  quotationProductId Int
+  quotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
+  name               String
+  document           String
+
+  @@map("QuotationProductPassenger")
+}
+
+
 model ChargeAndTax {
   id          Int      @id @default(autoincrement())
   name        String
   type        String   // e.g., "TAX" (Impuestos), "CHARGE" (Cargos), "COMMISSION" (Comisión)
   valueType   String   // e.g., "PERCENTAGE", "FIXED"
   value       Float
+  isEditable  Boolean  @default(true)
 
   appliedTo   QuotationProductTax[]
 }
@@ -188,4 +213,15 @@ model AdditionalVariable {
   quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
   name        String
   value       String
+}
+
+model SystemLog {
+  id          Int      @id @default(autoincrement())
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String   // LOGIN, CREATE, UPDATE, DELETE, IMPORT
+  module      String   // USER, QUOTATION, MASTER_DATA (HOTEL, PROVIDER, etc.)
+  description String   // A human-readable description of what happened
+  metadata    Json?    // Optional technical dump of the changed data or payload
+  createdAt   DateTime @default(now())
 }

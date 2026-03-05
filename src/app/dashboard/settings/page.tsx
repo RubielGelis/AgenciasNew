@@ -21,11 +21,12 @@ import {
     Printer,
     Edit2,
     Download,
-    Hotel as HotelIcon
+    Hotel as HotelIcon,
+    TerminalSquare
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'hoteles';
+type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'hoteles' | 'logs';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
@@ -45,6 +46,7 @@ export default function SettingsPage() {
     const [ticketPrinters, setTicketPrinters] = useState<any[]>([])
     const [hotels, setHotels] = useState<any[]>([])
     const [providers, setProviders] = useState<any[]>([])
+    const [logs, setLogs] = useState<any[]>([])
 
     // Form states
     const [formData, setFormData] = useState<any>({})
@@ -56,7 +58,7 @@ export default function SettingsPage() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [u, r, b, i, t, v, tp, h, provs] = await Promise.all([
+            const [u, r, b, i, t, v, tp, h, provs, systemLogs] = await Promise.all([
                 fetch('/api/config/users').then(res => res.json()),
                 fetch('/api/config/roles').then(res => res.json()),
                 fetch('/api/config/branches').then(res => res.json()),
@@ -65,7 +67,8 @@ export default function SettingsPage() {
                 fetch('/api/config/sellers').then(res => res.json()),
                 fetch('/api/config/ticket-printers').then(res => res.json()),
                 fetch('/api/config/hotels').then(res => res.json()),
-                fetch('/api/providers').then(res => res.json())
+                fetch('/api/providers').then(res => res.json()),
+                fetch('/api/config/logs').then(res => res.json())
             ])
             setUsers(u)
             setRoles(r)
@@ -76,6 +79,7 @@ export default function SettingsPage() {
             setTicketPrinters(tp || [])
             setHotels(h || [])
             setProviders(provs || [])
+            setLogs(systemLogs || [])
         } finally {
             setLoading(false)
         }
@@ -88,7 +92,7 @@ export default function SettingsPage() {
             if (activeTab === 'usuarios') {
                 setFormData({ name: '', email: '', password: '', roleId: roles[0]?.id || '' })
             } else if (activeTab === 'impuestos') {
-                setFormData({ name: '', type: 'TAX', valueType: 'PERCENTAGE', value: '' })
+                setFormData({ name: '', type: 'TAX', valueType: 'PERCENTAGE', value: '', isEditable: true })
             } else if (activeTab === 'vendedores' || activeTab === 'tiqueteadores') {
                 setFormData({ code: '', name: '', email: '' })
             } else if (activeTab === 'hoteles') {
@@ -112,10 +116,15 @@ export default function SettingsPage() {
                             activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
                                 '/api/config/implants'
 
+        const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
+
         try {
             const res = await fetch(endpoint, {
                 method: formData.id ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Id': loggedUser.id?.toString() || ''
+                },
                 body: JSON.stringify(formData)
             })
 
@@ -141,9 +150,14 @@ export default function SettingsPage() {
                             activeTab === 'hoteles' ? '/api/config/hotels' :
                                 '/api/config/implants'
 
+        const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
+
         try {
             const res = await fetch(`${endpoint}?id=${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'X-User-Id': loggedUser.id?.toString() || ''
+                }
             })
 
             if (!res.ok) throw new Error((await res.json()).message || 'Error al eliminar')
@@ -163,9 +177,14 @@ export default function SettingsPage() {
         formData.append('file', file)
         formData.append('type', activeTab)
 
+        const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
+
         try {
             const res = await fetch('/api/config/bulk-upload', {
                 method: 'POST',
+                headers: {
+                    'X-User-Id': loggedUser.id?.toString() || ''
+                },
                 body: formData
             })
 
@@ -199,41 +218,45 @@ export default function SettingsPage() {
                         accept=".xlsx, .xls, .csv"
                         onChange={handleBulkUpload}
                     />
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => window.open(`/api/config/templates?type=${activeTab}`)}
-                        disabled={false}
-                        className="px-6 h-14 bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all disabled:opacity-50"
-                        title="Descargar Plantilla Excel"
-                    >
-                        <Download className="w-5 h-5" />
-                        Plantilla
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={uploading}
-                        className="px-6 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all disabled:opacity-50"
-                    >
-                        {uploading ? <Loader2 className="animate-spin w-5 h-5" /> : <Database className="w-5 h-5" />}
-                        Carga Masiva
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => handleOpenModal()}
-                        className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
-                    >
-                        <Plus className="w-5 h-5" />
-                        {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'hoteles' ? 'Nuevo Hotel' : 'Nuevo Implant'}
-                    </motion.button>
+                    {activeTab !== 'logs' && (
+                        <>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => window.open(`/api/config/templates?type=${activeTab}`)}
+                                disabled={false}
+                                className="px-6 h-14 bg-zinc-200 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all disabled:opacity-50"
+                                title="Descargar Plantilla Excel"
+                            >
+                                <Download className="w-5 h-5" />
+                                Plantilla
+                            </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploading}
+                                className="px-6 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all disabled:opacity-50"
+                            >
+                                {uploading ? <Loader2 className="animate-spin w-5 h-5" /> : <Database className="w-5 h-5" />}
+                                Carga Masiva
+                            </motion.button>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleOpenModal()}
+                                className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
+                            >
+                                <Plus className="w-5 h-5" />
+                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'hoteles' ? 'Nuevo Hotel' : 'Nuevo Implant'}
+                            </motion.button>
+                        </>
+                    )}
                 </div>
             </header>
 
             {/* Tabs Layout */}
-            <div className="flex gap-1 p-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl mb-8 w-fit shadow-sm">
+            <div className="flex flex-wrap items-center gap-1 p-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl mb-8 shadow-sm">
                 <TabButton active={activeTab === 'usuarios'} onClick={() => setActiveTab('usuarios')} icon={<Users className="w-4 h-4" />} label="Usuarios" />
                 <TabButton active={activeTab === 'sucursales'} onClick={() => setActiveTab('sucursales')} icon={<Building2 className="w-4 h-4" />} label="Sucursales" />
                 <TabButton active={activeTab === 'implants'} onClick={() => setActiveTab('implants')} icon={<Database className="w-4 h-4" />} label="Implants" />
@@ -241,6 +264,8 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'vendedores'} onClick={() => setActiveTab('vendedores')} icon={<UserCheck className="w-4 h-4" />} label="Vendedores" />
                 <TabButton active={activeTab === 'tiqueteadores'} onClick={() => setActiveTab('tiqueteadores')} icon={<Printer className="w-4 h-4" />} label="Tiqueteadores" />
                 <TabButton active={activeTab === 'hoteles'} onClick={() => setActiveTab('hoteles')} icon={<HotelIcon className="w-4 h-4" />} label="Hoteles" />
+                <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
+                <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<TerminalSquare className="w-4 h-4" />} label="Logs del Sistema" />
             </div>
 
             {/* Content Area */}
@@ -265,6 +290,7 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre del Cargo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Tipo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Valor</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Editable</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : activeTab === 'vendedores' || activeTab === 'tiqueteadores' ? (
@@ -279,6 +305,13 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Proveedor</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Categoría</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'logs' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Fecha y Hora</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Usuario</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Acción / Módulo</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Detalle del Evento</th>
                                         </>
                                     ) : (
                                         <>
@@ -320,6 +353,16 @@ export default function SettingsPage() {
                                         </td>
                                         <td className="px-8 py-6 font-black text-emerald-600">
                                             {tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : `$${tax.value.toLocaleString()}`}
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className={cn(
+                                                "px-2 py-0.5 text-[9px] font-black rounded uppercase tracking-wider border",
+                                                tax.isEditable
+                                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-900/30"
+                                                    : "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700"
+                                            )}>
+                                                {tax.isEditable ? 'Sí' : 'No'}
+                                            </span>
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
@@ -374,6 +417,46 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
+                                {activeTab === 'logs' && logs.map(log => (
+                                    <tr key={log.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-4 whitespace-nowrap text-zinc-500 dark:text-zinc-400 text-xs font-mono">
+                                            {new Date(log.createdAt).toLocaleString()}
+                                        </td>
+                                        <td className="px-8 py-4">
+                                            {log.user ? (
+                                                <div className="font-bold text-zinc-900 dark:text-white">{log.user.name}</div>
+                                            ) : (
+                                                <div className="italic text-zinc-400">Sistema / Automático</div>
+                                            )}
+                                        </td>
+                                        <td className="px-8 py-4">
+                                            <div className="flex flex-col gap-1 items-start">
+                                                <span className={cn(
+                                                    "px-2 py-0.5 text-[10px] font-black rounded-lg uppercase tracking-wider",
+                                                    log.action === 'CREATE' ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-900/40" :
+                                                        log.action === 'UPDATE' ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:border-blue-900/40" :
+                                                            log.action === 'DELETE' ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:border-red-900/40" :
+                                                                log.action === 'LOGIN' ? "bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:border-purple-900/40" :
+                                                                    "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                                                )}>
+                                                    {log.action}
+                                                </span>
+                                                <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">{log.module}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-4">
+                                            <div className="text-zinc-700 dark:text-zinc-300 mb-1">{log.description}</div>
+                                            {log.metadata && (
+                                                <details className="mt-1">
+                                                    <summary className="text-[10px] text-zinc-400 cursor-pointer hover:text-blue-500 font-bold uppercase tracking-widest inline-flex items-center gap-1">Ver Metadata Técnica</summary>
+                                                    <pre className="mt-2 p-3 bg-zinc-100 dark:bg-zinc-950 rounded-xl text-[10px] text-zinc-500 dark:text-zinc-400 overflow-x-auto border border-zinc-200 dark:border-zinc-800">
+                                                        {JSON.stringify(log.metadata, null, 2)}
+                                                    </pre>
+                                                </details>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>
@@ -396,7 +479,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'hoteles' ? 'Hotel' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -452,6 +535,20 @@ export default function SettingsPage() {
                                                 </select>
                                             </div>
                                             <Input label="Valor" value={formData.value} onChange={(v: string) => setFormData({ ...formData, value: v })} required type="number" step="0.01" placeholder="Ej. 19" />
+                                        </div>
+
+                                        <div className="flex items-center gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-700">
+                                            <input
+                                                type="checkbox"
+                                                id="isEditable"
+                                                className="w-5 h-5 rounded-lg border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                checked={formData.isEditable !== false}
+                                                onChange={(e) => setFormData({ ...formData, isEditable: e.target.checked })}
+                                            />
+                                            <label htmlFor="isEditable" className="text-sm font-bold text-zinc-700 dark:text-zinc-300 cursor-pointer">
+                                                Permitir editar libremente en cotizaciones
+                                                <span className="block text-[10px] font-medium text-zinc-400 uppercase tracking-wider mt-0.5">Si se desactiva, el valor será fijo según este maestro</span>
+                                            </label>
                                         </div>
                                     </>
                                 ) : activeTab === 'vendedores' || activeTab === 'tiqueteadores' ? (

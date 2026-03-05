@@ -12,7 +12,8 @@ export async function GET() {
                 products: {
                     include: {
                         product: true,
-                        provider: { select: { name: true } }
+                        provider: { select: { name: true } },
+                        passengers: true
                     }
                 }
             }

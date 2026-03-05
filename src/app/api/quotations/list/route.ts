@@ -12,7 +12,8 @@ export async function GET() {
                     include: {
                         product: true,
                         provider: true,
-                        hotel: true
+                        hotel: true,
+                        passengers: true
                     }
                 }
             },
