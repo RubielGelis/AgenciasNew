@@ -319,9 +319,12 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                 // Find main tax based on value equality (or arbitrary since we can't perfectly distiguish without new db column, so let's use the first one matching the value)
                                 // Actually, let's treat the first active tax equal to price * qty as main tax, or if not found, just don't set mainTaxId
                                 // But since it's hard to reliably infer `mainTaxId` from a flattened list without a `isMain` flag in DB, we'll try to find one where explicitAmount === price * quantity
+                                const safeAppliedTaxes = Array.isArray(p.appliedTaxes) ? p.appliedTaxes : [];
+                                const safeVariables = Array.isArray(p.variables) ? p.variables : [];
+
                                 let mainTaxId: number | undefined = undefined;
                                 const baseVal = p.price * p.quantity;
-                                const possibleMain = p.appliedTaxes.find((t: any) => t.explicitAmount === baseVal);
+                                const possibleMain = safeAppliedTaxes.find((t: any) => t.explicitAmount === baseVal);
                                 if (possibleMain) mainTaxId = possibleMain.chargeAndTaxId;
 
                                 return {
@@ -341,15 +344,15 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     sellerCommission: p.sellerCommission || 0,
                                     ticketPrinterCommission: p.ticketPrinterCommission || 0,
                                     mainTaxId,
-                                    appliedTaxes: p.appliedTaxes.map((t: any) => ({
+                                    appliedTaxes: safeAppliedTaxes.map((t: any) => ({
                                         id: t.chargeAndTaxId,
                                         amount: t.explicitAmount
                                     })),
-                                    variables: p.variables?.map((v: any) => ({
+                                    variables: safeVariables.map((v: any) => ({
                                         id: v.id,
                                         masterVariableId: v.masterVariableId,
                                         value: v.value
-                                    })) || []
+                                    }))
                                 }
                             })
                         })
