@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'hoteles' | 'clientes' | 'proveedores' | 'productos' | 'logs';
+type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'hoteles' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'logs';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
@@ -49,6 +49,7 @@ export default function SettingsPage() {
     const [logs, setLogs] = useState<any[]>([])
     const [clients, setClients] = useState<any[]>([])
     const [products, setProducts] = useState<any[]>([])
+    const [variables, setVariables] = useState<any[]>([])
 
     // Form states
     const [formData, setFormData] = useState<any>({})
@@ -60,7 +61,7 @@ export default function SettingsPage() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts] = await Promise.all([
+            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts, resVariables] = await Promise.all([
                 fetch('/api/config/users').then(res => res.json()),
                 fetch('/api/config/roles').then(res => res.json()),
                 fetch('/api/config/branches').then(res => res.json()),
@@ -72,7 +73,8 @@ export default function SettingsPage() {
                 fetch('/api/providers').then(res => res.json()),
                 fetch('/api/config/logs').then(res => res.json()),
                 fetch('/api/clients').then(res => res.json()),
-                fetch('/api/products').then(res => res.json())
+                fetch('/api/products').then(res => res.json()),
+                fetch('/api/config/variables').then(res => res.json())
             ])
             setUsers(Array.isArray(u) ? u : [])
             setRoles(Array.isArray(r) ? r : [])
@@ -86,6 +88,7 @@ export default function SettingsPage() {
             setLogs(systemLogs || [])
             setClients(resClients || [])
             setProducts(resProducts || [])
+            setVariables(resVariables || [])
         } finally {
             setLoading(false)
         }
@@ -109,6 +112,8 @@ export default function SettingsPage() {
                 setFormData({ name: '', contactInfo: '' })
             } else if (activeTab === 'productos') {
                 setFormData({ type: 'Servicio', description: '', basePrice: '', billingConcept: '', serviceType: '' })
+            } else if (activeTab === 'variables') {
+                setFormData({ code: '', name: '' })
             } else {
                 setFormData({ code: '', name: '' })
             }
@@ -129,7 +134,8 @@ export default function SettingsPage() {
                                 activeTab === 'clientes' ? '/api/clients' :
                                     activeTab === 'proveedores' ? '/api/providers' :
                                         activeTab === 'productos' ? '/api/products' :
-                                            '/api/config/implants'
+                                            activeTab === 'variables' ? '/api/config/variables' :
+                                                '/api/config/implants'
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -166,7 +172,8 @@ export default function SettingsPage() {
                                 activeTab === 'clientes' ? '/api/clients' :
                                     activeTab === 'proveedores' ? '/api/providers' :
                                         activeTab === 'productos' ? '/api/products' :
-                                            '/api/config/implants'
+                                            activeTab === 'variables' ? '/api/config/variables' :
+                                                '/api/config/implants'
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -266,7 +273,7 @@ export default function SettingsPage() {
                                 className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                             >
                                 <Plus className="w-5 h-5" />
-                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'hoteles' ? 'Nuevo Hotel' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : 'Nuevo Implant'}
+                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'hoteles' ? 'Nuevo Hotel' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : 'Nuevo Implant'}
                             </motion.button>
                         </>
                     )}
@@ -285,6 +292,7 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'clientes'} onClick={() => setActiveTab('clientes')} icon={<Users className="w-4 h-4" />} label="Clientes" />
                 <TabButton active={activeTab === 'proveedores'} onClick={() => setActiveTab('proveedores')} icon={<Building2 className="w-4 h-4" />} label="Proveedores" />
                 <TabButton active={activeTab === 'productos'} onClick={() => setActiveTab('productos')} icon={<Tags className="w-4 h-4" />} label="Productos" />
+                <TabButton active={activeTab === 'variables'} onClick={() => setActiveTab('variables')} icon={<Tags className="w-4 h-4" />} label="Variables Adic." />
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
                 <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<TerminalSquare className="w-4 h-4" />} label="Logs del Sistema" />
             </div>
@@ -347,6 +355,12 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Usuario</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Acción / Módulo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Detalle del Evento</th>
+                                        </>
+                                    ) : activeTab === 'variables' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código Único</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Variable</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : (
                                         <>
@@ -479,7 +493,7 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : []) || []).map(item => (
+                                {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : []) || []).map(item => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code || '-'}</td>
                                         <td className="px-8 py-6">
@@ -567,7 +581,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'hoteles' ? 'Hotel' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'hoteles' ? 'Hotel' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -738,6 +752,11 @@ export default function SettingsPage() {
                                                     <Input label="Concepto de Facturación" value={formData.billingConcept || ''} onChange={(v: string) => setFormData({ ...formData, billingConcept: v })} placeholder="Opcional" />
                                                     <Input label="Clasificación Servicio" value={formData.serviceType || ''} onChange={(v: string) => setFormData({ ...formData, serviceType: v })} placeholder="Opcional" />
                                                 </div>
+                                            </>
+                                        ) : activeTab === 'variables' ? (
+                                            <>
+                                                <Input label="Código Único" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. TKT-VUELO" />
+                                                <Input label="Nombre de Variable" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Número de Tiquete / Reserva" />
                                             </>
                                         ) : (
                                             <>

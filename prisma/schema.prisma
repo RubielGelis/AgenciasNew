@@ -179,6 +179,7 @@ model QuotationProduct {
   ticketPrinterCommission  Float?
 
   appliedTaxes QuotationProductTax[]
+  variables    QuotationProductVariable[]
 }
 
 model QuotationProductPassenger {
@@ -234,3 +235,22 @@ model SystemLog {
   metadata    Json?    // Optional technical dump of the changed data or payload
   createdAt   DateTime @default(now())
 }
+
+model MasterVariable {
+  id    Int    @id @default(autoincrement())
+  code  String @unique
+  name  String
+
+  productVariables QuotationProductVariable[]
+}
+
+model QuotationProductVariable {
+  id                 Int              @id @default(autoincrement())
+  quotationProductId Int
+  quotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
+  masterVariableId   Int
+  masterVariable     MasterVariable   @relation(fields: [masterVariableId], references: [id], onDelete: Restrict)
+  
+  value              String
+}
+
