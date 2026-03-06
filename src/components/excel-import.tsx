@@ -29,18 +29,28 @@ export default function ExcelImport() {
 
                 console.log('Excel Data:', data)
 
-                // En un escenario real, enviaríamos esto a un API
-                // const res = await fetch('/api/quotations/import', { method: 'POST', body: JSON.stringify(data) })
+                const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                const res = await fetch('/api/quotations/import', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-Id': loggedUser.id?.toString() || ''
+                    },
+                    body: JSON.stringify(data)
+                })
 
-                // Simulación de éxito
-                setTimeout(() => {
-                    setImporting(false)
-                    setStatus({ type: 'success', message: `Se procesaron ${data.length} registros exitosamente.` })
-                }, 1500)
-
-            } catch (err) {
+                if (res.ok) {
+                    const result = await res.json();
+                    setStatus({ type: 'success', message: `Se importaron ${result.importedCount} cotizaciones exitosamente.` })
+                    if (fileInputRef.current) fileInputRef.current.value = ''
+                } else {
+                    const error = await res.json();
+                    setStatus({ type: 'error', message: error.message || 'Error al procesar el archivo Excel.' })
+                }
+            } catch (err: any) {
+                setStatus({ type: 'error', message: err.message || 'Ocurrió un error inesperado al leer el archivo.' })
+            } finally {
                 setImporting(false)
-                setStatus({ type: 'error', message: 'Error al procesar el archivo Excel.' })
             }
         }
         reader.readAsBinaryString(file)
@@ -48,7 +58,55 @@ export default function ExcelImport() {
 
     const downloadTemplate = () => {
         const templateData = [
-            { Cliente: 'Nombre', Documento: '12345', Producto: 'ALIMENTACION', Cantidad: 1, Precio: 100 },
+            {
+                Grupo_Cotizacion: '1',
+                Cliente_Documento: '123456789',
+                Sucursal_Nombre: 'Principal',
+                Implant_Nombre: '',
+                Vendedor_Nombre: '',
+                Tiqueteador_Nombre: '',
+                Moneda: 'USD',
+                Tasa_Cambio: 1,
+                Comision_Global_Pct: 10,
+                Cargos_A_Cotizacion: 0,
+                Producto_Descripcion: 'HOTEL HILTON',
+                Cantidad: 1,
+                Precio_Unitario: 500,
+                Proveedor_Nombre: '',
+                Hotel_Nombre: 'Hilton Test',
+                CheckIn: '2026-12-01',
+                CheckOut: '2026-12-10',
+                Pax_Adultos: 2,
+                Pax_Ninos: 0,
+                Destino: 'MIA',
+                Tipo_Servicio: 'ALOJAMIENTO',
+                Codigo_Reserva: 'RES123',
+                Comision_Vendedor_Producto: 0,
+                Comision_Tiqueteador_Producto: 0,
+                Impuestos_Nombres_Y_Valores: 'IVA:95|FEE:10', // Separados por | y usando : para el valor
+                Variables_Codigos_Y_Valores: 'TKT:784561|PNR:XYZZ12', // Separados por | y usando : para el valor
+                Pasajeros: 'Juan Perez:123456|Maria Perez:789012' // Separados por | y usando : para Doc
+            },
+            {
+                Grupo_Cotizacion: '1', // Mismo grupo = misma cotización, nuevo producto
+                Cliente_Documento: '123456789',
+                Sucursal_Nombre: 'Principal',
+                Producto_Descripcion: 'TKT BOG-MIA',
+                Cantidad: 2,
+                Precio_Unitario: 300,
+                CheckIn: '',
+                CheckOut: '',
+                Pax_Adultos: 2,
+                Pax_Ninos: 0,
+                Destino: '',
+                Tipo_Servicio: 'VUELO',
+                Codigo_Reserva: 'XXL123',
+                Comision_Vendedor_Producto: 15,
+                Comision_Tiqueteador_Producto: 10,
+                Impuestos_Nombres_Y_Valores: '',
+                Variables_Codigos_Y_Valores: '',
+                Pasajeros: ''
+            }
         ]
         const ws = XLSX.utils.json_to_sheet(templateData)
         const wb = XLSX.utils.book_new()
