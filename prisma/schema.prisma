@@ -131,7 +131,6 @@ model Quotation {
   chargesAndTaxes      Float
   totalAmount          Float
   products             QuotationProduct[]
-  additionalVariables  AdditionalVariable[]
   attachments          Attachment[]
 }
 
@@ -217,13 +216,6 @@ model QuotationProductTax {
   explicitAmount     Float? // Almacena el valor monetario exacto ingresado o calculado
 }
 
-model AdditionalVariable {
-  id          Int       @id @default(autoincrement())
-  quotationId Int
-  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
-  name        String
-  value       String
-}
 
 model SystemLog {
   id          Int      @id @default(autoincrement())
