@@ -6,13 +6,14 @@ import bcrypt from 'bcryptjs'
 
 export async function GET() {
     try {
-        const users = await prisma.user.findMany({
-            include: { role: true },
+        const users = await (prisma.user.findMany({
+            include: { role: true, branch: true, implant: true, ticketPrinter: true },
             orderBy: { name: 'asc' }
-        })
+        }) as any)
         return NextResponse.json(users)
-    } catch (error) {
-        return NextResponse.json({ message: 'Error fetching users' }, { status: 500 })
+    } catch (error: any) {
+        console.error("error fetching users:", error)
+        return NextResponse.json({ message: 'Error fetching users', error: error?.message || String(error) }, { status: 500 })
     }
 }
 
@@ -23,14 +24,17 @@ export async function POST(req: NextRequest) {
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
 
-        const user = await prisma.user.create({
+        const user = await (prisma.user.create({
             data: {
                 name: body.name,
                 email: body.email,
                 passwordHash: passwordHash,
-                roleId: parseInt(body.roleId)
+                roleId: parseInt(body.roleId),
+                branchId: body.branchId ? parseInt(body.branchId) : undefined,
+                implantId: body.implantId ? parseInt(body.implantId) : undefined,
+                ticketPrinterId: body.ticketPrinterId ? parseInt(body.ticketPrinterId) : undefined
             }
-        })
+        }) as any)
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
             logSystemEvent({
@@ -57,17 +61,20 @@ export async function PUT(req: NextRequest) {
         const data: any = {
             name: body.name,
             email: body.email,
-            roleId: parseInt(body.roleId)
+            roleId: parseInt(body.roleId),
+            branchId: body.branchId ? parseInt(body.branchId) : null,
+            implantId: body.implantId ? parseInt(body.implantId) : null,
+            ticketPrinterId: body.ticketPrinterId ? parseInt(body.ticketPrinterId) : null
         }
 
         if (body.password) {
             data.passwordHash = await bcrypt.hash(body.password, 10)
         }
 
-        const user = await prisma.user.update({
+        const user = await (prisma.user.update({
             where: { id: body.id },
             data
-        })
+        }) as any)
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
             logSystemEvent({

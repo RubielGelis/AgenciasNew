@@ -3,9 +3,12 @@ import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
-        const [clients, providers, branches, implants, products, taxes, sellers, ticketPrinters] = await Promise.all([
+        const userIdHeader = req.headers.get('X-User-Id')
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
+
+        const [clients, providers, branches, implants, products, taxes, sellers, ticketPrinters, currentUser] = await Promise.all([
             prisma.client.findMany({ select: { id: true, name: true, document: true } }),
             prisma.provider.findMany({ include: { hotels: true } }),
             prisma.branch.findMany(),
@@ -13,7 +16,8 @@ export async function GET() {
             prisma.product.findMany(),
             prisma.chargeAndTax.findMany(),
             prisma.seller.findMany(),
-            prisma.ticketPrinter.findMany()
+            prisma.ticketPrinter.findMany(),
+            actingUserId ? prisma.user.findUnique({ where: { id: actingUserId } }) : Promise.resolve(null)
         ])
 
         return NextResponse.json({
@@ -24,7 +28,8 @@ export async function GET() {
             products,
             taxes,
             sellers,
-            ticketPrinters
+            ticketPrinters,
+            currentUser
         })
     } catch (error: any) {
         console.error('Data fetch error:', error)

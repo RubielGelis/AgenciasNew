@@ -153,3 +153,40 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         return NextResponse.json({ message: 'Error al actualizar la cotización: ' + (error.message || 'Error desconocido') }, { status: 500 })
     }
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    try {
+        const { id: rawId } = await params
+        const id = parseInt(rawId)
+        if (isNaN(id)) {
+            return NextResponse.json({ message: 'ID de cotización inválido' }, { status: 400 })
+        }
+
+        const userIdHeader = req.headers.get('X-User-Id')
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
+
+        const quotation = await prisma.quotation.findUnique({ where: { id }, select: { internalNumber: true } })
+        if (!quotation) {
+            return NextResponse.json({ message: 'Cotización no encontrada' }, { status: 404 })
+        }
+
+        await prisma.quotation.delete({
+            where: { id }
+        })
+
+        import('@/lib/logger').then(({ logSystemEvent }) => {
+            logSystemEvent({
+                userId: actingUserId,
+                action: 'DELETE',
+                module: 'QUOTATION',
+                description: `Cotización ${quotation.internalNumber} eliminada.`,
+                metadata: { id }
+            });
+        });
+
+        return NextResponse.json({ message: 'Cotización eliminada con éxito' })
+    } catch (error: any) {
+        console.error('Error deleting quotation:', error)
+        return NextResponse.json({ message: 'Error al eliminar la cotización: ' + (error.message || 'Error desconocido') }, { status: 500 })
+    }
+}

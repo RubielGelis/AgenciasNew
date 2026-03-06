@@ -272,13 +272,30 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     useEffect(() => {
         const loadInitialData = async () => {
             try {
-                const baseRes = await fetch('/api/quotations/base-data')
+                const loggedUserCache = JSON.parse(localStorage.getItem('user') || '{}');
+                const baseRes = await fetch('/api/quotations/base-data', {
+                    headers: { 'X-User-Id': loggedUserCache.id?.toString() || '' }
+                })
                 const baseData = await baseRes.json()
                 if (baseRes.ok && baseData?.clients) {
                     setData(baseData)
                 } else {
                     console.error("No valid data received from base-data:", baseData)
                     setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [] })
+                }
+
+                if (!quotationId) {
+                    try {
+                        const defaultUser = baseData?.currentUser || loggedUserCache;
+                        setFormData((prev: any) => ({
+                            ...prev,
+                            branchId: defaultUser.branchId?.toString() || '',
+                            implantId: defaultUser.implantId?.toString() || '',
+                            ticketPrinterId: defaultUser.ticketPrinterId?.toString() || ''
+                        }));
+                    } catch (e) {
+                        // Ignore parse error
+                    }
                 }
 
                 if (quotationId) {

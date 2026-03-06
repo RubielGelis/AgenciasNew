@@ -9,7 +9,8 @@ import {
     ArrowRight,
     Loader2,
     Download,
-    Edit
+    Edit,
+    Trash2
 } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
@@ -44,6 +45,27 @@ export default function QuotationsHistoryPage() {
         // En una app real haríamos un fetch a todo el detalle si no vino completo 
         // y se lo pasamos al generateQuotationPDF de la misma forma que en 'nueva'.
         alert('En construcción: La descarga directa requiere traer el detalle completo de productos desde la DB. Se implementará en breve.')
+    }
+
+    const handleDelete = async (id: number) => {
+        if (!confirm('¿Estás seguro de que deseas eliminar esta cotización? Esta acción no se puede deshacer.')) return;
+        try {
+            const res = await fetch(`/api/quotations/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-User-Id': JSON.parse(localStorage.getItem('user') || '{}').id?.toString() || ''
+                }
+            });
+            if (res.ok) {
+                setQuotations(quotations.filter(q => q.id !== id));
+            } else {
+                const error = await res.json();
+                alert(`Error: ${error.message}`);
+            }
+        } catch (error) {
+            console.error('Error deleting quotation:', error);
+            alert('Ocurrió un error al eliminar la cotización.');
+        }
     }
 
     return (
@@ -140,6 +162,13 @@ export default function QuotationsHistoryPage() {
                                                 >
                                                     <Edit className="w-5 h-5" />
                                                 </Link>
+                                                <button
+                                                    onClick={() => handleDelete(q.id)}
+                                                    className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
+                                                    title="Eliminar Cotización"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>

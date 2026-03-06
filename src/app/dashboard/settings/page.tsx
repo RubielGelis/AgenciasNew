@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'hoteles' | 'logs';
+type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'hoteles' | 'clientes' | 'proveedores' | 'productos' | 'logs';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
@@ -47,6 +47,8 @@ export default function SettingsPage() {
     const [hotels, setHotels] = useState<any[]>([])
     const [providers, setProviders] = useState<any[]>([])
     const [logs, setLogs] = useState<any[]>([])
+    const [clients, setClients] = useState<any[]>([])
+    const [products, setProducts] = useState<any[]>([])
 
     // Form states
     const [formData, setFormData] = useState<any>({})
@@ -58,7 +60,7 @@ export default function SettingsPage() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [u, r, b, i, t, v, tp, h, provs, systemLogs] = await Promise.all([
+            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts] = await Promise.all([
                 fetch('/api/config/users').then(res => res.json()),
                 fetch('/api/config/roles').then(res => res.json()),
                 fetch('/api/config/branches').then(res => res.json()),
@@ -68,18 +70,22 @@ export default function SettingsPage() {
                 fetch('/api/config/ticket-printers').then(res => res.json()),
                 fetch('/api/config/hotels').then(res => res.json()),
                 fetch('/api/providers').then(res => res.json()),
-                fetch('/api/config/logs').then(res => res.json())
+                fetch('/api/config/logs').then(res => res.json()),
+                fetch('/api/clients').then(res => res.json()),
+                fetch('/api/products').then(res => res.json())
             ])
-            setUsers(u)
-            setRoles(r)
-            setBranches(b)
-            setImplants(i)
+            setUsers(Array.isArray(u) ? u : [])
+            setRoles(Array.isArray(r) ? r : [])
+            setBranches(Array.isArray(b) ? b : [])
+            setImplants(Array.isArray(i) ? i : [])
             setTaxes(t || [])
             setSellers(v || [])
             setTicketPrinters(tp || [])
             setHotels(h || [])
             setProviders(provs || [])
             setLogs(systemLogs || [])
+            setClients(resClients || [])
+            setProducts(resProducts || [])
         } finally {
             setLoading(false)
         }
@@ -90,13 +96,19 @@ export default function SettingsPage() {
             setFormData({ ...item })
         } else {
             if (activeTab === 'usuarios') {
-                setFormData({ name: '', email: '', password: '', roleId: roles[0]?.id || '' })
+                setFormData({ name: '', email: '', password: '', roleId: roles[0]?.id || '', branchId: '', implantId: '', ticketPrinterId: '' })
             } else if (activeTab === 'impuestos') {
                 setFormData({ name: '', type: 'TAX', valueType: 'PERCENTAGE', value: '', isEditable: true })
             } else if (activeTab === 'vendedores' || activeTab === 'tiqueteadores') {
                 setFormData({ code: '', name: '', email: '' })
             } else if (activeTab === 'hoteles') {
                 setFormData({ name: '', category: '', location: '', providerId: '' })
+            } else if (activeTab === 'clientes') {
+                setFormData({ name: '', document: '', contactInfo: '', address: '' })
+            } else if (activeTab === 'proveedores') {
+                setFormData({ name: '', contactInfo: '' })
+            } else if (activeTab === 'productos') {
+                setFormData({ type: 'Servicio', description: '', basePrice: '', billingConcept: '', serviceType: '' })
             } else {
                 setFormData({ code: '', name: '' })
             }
@@ -114,7 +126,10 @@ export default function SettingsPage() {
                     activeTab === 'vendedores' ? '/api/config/sellers' :
                         activeTab === 'hoteles' ? '/api/config/hotels' :
                             activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
-                                '/api/config/implants'
+                                activeTab === 'clientes' ? '/api/clients' :
+                                    activeTab === 'proveedores' ? '/api/providers' :
+                                        activeTab === 'productos' ? '/api/products' :
+                                            '/api/config/implants'
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -148,7 +163,10 @@ export default function SettingsPage() {
                     activeTab === 'vendedores' ? '/api/config/sellers' :
                         activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
                             activeTab === 'hoteles' ? '/api/config/hotels' :
-                                '/api/config/implants'
+                                activeTab === 'clientes' ? '/api/clients' :
+                                    activeTab === 'proveedores' ? '/api/providers' :
+                                        activeTab === 'productos' ? '/api/products' :
+                                            '/api/config/implants'
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -248,7 +266,7 @@ export default function SettingsPage() {
                                 className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                             >
                                 <Plus className="w-5 h-5" />
-                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'hoteles' ? 'Nuevo Hotel' : 'Nuevo Implant'}
+                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'hoteles' ? 'Nuevo Hotel' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : 'Nuevo Implant'}
                             </motion.button>
                         </>
                     )}
@@ -264,6 +282,9 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'vendedores'} onClick={() => setActiveTab('vendedores')} icon={<UserCheck className="w-4 h-4" />} label="Vendedores" />
                 <TabButton active={activeTab === 'tiqueteadores'} onClick={() => setActiveTab('tiqueteadores')} icon={<Printer className="w-4 h-4" />} label="Tiqueteadores" />
                 <TabButton active={activeTab === 'hoteles'} onClick={() => setActiveTab('hoteles')} icon={<HotelIcon className="w-4 h-4" />} label="Hoteles" />
+                <TabButton active={activeTab === 'clientes'} onClick={() => setActiveTab('clientes')} icon={<Users className="w-4 h-4" />} label="Clientes" />
+                <TabButton active={activeTab === 'proveedores'} onClick={() => setActiveTab('proveedores')} icon={<Building2 className="w-4 h-4" />} label="Proveedores" />
+                <TabButton active={activeTab === 'productos'} onClick={() => setActiveTab('productos')} icon={<Tags className="w-4 h-4" />} label="Productos" />
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
                 <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<TerminalSquare className="w-4 h-4" />} label="Logs del Sistema" />
             </div>
@@ -306,6 +327,20 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Categoría</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
+                                    ) : activeTab === 'clientes' || activeTab === 'proveedores' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">{activeTab === 'clientes' ? 'Documento' : 'ID'}</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Contacto</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'productos' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Tipo</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Descripción</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Precio Base</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
                                     ) : activeTab === 'logs' ? (
                                         <>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Fecha y Hora</th>
@@ -324,7 +359,7 @@ export default function SettingsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 font-medium">
-                                {activeTab === 'usuarios' && users.map(user => (
+                                {activeTab === 'usuarios' && (users || []).map(user => (
                                     <tr key={user.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
                                         <td className="px-8 py-6">
                                             <div className="font-bold text-zinc-900 dark:text-white mb-0.5">{user.name}</div>
@@ -387,6 +422,59 @@ export default function SettingsPage() {
                                             <div className="flex items-center justify-end gap-2">
                                                 <button onClick={() => handleOpenModal(hotel)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
                                                 <button onClick={() => handleDelete(hotel.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {activeTab === 'clientes' && (clients || []).map((item: any) => (
+                                    <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.document || item.id || '-'}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.name}</td>
+                                        <td className="px-8 py-6 text-zinc-500">
+                                            {item.email && <div className="text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {item.email}</div>}
+                                            {item.phone && <div className="text-xs mt-1">{item.phone}</div>}
+                                            {item.contactInfo && <div className="text-xs mt-1">{item.contactInfo}</div>}
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {activeTab === 'proveedores' && (providers || []).map((item: any) => (
+                                    <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.document || item.id || '-'}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.name}</td>
+                                        <td className="px-8 py-6 text-zinc-500">
+                                            {item.email && <div className="text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {item.email}</div>}
+                                            {item.phone && <div className="text-xs mt-1">{item.phone}</div>}
+                                            {item.contactInfo && <div className="text-xs mt-1">{item.contactInfo}</div>}
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {activeTab === 'productos' && (products || []).map((item: any) => (
+                                    <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6">
+                                            <span className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10px] font-black rounded-lg uppercase tracking-wider">
+                                                {item.type}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.description}</td>
+                                        <td className="px-8 py-6 font-black text-emerald-600">
+                                            ${item.basePrice?.toLocaleString() || '0'}
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -479,7 +567,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'hoteles' ? 'Hotel' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'hoteles' ? 'Hotel' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -494,15 +582,52 @@ export default function SettingsPage() {
                                         <Input label="Nombre Completo" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Alex Smith" />
                                         <Input label="Email de Acceso" value={formData.email || ''} onChange={(v: string) => setFormData({ ...formData, email: v })} required type="email" placeholder="email@ejemplo.com" />
                                         <Input label="Contraseña" value={formData.password || ''} onChange={(v: string) => setFormData({ ...formData, password: v })} required={!formData.id} type="password" placeholder={formData.id ? "Dejar vacío para no cambiar" : "Min. 8 caracteres"} />
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Rol de Usuario</label>
-                                            <select
-                                                className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                                                value={formData.roleId}
-                                                onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
-                                            >
-                                                {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                                            </select>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Rol de Usuario</label>
+                                                <select
+                                                    className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                    value={formData.roleId || ''}
+                                                    onChange={(e) => setFormData({ ...formData, roleId: e.target.value })}
+                                                    required
+                                                >
+                                                    <option value="">Seleccionar Rol</option>
+                                                    {roles.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Sucursal</label>
+                                                <select
+                                                    className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                    value={formData.branchId || ''}
+                                                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                                >
+                                                    <option value="">Ninguna / No aplica</option>
+                                                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Implant Asignado</label>
+                                                <select
+                                                    className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                    value={formData.implantId || ''}
+                                                    onChange={(e) => setFormData({ ...formData, implantId: e.target.value })}
+                                                >
+                                                    <option value="">Ninguno / No aplica</option>
+                                                    {implants.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                                                </select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Tiqueteador Pred.</label>
+                                                <select
+                                                    className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                    value={formData.ticketPrinterId || ''}
+                                                    onChange={(e) => setFormData({ ...formData, ticketPrinterId: e.target.value })}
+                                                >
+                                                    <option value="">Ninguno / No aplica</option>
+                                                    {ticketPrinters.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                                </select>
+                                            </div>
                                         </div>
                                     </>
                                 ) : activeTab === 'impuestos' ? (
@@ -579,20 +704,59 @@ export default function SettingsPage() {
                                     </>
                                 ) : (
                                     <>
-                                        <Input label="Código Único" value={formData.code} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. BOG-01" />
-                                        <Input label="Nombre / Descripción" value={formData.name} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Sede Norte Bogotá" />
-                                        {activeTab === 'implants' && (
-                                            <div className="space-y-2">
-                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Sucursal Asociada</label>
-                                                <select
-                                                    className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                                                    value={formData.branchId || ''}
-                                                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                                                >
-                                                    <option value="">Seleccionar Sucursal</option>
-                                                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                                </select>
-                                            </div>
+                                        {activeTab === 'clientes' || activeTab === 'proveedores' ? (
+                                            <>
+                                                {activeTab === 'clientes' && <Input label="Documento / NIT" value={formData.document || ''} onChange={(v: string) => setFormData({ ...formData, document: v })} required placeholder="No. de Documento" />}
+                                                <Input label="Nombre o Razón Social" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Nombre de Empresa / Persona" />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <Input label="Email de Contacto" value={formData.email || ''} onChange={(v: string) => setFormData({ ...formData, email: v })} type="email" placeholder="Opcional" />
+                                                    <Input label="Teléfono / Contacto" value={formData.contactInfo || formData.phone || ''} onChange={(v: string) => setFormData({ ...formData, contactInfo: v, phone: v })} placeholder="Opcional" />
+                                                </div>
+                                                {activeTab === 'clientes' && <Input label="Dirección" value={formData.address || ''} onChange={(v: string) => setFormData({ ...formData, address: v })} placeholder="Opcional" />}
+                                            </>
+                                        ) : activeTab === 'productos' ? (
+                                            <>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Tipo de Servicio</label>
+                                                        <select
+                                                            className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                            value={formData.type || 'Servicio'}
+                                                            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                                        >
+                                                            <option value="Servicio">Servicio</option>
+                                                            <option value="Boleto">Boleto Aéreo</option>
+                                                            <option value="Alojamiento">Alojamiento</option>
+                                                            <option value="Asistencia">Asistencia Médica</option>
+                                                            <option value="Otro">Otro</option>
+                                                        </select>
+                                                    </div>
+                                                    <Input label="Precio Base ($)" value={formData.basePrice || ''} onChange={(v: string) => setFormData({ ...formData, basePrice: parseFloat(v) || '' })} type="number" step="0.01" required placeholder="0.00" />
+                                                </div>
+                                                <Input label="Descripción / Nombre" value={formData.description || ''} onChange={(v: string) => setFormData({ ...formData, description: v })} required placeholder="Ej. Tiquete Aéreo Nacional" />
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <Input label="Concepto de Facturación" value={formData.billingConcept || ''} onChange={(v: string) => setFormData({ ...formData, billingConcept: v })} placeholder="Opcional" />
+                                                    <Input label="Clasificación Servicio" value={formData.serviceType || ''} onChange={(v: string) => setFormData({ ...formData, serviceType: v })} placeholder="Opcional" />
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Input label="Código Único" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. BOG-01" />
+                                                <Input label="Nombre / Descripción" value={formData.name} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Sede Norte Bogotá" />
+                                                {activeTab === 'implants' && (
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Sucursal Asociada</label>
+                                                        <select
+                                                            className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                            value={formData.branchId || ''}
+                                                            onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
+                                                        >
+                                                            <option value="">Seleccionar Sucursal</option>
+                                                            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                                        </select>
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
                                     </>
                                 )}

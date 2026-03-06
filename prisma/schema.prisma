@@ -27,6 +27,12 @@ model User {
   resetPasswordExpires DateTime?
   roleId       Int
   role         Role     @relation(fields: [roleId], references: [id])
+  branchId     Int?
+  branch       Branch?  @relation(fields: [branchId], references: [id])
+  implantId    Int?
+  implant      Implant? @relation(fields: [implantId], references: [id])
+  ticketPrinterId Int?
+  ticketPrinter TicketPrinter? @relation(fields: [ticketPrinterId], references: [id])
   logs         SystemLog[]
 }
 
@@ -64,6 +70,7 @@ model Branch {
   name       String
   quotations Quotation[]
   implants   Implant[]
+  users      User[]
 }
 
 model Implant {
@@ -73,6 +80,7 @@ model Implant {
   branchId   Int? // Opcional por ahora para no romper datos existentes
   branch     Branch?     @relation(fields: [branchId], references: [id])
   quotations Quotation[]
+  users      User[]
 }
 
 model Seller {
@@ -89,6 +97,7 @@ model TicketPrinter {
   name       String
   email      String?
   quotations Quotation[]
+  users      User[]
 }
 
 model Product {

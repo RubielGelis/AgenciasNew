@@ -33,68 +33,90 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'Cliente o Sucursal inválidos' }, { status: 400 })
         }
 
-        const quotation = await (prisma.quotation.create({
-            data: {
-                internalNumber,
-                client: { connect: { id: parsedClientId } },
-                branch: { connect: { id: parsedBranchId } },
-                implant: isNaN(parsedImplantId) ? undefined : { connect: { id: parsedImplantId } },
-                currency,
-                exchangeRate: parseFloat(exchangeRate) || 1,
-                seller: sellerId ? { connect: { id: parseInt(sellerId) } } : undefined,
-                ticketPrinter: ticketPrinterId ? { connect: { id: parseInt(ticketPrinterId) } } : undefined,
-                commissionPercentage: parseFloat(body.commissionPercentage) || 0,
-                chargesAndTaxes: parseFloat(chargesAndTaxes) || 0,
-                baseCommissionable: 0,
-                totalAmount: parseFloat(totalAmount) || 0,
-                products: {
-                    create: items.filter((item: any) => item.productId).map((item: any) => {
-                        const taxesToApply = (item.appliedTaxes || []).map((taxPayload: any) => {
-                            const masterId = taxPayload.id || taxPayload.chargeAndTaxId;
-                            const master = allTaxes.find((t: any) => t.id === masterId);
-                            if (!master) return null;
-                            return {
-                                chargeAndTaxId: master.id,
-                                valueSnapshot: master.value,
-                                valueTypeSnapshot: master.valueType,
-                                explicitAmount: taxPayload.amount || taxPayload.explicitAmount || 0
-                            };
-                        }).filter(Boolean);
+        // Verify optional relations exist
+        let validImplantId: number | undefined = undefined;
+        if (!isNaN(parsedImplantId)) {
+            const exists = await prisma.implant.findUnique({ where: { id: parsedImplantId } });
+            if (exists) validImplantId = exists.id;
+        }
 
-                        const nights = (item.checkIn && item.checkOut)
-                            ? Math.max(1, Math.ceil((new Date(item.checkOut).getTime() - new Date(item.checkIn).getTime()) / (1000 * 60 * 60 * 24)))
-                            : null;
+        let validSellerId: number | undefined = undefined;
+        if (sellerId && !isNaN(parseInt(sellerId))) {
+            const exists = await prisma.seller.findUnique({ where: { id: parseInt(sellerId) } });
+            if (exists) validSellerId = exists.id;
+        }
 
+        let validTicketPrinterId: number | undefined = undefined;
+        if (ticketPrinterId && !isNaN(parseInt(ticketPrinterId))) {
+            const exists = await prisma.ticketPrinter.findUnique({ where: { id: parseInt(ticketPrinterId) } });
+            if (exists) validTicketPrinterId = exists.id;
+        }
+
+        const dataPayload: any = {
+            internalNumber,
+            client: { connect: { id: parsedClientId } },
+            branch: { connect: { id: parsedBranchId } },
+            currency,
+            exchangeRate: parseFloat(exchangeRate) || 1,
+            commissionPercentage: parseFloat(body.commissionPercentage) || 0,
+            chargesAndTaxes: parseFloat(chargesAndTaxes) || 0,
+            baseCommissionable: 0,
+            totalAmount: parseFloat(totalAmount) || 0,
+            products: {
+                create: items.filter((item: any) => item.productId).map((item: any) => {
+                    const taxesToApply = (item.appliedTaxes || []).map((taxPayload: any) => {
+                        const masterId = taxPayload.id || taxPayload.chargeAndTaxId;
+                        const master = allTaxes.find((t: any) => t.id === masterId);
+                        if (!master) return null;
                         return {
-                            productId: parseInt(item.productId),
-                            quantity: parseInt(item.quantity) || 1,
-                            price: parseFloat(item.price) || 0,
-                            providerId: item.providerId ? parseInt(item.providerId) : null,
-                            hotelId: item.hotelId ? parseInt(item.hotelId) : null,
-                            checkInDate: item.checkIn ? new Date(item.checkIn) : null,
-                            checkOutDate: item.checkOut ? new Date(item.checkOut) : null,
-                            nights,
-                            passengers: item.passengers && item.passengers.length > 0 ? {
-                                create: item.passengers.filter((p: any) => p.name || p.document).map((p: any) => ({
-                                    name: p.name || '',
-                                    document: p.document || ''
-                                }))
-                            } : undefined,
-                            paxAdults: item.paxAdults ? parseInt(item.paxAdults) : 0,
-                            paxChildren: item.paxChildren ? parseInt(item.paxChildren) : 0,
-                            serviceType: item.serviceType || null,
-                            destination: item.destination || null,
-                            reservationCode: item.reservationCode || null,
-                            sellerCommission: item.sellerCommission ? parseFloat(item.sellerCommission) : null,
-                            ticketPrinterCommission: item.ticketPrinterCommission ? parseFloat(item.ticketPrinterCommission) : null,
-                            appliedTaxes: taxesToApply.length > 0 ? {
-                                create: taxesToApply
-                            } : undefined
+                            chargeAndTaxId: master.id,
+                            valueSnapshot: master.value,
+                            valueTypeSnapshot: master.valueType,
+                            explicitAmount: taxPayload.amount || taxPayload.explicitAmount || 0
                         };
-                    })
-                }
+                    }).filter(Boolean);
+
+                    const nights = (item.checkIn && item.checkOut)
+                        ? Math.max(1, Math.ceil((new Date(item.checkOut).getTime() - new Date(item.checkIn).getTime()) / (1000 * 60 * 60 * 24)))
+                        : null;
+
+                    return {
+                        productId: parseInt(item.productId),
+                        quantity: parseInt(item.quantity) || 1,
+                        price: parseFloat(item.price) || 0,
+                        providerId: item.providerId ? parseInt(item.providerId) : null,
+                        hotelId: item.hotelId ? parseInt(item.hotelId) : null,
+                        checkInDate: item.checkIn ? new Date(item.checkIn) : null,
+                        checkOutDate: item.checkOut ? new Date(item.checkOut) : null,
+                        nights,
+                        passengers: item.passengers && item.passengers.length > 0 ? {
+                            create: item.passengers.filter((p: any) => p.name || p.document).map((p: any) => ({
+                                name: p.name || '',
+                                document: p.document || ''
+                            }))
+                        } : undefined,
+                        paxAdults: item.paxAdults ? parseInt(item.paxAdults) : 0,
+                        paxChildren: item.paxChildren ? parseInt(item.paxChildren) : 0,
+                        serviceType: item.serviceType || null,
+                        destination: item.destination || null,
+                        reservationCode: item.reservationCode || null,
+                        sellerCommission: item.sellerCommission ? parseFloat(item.sellerCommission) : null,
+                        ticketPrinterCommission: item.ticketPrinterCommission ? parseFloat(item.ticketPrinterCommission) : null,
+                        appliedTaxes: taxesToApply.length > 0 ? {
+                            create: taxesToApply
+                        } : undefined
+                    };
+                })
             }
-        }) as any);
+        };
+
+        if (validImplantId) dataPayload.implant = { connect: { id: validImplantId } };
+        if (validSellerId) dataPayload.seller = { connect: { id: validSellerId } };
+        if (validTicketPrinterId) dataPayload.ticketPrinter = { connect: { id: validTicketPrinterId } };
+
+        const quotation = await prisma.quotation.create({
+            data: dataPayload
+        });
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
             logSystemEvent({
