@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
 
-        const [clients, providers, branches, implants, products, taxes, sellers, ticketPrinters, currentUser] = await Promise.all([
+        const [clients, providers, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser] = await Promise.all([
             prisma.client.findMany({ select: { id: true, name: true, document: true } }),
             prisma.provider.findMany({ include: { hotels: true } }),
             prisma.branch.findMany(),
@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
             prisma.chargeAndTax.findMany(),
             prisma.seller.findMany(),
             prisma.ticketPrinter.findMany(),
+            prisma.masterVariable.findMany(),
             actingUserId ? prisma.user.findUnique({ where: { id: actingUserId } }) : Promise.resolve(null)
         ])
 
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
             taxes,
             sellers,
             ticketPrinters,
+            variables,
             currentUser
         })
     } catch (error: any) {
