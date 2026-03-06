@@ -15,7 +15,8 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
                 products: {
                     include: {
                         appliedTaxes: true,
-                        passengers: true
+                        passengers: true,
+                        variables: true
                     }
                 } as any
             } as any
@@ -112,6 +113,12 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
                 ticketPrinterCommission: item.ticketPrinterCommission ? parseFloat(item.ticketPrinterCommission) : null,
                 appliedTaxes: taxesToApply.length > 0 ? {
                     create: taxesToApply
+                } : undefined,
+                variables: item.variables && item.variables.length > 0 ? {
+                    create: item.variables.map((v: any) => ({
+                        masterVariableId: v.masterVariableId,
+                        value: v.value || ''
+                    }))
                 } : undefined
             }
         })

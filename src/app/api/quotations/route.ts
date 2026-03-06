@@ -104,6 +104,12 @@ export async function POST(req: NextRequest) {
                         ticketPrinterCommission: item.ticketPrinterCommission ? parseFloat(item.ticketPrinterCommission) : null,
                         appliedTaxes: taxesToApply.length > 0 ? {
                             create: taxesToApply
+                        } : undefined,
+                        variables: item.variables && item.variables.length > 0 ? {
+                            create: item.variables.map((v: any) => ({
+                                masterVariableId: v.masterVariableId,
+                                value: v.value || ''
+                            }))
                         } : undefined
                     };
                 })

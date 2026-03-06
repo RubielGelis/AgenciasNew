@@ -36,7 +36,8 @@ interface QuotationFormData {
         ticketPrinterCommission: number;
         mainTaxId?: number;
         mainTaxAmount?: number; // Manual override for main tax
-        appliedTaxes: { id?: number, name?: string, amount: number }[]
+        appliedTaxes: { id?: number, name?: string, amount: number }[],
+        variables: { id?: number, masterVariableId: number, value: string }[]
     }[];
 }
 
@@ -94,7 +95,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
                     return {
                         ...item,
-                        appliedTaxes: taxes
+                        appliedTaxes: taxes,
+                        variables: item.variables || []
                     };
                 })
             }
@@ -281,7 +283,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                     setData(baseData)
                 } else {
                     console.error("No valid data received from base-data:", baseData)
-                    setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [] })
+                    setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [] })
                 }
 
                 if (!quotationId) {
@@ -342,7 +344,12 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     appliedTaxes: p.appliedTaxes.map((t: any) => ({
                                         id: t.chargeAndTaxId,
                                         amount: t.explicitAmount
-                                    }))
+                                    })),
+                                    variables: p.variables?.map((v: any) => ({
+                                        id: v.id,
+                                        masterVariableId: v.masterVariableId,
+                                        value: v.value
+                                    })) || []
                                 }
                             })
                         })
@@ -350,7 +357,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 }
             } catch (err) {
                 console.error("Failed to load generic or quotation data", err);
-                setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [] })
+                setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [] })
             }
         }
         loadInitialData()
@@ -364,7 +371,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 providerId: '', hotelId: '', checkIn: '', checkOut: '',
                 paxAdults: 1, paxChildren: 0, destination: '', serviceType: '', reservationCode: '', passengers: [{ name: '', document: '' }],
                 sellerCommission: 0, ticketPrinterCommission: 0,
-                appliedTaxes: []
+                appliedTaxes: [],
+                variables: []
             }]
         })
     }
@@ -854,6 +862,70 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 })}
                                             </div>
                                         </div>
+
+                                        {/* Additional Variables Row */}
+                                        <div className="col-span-12 mt-2 pt-4 border-t border-zinc-200 dark:border-zinc-700/50">
+                                            <p className="text-[10px] uppercase font-bold text-zinc-400 mb-3">
+                                                Variables Adicionales (Maestro)
+                                            </p>
+                                            <div className="flex flex-col gap-2">
+                                                {(!data.variables || data.variables.length === 0) && (
+                                                    <span className="text-xs text-zinc-400 font-medium">No hay variables adicionales configuradas.</span>
+                                                )}
+
+                                                {data.variables?.map((vMaster: any) => {
+                                                    const assigned = item.variables?.find((v: any) => v.masterVariableId === vMaster.id);
+                                                    const isSelected = !!assigned;
+
+                                                    return (
+                                                        <div key={vMaster.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                                                            <div className="flex items-center gap-2 min-w-[200px]">
+                                                                <label className={cn(
+                                                                    "flex items-center gap-2 cursor-pointer text-sm font-bold flex-1",
+                                                                    isSelected ? "text-blue-600 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-400"
+                                                                )}>
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                                                        checked={isSelected}
+                                                                        onChange={(e) => {
+                                                                            const checked = e.target.checked;
+                                                                            const currentVars = item.variables || [];
+                                                                            if (checked) {
+                                                                                updateItem(index, 'variables', [...currentVars, { masterVariableId: vMaster.id, value: '' }]);
+                                                                            } else {
+                                                                                updateItem(index, 'variables', currentVars.filter((v: any) => v.masterVariableId !== vMaster.id));
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <span>{vMaster.name}</span>
+                                                                    <span className="opacity-50 text-[10px] ml-auto">({vMaster.code})</span>
+                                                                </label>
+                                                            </div>
+
+                                                            {isSelected && (
+                                                                <div className="flex-1 border-l border-zinc-200 dark:border-zinc-700 pl-4 py-1">
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder={`Ingresar valor para ${vMaster.name}`}
+                                                                        className="w-full h-8 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-700 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all"
+                                                                        value={assigned.value}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            const newVars = (item.variables || []).map((v: any) =>
+                                                                                v.masterVariableId === vMaster.id ? { ...v, value: val } : v
+                                                                            );
+                                                                            updateItem(index, 'variables', newVars);
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+
                                     </motion.div>
                                 ))}
                             </AnimatePresence>
