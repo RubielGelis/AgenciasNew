@@ -14,12 +14,13 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
-import { generateQuotationPDF } from '@/lib/pdf-utils'
+import * as XLSX from 'xlsx'
 
 export default function QuotationsHistoryPage() {
     const [quotations, setQuotations] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
+    const [selectedIds, setSelectedIds] = useState<number[]>([])
 
     useEffect(() => {
         const fetchQuotations = async () => {
@@ -41,10 +42,57 @@ export default function QuotationsHistoryPage() {
         q.clientName.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
-    const handleDownloadPDF = async (q: any) => {
-        // En una app real haríamos un fetch a todo el detalle si no vino completo 
-        // y se lo pasamos al generateQuotationPDF de la misma forma que en 'nueva'.
-        alert('En construcción: La descarga directa requiere traer el detalle completo de productos desde la DB. Se implementará en breve.')
+    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.checked) {
+            setSelectedIds(filteredQs.map(q => q.id))
+        } else {
+            setSelectedIds([])
+        }
+    }
+
+    const handleSelectOne = (id: number) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        )
+    }
+
+    const handleExport = async () => {
+        if (selectedIds.length === 0) {
+            alert('Por favor selecciona al menos una cotización para exportar.')
+            return
+        }
+
+        try {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            const res = await fetch('/api/quotations/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ids: selectedIds.join(','),
+                    userId: user.id || 1
+                })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || 'Error al exportar');
+            }
+
+            // Download the XML file
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Exportacion_Cotizaciones_${format(new Date(), 'yyyyMMdd_HHmm')}.xml`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+        } catch (error: any) {
+            console.error('Export error:', error);
+            alert(`Error exportando: ${error.message}`);
+        }
     }
 
     const handleDelete = async (id: number) => {
@@ -88,6 +136,14 @@ export default function QuotationsHistoryPage() {
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
                     </div>
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleExport}
+                        className="px-6 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-xl shadow-emerald-500/20 font-bold transition-all flex items-center gap-3 shrink-0"
+                    >
+                        <Download className="w-5 h-5" /> Exportar
+                    </motion.button>
                     <Link href="/dashboard/quotations/new">
                         <motion.button
                             whileHover={{ scale: 1.02 }}
@@ -116,16 +172,33 @@ export default function QuotationsHistoryPage() {
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-zinc-50 dark:bg-zinc-800/30">
                                 <tr>
+                                    <th className="px-8 py-6 w-10 border-b border-zinc-100 dark:border-zinc-800">
+                                        <input
+                                            type="checkbox"
+                                            className="w-5 h-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                            checked={selectedIds.length === filteredQs.length && filteredQs.length > 0}
+                                            onChange={handleSelectAll}
+                                        />
+                                    </th>
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Referencia</th>
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Fecha</th>
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Cliente</th>
+                                    <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Elaborado por</th>
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Monto Total</th>
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800 text-right">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                                 {filteredQs.map((q) => (
-                                    <tr key={q.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
+                                    <tr key={q.id} className={`group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all ${selectedIds.includes(q.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                                        <td className="px-8 py-6">
+                                            <input
+                                                type="checkbox"
+                                                className="w-5 h-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                checked={selectedIds.includes(q.id)}
+                                                onChange={() => handleSelectOne(q.id)}
+                                            />
+                                        </td>
                                         <td className="px-8 py-6">
                                             <div className="font-bold text-zinc-900 dark:text-white flex items-center gap-2">
                                                 {q.internalNumber}
@@ -142,19 +215,17 @@ export default function QuotationsHistoryPage() {
                                             <div className="text-xs text-zinc-500">{q.nights} Noches - {q.providerName}</div>
                                         </td>
                                         <td className="px-8 py-6">
+                                            <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                                                {q.userName}
+                                            </div>
+                                        </td>
+                                        <td className="px-8 py-6">
                                             <div className="font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
                                                 ${parseFloat(q.totalAmount).toLocaleString()} <span className="text-xs opacity-70">{q.currency}</span>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={() => handleDownloadPDF(q)}
-                                                    className="p-2 text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"
-                                                    title="Descargar PDF"
-                                                >
-                                                    <Download className="w-5 h-5" />
-                                                </button>
                                                 <Link
                                                     href={`/dashboard/quotations/${q.id}/edit`}
                                                     className="p-2 text-zinc-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-all"

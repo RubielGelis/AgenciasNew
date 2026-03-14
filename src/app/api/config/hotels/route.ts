@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
         const hotel = await prisma.hotel.create({
             data: {
+                code: body.code || null,
                 name: body.name,
                 category: body.category || null,
                 location: body.location || null,
@@ -47,6 +48,7 @@ export async function PUT(req: NextRequest) {
         const hotel = await prisma.hotel.update({
             where: { id: body.id },
             data: {
+                code: body.code || null,
                 name: body.name,
                 category: body.category || null,
                 location: body.location || null,

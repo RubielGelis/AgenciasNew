@@ -28,11 +28,11 @@ export async function GET(req: NextRequest) {
             filename = 'plantilla_clientes'
             break
         case 'proveedores':
-            data = [{ name: 'Proveedor Ejemplo', contactInfo: 'reservas@proveedor.com' }]
+            data = [{ code: 'AMADEUS', name: 'Proveedor Ejemplo', contactInfo: 'reservas@proveedor.com' }]
             filename = 'plantilla_proveedores'
             break
         case 'productos':
-            data = [{ type: 'HOTEL', description: 'Habitación Estándar', basePrice: 150000 }]
+            data = [{ code: 'P-001', type: 'HOTEL', description: 'Habitación Estándar', basePrice: 150000 }]
             filename = 'plantilla_productos'
             break
         case 'impuestos':
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
             filename = 'plantilla_impuestos'
             break
         case 'hoteles':
-            data = [{ name: 'Hotel San Luis', category: '4*', providerName: 'Decameron' }]
+            data = [{ code: 'H-001', name: 'Hotel San Luis', category: '4*', providerName: 'Decameron' }]
             filename = 'plantilla_hoteles'
             break
         case 'usuarios':

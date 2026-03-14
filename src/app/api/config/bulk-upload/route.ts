@@ -96,14 +96,51 @@ export async function POST(req: NextRequest) {
                     })
                 } else if (type === 'proveedores') {
                     if (!item.name) continue
-                    await prisma.provider.create({
-                        data: { name: item.name.toString(), contactInfo: item.contactInfo?.toString() }
-                    })
+                    const code = item.code?.toString() || null
+                    if (code) {
+                        await prisma.provider.upsert({
+                            where: { code },
+                            update: { name: item.name.toString(), contactInfo: item.contactInfo?.toString() },
+                            create: { code, name: item.name.toString(), contactInfo: item.contactInfo?.toString() }
+                        })
+                    } else {
+                        await prisma.provider.create({
+                            data: { name: item.name.toString(), contactInfo: item.contactInfo?.toString() }
+                        })
+                    }
                 } else if (type === 'productos') {
                     if (!item.description || item.basePrice === undefined) continue
-                    await prisma.product.create({
-                        data: { type: item.type?.toString() || 'SERVICE', description: item.description.toString(), basePrice: parseFloat(item.basePrice) }
-                    })
+                    const code = item.code?.toString() || null
+                    if (code) {
+                        await (prisma.product as any).upsert({
+                            where: { code },
+                            update: {
+                                type: item.type?.toString() || 'SERVICE',
+                                description: item.description.toString(),
+                                basePrice: parseFloat(item.basePrice),
+                                billingConcept: item.billingConcept?.toString() || null,
+                                serviceType: item.serviceType?.toString() || null
+                            },
+                            create: {
+                                code,
+                                type: item.type?.toString() || 'SERVICE',
+                                description: item.description.toString(),
+                                basePrice: parseFloat(item.basePrice),
+                                billingConcept: item.billingConcept?.toString() || null,
+                                serviceType: item.serviceType?.toString() || null
+                            }
+                        })
+                    } else {
+                        await prisma.product.create({
+                            data: {
+                                type: item.type?.toString() || 'SERVICE',
+                                description: item.description.toString(),
+                                basePrice: parseFloat(item.basePrice),
+                                billingConcept: item.billingConcept?.toString() || null,
+                                serviceType: item.serviceType?.toString() || null
+                            }
+                        })
+                    }
                 } else if (type === 'hoteles') {
                     if (!item.name || !item.providerName) continue
                     const provider = await prisma.provider.findFirst({
@@ -113,13 +150,34 @@ export async function POST(req: NextRequest) {
                         errors.push(`Proveedor '${item.providerName}' no encontrado para el hotel ${item.name}`)
                         continue
                     }
-                    await prisma.hotel.create({
-                        data: {
-                            name: item.name.toString(),
-                            category: item.category?.toString() || item.stars?.toString() || '3*',
-                            providerId: provider.id
-                        }
-                    })
+                    const code = item.code?.toString() || null
+                    if (code) {
+                        await (prisma.hotel as any).upsert({
+                            where: { code },
+                            update: {
+                                name: item.name.toString(),
+                                category: item.category?.toString() || item.stars?.toString() || '3*',
+                                location: item.location?.toString() || null,
+                                providerId: provider.id
+                            },
+                            create: {
+                                code,
+                                name: item.name.toString(),
+                                category: item.category?.toString() || item.stars?.toString() || '3*',
+                                location: item.location?.toString() || null,
+                                providerId: provider.id
+                            }
+                        })
+                    } else {
+                        await prisma.hotel.create({
+                            data: {
+                                name: item.name.toString(),
+                                category: item.category?.toString() || item.stars?.toString() || '3*',
+                                location: item.location?.toString() || null,
+                                providerId: provider.id
+                            }
+                        })
+                    }
                 } else if (type === 'usuarios') {
                     if (!item.email || !item.name) continue
                     const roleName = item.roleName?.toString() || 'Seller'

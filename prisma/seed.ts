@@ -51,23 +51,23 @@ async function main() {
     const prov1 = await prisma.provider.upsert({
         where: { id: 1 },
         update: {},
-        create: { name: 'GHL Hoteles', contactInfo: 'ghl@example.com' }
+        create: { code: 'GHL', name: 'GHL Hoteles', contactInfo: 'ghl@example.com' }
     })
     await prisma.hotel.upsert({
         where: { id: 1 },
         update: {},
-        create: { name: 'GHL Style Bogotá', providerId: prov1.id, location: 'Bogotá' }
+        create: { code: 'GHL-BOG', name: 'GHL Style Bogotá', providerId: prov1.id, location: 'Bogotá' }
     })
 
     const prov2 = await prisma.provider.upsert({
         where: { id: 2 },
         update: {},
-        create: { name: 'Decameron', contactInfo: 'decameron@example.com' }
+        create: { code: 'DEC', name: 'Decameron', contactInfo: 'decameron@example.com' }
     })
     await prisma.hotel.upsert({
         where: { id: 2 },
         update: {},
-        create: { name: 'Decameron Barú', providerId: prov2.id, location: 'Cartagena' }
+        create: { code: 'DEC-BARU', name: 'Decameron Barú', providerId: prov2.id, location: 'Cartagena' }
     })
 
     // Sample Branches & Implants
@@ -80,17 +80,17 @@ async function main() {
     await prisma.product.upsert({
         where: { id: 1 },
         update: {},
-        create: { type: 'ALIMENTACION', description: 'Desayuno Buffet', basePrice: 15.0 }
+        create: { code: 'AL-DES', type: 'ALIMENTACION', description: 'Desayuno Buffet', basePrice: 15.0 }
     })
     await prisma.product.upsert({
         where: { id: 2 },
         update: {},
-        create: { type: 'TRANSPORTE', description: 'Traslado Aeropuerto-Hotel', basePrice: 25.0 }
+        create: { code: 'TR-AERO', type: 'TRANSPORTE', description: 'Traslado Aeropuerto-Hotel', basePrice: 25.0 }
     })
     await prisma.product.upsert({
         where: { id: 3 },
         update: {},
-        create: { type: 'OTROS', description: 'Seguro de Viaje', basePrice: 10.0 }
+        create: { code: 'OT-SEG', type: 'OTROS', description: 'Seguro de Viaje', basePrice: 10.0 }
     })
 
     console.log('Seed: Success!')

@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
         const provider = await prisma.provider.create({
             data: {
+                code: body.code,
                 name: body.name,
                 contactInfo: body.contactInfo,
                 commissionConfig: body.commissionConfig || {}
@@ -48,6 +49,7 @@ export async function PUT(req: NextRequest) {
         const provider = await prisma.provider.update({
             where: { id: body.id },
             data: {
+                code: body.code,
                 name: body.name,
                 contactInfo: body.contactInfo,
                 commissionConfig: body.commissionConfig || {}

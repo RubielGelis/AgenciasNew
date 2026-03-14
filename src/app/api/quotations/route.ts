@@ -119,6 +119,7 @@ export async function POST(req: NextRequest) {
         if (validImplantId) dataPayload.implant = { connect: { id: validImplantId } };
         if (validSellerId) dataPayload.seller = { connect: { id: validSellerId } };
         if (validTicketPrinterId) dataPayload.ticketPrinter = { connect: { id: validTicketPrinterId } };
+        if (actingUserId) dataPayload.user = { connect: { id: actingUserId } };
 
         const quotation = await prisma.quotation.create({
             data: dataPayload

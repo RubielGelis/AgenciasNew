@@ -105,13 +105,13 @@ export default function SettingsPage() {
             } else if (activeTab === 'vendedores' || activeTab === 'tiqueteadores') {
                 setFormData({ code: '', name: '', email: '' })
             } else if (activeTab === 'hoteles') {
-                setFormData({ name: '', category: '', location: '', providerId: '' })
+                setFormData({ code: '', name: '', category: '', location: '', providerId: '' })
             } else if (activeTab === 'clientes') {
                 setFormData({ name: '', document: '', contactInfo: '', address: '' })
             } else if (activeTab === 'proveedores') {
-                setFormData({ name: '', contactInfo: '' })
+                setFormData({ code: '', name: '', contactInfo: '' })
             } else if (activeTab === 'productos') {
-                setFormData({ type: 'Servicio', description: '', basePrice: '', billingConcept: '', serviceType: '' })
+                setFormData({ code: '', type: 'Servicio', description: '', basePrice: '', billingConcept: '', serviceType: '' })
             } else if (activeTab === 'variables') {
                 setFormData({ code: '', name: '' })
             } else {
@@ -330,6 +330,7 @@ export default function SettingsPage() {
                                         </>
                                     ) : activeTab === 'hoteles' ? (
                                         <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Hotel</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Proveedor</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Categoría</th>
@@ -337,13 +338,14 @@ export default function SettingsPage() {
                                         </>
                                     ) : activeTab === 'clientes' || activeTab === 'proveedores' ? (
                                         <>
-                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">{activeTab === 'clientes' ? 'Documento' : 'ID'}</th>
+                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">{activeTab === 'clientes' ? 'Documento' : 'Código'}</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Contacto</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : activeTab === 'productos' ? (
                                         <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Tipo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Descripción</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Precio Base</th>
@@ -423,8 +425,9 @@ export default function SettingsPage() {
                                 ))}
                                 {activeTab === 'hoteles' && hotels.map(hotel => (
                                     <tr key={hotel.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{hotel.code || '-'}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{hotel.name}</td>
-                                        <td className="px-8 py-6 font-medium text-zinc-600 dark:text-zinc-300">
+                                        <td className="px-8 py-6 font-medium text-zinc-600 dark:text-zinc-300 text-xs">
                                             {hotel.provider?.name || <span className="text-zinc-400 text-xs italic">Sin proveedor</span>}
                                         </td>
                                         <td className="px-8 py-6">
@@ -459,7 +462,7 @@ export default function SettingsPage() {
                                 ))}
                                 {activeTab === 'proveedores' && (providers || []).map((item: any) => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
-                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.document || item.id || '-'}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.document || item.code || item.id || '-'}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.name}</td>
                                         <td className="px-8 py-6 text-zinc-500">
                                             {item.email && <div className="text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {item.email}</div>}
@@ -476,6 +479,7 @@ export default function SettingsPage() {
                                 ))}
                                 {activeTab === 'productos' && (products || []).map((item: any) => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code || '-'}</td>
                                         <td className="px-8 py-6">
                                             <span className="px-3 py-1 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 text-[10px] font-black rounded-lg uppercase tracking-wider">
                                                 {item.type}
@@ -581,7 +585,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'hoteles' ? 'Hotel' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'hoteles' ? 'Hotel' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -698,6 +702,7 @@ export default function SettingsPage() {
                                     </>
                                 ) : activeTab === 'hoteles' ? (
                                     <>
+                                        <Input label="Código del Hotel" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} placeholder="Ej. H-001 (Opcional)" />
                                         <Input label="Nombre del Hotel" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Decameron San Luis" />
                                         <div className="grid grid-cols-2 gap-4">
                                             <Input label="Estrellas/Cat." value={formData.category || ''} onChange={(v: string) => setFormData({ ...formData, category: v })} placeholder="Ej. 4*" />
@@ -721,7 +726,8 @@ export default function SettingsPage() {
                                         {activeTab === 'clientes' || activeTab === 'proveedores' ? (
                                             <>
                                                 {activeTab === 'clientes' && <Input label="Documento / NIT" value={formData.document || ''} onChange={(v: string) => setFormData({ ...formData, document: v })} required placeholder="No. de Documento" />}
-                                                <Input label="Nombre o Razón Social" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Nombre de Empresa / Persona" />
+                                                 {activeTab === 'proveedores' && <Input label="Código del Proveedor" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} placeholder="Ej. AMADEUS" />}
+                                                 <Input label="Nombre o Razón Social" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Nombre de Empresa / Persona" />
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <Input label="Email de Contacto" value={formData.email || ''} onChange={(v: string) => setFormData({ ...formData, email: v })} type="email" placeholder="Opcional" />
                                                     <Input label="Teléfono / Contacto" value={formData.contactInfo || formData.phone || ''} onChange={(v: string) => setFormData({ ...formData, contactInfo: v, phone: v })} placeholder="Opcional" />
@@ -730,6 +736,7 @@ export default function SettingsPage() {
                                             </>
                                         ) : activeTab === 'productos' ? (
                                             <>
+                                                <Input label="Código del Producto" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} placeholder="Ej. P-001 (Opcional)" />
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="space-y-2">
                                                         <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Tipo de Servicio</label>

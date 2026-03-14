@@ -34,6 +34,7 @@ model User {
   ticketPrinterId Int?
   ticketPrinter TicketPrinter? @relation(fields: [ticketPrinterId], references: [id])
   logs         SystemLog[]
+  quotations   Quotation[]
 }
 
 model Client {
@@ -47,6 +48,7 @@ model Client {
 
 model Provider {
   id               Int         @id @default(autoincrement())
+  code             String?     @unique
   name             String
   contactInfo      String?
   commissionConfig Json?
@@ -56,6 +58,7 @@ model Provider {
 
 model Hotel {
   id         Int         @id @default(autoincrement())
+  code       String?     @unique
   name       String
   location   String?
   category   String?
@@ -102,6 +105,7 @@ model TicketPrinter {
 
 model Product {
   id               Int                @id @default(autoincrement())
+  code             String?            @unique
   type             String
   description      String
   basePrice        Float
@@ -130,6 +134,8 @@ model Quotation {
   commissionPercentage Float
   chargesAndTaxes      Float
   totalAmount          Float
+  userId               Int?
+  user                 User?                @relation(fields: [userId], references: [id])
   products             QuotationProduct[]
   attachments          Attachment[]
 }

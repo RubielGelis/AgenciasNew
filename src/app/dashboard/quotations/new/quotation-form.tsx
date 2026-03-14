@@ -569,9 +569,9 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
                                             />
                                         </div>
-                                        <div className="col-span-12 md:col-span-4 space-y-1">
+                                        <div className="col-span-12 md:col-span-6 space-y-1">
                                             <div className="flex justify-between items-center">
-                                                <label className="text-[10px] uppercase font-bold text-zinc-400">Cargo Principal</label>
+                                                <label className="text-[10px] uppercase font-bold text-zinc-400">Cargo Principal / Valor</label>
                                                 {item.mainTaxId && data.taxes.find((t: any) => t.id === item.mainTaxId)?.isEditable !== false && (
                                                     <button
                                                         type="button"
@@ -602,6 +602,18 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     <option value="">Selecciona Master...</option>
                                                     {(data.taxes || []).map((t: any) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
                                                 </select>
+
+                                                <div className="relative w-32">
+                                                    <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
+                                                    <input
+                                                        type="number"
+                                                        readOnly
+                                                        className="w-full h-11 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg pl-7 pr-2 border border-zinc-200 dark:border-zinc-800 outline-none text-sm font-bold text-zinc-500 cursor-not-allowed"
+                                                        value={item.price}
+                                                        placeholder="Valor"
+                                                    />
+                                                </div>
+
                                                 {item.mainTaxAmount !== undefined && (
                                                     <div className="relative w-32 animate-in slide-in-from-right-2 duration-200">
                                                         <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-emerald-500" />
@@ -614,36 +626,6 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                         />
                                                     </div>
                                                 )}
-                                            </div>
-                                        </div>
-                                        <div className="col-span-10 md:col-span-2 space-y-1">
-                                            <label className="text-[10px] uppercase font-bold text-zinc-400">Tarifa Unit.</label>
-                                            <div className="relative">
-                                                <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
-                                                <input
-                                                    type="number"
-                                                    className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-2 border border-zinc-200 dark:border-zinc-800 outline-none text-sm font-bold"
-                                                    value={item.price}
-                                                    onChange={(e) => {
-                                                        const newPrice = parseFloat(e.target.value) || 0;
-                                                        const baseValue = newPrice * item.quantity;
-                                                        const newAppliedTaxes = (item.appliedTaxes || []).map(taxApp => {
-                                                            const taxMaster = data.taxes.find((t: any) => t.id === taxApp.id);
-                                                            if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
-                                                                return { ...taxApp, amount: (baseValue * taxMaster.value) / 100 };
-                                                            }
-                                                            return taxApp;
-                                                        });
-
-                                                        const newItems = [...formData.items];
-                                                        newItems[index] = {
-                                                            ...newItems[index],
-                                                            price: newPrice,
-                                                            appliedTaxes: newAppliedTaxes
-                                                        };
-                                                        setFormData({ ...formData, items: newItems });
-                                                    }}
-                                                />
                                             </div>
                                         </div>
                                         <div className="col-span-2 md:col-span-1 flex justify-center pb-2">
@@ -668,7 +650,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                         onChange={(e) => updateItem(index, 'providerId', e.target.value)}
                                                     >
                                                         <option value="">Sel. Proveedor</option>
-                                                        {data.providers.map((p: any) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
+                                                        {data.providers.map((p: any) => <option key={p.id} value={String(p.id)}>{p.code ? `[${p.code}] ` : ''}{p.name}</option>)}
                                                     </select>
                                                 </div>
                                                 <div className="space-y-1">

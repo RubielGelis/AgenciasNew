@@ -16,11 +16,12 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
     try {
-        const { type, description, basePrice, billingConcept, serviceType } = await req.json()
+        const { code, type, description, basePrice, billingConcept, serviceType } = await req.json()
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
         const product = await prisma.product.create({
             data: {
+                code: code || null,
                 type,
                 description,
                 basePrice: parseFloat(basePrice.toString()),
@@ -41,12 +42,13 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
     try {
-        const { id, type, description, basePrice, billingConcept, serviceType } = await req.json()
+        const { id, code, type, description, basePrice, billingConcept, serviceType } = await req.json()
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
         const product = await prisma.product.update({
             where: { id },
             data: {
+                code: code || null,
                 type,
                 description,
                 basePrice: parseFloat(basePrice.toString()),

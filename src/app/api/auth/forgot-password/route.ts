@@ -44,8 +44,6 @@ export async function POST(req: NextRequest) {
             }
         })
 
-        // El preset 'Hotmail' ya incluye el host y puerto correctos para Outlook/MSN
-
         const mailOptions = {
             from: `"Soporte Agencias New" <${process.env.SMTP_USER}>`,
             to: email,
@@ -70,8 +68,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Si el correo está registrado, se ha enviado un enlace de recuperación' })
     } catch (error: any) {
         console.error('Forgot password error:', error)
-        const fs = require('fs')
-        fs.appendFileSync('debug_api_err.txt', `${new Date().toISOString()} - Forgot Password Error: ${error.message}\n${error.stack}\n\n`)
         return NextResponse.json({ message: 'Error interno del servidor', detail: error.message }, { status: 500 })
     }
 }

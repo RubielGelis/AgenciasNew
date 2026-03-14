@@ -9,6 +9,7 @@ export async function GET() {
             orderBy: { date: 'desc' },
             include: {
                 client: { select: { name: true, document: true } },
+                user: { select: { name: true } },
                 products: {
                     include: {
                         product: true,
@@ -30,6 +31,7 @@ export async function GET() {
                 createdAt: q.date,
                 totalAmount: q.totalAmount,
                 currency: q.currency,
+                userName: q.user?.name || 'Sistema',
                 status: 'DRAFT', // using default status 
                 nights: firstProd?.nights || 1
             }
