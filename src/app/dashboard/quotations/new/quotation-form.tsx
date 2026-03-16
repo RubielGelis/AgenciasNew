@@ -35,7 +35,6 @@ interface QuotationFormData {
         sellerCommission: number;
         ticketPrinterCommission: number;
         mainTaxId?: number;
-        mainTaxAmount?: number; // Manual override for main tax
         appliedTaxes: { id?: number, name?: string, amount: number }[],
         variables: { id?: number, masterVariableId: number, value: string }[]
     }[];
@@ -77,19 +76,15 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
                     // Add main tax if exists
                     if (item.mainTaxId) {
-                        const amount = item.mainTaxAmount !== undefined ? item.mainTaxAmount : (item.price * item.quantity);
+                        const amount = item.price * item.quantity;
                         taxes.push({ chargeAndTaxId: item.mainTaxId, explicitAmount: amount });
                     }
 
                     // Add secondary taxes
                     (item.appliedTaxes || []).forEach(t => {
-                        if (t.id) {
-                            taxes.push({ chargeAndTaxId: t.id, explicitAmount: t.amount });
-                        } else {
-                            // Custom charge (we'll need to handle this in backend or just use a dummy id if not supported yet)
-                            // For now, let's only support editable master taxes as per current DB schema
-                            // If they are custom, we skip or we would need a DB change.
-                            // But usually "edit freely" means values of existing ones too.
+                        const taxId = t.id || (t as any).chargeAndTaxId;
+                        if (taxId && taxId !== item.mainTaxId) {
+                            taxes.push({ chargeAndTaxId: taxId, explicitAmount: t.amount });
                         }
                     });
 
@@ -233,17 +228,24 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         if (!data?.taxes) return summary;
 
         formData.items.forEach(item => {
-            // Include main tax
+            // Price of the item (Main Charge / Base Price)
+            const rowValue = (item.price || 0) * (item.quantity || 1);
             if (item.mainTaxId) {
                 const master = data.taxes.find((t: any) => t.id === item.mainTaxId);
                 if (master) {
-                    const amount = item.mainTaxAmount !== undefined ? item.mainTaxAmount : (item.price * item.quantity);
-                    summary[master.name] = (summary[master.name] || 0) + amount;
+                    summary[master.name] = (summary[master.name] || 0) + rowValue;
+                } else {
+                    summary['Cargo Principal'] = (summary['Cargo Principal'] || 0) + rowValue;
                 }
+            } else if (rowValue > 0) {
+                summary['Valor Base'] = (summary['Valor Base'] || 0) + rowValue;
             }
 
-            // Include applied taxes
+            // Additional taxes (Secondary)
             (item.appliedTaxes || []).forEach(tax => {
+                // SKIP IF DUPLICATE OF MAIN (Important for correct totals)
+                if (tax.id === item.mainTaxId || (tax as any).chargeAndTaxId === item.mainTaxId) return;
+
                 const master = tax.id ? data.taxes.find((t: any) => t.id === tax.id) : null;
                 const name = master ? master.name : (tax.name || 'Otros');
                 summary[name] = (summary[name] || 0) + (tax.amount || 0);
@@ -323,14 +325,29 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                 const safeVariables = Array.isArray(p.variables) ? p.variables : [];
 
                                 let mainTaxId: number | undefined = undefined;
+                                let inferredPrice = p.price;
                                 const baseVal = p.price * p.quantity;
-                                const possibleMain = safeAppliedTaxes.find((t: any) => t.explicitAmount === baseVal);
-                                if (possibleMain) mainTaxId = possibleMain.chargeAndTaxId;
+
+                                // Try to find the main tax.
+                                // We use a small epsilon for float comparison
+                                let mainTaxIdx = safeAppliedTaxes.findIndex((t: any) => 
+                                    Math.abs(t.explicitAmount - baseVal) < 0.01 && baseVal > 0
+                                );
+
+                                // Fallback: if no clear match and price is 0, take the first one as main
+                                if (mainTaxIdx === -1 && (!p.price || p.price === 0) && safeAppliedTaxes.length > 0) {
+                                    mainTaxIdx = 0;
+                                    inferredPrice = safeAppliedTaxes[0].explicitAmount / (p.quantity || 1);
+                                }
+
+                                if (mainTaxIdx !== -1) {
+                                    mainTaxId = safeAppliedTaxes[mainTaxIdx].chargeAndTaxId;
+                                }
 
                                 return {
                                     productId: p.productId?.toString() || '',
                                     quantity: p.quantity,
-                                    price: p.price,
+                                    price: inferredPrice,
                                     providerId: p.providerId?.toString() || '',
                                     hotelId: p.hotelId?.toString() || '',
                                     checkIn: p.checkInDate ? format(new Date(p.checkInDate), 'yyyy-MM-dd') : '',
@@ -344,10 +361,12 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     sellerCommission: p.sellerCommission || 0,
                                     ticketPrinterCommission: p.ticketPrinterCommission || 0,
                                     mainTaxId,
-                                    appliedTaxes: safeAppliedTaxes.map((t: any) => ({
-                                        id: t.chargeAndTaxId,
-                                        amount: t.explicitAmount
-                                    })),
+                                    appliedTaxes: safeAppliedTaxes
+                                        .filter((_: any, idx: number) => idx !== mainTaxIdx)
+                                        .map((t: any) => ({
+                                            id: t.chargeAndTaxId,
+                                            amount: t.explicitAmount
+                                        })),
                                     variables: safeVariables.map((v: any) => ({
                                         id: v.id,
                                         masterVariableId: v.masterVariableId,
@@ -389,7 +408,19 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
     const updateItem = (index: number, field: string, value: any) => {
         const newItems = [...formData.items]
-        newItems[index] = { ...newItems[index], [field]: value }
+        const item = { ...newItems[index], [field]: value }
+
+        // SYNC LOGIC: If price changes, update the main tax amount in appliedTaxes
+        if (field === 'price' || field === 'quantity') {
+            if (item.mainTaxId) {
+                const amount = (item.price || 0) * (item.quantity || 1);
+                item.appliedTaxes = (item.appliedTaxes || []).map((t: any) =>
+                    (t.id || t.chargeAndTaxId) === item.mainTaxId ? { ...t, amount } : t
+                );
+            }
+        }
+
+        newItems[index] = item
         setFormData({ ...formData, items: newItems })
     }
 
@@ -572,15 +603,6 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                         <div className="col-span-12 md:col-span-6 space-y-1">
                                             <div className="flex justify-between items-center">
                                                 <label className="text-[10px] uppercase font-bold text-zinc-400">Cargo Principal / Valor</label>
-                                                {item.mainTaxId && data.taxes.find((t: any) => t.id === item.mainTaxId)?.isEditable !== false && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => updateItem(index, 'mainTaxAmount', item.mainTaxAmount === undefined ? (item.price * item.quantity) : undefined)}
-                                                        className="text-[9px] text-blue-500 font-bold hover:underline"
-                                                    >
-                                                        {item.mainTaxAmount === undefined ? 'Editar Valor' : 'Usar Calc.'}
-                                                    </button>
-                                                )}
                                             </div>
                                             <div className="flex gap-2">
                                                 <select
@@ -590,11 +612,30 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                         const val = e.target.value ? parseInt(e.target.value) : undefined;
                                                         const master = data.taxes.find((t: any) => t.id === val);
                                                         const newItems = [...formData.items];
+                                                        const currentItem = newItems[index];
+
+                                                        // When selecting a main tax, ensure it's also in appliedTaxes
+                                                        let nextTaxes = [...(currentItem.appliedTaxes || [])];
+                                                        let newPrice = currentItem.price;
+
+                                                        if (val) {
+                                                            const existingTaxIdx = nextTaxes.findIndex((t: any) => (t.id || t.chargeAndTaxId) === val);
+                                                            if (existingTaxIdx !== -1) {
+                                                                // Inherit value from existing edited tax
+                                                                newPrice = nextTaxes[existingTaxIdx].amount / (currentItem.quantity || 1);
+                                                            } else {
+                                                                // Use master value
+                                                                newPrice = master ? master.value : currentItem.price;
+                                                                const initialAmount = master ? (master.valueType === 'PERCENTAGE' ? (newPrice * currentItem.quantity * master.value / 100) : master.value * currentItem.quantity) : 0;
+                                                                nextTaxes.push({ id: val, amount: initialAmount });
+                                                            }
+                                                        }
+
                                                         newItems[index] = {
-                                                            ...newItems[index],
+                                                            ...currentItem,
                                                             mainTaxId: val,
-                                                            price: master ? master.value : newItems[index].price,
-                                                            mainTaxAmount: undefined // Reset manual override when changing master
+                                                            price: newPrice,
+                                                            appliedTaxes: nextTaxes
                                                         };
                                                         setFormData({ ...formData, items: newItems });
                                                     }}
@@ -607,25 +648,12 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
                                                     <input
                                                         type="number"
-                                                        readOnly
-                                                        className="w-full h-11 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg pl-7 pr-2 border border-zinc-200 dark:border-zinc-800 outline-none text-sm font-bold text-zinc-500 cursor-not-allowed"
+                                                        className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-2 border border-blue-200 dark:border-blue-800 outline-none text-sm font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500 shadow-sm"
                                                         value={item.price}
+                                                        onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
                                                         placeholder="Valor"
                                                     />
                                                 </div>
-
-                                                {item.mainTaxAmount !== undefined && (
-                                                    <div className="relative w-32 animate-in slide-in-from-right-2 duration-200">
-                                                        <DollarSign className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-emerald-500" />
-                                                        <input
-                                                            type="number"
-                                                            className="w-full h-11 bg-emerald-50/30 dark:bg-emerald-500/10 rounded-lg pl-6 pr-2 border border-emerald-200 dark:border-emerald-500/30 outline-none text-xs font-bold text-emerald-600 dark:text-emerald-400"
-                                                            value={item.mainTaxAmount}
-                                                            onChange={(e) => updateItem(index, 'mainTaxAmount', parseFloat(e.target.value) || 0)}
-                                                            placeholder="Monto"
-                                                        />
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
                                         <div className="col-span-2 md:col-span-1 flex justify-center pb-2">
@@ -776,17 +804,18 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     <span className="text-xs text-zinc-400 font-medium">No hay cargos maestros configurados.</span>
                                                 )}
 
-                                                {/* Render secondary taxes (Master only) */}
-                                                {data.taxes.filter((t: any) => t.id !== item.mainTaxId).map((tax: any) => {
-                                                    const appliedTax = item.appliedTaxes?.find((t: any) => t.id === tax.id);
+                                                {/* Render all taxes (Now including Principal for easier editing) */}
+                                                {(data.taxes || []).map((tax: any) => {
+                                                    const appliedTax = item.appliedTaxes?.find((t: any) => (t.id || t.chargeAndTaxId) === tax.id);
                                                     const isChecked = !!appliedTax;
+                                                    const isPrincipal = tax.id === item.mainTaxId;
 
                                                     return (
                                                         <div key={tax.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
                                                             <div className="flex items-center gap-2 min-w-[200px]">
                                                                 <label className={cn(
                                                                     "flex items-center gap-2 cursor-pointer text-sm font-bold flex-1",
-                                                                    isChecked ? "text-blue-600 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-400"
+                                                                    isPrincipal ? "text-blue-600 dark:text-blue-400" : (isChecked ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-600 dark:text-zinc-400")
                                                                 )}>
                                                                     <input
                                                                         type="checkbox"
@@ -803,13 +832,31 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                                                 } else {
                                                                                     initialAmount = tax.value * item.quantity;
                                                                                 }
-                                                                                updateItem(index, 'appliedTaxes', [...currentTaxes, { id: tax.id, amount: initialAmount }]);
+                                                                                const nextTaxes = [...currentTaxes, { id: tax.id, amount: initialAmount }];
+                                                                                
+                                                                                // AUTO-PROMOTE to principal if none exists
+                                                                                if (!item.mainTaxId) {
+                                                                                    const newItems = [...formData.items];
+                                                                                    // If it's a percentage, it probably shouldn't be the main price, but if promoting, we use its current amount
+                                                                                    const newPrice = initialAmount / (item.quantity || 1);
+                                                                                    newItems[index] = { ...item, mainTaxId: tax.id, price: newPrice, appliedTaxes: nextTaxes };
+                                                                                    setFormData({ ...formData, items: newItems });
+                                                                                } else {
+                                                                                    updateItem(index, 'appliedTaxes', nextTaxes);
+                                                                                }
                                                                             } else {
-                                                                                updateItem(index, 'appliedTaxes', currentTaxes.filter((t: any) => t.id !== tax.id));
+                                                                                const nextTaxes = currentTaxes.filter((t: any) => (t.id || t.chargeAndTaxId) !== tax.id);
+                                                                                if (isPrincipal) {
+                                                                                    const newItems = [...formData.items];
+                                                                                    newItems[index] = { ...item, mainTaxId: undefined, appliedTaxes: nextTaxes };
+                                                                                    setFormData({ ...formData, items: newItems });
+                                                                                } else {
+                                                                                    updateItem(index, 'appliedTaxes', nextTaxes);
+                                                                                }
                                                                             }
                                                                         }}
                                                                     />
-                                                                    <span>{tax.name}</span>
+                                                                    <span>{tax.name} {isPrincipal && <span className="text-[9px] bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded ml-1 uppercase">Principal</span>}</span>
                                                                     <span className="opacity-50 text-[10px] ml-auto">({tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : `$${tax.value}`})</span>
                                                                 </label>
                                                             </div>
@@ -824,16 +871,24 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                                             step="0.01"
                                                                             className={cn(
                                                                                 "w-full h-8 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-3 border border-zinc-200 dark:border-zinc-700 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all",
-                                                                                tax.isEditable === false && "opacity-50 cursor-not-allowed bg-zinc-50 dark:bg-zinc-800"
+                                                                                tax.isEditable === false && !isPrincipal && "opacity-50 cursor-not-allowed bg-zinc-50 dark:bg-zinc-800"
                                                                             )}
                                                                             value={appliedTax.amount}
-                                                                            disabled={tax.isEditable === false}
+                                                                            disabled={tax.isEditable === false && !isPrincipal}
                                                                             onChange={(e) => {
                                                                                 const val = parseFloat(e.target.value) || 0;
                                                                                 const newTaxes = (item.appliedTaxes || []).map((t: any) =>
-                                                                                    t.id === tax.id ? { ...t, amount: val } : t
+                                                                                    (t.id || t.chargeAndTaxId) === tax.id ? { ...t, amount: val } : t
                                                                                 );
-                                                                                updateItem(index, 'appliedTaxes', newTaxes);
+                                                                                
+                                                                                // INHERIT TO TOP: If this is principal, update price
+                                                                                if (isPrincipal) {
+                                                                                    const newItems = [...formData.items];
+                                                                                    newItems[index] = { ...item, price: val / (item.quantity || 1), appliedTaxes: newTaxes };
+                                                                                    setFormData({ ...formData, items: newItems });
+                                                                                } else {
+                                                                                    updateItem(index, 'appliedTaxes', newTaxes);
+                                                                                }
                                                                             }}
                                                                         />
                                                                     </div>

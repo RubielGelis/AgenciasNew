@@ -19,22 +19,22 @@ model Role {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  passwordHash String
-  resetPasswordToken   String?  @unique
+  id                   Int            @id @default(autoincrement())
+  name                 String
+  email                String         @unique
+  passwordHash         String
+  resetPasswordToken   String?        @unique
   resetPasswordExpires DateTime?
-  roleId       Int
-  role         Role     @relation(fields: [roleId], references: [id])
-  branchId     Int?
-  branch       Branch?  @relation(fields: [branchId], references: [id])
-  implantId    Int?
-  implant      Implant? @relation(fields: [implantId], references: [id])
-  ticketPrinterId Int?
-  ticketPrinter TicketPrinter? @relation(fields: [ticketPrinterId], references: [id])
-  logs         SystemLog[]
-  quotations   Quotation[]
+  roleId               Int
+  branchId             Int?
+  implantId            Int?
+  ticketPrinterId      Int?
+  quotations           Quotation[]
+  logs                 SystemLog[]
+  branch               Branch?        @relation(fields: [branchId], references: [id])
+  implant              Implant?       @relation(fields: [implantId], references: [id])
+  role                 Role           @relation(fields: [roleId], references: [id])
+  ticketPrinter        TicketPrinter? @relation(fields: [ticketPrinterId], references: [id])
 }
 
 model Client {
@@ -47,23 +47,23 @@ model Client {
 }
 
 model Provider {
-  id               Int         @id @default(autoincrement())
-  code             String?     @unique
-  name             String
-  contactInfo      String?
-  commissionConfig Json?
-  hotels           Hotel[]
+  id                Int                @id @default(autoincrement())
+  code              String?            @unique
+  name              String
+  contactInfo       String?
+  commissionConfig  Json?
+  hotels            Hotel[]
   quotationProducts QuotationProduct[]
 }
 
 model Hotel {
-  id         Int         @id @default(autoincrement())
-  code       String?     @unique
-  name       String
-  location   String?
-  category   String?
-  providerId Int
-  provider   Provider    @relation(fields: [providerId], references: [id])
+  id                Int                @id @default(autoincrement())
+  name              String
+  location          String?
+  category          String?
+  providerId        Int
+  code              String?            @unique
+  provider          Provider           @relation(fields: [providerId], references: [id])
   quotationProducts QuotationProduct[]
 }
 
@@ -71,8 +71,8 @@ model Branch {
   id         Int         @id @default(autoincrement())
   code       String      @unique
   name       String
-  quotations Quotation[]
   implants   Implant[]
+  quotations Quotation[]
   users      User[]
 }
 
@@ -80,7 +80,7 @@ model Implant {
   id         Int         @id @default(autoincrement())
   code       String      @unique
   name       String
-  branchId   Int? // Opcional por ahora para no romper datos existentes
+  branchId   Int?
   branch     Branch?     @relation(fields: [branchId], references: [id])
   quotations Quotation[]
   users      User[]
@@ -104,151 +104,141 @@ model TicketPrinter {
 }
 
 model Product {
-  id               Int                @id @default(autoincrement())
-  code             String?            @unique
-  type             String
-  description      String
-  basePrice        Float
-  billingConcept   String? // Concepto de facturación libre
-  serviceType      String? // Tipo de servicio libre
+  id                Int                @id @default(autoincrement())
+  type              String
+  description       String
+  basePrice         Float
+  billingConcept    String?
+  serviceType       String?
+  code              String?            @unique
   quotationProducts QuotationProduct[]
 }
 
 model Quotation {
-  id                   Int                  @id @default(autoincrement())
-  internalNumber       String               @unique
-  date                 DateTime             @default(now())
+  id                   Int                @id @default(autoincrement())
+  internalNumber       String             @unique
+  date                 DateTime           @default(now())
   clientId             Int
-  client               Client               @relation(fields: [clientId], references: [id])
   currency             String
   exchangeRate         Float
   branchId             Int
-  branch               Branch               @relation(fields: [branchId], references: [id])
   implantId            Int?
-  implant              Implant?             @relation(fields: [implantId], references: [id])
   sellerId             Int?
-  seller               Seller?              @relation(fields: [sellerId], references: [id])
   ticketPrinterId      Int?
-  ticketPrinter        TicketPrinter?       @relation(fields: [ticketPrinterId], references: [id])
   baseCommissionable   Float
   commissionPercentage Float
   chargesAndTaxes      Float
   totalAmount          Float
   userId               Int?
-  user                 User?                @relation(fields: [userId], references: [id])
-  products             QuotationProduct[]
   attachments          Attachment[]
+  branch               Branch             @relation(fields: [branchId], references: [id])
+  client               Client             @relation(fields: [clientId], references: [id])
+  implant              Implant?           @relation(fields: [implantId], references: [id])
+  seller               Seller?            @relation(fields: [sellerId], references: [id])
+  ticketPrinter        TicketPrinter?     @relation(fields: [ticketPrinterId], references: [id])
+  user                 User?              @relation(fields: [userId], references: [id])
+  products             QuotationProduct[]
 }
 
 model Attachment {
   id          Int       @id @default(autoincrement())
   quotationId Int
-  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
   fileName    String
   fileType    String
   fileSize    Int
-  fileContent Bytes // Almacena el contenido binario del archivo
+  fileContent Bytes
   createdAt   DateTime  @default(now())
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 }
 
 model QuotationProduct {
-  id          Int       @id @default(autoincrement())
-  quotationId Int
-  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
-  productId   Int
-  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  quantity    Int
-  price       Float
-
-  // Per-product passenger and provider details
-  providerId  Int?
-  provider    Provider? @relation(fields: [providerId], references: [id])
-  hotelId     Int?
-  hotel       Hotel?    @relation(fields: [hotelId], references: [id])
-  checkInDate DateTime?
-  checkOutDate DateTime?
-  nights      Int?
-  
-  // Passenger details support multiple
-  passengers  QuotationProductPassenger[]
-  paxAdults            Int?
-  paxChildren          Int?
-
-  // Service specifics
-  serviceType          String?
-  destination          String?
-  reservationCode      String?
-
-  // Commissions specific to this product
-  sellerCommission         Float?
-  ticketPrinterCommission  Float?
-
-  appliedTaxes QuotationProductTax[]
-  variables    QuotationProductVariable[]
+  id                      Int                         @id @default(autoincrement())
+  quotationId             Int
+  productId               Int
+  quantity                Int
+  price                   Float
+  providerId              Int?
+  hotelId                 Int?
+  checkInDate             DateTime?
+  checkOutDate            DateTime?
+  nights                  Int?
+  paxAdults               Int?
+  paxChildren             Int?
+  serviceType             String?
+  destination             String?
+  reservationCode         String?
+  sellerCommission        Float?
+  ticketPrinterCommission Float?
+  hotel                   Hotel?                      @relation(fields: [hotelId], references: [id])
+  product                 Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  provider                Provider?                   @relation(fields: [providerId], references: [id])
+  quotation               Quotation                   @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  passengers              QuotationProductPassenger[]
+  appliedTaxes            QuotationProductTax[]
+  variables               QuotationProductVariable[]
 }
 
 model QuotationProductPassenger {
   id                 Int              @id @default(autoincrement())
   quotationProductId Int
-  quotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
   name               String
   document           String
+  quotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
 
   @@map("QuotationProductPassenger")
 }
 
-
 model ChargeAndTax {
-  id          Int      @id @default(autoincrement())
-  name        String
-  type        String   // e.g., "TAX" (Impuestos), "CHARGE" (Cargos), "COMMISSION" (Comisión)
-  valueType   String   // e.g., "PERCENTAGE", "FIXED"
-  value       Float
-  isEditable  Boolean  @default(true)
-
-  appliedTo   QuotationProductTax[]
+  id         Int                   @id @default(autoincrement())
+  name       String
+  type       String
+  valueType  String
+  value      Float
+  isEditable Boolean               @default(true)
+  appliedTo  QuotationProductTax[]
 }
 
 model QuotationProductTax {
   id                 Int              @id @default(autoincrement())
   quotationProductId Int
-  quotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
   chargeAndTaxId     Int
-  chargeAndTax       ChargeAndTax     @relation(fields: [chargeAndTaxId], references: [id], onDelete: Restrict)
-  
-  // Guardamos un snapshot del valor al momento de cotizar para evitar que cambios futuros en el maestro alteren cotizaciones pasadas
   valueSnapshot      Float
   valueTypeSnapshot  String
-  explicitAmount     Float? // Almacena el valor monetario exacto ingresado o calculado
+  explicitAmount     Float?
+  chargeAndTax       ChargeAndTax     @relation(fields: [chargeAndTaxId], references: [id])
+  quotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
 }
-
 
 model SystemLog {
   id          Int      @id @default(autoincrement())
   userId      Int?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action      String   // LOGIN, CREATE, UPDATE, DELETE, IMPORT
-  module      String   // USER, QUOTATION, MASTER_DATA (HOTEL, PROVIDER, etc.)
-  description String   // A human-readable description of what happened
-  metadata    Json?    // Optional technical dump of the changed data or payload
+  action      String
+  module      String
+  description String
+  metadata    Json?
   createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id])
 }
 
 model MasterVariable {
-  id    Int    @id @default(autoincrement())
-  code  String @unique
-  name  String
-
+  id               Int                        @id @default(autoincrement())
+  code             String                     @unique
+  name             String
   productVariables QuotationProductVariable[]
 }
 
 model QuotationProductVariable {
   id                 Int              @id @default(autoincrement())
   quotationProductId Int
-  quotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
   masterVariableId   Int
-  masterVariable     MasterVariable   @relation(fields: [masterVariableId], references: [id], onDelete: Restrict)
-  
   value              String
+  masterVariable     MasterVariable   @relation(fields: [masterVariableId], references: [id])
+  quotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
 }
 
+model SystemParameter {
+  id    Int    @id @default(autoincrement())
+  code  String @unique
+  name  String
+  value String
+}

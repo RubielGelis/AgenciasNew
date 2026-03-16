@@ -26,7 +26,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tab = 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'hoteles' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'logs';
+type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'hoteles' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'logs';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
@@ -50,6 +50,7 @@ export default function SettingsPage() {
     const [clients, setClients] = useState<any[]>([])
     const [products, setProducts] = useState<any[]>([])
     const [variables, setVariables] = useState<any[]>([])
+    const [parameters, setParameters] = useState<any[]>([])
 
     // Form states
     const [formData, setFormData] = useState<any>({})
@@ -61,7 +62,7 @@ export default function SettingsPage() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts, resVariables] = await Promise.all([
+            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts, resVariables, resParams] = await Promise.all([
                 fetch('/api/config/users').then(res => res.json()),
                 fetch('/api/config/roles').then(res => res.json()),
                 fetch('/api/config/branches').then(res => res.json()),
@@ -74,7 +75,8 @@ export default function SettingsPage() {
                 fetch('/api/config/logs').then(res => res.json()),
                 fetch('/api/clients').then(res => res.json()),
                 fetch('/api/products').then(res => res.json()),
-                fetch('/api/config/variables').then(res => res.json())
+                fetch('/api/config/variables').then(res => res.json()),
+                fetch('/api/config/parameters').then(res => res.json())
             ])
             setUsers(Array.isArray(u) ? u : [])
             setRoles(Array.isArray(r) ? r : [])
@@ -89,6 +91,7 @@ export default function SettingsPage() {
             setClients(resClients || [])
             setProducts(resProducts || [])
             setVariables(resVariables || [])
+            setParameters(resParams || [])
         } finally {
             setLoading(false)
         }
@@ -114,6 +117,8 @@ export default function SettingsPage() {
                 setFormData({ code: '', type: 'Servicio', description: '', basePrice: '', billingConcept: '', serviceType: '' })
             } else if (activeTab === 'variables') {
                 setFormData({ code: '', name: '' })
+            } else if (activeTab === 'parametros') {
+                setFormData({ code: '', name: '', value: '' })
             } else {
                 setFormData({ code: '', name: '' })
             }
@@ -135,7 +140,8 @@ export default function SettingsPage() {
                                     activeTab === 'proveedores' ? '/api/providers' :
                                         activeTab === 'productos' ? '/api/products' :
                                             activeTab === 'variables' ? '/api/config/variables' :
-                                                '/api/config/implants'
+                                                activeTab === 'parametros' ? '/api/config/parameters' :
+                                                    '/api/config/implants'
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -173,7 +179,8 @@ export default function SettingsPage() {
                                     activeTab === 'proveedores' ? '/api/providers' :
                                         activeTab === 'productos' ? '/api/products' :
                                             activeTab === 'variables' ? '/api/config/variables' :
-                                                '/api/config/implants'
+                                                activeTab === 'parametros' ? '/api/config/parameters' :
+                                                    '/api/config/implants'
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -273,7 +280,7 @@ export default function SettingsPage() {
                                 className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                             >
                                 <Plus className="w-5 h-5" />
-                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'hoteles' ? 'Nuevo Hotel' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : 'Nuevo Implant'}
+                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'hoteles' ? 'Nuevo Hotel' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : 'Nuevo Implant'}
                             </motion.button>
                         </>
                     )}
@@ -282,6 +289,7 @@ export default function SettingsPage() {
 
             {/* Tabs Layout */}
             <div className="flex flex-wrap items-center gap-1 p-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl mb-8 shadow-sm">
+                <TabButton active={activeTab === 'parametros'} onClick={() => setActiveTab('parametros')} icon={<Settings className="w-4 h-4" />} label="Parámetros" />
                 <TabButton active={activeTab === 'usuarios'} onClick={() => setActiveTab('usuarios')} icon={<Users className="w-4 h-4" />} label="Usuarios" />
                 <TabButton active={activeTab === 'sucursales'} onClick={() => setActiveTab('sucursales')} icon={<Building2 className="w-4 h-4" />} label="Sucursales" />
                 <TabButton active={activeTab === 'implants'} onClick={() => setActiveTab('implants')} icon={<Database className="w-4 h-4" />} label="Implants" />
@@ -362,6 +370,13 @@ export default function SettingsPage() {
                                         <>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código Único</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Variable</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'parametros' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Valor</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : (
@@ -497,6 +512,19 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
+                                {activeTab === 'parametros' && (parameters || []).map(item => (
+                                    <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.name}</td>
+                                        <td className="px-8 py-6 font-medium text-zinc-600 dark:text-zinc-300">{item.value}</td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
                                 {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : []) || []).map(item => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code || '-'}</td>
@@ -585,7 +613,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'hoteles' ? 'Hotel' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'hoteles' ? 'Hotel' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -764,6 +792,12 @@ export default function SettingsPage() {
                                             <>
                                                 <Input label="Código Único" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. TKT-VUELO" />
                                                 <Input label="Nombre de Variable" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Número de Tiquete / Reserva" />
+                                            </>
+                                        ) : activeTab === 'parametros' ? (
+                                            <>
+                                                <Input label="Código Único" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. EMPRESA_NIT" />
+                                                <Input label="Nombre descriptivo" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. NIT de la Empresa" />
+                                                <Input label="Valor" value={formData.value || ''} onChange={(v: string) => setFormData({ ...formData, value: v })} required placeholder="Ej. 900.000.000-1" />
                                             </>
                                         ) : (
                                             <>
