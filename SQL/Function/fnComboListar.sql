@@ -1,0 +1,54 @@
+CREATE OR REPLACE FUNCTION public.fnComboListar()
+RETURNS SETOF JSONB
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        jsonb_build_object(
+            'id', c.id,
+            'code', c.code,
+            'name', c.name,
+            'createdAt', c."createdAt",
+            'products', COALESCE((
+                SELECT jsonb_agg(
+                    jsonb_build_object(
+                        'id', cp.id,
+                        'productId', cp."productId",
+                        'product', jsonb_build_object('id', p.id, 'description', p.description),
+                        'price', cp.price,
+                        'providerId', cp."providerId",
+                        'hotelId', cp."hotelId",
+                        'checkInDate', cp."checkInDate",
+                        'checkOutDate', cp."checkOutDate",
+                        'paxAdults', cp."paxAdults",
+                        'paxChildren', cp."paxChildren",
+                        'mainTaxId', cp."mainTaxId",
+                        'inNationality', COALESCE(cp."inNationality", 1),
+                        'appliedTaxes', (
+                            SELECT jsonb_agg(
+                                jsonb_build_object(
+                                    'id', cpt.id,
+                                    'chargeAndTaxId', cpt."chargeAndTaxId",
+                                    'amount', cpt.amount,
+                                    'isMain', cpt."isMain",
+                                    'chargeAndTax', (
+                                        SELECT jsonb_build_object('id', ct.id, 'name', ct.name, 'value', ct.value, 'valueType', ct."valueType")
+                                        FROM public."ChargeAndTax" ct WHERE ct.id = cpt."chargeAndTaxId"
+                                    )
+                                )
+                            )
+                            FROM public."ComboProductTax" cpt
+                            WHERE cpt."comboProductId" = cp.id
+                        )
+                    )
+                )
+                FROM public."ComboProduct" cp
+                JOIN public."Product" p ON cp."productId" = p.id
+                WHERE cp."comboId" = c.id
+            ), '[]'::jsonb)
+        )
+    FROM public."Combo" c
+    ORDER BY c."createdAt" DESC;
+END;
+$$;

@@ -1,0 +1,1 @@
+ALTER TABLE public."Combo" ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT now();

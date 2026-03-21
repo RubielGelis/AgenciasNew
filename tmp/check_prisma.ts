@@ -1,0 +1,4 @@
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
+console.log('Available models:', Object.keys(prisma).filter(k => k[0] !== '$' && k[0] !== '_'));
+process.exit(0);
