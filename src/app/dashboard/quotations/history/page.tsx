@@ -38,7 +38,7 @@ export default function QuotationsHistoryPage() {
     }, [])
 
     const filteredQs = quotations.filter(q =>
-        q.internalNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        q.id.toString().includes(searchTerm) ||
         q.clientName.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
@@ -130,7 +130,7 @@ export default function QuotationsHistoryPage() {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
                         <input
                             type="text"
-                            placeholder="Buscar N° o cliente..."
+                            placeholder="Buscar ID o cliente..."
                             className="h-14 bg-white dark:bg-zinc-900 rounded-2xl pl-12 pr-6 border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-blue-500 outline-none w-full md:w-80 font-medium transition-all shadow-sm"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -201,7 +201,7 @@ export default function QuotationsHistoryPage() {
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                                                {q.internalNumber}
+                                                #{q.id}
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
         }
 
         const userIdHeader = req.headers.get('X-User-Id')
-        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const buffer = await file.arrayBuffer()
         const workbook = XLSX.read(buffer, { type: 'buffer' })
@@ -21,198 +21,70 @@ export async function POST(req: NextRequest) {
         const sheet = workbook.Sheets[sheetName]
         const data = XLSX.utils.sheet_to_json(sheet) as any[]
 
-        let count = 0
-        let errors: string[] = []
-
-        for (const item of data) {
-            try {
-                if (type === 'sucursales') {
-                    if (!item.code || !item.name) continue
-                    await (prisma.branch as any).upsert({
-                        where: { code: item.code.toString() },
-                        update: { name: item.name.toString() },
-                        create: { code: item.code.toString(), name: item.name.toString() }
-                    })
-                } else if (type === 'implants') {
-                    if (!item.code || !item.name) continue
-                    let branchId: number | null = null;
-                    if (item.branchCode) {
-                        const branch = await prisma.branch.findUnique({ where: { code: item.branchCode.toString() } })
-                        if (!branch) {
-                            errors.push(`Sucursal con código ${item.branchCode} no encontrada para el implant ${item.code}`)
-                            continue
-                        }
-                        branchId = branch.id;
-                    }
-                    await (prisma.implant as any).upsert({
-                        where: { code: item.code.toString() },
-                        update: { name: item.name.toString(), branchId },
-                        create: { code: item.code.toString(), name: item.name.toString(), branchId }
-                    })
-                } else if (type === 'vendedores') {
-                    if (!item.name) continue
-                    const code = item.code?.toString() || null
-                    if (code) {
-                        await (prisma.seller as any).upsert({
-                            where: { code },
-                            update: { name: item.name.toString(), email: item.email?.toString() },
-                            create: { code, name: item.name.toString(), email: item.email?.toString() }
-                        })
-                    } else {
-                        await prisma.seller.create({
-                            data: { name: item.name.toString(), email: item.email?.toString() }
-                        })
-                    }
-                } else if (type === 'tiqueteadores') {
-                    if (!item.name) continue
-                    const code = item.code?.toString() || null
-                    if (code) {
-                        await (prisma.ticketPrinter as any).upsert({
-                            where: { code },
-                            update: { name: item.name.toString(), email: item.email?.toString() },
-                            create: { code, name: item.name.toString(), email: item.email?.toString() }
-                        })
-                    } else {
-                        await prisma.ticketPrinter.create({
-                            data: { name: item.name.toString(), email: item.email?.toString() }
-                        })
-                    }
-                } else if (type === 'impuestos') {
-                    if (!item.name || !item.type || !item.valueType || item.value === undefined) continue
-                    await prisma.chargeAndTax.create({
-                        data: {
-                            name: item.name.toString(),
-                            type: item.type.toString(),
-                            valueType: item.valueType.toString(),
-                            value: parseFloat(item.value)
-                        }
-                    })
-                } else if (type === 'clientes') {
-                    if (!item.document || !item.name) continue
-                    await prisma.client.upsert({
-                        where: { document: item.document.toString() },
-                        update: { name: item.name.toString(), contactInfo: item.contactInfo?.toString(), address: item.address?.toString() },
-                        create: { document: item.document.toString(), name: item.name.toString(), contactInfo: item.contactInfo?.toString(), address: item.address?.toString() }
-                    })
-                } else if (type === 'proveedores') {
-                    if (!item.name) continue
-                    const code = item.code?.toString() || null
-                    if (code) {
-                        await prisma.provider.upsert({
-                            where: { code },
-                            update: { name: item.name.toString(), contactInfo: item.contactInfo?.toString() },
-                            create: { code, name: item.name.toString(), contactInfo: item.contactInfo?.toString() }
-                        })
-                    } else {
-                        await prisma.provider.create({
-                            data: { name: item.name.toString(), contactInfo: item.contactInfo?.toString() }
-                        })
-                    }
-                } else if (type === 'productos') {
-                    if (!item.description || item.basePrice === undefined) continue
-                    const code = item.code?.toString() || null
-                    if (code) {
-                        await (prisma.product as any).upsert({
-                            where: { code },
-                            update: {
-                                type: item.type?.toString() || 'SERVICE',
-                                description: item.description.toString(),
-                                basePrice: parseFloat(item.basePrice),
-                                billingConcept: item.billingConcept?.toString() || null,
-                                serviceType: item.serviceType?.toString() || null
-                            },
-                            create: {
-                                code,
-                                type: item.type?.toString() || 'SERVICE',
-                                description: item.description.toString(),
-                                basePrice: parseFloat(item.basePrice),
-                                billingConcept: item.billingConcept?.toString() || null,
-                                serviceType: item.serviceType?.toString() || null
-                            }
-                        })
-                    } else {
-                        await prisma.product.create({
-                            data: {
-                                type: item.type?.toString() || 'SERVICE',
-                                description: item.description.toString(),
-                                basePrice: parseFloat(item.basePrice),
-                                billingConcept: item.billingConcept?.toString() || null,
-                                serviceType: item.serviceType?.toString() || null
-                            }
-                        })
-                    }
-                } else if (type === 'hoteles') {
-                    if (!item.name || !item.providerName) continue
-                    const provider = await prisma.provider.findFirst({
-                        where: { name: { contains: item.providerName.toString(), mode: 'insensitive' } }
-                    })
-                    if (!provider) {
-                        errors.push(`Proveedor '${item.providerName}' no encontrado para el hotel ${item.name}`)
-                        continue
-                    }
-                    const code = item.code?.toString() || null
-                    if (code) {
-                        await (prisma.hotel as any).upsert({
-                            where: { code },
-                            update: {
-                                name: item.name.toString(),
-                                category: item.category?.toString() || item.stars?.toString() || '3*',
-                                location: item.location?.toString() || null,
-                                providerId: provider.id
-                            },
-                            create: {
-                                code,
-                                name: item.name.toString(),
-                                category: item.category?.toString() || item.stars?.toString() || '3*',
-                                location: item.location?.toString() || null,
-                                providerId: provider.id
-                            }
-                        })
-                    } else {
-                        await prisma.hotel.create({
-                            data: {
-                                name: item.name.toString(),
-                                category: item.category?.toString() || item.stars?.toString() || '3*',
-                                location: item.location?.toString() || null,
-                                providerId: provider.id
-                            }
-                        })
-                    }
-                } else if (type === 'usuarios') {
-                    if (!item.email || !item.name) continue
-                    const roleName = item.roleName?.toString() || 'Seller'
-                    const role = await prisma.role.findFirst({
-                        where: { name: { contains: roleName, mode: 'insensitive' } }
-                    })
-                    if (!role) {
-                        errors.push(`Rol '${roleName}' no encontrado para el usuario ${item.name}`)
-                        continue
-                    }
-                    const bcrypt = require('bcryptjs')
-                    const hashedPassword = await bcrypt.hash(item.password?.toString() || 'Agencias2024*', 10)
-                    await prisma.user.upsert({
-                        where: { email: item.email.toString() },
-                        update: { name: item.name.toString(), roleId: role.id },
-                        create: { email: item.email.toString(), name: item.name.toString(), roleId: role.id, passwordHash: hashedPassword }
-                    })
-                }
-                count++
-            } catch (err: any) {
-                errors.push(`Error en fila ${count + 1}: ${err.message}`)
-            }
+        if (data.length === 0) {
+            return NextResponse.json({ message: 'El archivo está vacío' }, { status: 400 })
         }
 
+        // Convert JSON data to Delimited Text (Rows by \n, Cols by ^)
+        // We match column names to what the SP expect for each type
+        const textData = data.map((item: any) => {
+            let cols: any[] = []
+            if (type === 'sucursales') {
+                cols = [item.code, item.name]
+            } else if (type === 'implants') {
+                cols = [item.code, item.name, item.branchCode]
+            } else if (type === 'vendedores') {
+                cols = [item.name, item.email, item.code]
+            } else if (type === 'tiqueteadores') {
+                cols = [item.name, item.email, item.code]
+            } else if (type === 'impuestos') {
+                // New Format: code^name^type^valueType^value^inNationality
+                cols = [item.code || '', item.name, item.type, item.valueType, item.value, item.inNationality || '1']
+            } else if (type === 'clientes') {
+                cols = [item.document, item.name, item.contactInfo, item.address]
+            } else if (type === 'proveedores') {
+                cols = [item.name, item.contactInfo, item.code]
+            } else if (type === 'productos') {
+                cols = [item.description, item.basePrice, item.code, item.type, item.billingConcept, item.serviceType]
+            } else if (type === 'hoteles') {
+                cols = [item.name, item.providerNM || item.providerName, item.code, item.category || item.stars, item.location]
+            } else if (type === 'usuarios') {
+                cols = [item.email, item.name, item.roleName, item.password]
+            }
+            return cols.map(c => (c !== undefined && c !== null ? c.toString().replace(/\^/g, ' ') : '')).join('^')
+        }).join('\n')
+
+        // Call the Stored Procedure with TEXT data
+        const results: any[] = await prisma.$queryRawUnsafe(
+            `CALL public.spMaestroImportar($1::TEXT, $2::TEXT, $3::INT, $4::TEXT)`,
+            type,
+            textData,
+            actingUserId,
+            '' // p_mensaje_resultado
+        );
+
+        const message = results[0]?.p_mensaje_resultado || '';
+
         import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'IMPORT', module: type.toUpperCase(), description: `Importación masiva de ${count} registros en ${type}. ${errors.length} errores.`, metadata: { type, count, errors } });
+            logSystemEvent({ 
+                userId: actingUserId, 
+                action: 'IMPORT', 
+                module: type.toUpperCase(), 
+                description: `Importación masiva de ${type} vía SP (Texto). Resultado: ${message}`, 
+                metadata: { type, message } 
+            });
         });
 
+        if (message.startsWith('ERROR')) {
+            throw new Error(message);
+        }
+
         return NextResponse.json({
-            message: `Importación completada: ${count} registros procesados`,
-            errors: errors.length > 0 ? errors : undefined
+            message: message.startsWith('SUCCESS') ? message : `Importación completada: ${message}`
         })
 
     } catch (error: any) {
-        console.error('Bulk upload error:', error)
-        return NextResponse.json({ message: 'Error interno al procesar el archivo', error: error.message }, { status: 500 })
+        console.error('Bulk upload error (SP Text):', error)
+        return NextResponse.json({ message: 'Error al procesar la importación masiva: ' + error.message }, { status: 500 })
     }
 }

@@ -5,10 +5,10 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
     try {
-        const products = await prisma.product.findMany({
-            orderBy: { id: 'desc' }
-        })
-        return NextResponse.json(products)
+        const results: any[] = await prisma.$queryRawUnsafe(
+            `SELECT * FROM public.fnProductoListar()`
+        );
+        return NextResponse.json(results)
     } catch (error) {
         return NextResponse.json({ message: 'Error retrieving products' }, { status: 500 })
     }
@@ -16,54 +16,79 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
     try {
-        const { code, type, description, basePrice, billingConcept, serviceType } = await req.json()
+        const body = await req.json()
+        const { code, type, description, basePrice, billingConcept, serviceType } = body
         const userIdHeader = req.headers.get('X-User-Id')
-        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
-        const product = await prisma.product.create({
-            data: {
-                code: code || null,
-                type,
-                description,
-                basePrice: parseFloat(basePrice.toString()),
-                billingConcept: billingConcept || null,
-                serviceType: serviceType || null,
-            }
-        })
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+
+        const results: any[] = await prisma.$queryRawUnsafe(
+            `CALL public.spProductoCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::FLOAT, $5::TEXT, $6::TEXT, $7::INT, $8::INT, $9::TEXT)`,
+            code || null,
+            type,
+            description,
+            parseFloat(basePrice.toString()),
+            billingConcept || null,
+            serviceType || null,
+            actingUserId,
+            0, // p_product_id
+            '' // p_mensaje_resultado
+        );
+
+        const dbProductId = results[0]?.p_product_id;
+        const message = results[0]?.p_mensaje_resultado || '';
+
+        if (!dbProductId || message.startsWith('ERROR')) {
+            throw new Error(message || 'Error creating product');
+        }
+
+        const product = { id: dbProductId, description };
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'PRODUCT', description: `Producto ${product.description} creado.`, metadata: product });
+            logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'PRODUCT', description: `Producto ${product.description} creado (SP).`, metadata: product });
         });
 
         return NextResponse.json({ message: 'Producto creado', product })
-    } catch (error) {
-        return NextResponse.json({ message: 'Error creating product' }, { status: 500 })
+    } catch (error: any) {
+        console.error('Error creating product:', error);
+        return NextResponse.json({ message: 'Error creating product: ' + error.message }, { status: 500 })
     }
 }
 
 export async function PUT(req: NextRequest) {
     try {
-        const { id, code, type, description, basePrice, billingConcept, serviceType } = await req.json()
+        const body = await req.json()
+        const { id, code, type, description, basePrice, billingConcept, serviceType } = body
         const userIdHeader = req.headers.get('X-User-Id')
-        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
-        const product = await prisma.product.update({
-            where: { id },
-            data: {
-                code: code || null,
-                type,
-                description,
-                basePrice: parseFloat(basePrice.toString()),
-                billingConcept: billingConcept || null,
-                serviceType: serviceType || null,
-            }
-        })
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+
+        const results: any[] = await prisma.$queryRawUnsafe(
+            `CALL public.spProductoActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::FLOAT, $6::TEXT, $7::TEXT, $8::INT, $9::TEXT)`,
+            parseInt(id),
+            code || null,
+            type,
+            description,
+            parseFloat(basePrice.toString()),
+            billingConcept || null,
+            serviceType || null,
+            actingUserId,
+            '' // p_mensaje_resultado
+        );
+
+        const message = results[0]?.p_mensaje_resultado || '';
+        if (message.startsWith('ERROR')) {
+            throw new Error(message);
+        }
+
+        const product = { id, description };
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'PRODUCT', description: `Producto ${product.description} actualizado.`, metadata: product });
+            logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'PRODUCT', description: `Producto ${product.description} actualizado (SP).`, metadata: product });
         });
 
         return NextResponse.json({ message: 'Producto actualizado', product })
-    } catch (error) {
-        return NextResponse.json({ message: 'Error updating product' }, { status: 500 })
+    } catch (error: any) {
+        console.error('Error updating product:', error);
+        return NextResponse.json({ message: 'Error updating product: ' + error.message }, { status: 500 })
     }
 }
 
@@ -71,20 +96,29 @@ export async function DELETE(req: NextRequest) {
     try {
         const url = new URL(req.url)
         const id = url.searchParams.get('id')
-        const userIdHeader = req.headers.get('X-User-Id')
-        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
         if (!id) return NextResponse.json({ message: 'Missing ID' }, { status: 400 })
+        const userIdHeader = req.headers.get('X-User-Id')
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
-        await prisma.product.delete({
-            where: { id: parseInt(id) }
-        })
+        const results: any[] = await prisma.$queryRawUnsafe(
+            `CALL public.spProductoEliminar($1::INT, $2::INT, $3::TEXT)`,
+            parseInt(id),
+            actingUserId,
+            '' // p_mensaje_resultado
+        );
+
+        const message = results[0]?.p_mensaje_resultado || '';
+        if (message.startsWith('ERROR')) {
+            throw new Error(message);
+        }
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'DELETE', module: 'PRODUCT', description: `Producto con ID ${id} eliminado.` });
+            logSystemEvent({ userId: actingUserId, action: 'DELETE', module: 'PRODUCT', description: `Producto con ID ${id} eliminado (SP).` });
         });
 
         return NextResponse.json({ message: 'Producto eliminado' })
-    } catch (error) {
-        return NextResponse.json({ message: 'Error deleting product' }, { status: 500 })
+    } catch (error: any) {
+        console.error('Error deleting product:', error);
+        return NextResponse.json({ message: 'Error deleting product: ' + error.message }, { status: 500 })
     }
 }

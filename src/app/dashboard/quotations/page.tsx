@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Plus, Filter, FileText, Download, Trash2, Eye, Edit2, MoreVertical, FileDown } from 'lucide-react'
+import { Search, Plus, Filter, FileText, Download, Trash2, Eye, Edit2, MoreVertical, FileDown, FileCode } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { generateQuotationPDF } from '@/lib/pdf-utils'
@@ -33,8 +33,6 @@ export default function QuotationsListPage() {
     }, [])
 
     const handleDownloadPdf = (q: any) => {
-        // We need to fetch full data for the PDF or ensure the list has enough
-        // For now, let's assume the list has basic info or mock enrichment
         const firstProd = q.products && q.products.length > 0 ? q.products[0] : null;
 
         const pdfData = {
@@ -56,6 +54,38 @@ export default function QuotationsListPage() {
             }))
         }
         generateQuotationPDF(pdfData)
+    }
+
+    const handleExportXml = async (q: any) => {
+        try {
+            const loggedUser = JSON.parse(localStorage.getItem('user') || '{"id": 1}');
+            const res = await fetch('/api/quotations/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ids: q.id.toString(),
+                    userId: loggedUser.id
+                })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.message || 'Error exportando XML');
+            }
+
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cotizacion_${q.id}.xml`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (err: any) {
+            console.error(err);
+            alert("Error al exportar XML: " + err.message);
+        }
     }
 
     return (
@@ -82,7 +112,7 @@ export default function QuotationsListPage() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
                     <input
                         type="text"
-                        placeholder="Buscar por cliente, número o hotel..."
+                        placeholder="Buscar por cliente, ID o hotel..."
                         className="w-full h-12 pl-12 pr-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -98,7 +128,7 @@ export default function QuotationsListPage() {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
-                            <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-wider">Número</th>
+                            <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-wider">Referencia</th>
                             <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-wider">Cliente</th>
                             <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-wider">Fechas</th>
                             <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-wider">Total</th>
@@ -112,18 +142,20 @@ export default function QuotationsListPage() {
                             <tr><td colSpan={5} className="p-20 text-center text-zinc-500 font-medium">No se encontraron cotizaciones.</td></tr>
                         ) : (
                             quotations.filter(q => {
-                                const firstProd = q.products?.[0];
+                                const mainProd = q.products.find((p: any) => p.mainTaxId) || (q.products && q.products.length > 0 ? q.products[0] : null);
+                                const firstProd = mainProd;
                                 const firstPaxName = firstProd?.passengers && Array.isArray(firstProd.passengers) && firstProd.passengers.length > 0 ? firstProd.passengers[0].name : '';
-                                return q.internalNumber.toLowerCase().includes(search.toLowerCase()) ||
+                                return q.id.toString().includes(search) ||
                                     (q.client?.name || '').toLowerCase().includes(search.toLowerCase()) ||
                                     (firstPaxName && firstPaxName.toLowerCase().includes(search.toLowerCase())) ||
                                     (firstProd?.hotel?.name && firstProd.hotel.name.toLowerCase().includes(search.toLowerCase()))
                             }).map((q) => {
-                                const firstProd = q.products?.[0];
+                                const mainProd = q.products.find((p: any) => p.mainTaxId) || (q.products && q.products.length > 0 ? q.products[0] : null);
+                                const firstProd = mainProd;
                                 return (
                                     <tr key={q.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
                                         <td className="px-6 py-4">
-                                            <div className="font-bold text-blue-600">{q.internalNumber}</div>
+                                            <div className="font-bold text-blue-600">#{q.id}</div>
                                             <div className="text-[10px] text-zinc-400 mt-0.5">{format(new Date(q.date), 'dd MMM, yyyy')}</div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -144,8 +176,16 @@ export default function QuotationsListPage() {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">
                                                 <button
+                                                    onClick={() => handleExportXml(q)}
+                                                    className="p-2 text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-all"
+                                                    title="Descargar XML (Integración)"
+                                                >
+                                                    <FileCode className="w-5 h-5" />
+                                                </button>
+                                                <button
                                                     onClick={() => handleDownloadPdf(q)}
                                                     className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all"
+                                                    title="Descargar PDF"
                                                 >
                                                     <FileDown className="w-5 h-5" />
                                                 </button>

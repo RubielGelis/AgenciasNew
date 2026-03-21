@@ -85,7 +85,8 @@ export default function ExcelImport() {
                 Tipo_Servicio: 'ALIMENTACION',
                 Reserva: 'RES123',
                 Comision_Vendedor_Producto: 0,
-                Comision_Tiqueteador_Producto: 0
+                Comision_Tiqueteador_Producto: 0,
+                Combo_Codigos: 'COM-001|COM-002'
             },
             {
                 Grupo_Cotizacion: '1',
@@ -114,7 +115,8 @@ export default function ExcelImport() {
                 Tipo_Servicio: 'TRANSPORTE',
                 Reserva: 'XXL123',
                 Comision_Vendedor_Producto: 5,
-                Comision_Tiqueteador_Producto: 2
+                Comision_Tiqueteador_Producto: 2,
+                Combo_Codigos: ''
             }
         ]
         const ws = XLSX.utils.json_to_sheet(templateData)

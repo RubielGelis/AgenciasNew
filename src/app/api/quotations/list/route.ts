@@ -5,26 +5,12 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
     try {
-        const quotations = await prisma.quotation.findMany({
-            include: {
-                client: true,
-                products: {
-                    include: {
-                        product: true,
-                        provider: true,
-                        hotel: true,
-                        passengers: true
-                    }
-                }
-            },
-            orderBy: {
-                date: 'desc'
-            }
-        })
-
+        const results: any[] = await prisma.$queryRawUnsafe(
+            `SELECT * FROM public.fnCotizacionListar()`
+        );
+        const quotations = results.map(row => row.fncotizacionlistar);
         return NextResponse.json(quotations)
-    } catch (error: any) {
-        console.error('Error fetching quotations:', error)
-        return NextResponse.json({ message: 'Error al obtener las cotizaciones', details: error.message }, { status: 500 })
+    } catch (error) {
+        return NextResponse.json({ message: 'Error retrieving quotations' }, { status: 500 })
     }
 }

@@ -18,10 +18,15 @@ export async function POST(req: NextRequest) {
             '' 
         )
 
-        const xmlContent = result[0]?.mensaje_resultado || '';
+        // Prisma $queryRawUnsafe returns an array of rows. For a CALL with INOUT, 
+        // the INOUT parameters are returned as keys in the first row.
+        const row = result && result.length > 0 ? result[0] : null;
+        // Postgres may lowercase the parameter names
+        const xmlContent = row?.mensaje_resultado || row?.p_mensaje_resultado || (row ? Object.values(row)[0] : '') as string;
+        const xmlStr = typeof xmlContent === 'string' ? xmlContent : '';
 
-        if (xmlContent.startsWith('ERROR')) {
-            return NextResponse.json({ message: xmlContent }, { status: 500 })
+        if (xmlStr.startsWith('ERROR')) {
+            return NextResponse.json({ message: xmlStr }, { status: 500 })
         }
 
         if (!xmlContent) {

@@ -99,7 +99,7 @@ export default function DashboardIndex() {
                                         <tr key={q.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
                                             <td className="px-8 py-4">
                                                 <div className="font-bold text-sm text-zinc-900 dark:text-white">{q.client.name}</div>
-                                                <div className="text-[10px] text-zinc-400">{q.internalNumber}</div>
+                                                <div className="text-[10px] text-zinc-400">#{q.id}</div>
                                             </td>
                                             <td className="px-8 py-4 font-black text-blue-600 text-sm">
                                                 ${q.totalAmount.toLocaleString()}

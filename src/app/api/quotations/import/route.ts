@@ -43,7 +43,9 @@ export async function POST(req: NextRequest) {
                 row.Tipo_Servicio || '',
                 row.Reserva || '',
                 row.Comision_Vendedor_Producto || '',
-                row.Comision_Tiqueteador_Producto || ''
+                row.Comision_Tiqueteador_Producto || '',
+                row.Combo_Codigos || '',
+                row.Nacionalidad || '1'
             ];
             return cols.join('^');
         }).join('\n');

@@ -51,7 +51,7 @@ BEGIN
         comision_global DECIMAL,
         cargos_global DECIMAL,
         producto_cd TEXT,
-        proveedor_nm TEXT, -- Se mantiene por si se quiere el nombre, pero se usa cd para resolver
+        proveedor_nm TEXT, 
         proveedor_cd TEXT,
         hotel_cd TEXT,
         impuestos_str TEXT,
@@ -67,7 +67,9 @@ BEGIN
         tipo_servicio TEXT,
         reserva TEXT,
         com_vendedor DECIMAL,
-        com_tiqueteador DECIMAL
+        com_tiqueteador DECIMAL,
+        combos_str TEXT,
+        nacionalidad INT DEFAULT 1
     ) ON COMMIT DROP;
 
     DELETE FROM tmp_import_rows;
@@ -85,7 +87,8 @@ BEGIN
                 moneda, tasa_cambio, comision_global, cargos_global, producto_cd,
                 proveedor_nm, proveedor_cd, hotel_cd, impuestos_str, variables_str, pasajeros_str,
                 precio, cantidad, check_in, check_out, pax_adultos, pax_ninos,
-                destino, tipo_servicio, reserva, com_vendedor, com_tiqueteador
+                destino, tipo_servicio, reserva, com_vendedor, com_tiqueteador,
+                combos_str, nacionalidad
             ) VALUES (
                 TRIM(v_cols[1]), TRIM(v_cols[2]), TRIM(v_cols[3]), TRIM(v_cols[4]), TRIM(v_cols[5]), TRIM(v_cols[6]),
                 TRIM(v_cols[7]), NULLIF(TRIM(v_cols[8]), '')::DECIMAL, NULLIF(TRIM(v_cols[9]), '')::DECIMAL,
@@ -99,10 +102,11 @@ BEGIN
                 CASE WHEN TRIM(v_cols[21]) <> '' THEN TRIM(v_cols[21])::TIMESTAMP ELSE NULL END,
                 NULLIF(TRIM(v_cols[22]), '')::INT, NULLIF(TRIM(v_cols[23]), '')::INT,
                 TRIM(v_cols[24]), TRIM(v_cols[25]), TRIM(v_cols[26]),
-                NULLIF(TRIM(v_cols[27]), '')::DECIMAL, NULLIF(TRIM(v_cols[28]), '')::DECIMAL
+                NULLIF(TRIM(v_cols[27]), '')::DECIMAL, NULLIF(TRIM(v_cols[28]), '')::DECIMAL,
+                TRIM(v_cols[29]), COALESCE(NULLIF(TRIM(v_cols[30]), '')::INT, 1)
             );
         EXCEPTION WHEN OTHERS THEN
-            p_mensaje_resultado := 'ERROR en FILA ' || v_imported_count || ': ' || SQLERRM;
+            p_mensaje_resultado := 'ERROR en FILA ' || v_imported_count || ': ' || SQLERRM || ' (Valor: ' || v_row_text || ')';
             RETURN;
         END;
     END LOOP;
@@ -112,15 +116,18 @@ BEGIN
     -- 3. Procesar Grupos
     FOR v_quotation_record IN (
         SELECT DISTINCT grupo, cliente_doc, sucursal_cd, implant_cd, vendedor_cd, tiqueteador_cd, 
-                        moneda, tasa_cambio, comision_global, cargos_global 
+                        moneda, tasa_cambio, comision_global, cargos_global,
+                        MAX(combos_str) as combos_str -- Tomamos los combos del grupo
         FROM tmp_import_rows
+        GROUP BY grupo, cliente_doc, sucursal_cd, implant_cd, vendedor_cd, tiqueteador_cd, 
+                        moneda, tasa_cambio, comision_global, cargos_global
     ) LOOP
         -- Resolución de Maestros
         SELECT id INTO v_client_id FROM public."Client" WHERE document = v_quotation_record.cliente_doc;
         IF v_client_id IS NULL THEN CONTINUE; END IF;
 
         SELECT id INTO v_branch_id FROM public."Branch" WHERE LOWER(code) = LOWER(v_quotation_record.sucursal_cd);
-        IF v_branch_id IS NULL THEN CONTINUE; END IF; -- Estricto
+        IF v_branch_id IS NULL THEN CONTINUE; END IF;
 
         SELECT id INTO v_implant_id FROM public."Implant" WHERE LOWER(code) = LOWER(v_quotation_record.implant_cd);
         SELECT id INTO v_seller_id FROM public."Seller" WHERE LOWER(code) = LOWER(v_quotation_record.vendedor_cd);
@@ -141,9 +148,48 @@ BEGIN
 
         v_total_amount := COALESCE(v_quotation_record.cargos_global, 0);
 
+        -- Procesar Combos (Expandir productos del combo)
+        IF v_quotation_record.combos_str IS NOT NULL AND v_quotation_record.combos_str <> '' THEN
+            FOR v_var_item IN SELECT unnest(string_to_array(v_quotation_record.combos_str, '|')) LOOP
+                DECLARE
+                    v_combo_id INT;
+                    v_cp_record RECORD;
+                BEGIN
+                    SELECT id INTO v_combo_id FROM public."Combo" WHERE LOWER(code) = LOWER(TRIM(v_var_item));
+                    IF v_combo_id IS NOT NULL THEN
+                        INSERT INTO public."QuotationCombo" ("quotationId", "comboId") VALUES (v_quotation_id, v_combo_id);
+                        
+                        -- Insertar productos del combo
+                        FOR v_cp_record IN (SELECT * FROM public."ComboProduct" WHERE "comboId" = v_combo_id) LOOP
+                            INSERT INTO public."QuotationProduct" (
+                                "quotationId", "productId", "quantity", "price", "comboId", "mainTaxId", "inNationality"
+                            ) VALUES (
+                                v_quotation_id, v_cp_record."productId", v_cp_record.quantity, v_cp_record.price, v_combo_id, v_cp_record."mainTaxId", v_cp_record."inNationality"
+                            ) RETURNING id INTO v_qp_id;
+
+                            v_total_amount := v_total_amount + (v_cp_record.price * v_cp_record.quantity);
+
+                            -- Insertar impuestos del combo product
+                            INSERT INTO public."QuotationProductTax" (
+                                "quotationProductId", "chargeAndTaxId", "valueSnapshot", "valueTypeSnapshot", "explicitAmount", "isMain"
+                            )
+                            SELECT v_qp_id, cpt."chargeAndTaxId", ct.value, ct."valueType", cpt.amount, cpt."isMain"
+                            FROM public."ComboProductTax" cpt
+                            JOIN public."ChargeAndTax" ct ON cpt."chargeAndTaxId" = ct.id
+                            WHERE cpt."comboProductId" = v_cp_record.id;
+                            
+                            -- Sumar impuestos al total
+                            v_total_amount := v_total_amount + COALESCE((SELECT SUM(amount) FROM public."ComboProductTax" WHERE "comboProductId" = v_cp_record.id), 0);
+                        END LOOP;
+                    END IF;
+                END;
+            END LOOP;
+        END IF;
+
+        -- Procesar Productos Individuales
         FOR v_product_record IN (SELECT * FROM tmp_import_rows WHERE grupo = v_quotation_record.grupo) LOOP
             SELECT id INTO v_product_id FROM public."Product" WHERE LOWER(code) = LOWER(v_product_record.producto_cd);
-            IF v_product_id IS NULL THEN CONTINUE; END IF; -- Estricto
+            IF v_product_id IS NULL THEN CONTINUE; END IF; 
 
             -- Resolución de Proveedor por Código
             v_provider_id := NULL;
@@ -156,7 +202,8 @@ BEGIN
             INSERT INTO public."QuotationProduct" (
                 "quotationId", "productId", "quantity", "price", "providerId", "hotelId", 
                 "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren", 
-                "serviceType", "destination", "reservationCode", "sellerCommission", "ticketPrinterCommission"
+                "serviceType", "destination", "reservationCode", "sellerCommission", "ticketPrinterCommission",
+                "inNationality"
             ) VALUES (
                 v_quotation_id, v_product_id, COALESCE(v_product_record.cantidad, 1), 
                 COALESCE(v_product_record.precio, 0), v_provider_id, v_hotel_id, 
@@ -166,7 +213,8 @@ BEGIN
                      ELSE 1 END,
                 COALESCE(v_product_record.pax_adultos, 1), COALESCE(v_product_record.pax_ninos, 0),
                 v_product_record.tipo_servicio, v_product_record.destino, v_product_record.reserva,
-                v_product_record.com_vendedor, v_product_record.com_tiqueteador
+                v_product_record.com_vendedor, v_product_record.com_tiqueteador,
+                COALESCE(v_product_record.nacionalidad, 1)
             ) RETURNING id INTO v_qp_id;
 
             v_total_amount := v_total_amount + (COALESCE(v_product_record.precio, 0) * COALESCE(v_product_record.cantidad, 1));
@@ -187,7 +235,6 @@ BEGIN
                 END LOOP;
             END IF;
 
-            -- ... (resto de splits se mantiene igual)
             -- Split para Pasajeros
             IF v_product_record.pasajeros_str IS NOT NULL AND v_product_record.pasajeros_str <> '' THEN
                 FOREACH v_pass_item IN ARRAY string_to_array(v_product_record.pasajeros_str, '|') LOOP
@@ -221,3 +268,4 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM || ' | ' || SQLSTATE;
 END;
 $$;
+

@@ -53,7 +53,7 @@ BEGIN
 		cd_vendedor CHAR(25) ,
 		cd_tiqueteador VARCHAR(25) ,
 		bn_anexo BYTEA ,
-		am_tcambio TIMESTAMP ,
+		am_tcambio DECIMAL ,
 		am_tcambiousd DECIMAL ,
 		cd_cencosto CHAR(16) ,
 		ds_observacion VARCHAR(8000) ,
@@ -205,7 +205,9 @@ BEGIN
 		am_basedescuento DECIMAL ,
 		am_pordescuento NUMERIC(18, 4) ,
 		cd_CotizacionServicios_Depende VARCHAR(25),
-        orig_id_ref INT
+        orig_id_ref INT,
+		orig_id_quotationref INT,
+		mainTaxId INT
 	) ON COMMIT DROP;
 
 	CREATE TEMP TABLE IF NOT EXISTS CotizacionServicios_PaxAdicional(
@@ -235,6 +237,7 @@ BEGIN
 	CREATE TEMP TABLE IF NOT EXISTS CotizacionCargos(
 		id INT GENERATED ALWAYS AS IDENTITY,
 		cd_CotizacionServicios VARCHAR(25) ,
+		cd_CotizacionCargos VARCHAR(25),
 		cd_cargosdesc VARCHAR(25) ,
 		ds_cargonm VARCHAR(50) ,
 		bl_noshow BIT(1) DEFAULT B'0' ,
@@ -244,13 +247,15 @@ BEGIN
 		am_contado_ME DECIMAL ,
 		am_credito_ME DECIMAL ,
 		am_valor_ME DECIMAL GENERATED ALWAYS AS (am_contado_ME + am_credito_ME) STORED,
-        orig_id_ref INT
+        orig_id_ref INT,
+		cd_Cotizacion VARCHAR(25) 
 	) ON COMMIT DROP;
 
 	CREATE TEMP TABLE IF NOT EXISTS CotizacionImpuestos(
 		id INT GENERATED ALWAYS AS IDENTITY,
 		cd_CotizacionCargos VARCHAR(25),
-		cd_ImpRet INT,
+		cd_CotizacionImpuestos VARCHAR(25),
+		cd_ImpRet VARCHAR(25),
 		ds_Impas VARCHAR(50),
 		cd_impcta VARCHAR(16),
 		am_porcentaje DECIMAL,
@@ -260,7 +265,9 @@ BEGIN
 		am_valor DECIMAL GENERATED ALWAYS AS (am_contado + am_credito) STORED,
 		am_contado_ME DECIMAL,
 		am_credito_ME DECIMAL,
-		am_valor_ME DECIMAL GENERATED ALWAYS AS (am_contado_ME + am_credito_ME) STORED
+		am_valor_ME DECIMAL GENERATED ALWAYS AS (am_contado_ME + am_credito_ME) STORED,
+		cd_CotizacionServicios VARCHAR(25),
+		cd_Cotizacion VARCHAR(25)
 	) ON COMMIT DROP;
 
     -- 4. Poblar Tablas Temporales (POBLANDO TODAS LAS COLUMNAS CON NOMBRES EXPLÍCITOS)
@@ -304,7 +311,7 @@ BEGIN
         COALESCE(s.code, '') as cd_vendedor, 
         COALESCE(t.code, '') as cd_tiqueteador, 
         NULL as bn_anexo, 
-        q.date as am_tcambio, 
+        q."exchangeRate" as am_tcambio, 
         q."exchangeRate" as am_tcambiousd, 
         '' as cd_cencosto,
         '' as ds_observacion, 
@@ -376,11 +383,12 @@ BEGIN
         ds_NoVuelo, ds_Vehiculo, ds_Placa, ds_CategoriaVehiculo, ds_NombreConductor,
         ds_telefono, ds_IdiomaConductor, cd_MonedaSrv, cd_TipoServicio, cd_Aerolinea,
         in_EdadPax, am_PorFacParcial, ds_GDS, dt_fechaficheroBBVA, bl_tiquete,
-        am_basedescuento, am_pordescuento, cd_CotizacionServicios_Depende, orig_id_ref
+        am_basedescuento, am_pordescuento, cd_CotizacionServicios_Depende, 
+		orig_id_ref, orig_id_quotationref, mainTaxId
     )
     SELECT 
-        COALESCE(qp."serviceType", '') as cd_TiposConceptFac, 
-        COALESCE(qp."serviceType", '') as cd_ConceptoFacturacion, 
+        COALESCE(pr."type", '') as cd_TiposConceptFac, 
+        COALESCE(pr."code", '') as cd_ConceptoFacturacion, 
         COALESCE(qp."serviceType", '') as cd_TiposServicio, 
         q.cd_consecutivo as cd_Cotizacion,
         '' as cd_fac_factura, 
@@ -396,7 +404,7 @@ BEGIN
         '' as ds_paxname,
         '' as ds_paxape, 
         '' as cd_paxtype, 
-        0 as in_nacionalidad, 
+        COALESCE(qp."inNationality", 1) as in_nacionalidad, 
         '' as cd_voucher, 
         qp.quantity as in_cantpax, 
         COALESCE(qp."checkInDate", q.dt_fecha) as dt_llegada,
@@ -451,7 +459,7 @@ BEGIN
         '' as cd_TipoPlanSrv, 
         0 as in_habitaciones,
         0 as in_habitacionesSrv, 
-        '' as cd_Consecutivo_VARiablesAdicionales, 
+        'Q' || LPAD(qp."id"::text, 7, '0') as cd_Consecutivo_VARiablesAdicionales, 
         '' as cd_confirmacion,
         '' as ds_confirmadopor, 
         '' as cd_paxidentificacion, 
@@ -488,12 +496,14 @@ BEGIN
         0 as am_basedescuento, 
         0 as am_pordescuento, 
         '' as cd_CotizacionServicios_Depende, 
-        qp.id as orig_id_ref
+        qp.id as orig_id_ref,
+		q.orig_id_ref as orig_id_quotationref,
+		qp."mainTaxId" as mainTaxId
     FROM public."QuotationProduct" qp
 	JOIN public."Quotation" qt ON qp."quotationId" = qt.id
     JOIN public."Product" pr ON qp."productId" = pr.id
     JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
-    LEFT JOIN public."Provider" prov ON qp."providerId" = prov.id;
+    LEFT JOIN public."Provider" prov ON qp."providerId" = prov."id";
 
     INSERT INTO CotizacionServicios_PaxAdicional (
         cd_Cotizacion, cd_CotizacionServicios, ds_paxape, ds_paxname, ds_paxprefix,
@@ -501,7 +511,7 @@ BEGIN
     )
     SELECT 
         cs.cd_Cotizacion, 
-        cs.id::text as cd_CotizacionServicios, 
+        cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios, 
         '' as ds_paxape, 
         p.name as ds_paxname, 
         '' as ds_paxprefix, 
@@ -518,42 +528,46 @@ BEGIN
     )
     SELECT 
         cs.cd_Cotizacion, 
-        cs.id::text as cd_CotizacionServicios, 
+        cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios, 
         'CotizacionServicio' as ds_maestro, 
         mv.name as ds_VariableAdicional, 
         v.value as ds_valor, 
         '' as cd_tiquete
     FROM public."QuotationProductVariable" v
-    JOIN public."MasterVariable" mv ON v."masterVariableId" = mv.id
+    JOIN public."MasterVariable" mv ON v."masterVariableId" = mv."id"
     JOIN CotizacionServicios cs ON v."quotationProductId" = cs.orig_id_ref;
 
     -- SEPARACIÓN CARGOS vs IMPUESTOS
     INSERT INTO CotizacionCargos (
-        cd_CotizacionServicios, cd_cargosdesc, ds_cargonm, bl_noshow, am_contado,
-        am_credito, am_contado_ME, am_credito_ME, orig_id_ref
+        cd_CotizacionServicios, cd_CotizacionCargos, cd_cargosdesc, ds_cargonm, bl_noshow, am_contado,
+        am_credito, am_contado_ME, am_credito_ME, orig_id_ref, cd_Cotizacion
     )
     SELECT 
-        cs.id::text as cd_CotizacionServicios, 
-        COALESCE(ct.type, '') as cd_cargosdesc, 
+        cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios,
+		t."id"::text as cd_CotizacionCargos,
+        COALESCE(ct.code, '') as cd_cargosdesc, 
         COALESCE(ct.name, '') as ds_cargonm, 
         B'0' as bl_noshow, 
         t."explicitAmount" as am_contado, 
         0 as am_credito, 
         0 as am_contado_ME, 
         0 as am_credito_ME, 
-        t.id as orig_id_ref
+        t.id as orig_id_ref,
+		cs.cd_Cotizacion as cd_Cotizacion 
     FROM public."QuotationProductTax" t
     JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
     JOIN CotizacionServicios cs ON t."quotationProductId" = cs.orig_id_ref
     WHERE ct.type <> 'TAX';
 
     INSERT INTO CotizacionImpuestos (
-        cd_CotizacionCargos, cd_ImpRet, ds_Impas, cd_impcta, am_porcentaje,
-        bl_contabilizar, am_contado, am_credito, am_contado_ME, am_credito_ME
+        cd_CotizacionCargos, cd_CotizacionImpuestos, cd_ImpRet, ds_Impas, cd_impcta, am_porcentaje,
+        bl_contabilizar, am_contado, am_credito, am_contado_ME, am_credito_ME,
+		cd_CotizacionServicios, cd_Cotizacion
     )
     SELECT 
-        cs.id::text as cd_CotizacionCargos, 
-        ct.id as cd_ImpRet, 
+        t."id"::text as cd_CotizacionCargos,
+		COALESCE(tp."id", 1)::text as cd_CotizacionImpuestos,
+        ct.name as cd_ImpRet, 
         COALESCE(ct.name, '') as ds_Impas, 
         '' as cd_impcta, 
         COALESCE(t."valueSnapshot", 0) as am_porcentaje,
@@ -561,10 +575,14 @@ BEGIN
         COALESCE(t."explicitAmount", 0) as am_contado, 
         0 as am_credito, 
         0 as am_contado_ME, 
-        0 as am_credito_ME
+        0 as am_credito_ME,
+		cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios, 
+		c.cd_Consecutivo as cd_Cotizacion 
     FROM public."QuotationProductTax" t
     JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
     JOIN CotizacionServicios cs ON t."quotationProductId" = cs.orig_id_ref
+	JOIN Cotizacion c ON c.orig_id_ref = cs.orig_id_quotationref
+	LEFT JOIN public."QuotationProductTax" tp ON tp."quotationProductId" = cs.orig_id_ref and tp."chargeAndTaxId" = cs.mainTaxId
     WHERE ct.type = 'TAX';
 
     -- 5. Generar XML
@@ -644,7 +662,7 @@ BEGIN
                                         )
                                     )
                                     FROM CotizacionServicios_PaxAdicional p
-                                    WHERE p.cd_CotizacionServicios = s.id::text
+                                    WHERE p.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
                                 ),
                                 (
                                     SELECT xmlagg(
@@ -656,7 +674,7 @@ BEGIN
                                         )
                                     )
                                     FROM CotizacionServicios_VariableAdicional v
-                                    WHERE v.cd_CotizacionServicios = s.id::text
+                                    WHERE v.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
                                 ),
                                 (
                                     SELECT xmlagg(
@@ -670,13 +688,13 @@ BEGIN
                                         )
                                     )
                                     FROM CotizacionCargos cr
-                                    WHERE cr.cd_CotizacionServicios = s.id::text
+                                    WHERE cr.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
                                 ),
                                 (
                                     SELECT xmlagg(
                                         xmlelement(name "CotizacionImpuestos",
                                             xmlforest(
-                                                imp.cd_CotizacionCargos, imp.cd_ImpRet,
+                                                imp.cd_CotizacionServicios, imp.cd_CotizacionCargos, imp.cd_ImpRet,
                                                 imp.ds_Impas, imp.cd_impcta, imp.am_porcentaje,
                                                 imp.bl_contabilizar, imp.am_contado,
                                                 imp.am_credito, imp.am_valor, imp.am_contado_ME,
@@ -685,7 +703,7 @@ BEGIN
                                         )
                                     )
                                     FROM CotizacionImpuestos imp
-                                    WHERE imp.cd_CotizacionCargos = s.id::text
+                                    WHERE imp.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
                                 )
                             )
                         )

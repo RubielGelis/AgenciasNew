@@ -8,17 +8,40 @@ export async function GET(req: NextRequest) {
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
 
-        const [clients, providers, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser] = await Promise.all([
-            prisma.client.findMany({ select: { id: true, name: true, document: true } }),
-            prisma.provider.findMany({ include: { hotels: true } }),
-            prisma.branch.findMany(),
-            prisma.implant.findMany({ select: { id: true, name: true, branchId: true } }),
-            prisma.product.findMany(),
-            prisma.chargeAndTax.findMany(),
-            prisma.seller.findMany(),
-            prisma.ticketPrinter.findMany(),
-            prisma.masterVariable.findMany(),
-            actingUserId ? prisma.user.findUnique({ where: { id: actingUserId } }) : Promise.resolve(null)
+        // Defensive check for models
+        const requiredModels = ['client', 'provider', 'branch', 'implant', 'product', 'chargeAndTax', 'seller', 'ticketPrinter', 'masterVariable', 'user', 'combo']
+        const availableModels = Object.keys(prisma).filter(k => k[0] !== '$' && k[0] !== '_');
+        
+        for (const model of requiredModels) {
+            if (!(prisma as any)[model]) {
+                console.warn(`Prisma model "${model}" is undefined in base-data API! Available: ${availableModels.join(', ')}`)
+                // We'll continue but this model will return empty array below
+            }
+        }
+
+        const [clients, providers, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos] = await Promise.all([
+            (prisma as any).client?.findMany({ select: { id: true, name: true, document: true } }) || Promise.resolve([]),
+            (prisma as any).provider?.findMany({ include: { hotels: true } }) || Promise.resolve([]),
+            (prisma as any).branch?.findMany() || Promise.resolve([]),
+            (prisma as any).implant?.findMany({ select: { id: true, name: true, branchId: true } }) || Promise.resolve([]),
+            (prisma as any).product?.findMany() || Promise.resolve([]),
+            (prisma as any).chargeAndTax?.findMany() || Promise.resolve([]),
+            (prisma as any).seller?.findMany() || Promise.resolve([]),
+            (prisma as any).ticketPrinter?.findMany() || Promise.resolve([]),
+            (prisma as any).masterVariable?.findMany() || Promise.resolve([]),
+            actingUserId ? (prisma as any).user?.findUnique({ where: { id: actingUserId } }) : Promise.resolve(null),
+            (prisma as any).combo?.findMany({
+                include: {
+                    products: {
+                        include: {
+                            appliedTaxes: {
+                                include: { chargeAndTax: true }
+                            }
+                        }
+                    }
+                },
+                orderBy: { createdAt: 'desc' }
+            }) || Promise.resolve([])
         ])
 
         return NextResponse.json({
@@ -31,7 +54,8 @@ export async function GET(req: NextRequest) {
             sellers,
             ticketPrinters,
             variables,
-            currentUser
+            currentUser,
+            combos
         })
     } catch (error: any) {
         console.error('Data fetch error:', error)

@@ -36,8 +36,14 @@ interface QuotationFormData {
         ticketPrinterCommission: number;
         mainTaxId?: number;
         appliedTaxes: { id?: number, name?: string, amount: number }[],
-        variables: { id?: number, masterVariableId: number, value: string }[]
+        variables: { id?: number, masterVariableId: number, value: string }[];
+        comboId?: number;
+        inNationality?: number;
+        _productName?: string;
+        _providerName?: string;
+        _hotelName?: string;
     }[];
+    selectedCombos?: { id: number, name: string }[];
 }
 
 export default function QuotationForm({ quotationId }: { quotationId?: string }) {
@@ -52,7 +58,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         ticketPrinterId: '',
         commissionPercentage: 10,
         chargesAndTaxes: 0,
-        items: []
+        items: [],
+        selectedCombos: []
     })
     const [saving, setSaving] = useState(false)
     const [attachments, setAttachments] = useState<any[]>([])
@@ -61,8 +68,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
     const handleSave = async (e: React.FormEvent, downloadPdf = false) => {
         if (e) e.preventDefault()
-        if (!formData.clientId || !formData.branchId || formData.items.length === 0 || formData.items.some(i => !i.productId)) {
-            alert('Por favor completa los campos requeridos (Cliente, Sucursal) y asegúrate de seleccionar un producto válido en el desglose.')
+        if (!formData.clientId || !formData.branchId || formData.items.length === 0 || formData.items.some(i => !i.productId || !i.mainTaxId)) {
+            alert('Por favor completa los campos requeridos (Cliente, Sucursal) y asegúrate de seleccionar un producto y su Cargo Principal en el desglose.')
             return
         }
 
@@ -70,7 +77,13 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         try {
             const payload = {
                 ...formData,
+                clientId: formData.clientId || null,
+                branchId: formData.branchId || null,
+                implantId: formData.implantId || null,
+                sellerId: formData.sellerId || null,
+                ticketPrinterId: formData.ticketPrinterId || null,
                 totalAmount: total,
+                combos: (formData.selectedCombos || []).map(c => ({ comboId: c.id })),
                 items: formData.items.map(item => {
                     const taxes: any[] = [];
 
@@ -90,6 +103,9 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
                     return {
                         ...item,
+                        productId: item.productId || null,
+                        providerId: item.providerId || null,
+                        hotelId: item.hotelId || null,
                         appliedTaxes: taxes,
                         variables: item.variables || []
                     };
@@ -228,28 +244,13 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         if (!data?.taxes) return summary;
 
         formData.items.forEach(item => {
-            // Price of the item (Main Charge / Base Price)
-            const rowValue = (item.price || 0) * (item.quantity || 1);
-            if (item.mainTaxId) {
-                const master = data.taxes.find((t: any) => t.id === item.mainTaxId);
-                if (master) {
-                    summary[master.name] = (summary[master.name] || 0) + rowValue;
-                } else {
-                    summary['Cargo Principal'] = (summary['Cargo Principal'] || 0) + rowValue;
-                }
-            } else if (rowValue > 0) {
-                summary['Valor Base'] = (summary['Valor Base'] || 0) + rowValue;
-            }
-
-            // Additional taxes (Secondary)
+            // All charges and taxes are now consolidated in appliedTaxes
             (item.appliedTaxes || []).forEach(tax => {
-                // SKIP IF DUPLICATE OF MAIN (Important for correct totals)
-                if (tax.id === item.mainTaxId || (tax as any).chargeAndTaxId === item.mainTaxId) return;
-
-                const master = tax.id ? data.taxes.find((t: any) => t.id === tax.id) : null;
+                const taxId = tax.id || (tax as any).chargeAndTaxId;
+                const master = data.taxes.find((t: any) => t.id === taxId);
                 const name = master ? master.name : (tax.name || 'Otros');
                 summary[name] = (summary[name] || 0) + (tax.amount || 0);
-            })
+            });
         });
         return summary;
     }, [formData.items, data?.taxes]);
@@ -285,7 +286,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                     setData(baseData)
                 } else {
                     console.error("No valid data received from base-data:", baseData)
-                    setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [] })
+                    setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [], combos: [] })
                 }
 
                 if (!quotationId) {
@@ -318,68 +319,58 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                             commissionPercentage: qData.commissionPercentage || 0,
                             chargesAndTaxes: qData.chargesAndTaxes || 0,
                             items: (qData.products || []).map((p: any) => {
-                                // Find main tax based on value equality (or arbitrary since we can't perfectly distiguish without new db column, so let's use the first one matching the value)
-                                // Actually, let's treat the first active tax equal to price * qty as main tax, or if not found, just don't set mainTaxId
-                                // But since it's hard to reliably infer `mainTaxId` from a flattened list without a `isMain` flag in DB, we'll try to find one where explicitAmount === price * quantity
-                                const safeAppliedTaxes = Array.isArray(p.appliedTaxes) ? p.appliedTaxes : [];
-                                const safeVariables = Array.isArray(p.variables) ? p.variables : [];
+                                                const safeAppliedTaxes = Array.isArray(p.appliedTaxes) ? p.appliedTaxes : [];
+                                                const safeVariables = Array.isArray(p.variables) ? p.variables : [];
 
-                                let mainTaxId: number | undefined = undefined;
-                                let inferredPrice = p.price;
-                                const baseVal = p.price * p.quantity;
+                                                const mainTaxId = p.mainTaxId;
 
-                                // Try to find the main tax.
-                                // We use a small epsilon for float comparison
-                                let mainTaxIdx = safeAppliedTaxes.findIndex((t: any) => 
-                                    Math.abs(t.explicitAmount - baseVal) < 0.01 && baseVal > 0
-                                );
+                                                // Inferir el precio desde el monto del cargo principal guardado
+                                                const mainTaxEntry = safeAppliedTaxes.find((t: any) => t.chargeAndTaxId === mainTaxId);
+                                                let inferredPrice = p.price;
+                                                if (mainTaxEntry && mainTaxEntry.explicitAmount != null) {
+                                                    inferredPrice = mainTaxEntry.explicitAmount / (p.quantity || 1);
+                                                }
 
-                                // Fallback: if no clear match and price is 0, take the first one as main
-                                if (mainTaxIdx === -1 && (!p.price || p.price === 0) && safeAppliedTaxes.length > 0) {
-                                    mainTaxIdx = 0;
-                                    inferredPrice = safeAppliedTaxes[0].explicitAmount / (p.quantity || 1);
-                                }
-
-                                if (mainTaxIdx !== -1) {
-                                    mainTaxId = safeAppliedTaxes[mainTaxIdx].chargeAndTaxId;
-                                }
-
-                                return {
-                                    productId: p.productId?.toString() || '',
-                                    quantity: p.quantity,
-                                    price: inferredPrice,
-                                    providerId: p.providerId?.toString() || '',
-                                    hotelId: p.hotelId?.toString() || '',
-                                    checkIn: p.checkInDate ? format(new Date(p.checkInDate), 'yyyy-MM-dd') : '',
-                                    checkOut: p.checkOutDate ? format(new Date(p.checkOutDate), 'yyyy-MM-dd') : '',
-                                    paxAdults: p.paxAdults || 1,
-                                    paxChildren: p.paxChildren || 0,
-                                    destination: p.destination || '',
-                                    serviceType: p.serviceType || '',
-                                    reservationCode: p.reservationCode || '',
-                                    passengers: Array.isArray(p.passengers) ? p.passengers : [],
-                                    sellerCommission: p.sellerCommission || 0,
-                                    ticketPrinterCommission: p.ticketPrinterCommission || 0,
-                                    mainTaxId,
-                                    appliedTaxes: safeAppliedTaxes
-                                        .filter((_: any, idx: number) => idx !== mainTaxIdx)
-                                        .map((t: any) => ({
-                                            id: t.chargeAndTaxId,
-                                            amount: t.explicitAmount
-                                        })),
-                                    variables: safeVariables.map((v: any) => ({
-                                        id: v.id,
-                                        masterVariableId: v.masterVariableId,
-                                        value: v.value
-                                    }))
-                                }
-                            })
+                                                return {
+                                                    productId: p.productId?.toString() || '',
+                                                    quantity: p.quantity,
+                                                    price: inferredPrice,
+                                                    providerId: p.providerId?.toString() || '',
+                                                    hotelId: p.hotelId?.toString() || '',
+                                                    checkIn: p.checkInDate ? format(new Date(p.checkInDate), 'yyyy-MM-dd') : '',
+                                                    checkOut: p.checkOutDate ? format(new Date(p.checkOutDate), 'yyyy-MM-dd') : '',
+                                                    paxAdults: p.paxAdults || 1,
+                                                    paxChildren: p.paxChildren || 0,
+                                                    destination: p.destination || '',
+                                                    serviceType: p.serviceType || '',
+                                                    reservationCode: p.reservationCode || '',
+                                                    passengers: Array.isArray(p.passengers) ? p.passengers : [],
+                                                    sellerCommission: p.sellerCommission || 0,
+                                                    ticketPrinterCommission: p.ticketPrinterCommission || 0,
+                                                    mainTaxId,
+                                                    inNationality: p.inNationality || 1,
+                                                    // Info extra para renderizado si el maestro no carga a tiempo
+                                                    _productName: p.product?.description,
+                                                    _providerName: p.provider?.name,
+                                                    _hotelName: p.hotel?.name,
+                                                    appliedTaxes: safeAppliedTaxes.map((t: any) => ({
+                                                        chargeAndTaxId: t.chargeAndTaxId,
+                                                        amount: t.explicitAmount ?? 0
+                                                    })),
+                                                    variables: safeVariables.map((v: any) => ({
+                                                        id: v.id,
+                                                        masterVariableId: v.masterVariableId,
+                                                        value: v.value
+                                                    }))
+                                                }
+                                            }) || [],
+                            selectedCombos: qData.combos?.map((c: any) => ({ id: c.comboId, name: c.combo?.name })) || []
                         })
                     }
                 }
             } catch (err) {
                 console.error("Failed to load generic or quotation data", err);
-                setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [] })
+                setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [], combos: [] })
             }
         }
         loadInitialData()
@@ -394,7 +385,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 paxAdults: 1, paxChildren: 0, destination: '', serviceType: '', reservationCode: '', passengers: [{ name: '', document: '' }],
                 sellerCommission: 0, ticketPrinterCommission: 0,
                 appliedTaxes: [],
-                variables: []
+                variables: [],
+                inNationality: 1
             }]
         })
     }
@@ -404,6 +396,67 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             ...formData,
             items: formData.items.filter((_, i) => i !== index)
         })
+    }
+
+    const addCombo = (comboId: number) => {
+        const combo = data.combos.find((c: any) => c.id === comboId);
+        if (!combo) return;
+
+        // Prevent duplicate combos if needed, or just add products again
+        const alreadyIn = formData.selectedCombos?.find(c => c.id === comboId);
+        if (alreadyIn) {
+            alert("Este combo ya ha sido agregado.");
+            return;
+        }
+
+        const newItemsFromCombo = combo.products.map((cp: any) => {
+            // Usar mainTaxId directamente desde el combo guardado en BD
+            const mainTaxId: number | undefined = cp.mainTaxId || undefined;
+
+            // Incluir TODOS los taxes en appliedTaxes (incluido el cargo principal)
+            // igual a como funcionan los ítems creados manualmente
+            const appliedTaxes = (cp.appliedTaxes || []).map((t: any) => ({
+                id: t.chargeAndTaxId,
+                amount: t.amount
+            }));
+
+            return {
+                productId: cp.productId.toString(),
+                quantity: 1,
+                price: cp.price,
+                providerId: '',
+                hotelId: '',
+                checkIn: '',
+                checkOut: '',
+                paxAdults: 1,
+                paxChildren: 0,
+                destination: '',
+                serviceType: '',
+                reservationCode: '',
+                passengers: [],
+                sellerCommission: 0,
+                ticketPrinterCommission: 0,
+                mainTaxId,
+                appliedTaxes,
+                variables: [],
+                comboId: combo.id,
+                inNationality: cp.inNationality || 1
+            };
+        });
+
+        setFormData({
+            ...formData,
+            items: [...formData.items, ...newItemsFromCombo],
+            selectedCombos: [...(formData.selectedCombos || []), { id: combo.id, name: combo.name }]
+        });
+    }
+
+    const removeCombo = (comboId: number) => {
+        setFormData({
+            ...formData,
+            items: formData.items.filter(item => item.comboId !== comboId),
+            selectedCombos: (formData.selectedCombos || []).filter(c => c.id !== comboId)
+        });
     }
 
     const updateItem = (index: number, field: string, value: any) => {
@@ -537,6 +590,52 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                         </div>
                     </div>
 
+                    {/* Section: Combos */}
+                    <div className="bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-lg font-bold flex items-center gap-2 dark:text-white">
+                                <Briefcase className="w-5 h-5 text-purple-500" />
+                                Combos de Venta
+                            </h3>
+                            <div className="flex items-center gap-3">
+                                <select 
+                                    className="h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg px-4 border border-zinc-200 dark:border-zinc-700 outline-none text-sm font-bold focus:ring-2 focus:ring-purple-500"
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            addCombo(parseInt(e.target.value));
+                                            e.target.value = "";
+                                        }
+                                    }}
+                                >
+                                    <option value="">+ Agregar un Combo...</option>
+                                    {(data.combos || []).map((c: any) => (
+                                        <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {formData.selectedCombos && formData.selectedCombos.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {formData.selectedCombos.map(combo => (
+                                    <div key={combo.id} className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-xl border border-purple-100 dark:border-purple-800 text-xs font-bold animate-in fade-in zoom-in duration-300">
+                                        <Briefcase className="w-3 h-3" />
+                                        {combo.name}
+                                        <button 
+                                            type="button"
+                                            onClick={() => removeCombo(combo.id)}
+                                            className="p-0.5 hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full transition-colors"
+                                        >
+                                            <X className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-zinc-400 text-xs italic">No has seleccionado ningún combo para esta cotización.</p>
+                        )}
+                    </div>
+
 
 
                     {/* Section: Products Grid */}
@@ -581,13 +680,16 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     newItems[index] = {
                                                         ...newItems[index],
                                                         productId: val,
-                                                        price: p ? p.basePrice : 0
+                                                        price: 0 // No more base price from product master
                                                     };
                                                     setFormData({ ...formData, items: newItems });
                                                 }}
                                             >
-                                                <option value="">Seleccionar</option>
-                                                {(data.products || []).map((p: any) => <option key={p.id} value={String(p.id)}>{p.description} (${p.basePrice})</option>)}
+                                                <option value="">Seleccionar Producto</option>
+                                                {(data.products || []).map((p: any) => <option key={p.id} value={String(p.id)}>{p.description}</option>)}
+                                                {item.productId && !data.products.some((p: any) => p.id.toString() === item.productId) && (
+                                                    <option value={item.productId}>{item._productName || 'Cargando...'}</option>
+                                                )}
                                             </select>
                                         </div>
                                         <div className="col-span-4 md:col-span-2 space-y-1">
@@ -602,7 +704,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                         </div>
                                         <div className="col-span-12 md:col-span-6 space-y-1">
                                             <div className="flex justify-between items-center">
-                                                <label className="text-[10px] uppercase font-bold text-zinc-400">Cargo Principal / Valor</label>
+                                                <label className="text-[10px] uppercase font-bold text-zinc-400">Cargo Principal / Valor Total (Sumatoria)</label>
                                             </div>
                                             <div className="flex gap-2">
                                                 <select
@@ -614,17 +716,14 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                         const newItems = [...formData.items];
                                                         const currentItem = newItems[index];
 
-                                                        // When selecting a main tax, ensure it's also in appliedTaxes
                                                         let nextTaxes = [...(currentItem.appliedTaxes || [])];
                                                         let newPrice = currentItem.price;
 
                                                         if (val) {
                                                             const existingTaxIdx = nextTaxes.findIndex((t: any) => (t.id || t.chargeAndTaxId) === val);
                                                             if (existingTaxIdx !== -1) {
-                                                                // Inherit value from existing edited tax
                                                                 newPrice = nextTaxes[existingTaxIdx].amount / (currentItem.quantity || 1);
                                                             } else {
-                                                                // Use master value
                                                                 newPrice = master ? master.value : currentItem.price;
                                                                 const initialAmount = master ? (master.valueType === 'PERCENTAGE' ? (newPrice * currentItem.quantity * master.value / 100) : master.value * currentItem.quantity) : 0;
                                                                 nextTaxes.push({ id: val, amount: initialAmount });
@@ -644,14 +743,31 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     {(data.taxes || []).map((t: any) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
                                                 </select>
 
-                                                <div className="relative w-32">
+                                                <div className="relative w-40">
                                                     <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
                                                     <input
                                                         type="number"
                                                         className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-2 border border-blue-200 dark:border-blue-800 outline-none text-sm font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500 shadow-sm"
-                                                        value={item.price}
-                                                        onChange={(e) => updateItem(index, 'price', parseFloat(e.target.value) || 0)}
-                                                        placeholder="Valor"
+                                                        value={((item.appliedTaxes || []).reduce((acc: number, t: any) => acc + (t.amount || 0), 0)).toFixed(2)}
+                                                        onChange={(e) => {
+                                                            const newTotal = parseFloat(e.target.value) || 0;
+                                                            const currentTaxes = item.appliedTaxes || [];
+                                                            const currentTotal = currentTaxes.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
+                                                            
+                                                            // Calculate how much we need to add to the main tax
+                                                            const diff = newTotal - currentTotal;
+                                                            
+                                                            const mainTax = currentTaxes.find((t: any) => (t.id || t.chargeAndTaxId) === item.mainTaxId);
+                                                            if (mainTax) {
+                                                                const newMainAmount = (mainTax.amount || 0) + diff;
+                                                                // updateItem will take care of syncing the price
+                                                                updateItem(index, 'price', newMainAmount / (item.quantity || 1));
+                                                            } else {
+                                                                // If no main tax, just update price as fallback
+                                                                updateItem(index, 'price', newTotal / (item.quantity || 1));
+                                                            }
+                                                        }}
+                                                        placeholder="V. Total"
                                                     />
                                                 </div>
                                             </div>
@@ -670,16 +786,32 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                         <div className="col-span-12 mt-2 pt-4 border-t border-zinc-200 dark:border-zinc-700/50">
                                             <p className="text-[10px] uppercase font-bold text-zinc-400 mb-3">Detalles de Proveedor y Pasajero</p>
                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Proveedor</label>
-                                                    <select
-                                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs"
-                                                        value={item.providerId}
-                                                        onChange={(e) => updateItem(index, 'providerId', e.target.value)}
-                                                    >
-                                                        <option value="">Sel. Proveedor</option>
-                                                        {data.providers.map((p: any) => <option key={p.id} value={String(p.id)}>{p.code ? `[${p.code}] ` : ''}{p.name}</option>)}
-                                                    </select>
+                                                <div className="md:col-span-2 grid grid-cols-2 gap-2">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] uppercase font-bold text-zinc-400">Proveedor</label>
+                                                        <select
+                                                            className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs"
+                                                            value={item.providerId}
+                                                            onChange={(e) => updateItem(index, 'providerId', e.target.value)}
+                                                        >
+                                                            <option value="">Sel. Proveedor</option>
+                                                            {data.providers.map((p: any) => <option key={p.id} value={String(p.id)}>{p.code ? `[${p.code}] ` : ''}{p.name}</option>)}
+                                                            {item.providerId && !data.providers.some((p: any) => p.id.toString() === item.providerId) && (
+                                                                <option value={item.providerId}>{item._providerName || 'Cargando...'}</option>
+                                                            )}
+                                                        </select>
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] uppercase font-bold text-zinc-400">Nacionalidad</label>
+                                                        <select
+                                                            className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-[10px] font-bold text-emerald-600 dark:text-emerald-400"
+                                                            value={item.inNationality || 1}
+                                                            onChange={(e) => updateItem(index, 'inNationality', parseInt(e.target.value))}
+                                                        >
+                                                            <option value={1}>Nacional</option>
+                                                            <option value={2}>Internacional</option>
+                                                        </select>
+                                                    </div>
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-zinc-400">Hotel</label>
@@ -693,6 +825,9 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                         {(data.providers.find((p: any) => p.id.toString() === item.providerId)?.hotels || []).map((h: any) => (
                                                             <option key={h.id} value={String(h.id)}>{h.name}</option>
                                                         ))}
+                                                        {item.hotelId && !data.providers.some((p: any) => (p.hotels || []).some((h: any) => h.id.toString() === item.hotelId)) && (
+                                                            <option value={item.hotelId}>{item._hotelName || 'Cargando...'}</option>
+                                                        )}
                                                     </select>
                                                 </div>
                                                 <div className="space-y-1">
@@ -735,35 +870,37 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 </div>
                                             </div>
 
-                                            {/* Dynamic Passengers Array */}
-                                            <div className="mt-4 space-y-2">
-                                                <p className="text-[10px] uppercase font-bold text-zinc-400 flex justify-between items-center">
-                                                    Detalle de Pasajeros
-                                                    <button type="button" onClick={() => {
-                                                        const p = [...(item.passengers || [])];
-                                                        p.push({ name: '', document: '' });
-                                                        updateItem(index, 'passengers', p);
-                                                    }} className="text-blue-500 font-medium hover:underline lowercase text-xs flex items-center gap-1">+ agregar pasajero</button>
-                                                </p>
-                                                {(item.passengers || []).map((pax, pIdx) => (
-                                                    <div key={pIdx} className="flex gap-2">
-                                                        <input type="text" placeholder="Nombre" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={pax.name} onChange={(e) => {
-                                                            const newPass = [...item.passengers];
-                                                            newPass[pIdx] = { ...pax, name: e.target.value };
-                                                            updateItem(index, 'passengers', newPass);
-                                                        }} />
-                                                        <input type="text" placeholder="Documento" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={pax.document} onChange={(e) => {
-                                                            const newPass = [...item.passengers];
-                                                            newPass[pIdx] = { ...pax, document: e.target.value };
-                                                            updateItem(index, 'passengers', newPass);
-                                                        }} />
+                                            {/* Dynamic Passengers Array - Visible only if NOT a combo item */}
+                                            {!item.comboId && (
+                                                <div className="mt-4 space-y-2">
+                                                    <p className="text-[10px] uppercase font-bold text-zinc-400 flex justify-between items-center">
+                                                        Detalle de Pasajeros
                                                         <button type="button" onClick={() => {
-                                                            const newPass = item.passengers.filter((_, idx) => idx !== pIdx);
-                                                            updateItem(index, 'passengers', newPass);
-                                                        }} className="text-red-400 p-2 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                                            const p = [...(item.passengers || [])];
+                                                            p.push({ name: '', document: '' });
+                                                            updateItem(index, 'passengers', p);
+                                                        }} className="text-blue-500 font-medium hover:underline lowercase text-xs flex items-center gap-1">+ agregar pasajero</button>
+                                                    </p>
+                                                    {(item.passengers || []).map((pax: any, pIdx: number) => (
+                                                        <div key={pIdx} className="flex gap-2">
+                                                            <input type="text" placeholder="Nombre" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={pax.name} onChange={(e) => {
+                                                                const newPass = [...item.passengers];
+                                                                newPass[pIdx] = { ...pax, name: e.target.value };
+                                                                updateItem(index, 'passengers', newPass);
+                                                            }} />
+                                                            <input type="text" placeholder="Documento" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={pax.document} onChange={(e) => {
+                                                                const newPass = [...item.passengers];
+                                                                newPass[pIdx] = { ...pax, document: e.target.value };
+                                                                updateItem(index, 'passengers', newPass);
+                                                            }} />
+                                                            <button type="button" onClick={() => {
+                                                                const newPass = item.passengers.filter((_: any, idx: number) => idx !== pIdx);
+                                                                updateItem(index, 'passengers', newPass);
+                                                            }} className="text-red-400 p-2 hover:bg-red-50 rounded"><Trash2 className="w-4 h-4" /></button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
 
                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
                                                 <div className="space-y-1">
@@ -903,68 +1040,70 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                             </div>
                                         </div>
 
-                                        {/* Additional Variables Row */}
-                                        <div className="col-span-12 mt-2 pt-4 border-t border-zinc-200 dark:border-zinc-700/50">
-                                            <p className="text-[10px] uppercase font-bold text-zinc-400 mb-3">
-                                                Variables Adicionales (Maestro)
-                                            </p>
-                                            <div className="flex flex-col gap-2">
-                                                {(!data.variables || data.variables.length === 0) && (
-                                                    <span className="text-xs text-zinc-400 font-medium">No hay variables adicionales configuradas.</span>
-                                                )}
+                                        {/* Additional Variables Row - Visible only if NOT a combo item */}
+                                        {!item.comboId && (
+                                            <div className="col-span-12 mt-2 pt-4 border-t border-zinc-200 dark:border-zinc-700/50">
+                                                <p className="text-[10px] uppercase font-bold text-zinc-400 mb-3">
+                                                    Variables Adicionales (Maestro)
+                                                </p>
+                                                <div className="flex flex-col gap-2">
+                                                    {(!data.variables || data.variables.length === 0) && (
+                                                        <span className="text-xs text-zinc-400 font-medium">No hay variables adicionales configuradas.</span>
+                                                    )}
 
-                                                {data.variables?.map((vMaster: any) => {
-                                                    const assigned = item.variables?.find((v: any) => v.masterVariableId === vMaster.id);
-                                                    const isSelected = !!assigned;
+                                                    {data.variables?.map((vMaster: any) => {
+                                                        const assigned = item.variables?.find((v: any) => v.masterVariableId === vMaster.id);
+                                                        const isSelected = !!assigned;
 
-                                                    return (
-                                                        <div key={vMaster.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                                                            <div className="flex items-center gap-2 min-w-[200px]">
-                                                                <label className={cn(
-                                                                    "flex items-center gap-2 cursor-pointer text-sm font-bold flex-1",
-                                                                    isSelected ? "text-blue-600 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-400"
-                                                                )}>
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                                                        checked={isSelected}
-                                                                        onChange={(e) => {
-                                                                            const checked = e.target.checked;
-                                                                            const currentVars = item.variables || [];
-                                                                            if (checked) {
-                                                                                updateItem(index, 'variables', [...currentVars, { masterVariableId: vMaster.id, value: '' }]);
-                                                                            } else {
-                                                                                updateItem(index, 'variables', currentVars.filter((v: any) => v.masterVariableId !== vMaster.id));
-                                                                            }
-                                                                        }}
-                                                                    />
-                                                                    <span>{vMaster.name}</span>
-                                                                    <span className="opacity-50 text-[10px] ml-auto">({vMaster.code})</span>
-                                                                </label>
-                                                            </div>
-
-                                                            {isSelected && (
-                                                                <div className="flex-1 border-l border-zinc-200 dark:border-zinc-700 pl-4 py-1">
-                                                                    <input
-                                                                        type="text"
-                                                                        placeholder={`Ingresar valor para ${vMaster.name}`}
-                                                                        className="w-full h-8 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-700 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all"
-                                                                        value={assigned.value}
-                                                                        onChange={(e) => {
-                                                                            const val = e.target.value;
-                                                                            const newVars = (item.variables || []).map((v: any) =>
-                                                                                v.masterVariableId === vMaster.id ? { ...v, value: val } : v
-                                                                            );
-                                                                            updateItem(index, 'variables', newVars);
-                                                                        }}
-                                                                    />
+                                                        return (
+                                                            <div key={vMaster.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                                                                <div className="flex items-center gap-2 min-w-[200px]">
+                                                                    <label className={cn(
+                                                                        "flex items-center gap-2 cursor-pointer text-sm font-bold flex-1",
+                                                                        isSelected ? "text-blue-600 dark:text-blue-400" : "text-zinc-600 dark:text-zinc-400"
+                                                                    )}>
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                                                            checked={isSelected}
+                                                                            onChange={(e) => {
+                                                                                const checked = e.target.checked;
+                                                                                const currentVars = item.variables || [];
+                                                                                if (checked) {
+                                                                                    updateItem(index, 'variables', [...currentVars, { masterVariableId: vMaster.id, value: '' }]);
+                                                                                } else {
+                                                                                    updateItem(index, 'variables', currentVars.filter((v: any) => v.masterVariableId !== vMaster.id));
+                                                                                }
+                                                                            }}
+                                                                        />
+                                                                        <span>{vMaster.name}</span>
+                                                                        <span className="opacity-50 text-[10px] ml-auto">({vMaster.code})</span>
+                                                                    </label>
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                    )
-                                                })}
+
+                                                                {isSelected && (
+                                                                    <div className="flex-1 border-l border-zinc-200 dark:border-zinc-700 pl-4 py-1">
+                                                                        <input
+                                                                            type="text"
+                                                                            placeholder={`Ingresar valor para ${vMaster.name}`}
+                                                                            className="w-full h-8 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-700 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all"
+                                                                            value={assigned.value}
+                                                                            onChange={(e) => {
+                                                                                const val = e.target.value;
+                                                                                const newVars = (item.variables || []).map((v: any) =>
+                                                                                    v.masterVariableId === vMaster.id ? { ...v, value: val } : v
+                                                                                );
+                                                                                updateItem(index, 'variables', newVars);
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )
+                                                    })}
+                                                </div>
                                             </div>
-                                        </div>
+                                        )}
 
                                     </motion.div>
                                 ))}
@@ -981,7 +1120,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
                         <h3 className="text-lg font-bold relative z-10 flex items-center gap-2">
                             <Calculator className="w-5 h-5 text-blue-400" />
-                            Resumen de Costos
+                            Resumen de Cargos e Impuestos
                         </h3>
 
                         <div className="space-y-6 relative z-10">

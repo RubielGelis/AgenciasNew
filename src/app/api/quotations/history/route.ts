@@ -5,41 +5,13 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
     try {
-        const quotations = await prisma.quotation.findMany({
-            orderBy: { date: 'desc' },
-            include: {
-                client: { select: { name: true, document: true } },
-                user: { select: { name: true } },
-                products: {
-                    include: {
-                        product: true,
-                        provider: { select: { name: true } },
-                        passengers: true
-                    }
-                }
-            }
-        })
-
-        // Map data safely for the frontend list
-        const formatted = quotations.map(q => {
-            const firstProd = q.products[0];
-            return {
-                id: q.id,
-                internalNumber: q.internalNumber,
-                clientName: q.client?.name || 'Cliente desconocido',
-                providerName: firstProd?.provider?.name || 'Proveedor Desconocido',
-                createdAt: q.date,
-                totalAmount: q.totalAmount,
-                currency: q.currency,
-                userName: q.user?.name || 'Sistema',
-                status: 'DRAFT', // using default status 
-                nights: firstProd?.nights || 1
-            }
-        })
-
-        return NextResponse.json(formatted)
-    } catch (error: any) {
-        console.error('Error fetching quotations:', error)
-        return NextResponse.json({ message: 'Error retrieving quotations history', details: error.message }, { status: 500 })
+        const results: any[] = await prisma.$queryRawUnsafe(
+            `SELECT * FROM public.fnCotizacionHistorial()`
+        );
+        const history = results.map(row => row.fncotizacionhistorial);
+        return NextResponse.json(history)
+    } catch (error) {
+        console.error('Error fetching quotation history:', error)
+        return NextResponse.json({ message: 'Error fetching history' }, { status: 500 })
     }
 }
