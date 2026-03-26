@@ -24,11 +24,12 @@ import {
     Edit2,
     Download,
     Hotel as HotelIcon,
-    TerminalSquare
+    TerminalSquare,
+    Copy
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'hoteles' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs';
+type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
@@ -46,7 +47,7 @@ export default function SettingsPage() {
     const [taxes, setTaxes] = useState<any[]>([])
     const [sellers, setSellers] = useState<any[]>([])
     const [ticketPrinters, setTicketPrinters] = useState<any[]>([])
-    const [hotels, setHotels] = useState<any[]>([])
+    const [prestadoras, setHotels] = useState<any[]>([])
     const [providers, setProviders] = useState<any[]>([])
     const [logs, setLogs] = useState<any[]>([])
     const [clients, setClients] = useState<any[]>([])
@@ -73,7 +74,7 @@ export default function SettingsPage() {
                 fetch('/api/config/taxes').then(res => res.json()),
                 fetch('/api/config/sellers').then(res => res.json()),
                 fetch('/api/config/ticket-printers').then(res => res.json()),
-                fetch('/api/config/hotels').then(res => res.json()),
+                fetch('/api/config/prestadoras').then(res => res.json()),
                 fetch('/api/providers').then(res => res.json()),
                 fetch('/api/config/logs').then(res => res.json()),
                 fetch('/api/clients').then(res => res.json()),
@@ -112,7 +113,7 @@ export default function SettingsPage() {
                     quantity: parseInt(cp.quantity) || 1,
                     price: parseFloat(cp.price) || 0,
                     providerId: cp.providerId ? parseInt(cp.providerId) : null,
-                    hotelId: cp.hotelId ? parseInt(cp.hotelId) : null,
+                    prestadoraId: cp.prestadoraId ? parseInt(cp.prestadoraId) : null,
                     mainTaxId: cp.mainTaxId ? parseInt(cp.mainTaxId) : null,
                     appliedTaxes: (cp.appliedTaxes || []).map((at: any) => ({
                         chargeAndTaxId: parseInt(at.chargeAndTaxId),
@@ -133,8 +134,8 @@ export default function SettingsPage() {
                 setFormData({ code: '', name: '', type: 'TAX', valueType: 'PERCENTAGE', value: '', isEditable: true })
             } else if (activeTab === 'vendedores' || activeTab === 'tiqueteadores') {
                 setFormData({ code: '', name: '', email: '' })
-            } else if (activeTab === 'hoteles') {
-                setFormData({ code: '', name: '', category: '', location: '', providerId: '' })
+            } else if (activeTab === 'prestadoras') {
+                setFormData({ code: '', name: '', category: '', location: '', providerId: '', type: '' })
             } else if (activeTab === 'clientes') {
                 setFormData({ name: '', document: '', contactInfo: '', address: '' })
             } else if (activeTab === 'proveedores') {
@@ -160,7 +161,7 @@ export default function SettingsPage() {
             activeTab === 'sucursales' ? '/api/config/branches' :
                 activeTab === 'impuestos' ? '/api/config/taxes' :
                     activeTab === 'vendedores' ? '/api/config/sellers' :
-                        activeTab === 'hoteles' ? '/api/config/hotels' :
+                        activeTab === 'prestadoras' ? '/api/config/prestadoras' :
                             activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
                                 activeTab === 'clientes' ? '/api/clients' :
                                     activeTab === 'proveedores' ? '/api/providers' :
@@ -193,6 +194,57 @@ export default function SettingsPage() {
         }
     }
 
+    const handleDuplicateCombo = async (combo: any) => {
+        const newCode = prompt(`Introduce el nuevo código para el combo duplicado:`, `${combo.code}_COPY`);
+        if (!newCode) return;
+
+        const newName = prompt(`Introduce el nuevo nombre para el combo duplicado:`, `${combo.name} (Copia)`);
+        if (!newName) return;
+
+        setSubmitting(true);
+        const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+        // Clonar datos básicos y productos
+        const duplicateData = {
+            code: newCode,
+            name: newName,
+            products: (combo.products || []).map((cp: any) => ({
+                productId: cp.productId,
+                quantity: cp.quantity,
+                price: cp.price,
+                providerId: cp.providerId,
+                prestadoraId: cp.prestadoraId,
+                mainTaxId: cp.mainTaxId,
+                inNationality: cp.inNationality,
+                appliedTaxes: (cp.appliedTaxes || []).map((at: any) => ({
+                    chargeAndTaxId: at.chargeAndTaxId,
+                    amount: at.amount,
+                    isMain: at.isMain
+                }))
+            }))
+        };
+
+        try {
+            const res = await fetch('/api/combos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Id': loggedUser.id?.toString() || ''
+                },
+                body: JSON.stringify(duplicateData)
+            });
+
+            if (!res.ok) throw new Error((await res.json()).message || 'Error al duplicar');
+
+            await fetchData();
+            alert('Combo duplicado exitosamente');
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setSubmitting(false);
+        }
+    }
+
     const handleDelete = async (id: number) => {
         if (!confirm(`¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.`)) return
 
@@ -201,7 +253,7 @@ export default function SettingsPage() {
                 activeTab === 'impuestos' ? '/api/config/taxes' :
                     activeTab === 'vendedores' ? '/api/config/sellers' :
                         activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
-                            activeTab === 'hoteles' ? '/api/config/hotels' :
+                            activeTab === 'prestadoras' ? '/api/config/prestadoras' :
                                 activeTab === 'clientes' ? '/api/clients' :
                                     activeTab === 'proveedores' ? '/api/providers' :
                                         activeTab === 'productos' ? '/api/products' :
@@ -309,7 +361,7 @@ export default function SettingsPage() {
                                 className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                             >
                                 <Plus className="w-5 h-5" />
-                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'hoteles' ? 'Nuevo Hotel' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'combos' ? 'Nuevo Combo' : 'Nuevo Implant'}
+                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'combos' ? 'Nuevo Combo' : 'Nuevo Implant'}
                             </motion.button>
                         </>
                     )}
@@ -325,7 +377,7 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'impuestos'} onClick={() => setActiveTab('impuestos')} icon={<Tags className="w-4 h-4" />} label="Cargos e Impuestos" />
                 <TabButton active={activeTab === 'vendedores'} onClick={() => setActiveTab('vendedores')} icon={<UserCheck className="w-4 h-4" />} label="Vendedores" />
                 <TabButton active={activeTab === 'tiqueteadores'} onClick={() => setActiveTab('tiqueteadores')} icon={<Printer className="w-4 h-4" />} label="Tiqueteadores" />
-                <TabButton active={activeTab === 'hoteles'} onClick={() => setActiveTab('hoteles')} icon={<HotelIcon className="w-4 h-4" />} label="Hoteles" />
+                <TabButton active={activeTab === 'prestadoras'} onClick={() => setActiveTab('prestadoras')} icon={<HotelIcon className="w-4 h-4" />} label="Prestadoras" />
                 <TabButton active={activeTab === 'clientes'} onClick={() => setActiveTab('clientes')} icon={<Users className="w-4 h-4" />} label="Clientes" />
                 <TabButton active={activeTab === 'proveedores'} onClick={() => setActiveTab('proveedores')} icon={<Building2 className="w-4 h-4" />} label="Proveedores" />
                 <TabButton active={activeTab === 'productos'} onClick={() => setActiveTab('productos')} icon={<Tags className="w-4 h-4" />} label="Productos" />
@@ -367,12 +419,13 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre del {activeTab === 'vendedores' ? 'Vendedor' : 'Tiqueteador'}</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
-                                    ) : activeTab === 'hoteles' ? (
+                                    ) : activeTab === 'prestadoras' ? (
                                         <>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
-                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Hotel</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Prestadora</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Proveedor</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Categoría</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Tipo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : activeTab === 'clientes' || activeTab === 'proveedores' ? (
@@ -476,22 +529,25 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'hoteles' && hotels.map(hotel => (
-                                    <tr key={hotel.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
-                                        <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{hotel.code || '-'}</td>
-                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{hotel.name}</td>
+                                {activeTab === 'prestadoras' && prestadoras.map(prestadora => (
+                                    <tr key={prestadora.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{prestadora.code || '-'}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{prestadora.name}</td>
                                         <td className="px-8 py-6 font-medium text-zinc-600 dark:text-zinc-300 text-xs">
-                                            {hotel.provider?.name || <span className="text-zinc-400 text-xs italic">Sin proveedor</span>}
+                                            {prestadora.provider?.name || <span className="text-zinc-400 text-xs italic">Sin proveedor</span>}
                                         </td>
                                         <td className="px-8 py-6">
                                             <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 text-[10px] font-black rounded-lg uppercase tracking-wider border border-amber-100 dark:border-amber-900/30">
-                                                {hotel.category || '-'}
+                                                {prestadora.category || '-'}
                                             </span>
+                                        </td>
+                                        <td className="px-8 py-6 font-medium text-zinc-600 dark:text-zinc-300 text-xs">
+                                            {prestadora.type || '-'}
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <button onClick={() => handleOpenModal(hotel)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
-                                                <button onClick={() => handleDelete(hotel.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleOpenModal(prestadora)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(prestadora.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -569,6 +625,7 @@ export default function SettingsPage() {
                                         <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.name}</td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleDuplicateCombo(item)} title="Duplicar Combo" className="p-2 text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all"><Copy className="w-5 h-5" /></button>
                                                 <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
                                                 <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
                                             </div>
@@ -666,7 +723,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'hoteles' ? 'Hotel' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'combos' ? 'Combo' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'combos' ? 'Combo' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -784,14 +841,15 @@ export default function SettingsPage() {
                                         <Input label="Nombre del Profesional" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder={`Ej. ${activeTab === 'vendedores' ? 'Pedro Perez' : 'Oficina Principal'}`} />
                                         <Input label="Email de Contacto" value={formData.email || ''} onChange={(v: string) => setFormData({ ...formData, email: v })} type="email" placeholder="ejemplo@correo.com (Opcional)" />
                                     </>
-                                ) : activeTab === 'hoteles' ? (
+                                ) : activeTab === 'prestadoras' ? (
                                     <>
-                                        <Input label="Código del Hotel" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} placeholder="Ej. H-001 (Opcional)" />
-                                        <Input label="Nombre del Hotel" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Decameron San Luis" />
+                                        <Input label="Código de la Prestadora" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} placeholder="Ej. P-001 (Opcional)" />
+                                        <Input label="Nombre de la Prestadora" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Decameron San Luis" />
                                         <div className="grid grid-cols-2 gap-4">
                                             <Input label="Estrellas/Cat." value={formData.category || ''} onChange={(v: string) => setFormData({ ...formData, category: v })} placeholder="Ej. 4*" />
                                             <Input label="Ubicación" value={formData.location || ''} onChange={(v: string) => setFormData({ ...formData, location: v })} placeholder="Ej. San Andrés, Colombia" />
                                         </div>
+                                        <Input label="Tipo (Texto Abierto)" value={formData.type || ''} onChange={(v: string) => setFormData({ ...formData, type: v })} placeholder="Ej. Alojamiento, Transporte, etc" />
                                         <div className="space-y-2">
                                             <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Proveedor / Operador</label>
                                             <select
@@ -925,7 +983,7 @@ export default function SettingsPage() {
                                                                 </div>
                                                             </div>
 
-                                                            {/* Section: Hotel & Dates */}
+                                                            {/* Section: Prestadora & Dates */}
                                                             <div className="bg-zinc-50 dark:bg-zinc-800/30 p-4 rounded-2xl space-y-4">
                                                                 <label className="text-[10px] font-black text-emerald-500 uppercase tracking-widest pl-1 flex items-center gap-2">
                                                                     <HotelIcon className="w-3 h-3" /> Alojamiento y Fechas
@@ -938,7 +996,7 @@ export default function SettingsPage() {
                                                                             onChange={(e) => {
                                                                                 const val = e.target.value ? parseInt(e.target.value) : null;
                                                                                 const newProds = [...formData.products];
-                                                                                newProds[idx] = { ...cp, providerId: val, hotelId: null };
+                                                                                newProds[idx] = { ...cp, providerId: val, prestadoraId: null };
                                                                                 setFormData({ ...formData, products: newProds });
                                                                             }}
                                                                         >
@@ -949,17 +1007,17 @@ export default function SettingsPage() {
                                                                     <div className="space-y-1">
                                                                         <select 
                                                                             className="w-full h-10 bg-white dark:bg-zinc-900 rounded-xl px-3 border border-zinc-200 dark:border-zinc-700 text-xs font-bold outline-none"
-                                                                            value={cp.hotelId || ''}
+                                                                            value={cp.prestadoraId || ''}
                                                                             onChange={(e) => {
                                                                                 const val = e.target.value ? parseInt(e.target.value) : null;
                                                                                 const newProds = [...formData.products];
-                                                                                newProds[idx] = { ...cp, hotelId: val };
+                                                                                newProds[idx] = { ...cp, prestadoraId: val };
                                                                                 setFormData({ ...formData, products: newProds });
                                                                             }}
                                                                             disabled={!cp.providerId}
                                                                         >
-                                                                            <option value="">Sel. Hotel...</option>
-                                                                            {hotels.filter(h => !cp.providerId || h.providerId === cp.providerId).map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+                                                                            <option value="">Sel. Prestadora...</option>
+                                                                            {prestadoras.filter(h => !cp.providerId || h.providerId === cp.providerId).map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
                                                                         </select>
                                                                     </div>
                                                                     <div className="space-y-1">

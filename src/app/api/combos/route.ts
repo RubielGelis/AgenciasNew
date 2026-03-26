@@ -26,7 +26,15 @@ export async function POST(req: NextRequest) {
             `CALL public.spComboCrear($1::TEXT, $2::TEXT, $3::JSONB, $4::INT, $5::INT, $6::TEXT)`,
             code,
             name,
-            JSON.stringify(products || []),
+            JSON.stringify((products || []).map((p: any) => ({
+                ...p,
+                checkInDate: p.checkInDate || null,
+                checkOutDate: p.checkOutDate || null,
+                providerId: p.providerId || null,
+                prestadoraId: p.prestadoraId || null,
+                paxAdults: p.paxAdults || null,
+                paxChildren: p.paxChildren || null
+            }))),
             actingUserId,
             0, // p_combo_id (INOUT)
             '' // p_mensaje_resultado (INOUT)

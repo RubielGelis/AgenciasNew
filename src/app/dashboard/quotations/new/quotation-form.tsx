@@ -23,7 +23,7 @@ interface QuotationFormData {
         quantity: number;
         price: number;
         providerId: string;
-        hotelId: string;
+        prestadoraId: string;
         checkIn: string;
         checkOut: string;
         paxAdults: number;
@@ -41,7 +41,7 @@ interface QuotationFormData {
         inNationality?: number;
         _productName?: string;
         _providerName?: string;
-        _hotelName?: string;
+        _prestadoraName?: string;
     }[];
     selectedCombos?: { id: number, name: string }[];
 }
@@ -105,7 +105,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                         ...item,
                         productId: item.productId || null,
                         providerId: item.providerId || null,
-                        hotelId: item.hotelId || null,
+                        prestadoraId: item.prestadoraId || null,
                         appliedTaxes: taxes,
                         variables: item.variables || []
                     };
@@ -246,9 +246,10 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         formData.items.forEach(item => {
             // All charges and taxes are now consolidated in appliedTaxes
             (item.appliedTaxes || []).forEach(tax => {
-                const taxId = tax.id || (tax as any).chargeAndTaxId;
-                const master = data.taxes.find((t: any) => t.id === taxId);
-                const name = master ? master.name : (tax.name || 'Otros');
+                const rawTaxId = (tax as any).id ?? (tax as any).chargeAndTaxId;
+                const taxId = rawTaxId != null ? Number(rawTaxId) : null;
+                const master = data.taxes.find((t: any) => Number(t.id) === taxId);
+                const name = master ? master.name : ((tax as any).name || 'Otros');
                 summary[name] = (summary[name] || 0) + (tax.amount || 0);
             });
         });
@@ -264,10 +265,12 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             return;
         }
         const baseValue = item.price * item.quantity;
-        const newAppliedTaxes = item.appliedTaxes.map(taxApp => {
-            const taxMaster = data.taxes.find((t: any) => t.id === taxApp.id);
+        const newAppliedTaxes = item.appliedTaxes.map((taxApp: any) => {
+            const rawTaxId = taxApp.id ?? taxApp.chargeAndTaxId;
+            const taxId = rawTaxId != null ? Number(rawTaxId) : null;
+            const taxMaster = data.taxes.find((t: any) => Number(t.id) === taxId);
             if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
-                return { ...taxApp, amount: (baseValue * taxMaster.value) / 100 };
+                return { ...taxApp, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(2)) };
             }
             return taxApp;
         });
@@ -336,7 +339,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     quantity: p.quantity,
                                                     price: inferredPrice,
                                                     providerId: p.providerId?.toString() || '',
-                                                    hotelId: p.hotelId?.toString() || '',
+                                                    prestadoraId: p.prestadoraId?.toString() || '',
                                                     checkIn: p.checkInDate ? format(new Date(p.checkInDate), 'yyyy-MM-dd') : '',
                                                     checkOut: p.checkOutDate ? format(new Date(p.checkOutDate), 'yyyy-MM-dd') : '',
                                                     paxAdults: p.paxAdults || 1,
@@ -352,7 +355,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     // Info extra para renderizado si el maestro no carga a tiempo
                                                     _productName: p.product?.description,
                                                     _providerName: p.provider?.name,
-                                                    _hotelName: p.hotel?.name,
+                                                    _prestadoraName: p.prestadora?.name,
                                                     appliedTaxes: safeAppliedTaxes.map((t: any) => ({
                                                         chargeAndTaxId: t.chargeAndTaxId,
                                                         amount: t.explicitAmount ?? 0
@@ -381,7 +384,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             ...formData,
             items: [...formData.items, {
                 productId: '', quantity: 1, price: 0,
-                providerId: '', hotelId: '', checkIn: '', checkOut: '',
+                providerId: '', prestadoraId: '', checkIn: '', checkOut: '',
                 paxAdults: 1, paxChildren: 0, destination: '', serviceType: '', reservationCode: '', passengers: [{ name: '', document: '' }],
                 sellerCommission: 0, ticketPrinterCommission: 0,
                 appliedTaxes: [],
@@ -424,12 +427,12 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 productId: cp.productId.toString(),
                 quantity: 1,
                 price: cp.price,
-                providerId: '',
-                hotelId: '',
-                checkIn: '',
-                checkOut: '',
-                paxAdults: 1,
-                paxChildren: 0,
+                providerId: cp.providerId?.toString() || '',
+                prestadoraId: cp.prestadoraId?.toString() || '',
+                checkIn: cp.checkInDate ? new Date(cp.checkInDate).toISOString().split('T')[0] : '',
+                checkOut: cp.checkOutDate ? new Date(cp.checkOutDate).toISOString().split('T')[0] : '',
+                paxAdults: cp.paxAdults || 1,
+                paxChildren: cp.paxChildren || 0,
                 destination: '',
                 serviceType: '',
                 reservationCode: '',
@@ -463,14 +466,45 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         const newItems = [...formData.items]
         const item = { ...newItems[index], [field]: value }
 
-        // SYNC LOGIC: If price changes, update the main tax amount in appliedTaxes
-        if (field === 'price' || field === 'quantity') {
-            if (item.mainTaxId) {
-                const amount = (item.price || 0) * (item.quantity || 1);
-                item.appliedTaxes = (item.appliedTaxes || []).map((t: any) =>
-                    (t.id || t.chargeAndTaxId) === item.mainTaxId ? { ...t, amount } : t
-                );
-            }
+        // AUTO-RECALCULATE: Manejo de cambios en Cantidad, Precio o Cargo Principal
+        if (field === 'quantity' || field === 'price' || field === 'mainTaxId') {
+            const oldItem = newItems[index];
+            const newItem = { ...oldItem, [field]: value };
+            const oldQty = oldItem.quantity || 1;
+            const newQty = newItem.quantity || 1;
+            const ratio = field === 'quantity' ? newQty / oldQty : 1;
+            
+            const baseValue = (newItem.price || 0) * newQty;
+            const mainTaxIdNum = newItem.mainTaxId != null ? Number(newItem.mainTaxId) : null;
+
+            newItem.appliedTaxes = (oldItem.appliedTaxes || []).map((t: any) => {
+                const rawTaxId = t.id ?? t.chargeAndTaxId;
+                const taxId = rawTaxId != null ? Number(rawTaxId) : null;
+
+                // 1. El Cargo principal siempre escala proporcionalmente al precio total
+                if (mainTaxIdNum != null && taxId === mainTaxIdNum) {
+                    return { ...t, amount: baseValue };
+                }
+
+                // 2. Los impuestos porcentuales se recalculan sobre la nueva base (Precio Unitario * Cantidad)
+                const taxMaster = data?.taxes?.find((m: any) => Number(m.id) === taxId);
+                if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
+                    return { ...t, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(2)) };
+                }
+
+                // 3. Otros cargos (fijos o manuales): 
+                // Si cambió la cantidad, escalan proporcionalmente (Ej: $10 -> $20 si duplicas)
+                // Si cambió el precio, se mantienen (Ej: un cargo fijo de $10 no depende del precio del producto)
+                if (field === 'quantity') {
+                    return { ...t, amount: parseFloat((t.amount * ratio).toFixed(2)) };
+                }
+
+                return t;
+            });
+
+            newItems[index] = newItem;
+            setFormData({ ...formData, items: newItems });
+            return; // Salir aquí ya que ya actualizamos el estado
         }
 
         newItems[index] = item
@@ -699,7 +733,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 min="1"
                                                 className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-sm"
                                                 value={item.quantity}
-                                                onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value))}
+                                                onChange={(e) => updateItem(index, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
                                             />
                                         </div>
                                         <div className="col-span-12 md:col-span-6 space-y-1">
@@ -757,13 +791,16 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                             // Calculate how much we need to add to the main tax
                                                             const diff = newTotal - currentTotal;
                                                             
-                                                            const mainTax = currentTaxes.find((t: any) => (t.id || t.chargeAndTaxId) === item.mainTaxId);
+                                                            const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
+                                                            const mainTax = currentTaxes.find((t: any) => {
+                                                                const rawId = t.id ?? t.chargeAndTaxId;
+                                                                return rawId != null && Number(rawId) === mainTaxIdNum;
+                                                            });
+
                                                             if (mainTax) {
                                                                 const newMainAmount = (mainTax.amount || 0) + diff;
-                                                                // updateItem will take care of syncing the price
                                                                 updateItem(index, 'price', newMainAmount / (item.quantity || 1));
                                                             } else {
-                                                                // If no main tax, just update price as fallback
                                                                 updateItem(index, 'price', newTotal / (item.quantity || 1));
                                                             }
                                                         }}
@@ -814,19 +851,19 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     </div>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Hotel</label>
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Prestadora</label>
                                                     <select
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs"
-                                                        value={item.hotelId}
-                                                        onChange={(e) => updateItem(index, 'hotelId', e.target.value)}
+                                                        value={item.prestadoraId}
+                                                        onChange={(e) => updateItem(index, 'prestadoraId', e.target.value)}
                                                         disabled={!item.providerId}
                                                     >
-                                                        <option value="">Sel. Hotel</option>
-                                                        {(data.providers.find((p: any) => p.id.toString() === item.providerId)?.hotels || []).map((h: any) => (
+                                                        <option value="">Sel. Prestadora</option>
+                                                        {(data.providers.find((p: any) => p.id.toString() === item.providerId)?.prestadoras || []).map((h: any) => (
                                                             <option key={h.id} value={String(h.id)}>{h.name}</option>
                                                         ))}
-                                                        {item.hotelId && !data.providers.some((p: any) => (p.hotels || []).some((h: any) => h.id.toString() === item.hotelId)) && (
-                                                            <option value={item.hotelId}>{item._hotelName || 'Cargando...'}</option>
+                                                        {item.prestadoraId && !data.providers.some((p: any) => (p.prestadoras || []).some((h: any) => h.id.toString() === item.prestadoraId)) && (
+                                                            <option value={item.prestadoraId}>{item._prestadoraName || 'Cargando...'}</option>
                                                         )}
                                                     </select>
                                                 </div>
@@ -943,9 +980,13 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
                                                 {/* Render all taxes (Now including Principal for easier editing) */}
                                                 {(data.taxes || []).map((tax: any) => {
-                                                    const appliedTax = item.appliedTaxes?.find((t: any) => (t.id || t.chargeAndTaxId) === tax.id);
+                                                    const taxIdNum = Number(tax.id);
+                                                    const appliedTax = item.appliedTaxes?.find((t: any) => {
+                                                        const rawId = (t as any).id ?? (t as any).chargeAndTaxId;
+                                                        return rawId != null && Number(rawId) === taxIdNum;
+                                                    });
                                                     const isChecked = !!appliedTax;
-                                                    const isPrincipal = tax.id === item.mainTaxId;
+                                                    const isPrincipal = item.mainTaxId != null && Number(item.mainTaxId) === taxIdNum;
 
                                                     return (
                                                         <div key={tax.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -961,6 +1002,9 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                                         onChange={(e) => {
                                                                             const checked = e.target.checked;
                                                                             const currentTaxes = item.appliedTaxes || [];
+                                                                            const taxIdNum = Number(tax.id);
+                                                                            const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
+
                                                                             if (checked) {
                                                                                 let initialAmount = 0;
                                                                                 const baseValue = item.price * item.quantity;
@@ -969,21 +1013,23 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                                                 } else {
                                                                                     initialAmount = tax.value * item.quantity;
                                                                                 }
-                                                                                const nextTaxes = [...currentTaxes, { id: tax.id, amount: initialAmount }];
+                                                                                const nextTaxes = [...currentTaxes, { id: taxIdNum, amount: initialAmount }];
                                                                                 
                                                                                 // AUTO-PROMOTE to principal if none exists
-                                                                                if (!item.mainTaxId) {
+                                                                                if (mainTaxIdNum === null) {
                                                                                     const newItems = [...formData.items];
-                                                                                    // If it's a percentage, it probably shouldn't be the main price, but if promoting, we use its current amount
                                                                                     const newPrice = initialAmount / (item.quantity || 1);
-                                                                                    newItems[index] = { ...item, mainTaxId: tax.id, price: newPrice, appliedTaxes: nextTaxes };
+                                                                                    newItems[index] = { ...item, mainTaxId: taxIdNum, price: newPrice, appliedTaxes: nextTaxes };
                                                                                     setFormData({ ...formData, items: newItems });
                                                                                 } else {
                                                                                     updateItem(index, 'appliedTaxes', nextTaxes);
                                                                                 }
                                                                             } else {
-                                                                                const nextTaxes = currentTaxes.filter((t: any) => (t.id || t.chargeAndTaxId) !== tax.id);
-                                                                                if (isPrincipal) {
+                                                                                const nextTaxes = currentTaxes.filter((t: any) => {
+                                                                                    const rawId = t.id ?? t.chargeAndTaxId;
+                                                                                    return rawId != null && Number(rawId) !== taxIdNum;
+                                                                                });
+                                                                                if (mainTaxIdNum === taxIdNum) {
                                                                                     const newItems = [...formData.items];
                                                                                     newItems[index] = { ...item, mainTaxId: undefined, appliedTaxes: nextTaxes };
                                                                                     setFormData({ ...formData, items: newItems });
@@ -1014,16 +1060,18 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                                             disabled={tax.isEditable === false && !isPrincipal}
                                                                             onChange={(e) => {
                                                                                 const val = parseFloat(e.target.value) || 0;
-                                                                                const newTaxes = (item.appliedTaxes || []).map((t: any) =>
-                                                                                    (t.id || t.chargeAndTaxId) === tax.id ? { ...t, amount: val } : t
-                                                                                );
-                                                                                
-                                                                                // INHERIT TO TOP: If this is principal, update price
-                                                                                if (isPrincipal) {
-                                                                                    const newItems = [...formData.items];
-                                                                                    newItems[index] = { ...item, price: val / (item.quantity || 1), appliedTaxes: newTaxes };
-                                                                                    setFormData({ ...formData, items: newItems });
+                                                                                const taxIdNum = Number(tax.id);
+                                                                                const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
+
+                                                                                // Si estoy editando el rubro que es principal, actualizar por precio
+                                                                                if (mainTaxIdNum === taxIdNum) {
+                                                                                    updateItem(index, 'price', val / (item.quantity || 1));
                                                                                 } else {
+                                                                                    // Si es un rubro secundario, solo actualizar su monto
+                                                                                    const newTaxes = (item.appliedTaxes || []).map((t: any) => {
+                                                                                        const rawId = t.id ?? t.chargeAndTaxId;
+                                                                                        return rawId != null && Number(rawId) === taxIdNum ? { ...t, amount: val } : t;
+                                                                                    });
                                                                                     updateItem(index, 'appliedTaxes', newTaxes);
                                                                                 }
                                                                             }}

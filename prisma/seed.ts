@@ -53,10 +53,10 @@ async function main() {
         update: {},
         create: { code: 'GHL', name: 'GHL Hoteles', contactInfo: 'ghl@example.com' }
     })
-    await prisma.hotel.upsert({
+    await prisma.prestadora.upsert({
         where: { id: 1 },
         update: {},
-        create: { code: 'GHL-BOG', name: 'GHL Style Bogotá', providerId: prov1.id, location: 'Bogotá' }
+        create: { code: 'GHL-BOG', name: 'GHL Style Bogotá', providerId: prov1.id, location: 'Bogotá', type: 'HOTEL' }
     })
 
     const prov2 = await prisma.provider.upsert({
@@ -64,10 +64,10 @@ async function main() {
         update: {},
         create: { code: 'DEC', name: 'Decameron', contactInfo: 'decameron@example.com' }
     })
-    await prisma.hotel.upsert({
+    await prisma.prestadora.upsert({
         where: { id: 2 },
         update: {},
-        create: { code: 'DEC-BARU', name: 'Decameron Barú', providerId: prov2.id, location: 'Cartagena' }
+        create: { code: 'DEC-BARU', name: 'Decameron Barú', providerId: prov2.id, location: 'Cartagena', type: 'HOTEL' }
     })
 
     // Sample Branches & Implants

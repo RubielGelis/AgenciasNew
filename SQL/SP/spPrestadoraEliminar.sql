@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE public.spHotelEliminar(
+CREATE OR REPLACE PROCEDURE public.spPrestadoraEliminar(
     p_id INT,
     p_acting_user_id INT,
     INOUT p_mensaje_resultado TEXT
@@ -6,8 +6,8 @@ CREATE OR REPLACE PROCEDURE public.spHotelEliminar(
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    DELETE FROM public."Hotel" WHERE id = p_id;
-    p_mensaje_resultado := 'SUCCESS: Hotel eliminado.';
+    DELETE FROM public."Prestadora" WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Prestadora eliminado.';
 EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;

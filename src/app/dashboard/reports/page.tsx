@@ -16,7 +16,7 @@ const dataSales = [
 ]
 
 const dataPie = [
-    { name: 'GHL Hoteles', value: 400 },
+    { name: 'GHL prestadoras', value: 400 },
     { name: 'Decameron', value: 300 },
     { name: 'Hilton', value: 300 },
     { name: 'Otros', value: 200 },

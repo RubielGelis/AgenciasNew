@@ -25,7 +25,7 @@ DECLARE
     v_ticket_printer_id INT;
     v_product_id INT;
     v_provider_id INT;
-    v_hotel_id INT;
+    v_prestadora_id INT;
     v_tax_id INT;
     v_variable_id INT;
     v_tax_item TEXT;
@@ -53,7 +53,7 @@ BEGIN
         producto_cd TEXT,
         proveedor_nm TEXT, 
         proveedor_cd TEXT,
-        hotel_cd TEXT,
+        prestadora_cd TEXT,
         impuestos_str TEXT,
         variables_str TEXT,
         pasajeros_str TEXT,
@@ -85,7 +85,7 @@ BEGIN
             INSERT INTO tmp_import_rows (
                 grupo, cliente_doc, sucursal_cd, implant_cd, vendedor_cd, tiqueteador_cd,
                 moneda, tasa_cambio, comision_global, cargos_global, producto_cd,
-                proveedor_nm, proveedor_cd, hotel_cd, impuestos_str, variables_str, pasajeros_str,
+                proveedor_nm, proveedor_cd, prestadora_cd, impuestos_str, variables_str, pasajeros_str,
                 precio, cantidad, check_in, check_out, pax_adultos, pax_ninos,
                 destino, tipo_servicio, reserva, com_vendedor, com_tiqueteador,
                 combos_str, nacionalidad
@@ -95,7 +95,7 @@ BEGIN
                 NULLIF(TRIM(v_cols[10]), '')::DECIMAL, TRIM(v_cols[11]), -- Producto Codigo
                 TRIM(v_cols[12]), -- Prov Nombre
                 TRIM(v_cols[13]), -- Prov Codigo
-                TRIM(v_cols[14]), -- Hotel Codigo
+                TRIM(v_cols[14]), -- Prestadora Codigo
                 TRIM(v_cols[15]), TRIM(v_cols[16]), TRIM(v_cols[17]), -- Impuestos, Vars, Pasajeros
                 NULLIF(TRIM(v_cols[18]), '')::DECIMAL, NULLIF(TRIM(v_cols[19]), '')::INT,
                 CASE WHEN TRIM(v_cols[20]) <> '' THEN TRIM(v_cols[20])::TIMESTAMP ELSE NULL END,
@@ -197,16 +197,16 @@ BEGIN
                 SELECT id INTO v_provider_id FROM public."Provider" WHERE LOWER(code) = LOWER(v_product_record.proveedor_cd);
             END IF;
 
-            SELECT id INTO v_hotel_id FROM public."Hotel" WHERE LOWER(code) = LOWER(v_product_record.hotel_cd) AND "providerId" = v_provider_id;
+            SELECT id INTO v_prestadora_id FROM public."Prestadora" WHERE LOWER(code) = LOWER(v_product_record.prestadora_cd) AND "providerId" = v_provider_id;
 
             INSERT INTO public."QuotationProduct" (
-                "quotationId", "productId", "quantity", "price", "providerId", "hotelId", 
+                "quotationId", "productId", "quantity", "price", "providerId", "prestadoraId", 
                 "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren", 
                 "serviceType", "destination", "reservationCode", "sellerCommission", "ticketPrinterCommission",
                 "inNationality"
             ) VALUES (
                 v_quotation_id, v_product_id, COALESCE(v_product_record.cantidad, 1), 
-                COALESCE(v_product_record.precio, 0), v_provider_id, v_hotel_id, 
+                COALESCE(v_product_record.precio, 0), v_provider_id, v_prestadora_id, 
                 v_product_record.check_in, v_product_record.check_out, 
                 CASE WHEN v_product_record.check_in IS NOT NULL AND v_product_record.check_out IS NOT NULL 
                      THEN EXTRACT(DAY FROM (v_product_record.check_out - v_product_record.check_in))::INT 

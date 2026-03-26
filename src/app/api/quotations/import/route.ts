@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
                 row.Producto_Codigo || '',
                 '', // Proveedor_Nombre (Empty)
                 row.Proveedor_Codigo || '',
-                row.Hotel_Codigo || '',
+                row.Prestadora_Codigo || '',
                 row.Impuestos_Nombres_Y_Valores || '',
                 row.Variables_Codigos_Y_Valores || '',
                 row.Pasajeros || '',

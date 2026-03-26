@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
                         variables: true,
                         product: true,
                         provider: true,
-                        hotel: true
+                        prestadora: true
                     }
                 },
                 combos: {

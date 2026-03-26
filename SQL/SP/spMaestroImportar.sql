@@ -131,22 +131,23 @@ BEGIN
                     v_count := v_count + 1;
                 END IF;
 
-            ELSIF p_tipo = 'hoteles' THEN
-                -- Format: name^providerNM^code^category^location
+            ELSIF p_tipo = 'prestadoras' THEN
+                -- Format: name^providerNM^code^category^location^type
                 IF v_cols[1] IS NOT NULL AND v_cols[2] IS NOT NULL THEN
                     SELECT id INTO v_provider_id FROM public."Provider" WHERE "name" ILIKE '%' || TRIM(v_cols[2]) || '%' LIMIT 1;
                     IF v_provider_id IS NOT NULL THEN
                         IF v_cols[3] IS NOT NULL AND TRIM(v_cols[3]) <> '' THEN
-                            INSERT INTO public."Hotel" ("code", "name", "category", "location", "providerId")
-                            VALUES (TRIM(v_cols[3]), TRIM(v_cols[1]), COALESCE(TRIM(v_cols[4]), '3*'), TRIM(v_cols[5]), v_provider_id)
+                            INSERT INTO public."Prestadora" ("code", "name", "category", "location", "providerId", "type")
+                            VALUES (TRIM(v_cols[3]), TRIM(v_cols[1]), COALESCE(TRIM(v_cols[4]), '3*'), TRIM(v_cols[5]), v_provider_id, COALESCE(TRIM(v_cols[6]), 'HOTEL'))
                             ON CONFLICT ("code") DO UPDATE SET 
                                 "name" = EXCLUDED."name",
                                 "category" = EXCLUDED."category",
                                 "location" = EXCLUDED."location",
-                                "providerId" = EXCLUDED."providerId";
+                                "providerId" = EXCLUDED."providerId",
+                                "type" = EXCLUDED."type";
                         ELSE
-                            INSERT INTO public."Hotel" ("name", "category", "location", "providerId")
-                            VALUES (TRIM(v_cols[1]), COALESCE(TRIM(v_cols[4]), '3*'), TRIM(v_cols[5]), v_provider_id);
+                            INSERT INTO public."Prestadora" ("name", "category", "location", "providerId", "type")
+                            VALUES (TRIM(v_cols[1]), COALESCE(TRIM(v_cols[4]), '3*'), TRIM(v_cols[5]), v_provider_id, COALESCE(TRIM(v_cols[6]), 'HOTEL'));
                         END IF;
                         v_count := v_count + 1;
                     END IF;

@@ -40,7 +40,7 @@ export default function QuotationsListPage() {
             clientName: q.client?.name || 'Cliente sin nombre',
             clientDocument: q.client?.document || '',
             providerName: firstProd?.provider?.name || 'Varios/Ninguno',
-            hotelName: firstProd?.hotel?.name || 'Varios/Ninguno',
+            prestadoraName: firstProd?.prestadora?.name || 'Varios/Ninguno',
             checkIn: firstProd?.checkInDate ? format(new Date(firstProd.checkInDate), 'yyyy-MM-dd') : '',
             checkOut: firstProd?.checkOutDate ? format(new Date(firstProd.checkOutDate), 'yyyy-MM-dd') : '',
             paxName: firstProd?.passengers?.[0]?.name || 'N/A',
@@ -112,7 +112,7 @@ export default function QuotationsListPage() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
                     <input
                         type="text"
-                        placeholder="Buscar por cliente, ID o hotel..."
+                        placeholder="Buscar por cliente, ID o prestadora..."
                         className="w-full h-12 pl-12 pr-4 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border-none outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -148,7 +148,7 @@ export default function QuotationsListPage() {
                                 return q.id.toString().includes(search) ||
                                     (q.client?.name || '').toLowerCase().includes(search.toLowerCase()) ||
                                     (firstPaxName && firstPaxName.toLowerCase().includes(search.toLowerCase())) ||
-                                    (firstProd?.hotel?.name && firstProd.hotel.name.toLowerCase().includes(search.toLowerCase()))
+                                    (firstProd?.prestadora?.name && firstProd.prestadora.name.toLowerCase().includes(search.toLowerCase()))
                             }).map((q) => {
                                 const mainProd = q.products.find((p: any) => p.mainTaxId) || (q.products && q.products.length > 0 ? q.products[0] : null);
                                 const firstProd = mainProd;
@@ -161,7 +161,7 @@ export default function QuotationsListPage() {
                                         <td className="px-6 py-4">
                                             <div className="font-bold text-zinc-900 dark:text-white">{q.client?.name}</div>
                                             <div className="text-[10px] text-zinc-500 font-medium">Pax: {(firstProd?.passengers && Array.isArray(firstProd.passengers) && firstProd.passengers.length > 0) ? firstProd.passengers[0].name : 'Mismo titular'}</div>
-                                            <div className="text-xs text-zinc-400 mt-1">{firstProd?.hotel?.name || 'Varios/Ninguno'}</div>
+                                            <div className="text-xs text-zinc-400 mt-1">{firstProd?.prestadora?.name || 'Varios/Ninguno'}</div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400">

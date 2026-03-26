@@ -11,7 +11,6 @@ generator erd {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Role {
@@ -54,14 +53,15 @@ model Provider {
   name              String
   contactInfo       String?
   commissionConfig  Json?
-  hotels            Hotel[]
+  prestadoras       Prestadora[]
   quotationProducts QuotationProduct[]
   comboProducts     ComboProduct[]
 }
 
-model Hotel {
+model Prestadora {
   id                Int                @id @default(autoincrement())
   name              String
+  type              String?
   location          String?
   category          String?
   providerId        Int
@@ -172,7 +172,7 @@ model QuotationProduct {
   quantity                Int
   price                   Float
   providerId              Int?
-  hotelId                 Int?
+  prestadoraId            Int?
   checkInDate             DateTime?
   checkOutDate            DateTime?
   nights                  Int?
@@ -183,7 +183,7 @@ model QuotationProduct {
   reservationCode         String?
   sellerCommission        Float?
   ticketPrinterCommission Float?
-  hotel                   Hotel?                      @relation(fields: [hotelId], references: [id])
+  prestadora              Prestadora?                 @relation(fields: [prestadoraId], references: [id])
   product                 Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
   provider                Provider?                   @relation(fields: [providerId], references: [id])
   quotation               Quotation                   @relation(fields: [quotationId], references: [id], onDelete: Cascade)
@@ -279,7 +279,7 @@ model ComboProduct {
   productId    Int
   price        Float
   providerId   Int?
-  hotelId      Int?
+  prestadoraId Int?
   checkInDate  DateTime?
   checkOutDate DateTime?
   paxAdults    Int?
@@ -290,7 +290,7 @@ model ComboProduct {
   combo        Combo             @relation(fields: [comboId], references: [id], onDelete: Cascade)
   product      Product           @relation(fields: [productId], references: [id])
   provider     Provider?         @relation(fields: [providerId], references: [id])
-  hotel        Hotel?            @relation(fields: [hotelId], references: [id])
+  prestadora   Prestadora?       @relation(fields: [prestadoraId], references: [id])
   appliedTaxes ComboProductTax[]
 }
 

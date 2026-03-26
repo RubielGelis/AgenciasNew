@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
                 cols = [item.name, item.contactInfo, item.code]
             } else if (type === 'productos') {
                 cols = [item.description, item.basePrice, item.code, item.type, item.billingConcept, item.serviceType]
-            } else if (type === 'hoteles') {
+            } else if (type === 'prestadoras') {
                 cols = [item.name, item.providerNM || item.providerName, item.code, item.category || item.stars, item.location]
             } else if (type === 'usuarios') {
                 cols = [item.email, item.name, item.roleName, item.password]

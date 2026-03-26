@@ -29,7 +29,15 @@ export async function PUT(req: NextRequest, context: any) {
            comboId,
             code,
             name,
-            JSON.stringify(products || []),
+            JSON.stringify((products || []).map((p: any) => ({
+                ...p,
+                checkInDate: p.checkInDate || null,
+                checkOutDate: p.checkOutDate || null,
+                providerId: p.providerId || null,
+                prestadoraId: p.prestadoraId || null,
+                paxAdults: p.paxAdults || null,
+                paxChildren: p.paxChildren || null
+            }))),
             actingUserId,
             '' // p_mensaje_resultado
         );

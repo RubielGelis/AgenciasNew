@@ -11,9 +11,9 @@ BEGIN
             'name', p.name,
             'contactInfo', p."contactInfo",
             'commissionConfig', p."commissionConfig",
-            'hotels', COALESCE((
+            'prestadoras', COALESCE((
                 SELECT jsonb_agg(h)
-                FROM public."Hotel" h
+                FROM public."Prestadora" h
                 WHERE h."providerId" = p.id
             ), '[]'::jsonb)
         )

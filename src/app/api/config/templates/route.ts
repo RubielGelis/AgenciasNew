@@ -39,9 +39,9 @@ export async function GET(req: NextRequest) {
             data = [{ name: 'IVA 19%', type: 'TAX', valueType: 'PERCENTAGE', value: 19 }]
             filename = 'plantilla_impuestos'
             break
-        case 'hoteles':
-            data = [{ code: 'H-001', name: 'Hotel San Luis', category: '4*', providerName: 'Decameron' }]
-            filename = 'plantilla_hoteles'
+        case 'prestadoras':
+            data = [{ code: 'H-001', name: 'Prestadora San Luis', category: '4*', providerName: 'Decameron', type: 'HOTEL' }]
+            filename = 'plantilla_prestadoras'
             break
         case 'usuarios':
             data = [{ email: 'ejemplo@correo.com', name: 'Usuario Nuevo', roleName: 'Admin', password: 'password123' }]

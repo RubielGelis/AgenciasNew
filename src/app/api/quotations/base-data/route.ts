@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
         const [clients, providers, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos] = await Promise.all([
             (prisma as any).client?.findMany({ select: { id: true, name: true, document: true } }) || Promise.resolve([]),
-            (prisma as any).provider?.findMany({ include: { hotels: true } }) || Promise.resolve([]),
+            (prisma as any).provider?.findMany({ include: { prestadoras: true } }) || Promise.resolve([]),
             (prisma as any).branch?.findMany() || Promise.resolve([]),
             (prisma as any).implant?.findMany({ select: { id: true, name: true, branchId: true } }) || Promise.resolve([]),
             (prisma as any).product?.findMany() || Promise.resolve([]),

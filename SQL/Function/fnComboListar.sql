@@ -18,7 +18,7 @@ BEGIN
                         'product', jsonb_build_object('id', p.id, 'description', p.description),
                         'price', cp.price,
                         'providerId', cp."providerId",
-                        'hotelId', cp."hotelId",
+                        'prestadoraId', cp."prestadoraId",
                         'checkInDate', cp."checkInDate",
                         'checkOutDate', cp."checkOutDate",
                         'paxAdults', cp."paxAdults",

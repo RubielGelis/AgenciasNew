@@ -43,7 +43,7 @@ export function generateQuotationPDF(data: any) {
     // Travel Section
     doc.text('Alojamiento y Fechas', 10, 95);
     doc.line(10, 97, 50, 97);
-    doc.text(`Hotel: ${data.hotelName || 'N/A'}`, 10, 105);
+    doc.text(`Prestadora: ${data.prestadoraName || 'N/A'}`, 10, 105);
     doc.text(`Proveedor: ${data.providerName || 'N/A'}`, 10, 112);
     doc.text(`Check-in: ${data.checkIn}`, 110, 105);
     doc.text(`Check-out: ${data.checkOut}`, 110, 112);

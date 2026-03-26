@@ -37,7 +37,7 @@ BEGIN
 
     DELETE FROM public."QuotationProduct" WHERE "quotationId" = p_id;
     FOR v_item IN SELECT * FROM jsonb_to_recordset(p_data->'items') AS x(
-                      "productId" INT, quantity INT, price FLOAT, "providerId" TEXT, "hotelId" TEXT,
+                      "productId" INT, quantity INT, price FLOAT, "providerId" TEXT, "prestadoraId" TEXT,
                       "checkIn" TEXT, "checkOut" TEXT, "nights" INT, "mainTaxId" TEXT,
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
@@ -45,12 +45,12 @@ BEGIN
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
-            "quotationId", "productId", "quantity", "price", "providerId", "hotelId",
+            "quotationId", "productId", "quantity", "price", "providerId", "prestadoraId",
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality"
         ) VALUES (
-            p_id, v_item."productId", v_item.quantity, v_item.price, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."hotelId", '')::INT,
+            p_id, v_item."productId", v_item.quantity, v_item.price, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
             CASE WHEN v_item."checkOut" IS NOT NULL AND v_item."checkOut" <> '' THEN v_item."checkOut"::TIMESTAMP ELSE NULL END,
             v_item.nights, v_item."paxAdults", v_item."paxChildren",

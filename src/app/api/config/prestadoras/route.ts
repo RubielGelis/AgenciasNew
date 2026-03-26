@@ -6,13 +6,13 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
     try {
         const results: any[] = await prisma.$queryRawUnsafe(
-            `SELECT * FROM public.fnHotelListar()`
+            `SELECT * FROM public.fnPrestadoraListar()`
         );
-        const hotels = results.map(row => row.fnhotellistar);
-        return NextResponse.json(hotels)
+        const prestadoras = results.map(row => row.fnprestadoralistar);
+        return NextResponse.json(prestadoras)
     } catch (error) {
-        console.error('Error fetching hotels:', error);
-        return NextResponse.json({ message: 'Error fetching hotels' }, { status: 500 })
+        console.error('Error fetching prestadoras:', error);
+        return NextResponse.json({ message: 'Error fetching prestadoras' }, { status: 500 })
     }
 }
 
@@ -23,34 +23,35 @@ export async function POST(req: NextRequest) {
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spHotelCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::INT, $6::INT, $7::INT, $8::TEXT)`,
+            `CALL public.spPrestadoraCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::INT, $6::TEXT, $7::INT, $8::INT, $9::TEXT)`,
             body.code || null,
             body.name,
             body.category || null,
             body.location || null,
             parseInt(body.providerId),
+            body.type || null,
             actingUserId,
-            0, // p_hotel_id
+            0, // p_prestadora_id
             '' // p_mensaje_resultado
         );
 
-        const dbId = results[0]?.p_hotel_id;
+        const dbId = results[0]?.p_prestadora_id;
         const message = results[0]?.p_mensaje_resultado || '';
 
         if (!dbId || message.startsWith('ERROR')) {
-            throw new Error(message || 'Error creating hotel');
+            throw new Error(message || 'Error creating prestadora');
         }
 
-        const hotel = { id: dbId, ...body };
+        const prestadora = { id: dbId, ...body };
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'MASTER_DATA', description: `Hotel ${hotel.name} creado (SP).`, metadata: hotel });
+            logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'MASTER_DATA', description: `Prestadora ${prestadora.name} creado (SP).`, metadata: prestadora });
         });
 
-        return NextResponse.json(hotel)
+        return NextResponse.json(prestadora)
     } catch (error: any) {
-        console.error('Error creating hotel:', error);
-        return NextResponse.json({ message: 'Error creating hotel: ' + error.message }, { status: 500 })
+        console.error('Error creating prestadora:', error);
+        return NextResponse.json({ message: 'Error creating prestadora: ' + error.message }, { status: 500 })
     }
 }
 
@@ -61,13 +62,14 @@ export async function PUT(req: NextRequest) {
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spHotelActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::TEXT, $6::INT, $7::INT, $8::TEXT)`,
+            `CALL public.spPrestadoraActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::TEXT, $6::INT, $7::TEXT, $8::INT, $9::TEXT)`,
             parseInt(body.id),
             body.code || null,
             body.name,
             body.category || null,
             body.location || null,
             parseInt(body.providerId),
+            body.type || null,
             actingUserId,
             '' // p_mensaje_resultado
         );
@@ -77,16 +79,16 @@ export async function PUT(req: NextRequest) {
             throw new Error(message);
         }
 
-        const hotel = { ...body };
+        const prestadora = { ...body };
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'MASTER_DATA', description: `Hotel ${hotel.name} actualizado (SP).`, metadata: hotel });
+            logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'MASTER_DATA', description: `Prestadora ${prestadora.name} actualizado (SP).`, metadata: prestadora });
         });
 
-        return NextResponse.json(hotel)
+        return NextResponse.json(prestadora)
     } catch (error: any) {
-        console.error('Error updating hotel:', error);
-        return NextResponse.json({ message: 'Error updating hotel: ' + error.message }, { status: 500 })
+        console.error('Error updating prestadora:', error);
+        return NextResponse.json({ message: 'Error updating prestadora: ' + error.message }, { status: 500 })
     }
 }
 
@@ -99,7 +101,7 @@ export async function DELETE(req: NextRequest) {
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spHotelEliminar($1::INT, $2::INT, $3::TEXT)`,
+            `CALL public.spPrestadoraEliminar($1::INT, $2::INT, $3::TEXT)`,
             parseInt(id),
             actingUserId,
             '' // p_mensaje_resultado
@@ -111,12 +113,12 @@ export async function DELETE(req: NextRequest) {
         }
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'DELETE', module: 'MASTER_DATA', description: `Hotel con ID ${id} eliminado (SP).` });
+            logSystemEvent({ userId: actingUserId, action: 'DELETE', module: 'MASTER_DATA', description: `Prestadora con ID ${id} eliminado (SP).` });
         });
 
-        return NextResponse.json({ message: 'Hotel deleted successfully' })
+        return NextResponse.json({ message: 'Prestadora deleted successfully' })
     } catch (error: any) {
-        console.error('Error deleting hotel:', error);
-        return NextResponse.json({ message: 'Error deleting hotel: ' + error.message }, { status: 500 })
+        console.error('Error deleting prestadora:', error);
+        return NextResponse.json({ message: 'Error deleting prestadora: ' + error.message }, { status: 500 })
     }
 }

@@ -29,7 +29,7 @@ BEGIN
                                 'description', p.description
                             ),
                             'provider', CASE WHEN prov.id IS NOT NULL THEN jsonb_build_object('id', prov.id, 'name', prov.name) ELSE NULL END,
-                            'hotel', CASE WHEN h.id IS NOT NULL THEN jsonb_build_object('id', h.id, 'name', h.name) ELSE NULL END,
+                            'prestadora', CASE WHEN h.id IS NOT NULL THEN jsonb_build_object('id', h.id, 'name', h.name) ELSE NULL END,
                             'quantity', qp.quantity,
                             'price', qp.price,
                             'checkInDate', qp."checkInDate",
@@ -56,7 +56,7 @@ BEGIN
                     FROM public."QuotationProduct" qp
                     LEFT JOIN public."Product" p ON qp."productId" = p.id
                     LEFT JOIN public."Provider" prov ON qp."providerId" = prov.id
-                    LEFT JOIN public."Hotel" h ON qp."hotelId" = h.id
+                    LEFT JOIN public."Prestadora" h ON qp."prestadoraId" = h.id
                     WHERE qp."quotationId" = q.id
                 ),
                 '[]'::jsonb

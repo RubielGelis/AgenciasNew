@@ -1,25 +1,27 @@
-CREATE OR REPLACE PROCEDURE public.spHotelActualizar(
+CREATE OR REPLACE PROCEDURE public.spPrestadoraActualizar(
     p_id INT,
     p_code TEXT,
     p_name TEXT,
     p_category TEXT,
     p_location TEXT,
     p_provider_id INT,
+    p_type TEXT,
     p_acting_user_id INT,
     INOUT p_mensaje_resultado TEXT
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    UPDATE public."Hotel" SET
+    UPDATE public."Prestadora" SET
         "code" = p_code,
         "name" = p_name,
         "category" = p_category,
         "location" = p_location,
-        "providerId" = p_provider_id
+        "providerId" = p_provider_id,
+        "type" = p_type
     WHERE id = p_id;
 
-    p_mensaje_resultado := 'SUCCESS: Hotel actualizado.';
+    p_mensaje_resultado := 'SUCCESS: Prestadora actualizado.';
 EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;

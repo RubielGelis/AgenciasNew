@@ -231,7 +231,7 @@ BEGIN
 		ds_maestro VARCHAR(25), 
 		ds_VariableAdicional VARCHAR(25),
 		ds_valor VARCHAR(500),
-		cd_tiquete CHAR(50)
+		cd_codigo CHAR(25)
 	) ON COMMIT DROP;
 
 	CREATE TEMP TABLE IF NOT EXISTS CotizacionCargos(
@@ -404,7 +404,7 @@ BEGIN
         '' as ds_paxname,
         '' as ds_paxape, 
         '' as cd_paxtype, 
-        COALESCE(qp."inNationality", 1) as in_nacionalidad, 
+        0 as in_nacionalidad, 
         '' as cd_voucher, 
         qp.quantity as in_cantpax, 
         COALESCE(qp."checkInDate", q.dt_fecha) as dt_llegada,
@@ -524,15 +524,15 @@ BEGIN
     JOIN CotizacionServicios cs ON p."quotationProductId" = cs.orig_id_ref;
 
     INSERT INTO CotizacionServicios_VariableAdicional (
-        cd_Cotizacion, cd_CotizacionServicios, ds_maestro, ds_VariableAdicional, ds_valor, cd_tiquete
+        cd_Cotizacion, cd_CotizacionServicios, ds_maestro, ds_VariableAdicional, ds_valor, cd_codigo
     )
     SELECT 
         cs.cd_Cotizacion, 
         cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios, 
-        'CotizacionServicio' as ds_maestro, 
+        'CotizacionServicios' as ds_maestro, 
         mv.name as ds_VariableAdicional, 
         v.value as ds_valor, 
-        '' as cd_tiquete
+        mv.code as cd_codigo
     FROM public."QuotationProductVariable" v
     JOIN public."MasterVariable" mv ON v."masterVariableId" = mv."id"
     JOIN CotizacionServicios cs ON v."quotationProductId" = cs.orig_id_ref;
@@ -669,7 +669,7 @@ BEGIN
                                         xmlelement(name "CotizacionServicios_VariableAdicional",
                                             xmlforest(
                                                 v.cd_Cotizacion, v.cd_CotizacionServicios, v.ds_maestro,
-                                                v.ds_VariableAdicional, v.ds_valor, v.cd_tiquete
+                                                v.ds_VariableAdicional, v.ds_valor, v.cd_codigo
                                             )
                                         )
                                     )
@@ -683,7 +683,9 @@ BEGIN
                                                 cr.cd_CotizacionServicios, cr.cd_cargosdesc,
                                                 cr.ds_cargonm, cr.bl_noshow, cr.am_contado,
                                                 cr.am_credito, cr.am_valor, cr.am_contado_ME,
-                                                cr.am_credito_ME, cr.am_valor_ME
+                                                cr.am_credito_ME, cr.am_valor_ME,
+												cr.orig_id_ref::text AS cd_CotizacionCargos,
+												cr.cd_Cotizacion as cd_Cotizacion 
                                             )
                                         )
                                     )
@@ -698,7 +700,9 @@ BEGIN
                                                 imp.ds_Impas, imp.cd_impcta, imp.am_porcentaje,
                                                 imp.bl_contabilizar, imp.am_contado,
                                                 imp.am_credito, imp.am_valor, imp.am_contado_ME,
-                                                imp.am_credito_ME, imp.am_valor_ME
+                                                imp.am_credito_ME, imp.am_valor_ME,
+												imp.orig_id_ref::text AS CotizacionImpuestos,
+												cr.cd_Cotizacion as cd_Cotizacion 
                                             )
                                         )
                                     )
