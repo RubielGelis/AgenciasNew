@@ -58,6 +58,11 @@ export default function SettingsPage() {
 
     // Form states
     const [formData, setFormData] = useState<any>({})
+    const [searchTerm, setSearchTerm] = useState('')
+
+    useEffect(() => {
+        setSearchTerm('')
+    }, [activeTab])
 
     useEffect(() => {
         fetchData()
@@ -387,6 +392,20 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<TerminalSquare className="w-4 h-4" />} label="Logs del Sistema" />
             </div>
 
+            {/* Barra de Búsqueda */}
+            <div className="mb-8 flex items-center gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
+                    <input
+                        type="text"
+                        placeholder={`Buscar en ${activeTab === 'usuarios' ? 'Usuarios' : activeTab === 'sucursales' ? 'Sucursales' : activeTab === 'impuestos' ? 'Cargos e Impuestos' : activeTab === 'vendedores' ? 'Vendedores' : activeTab === 'tiqueteadores' ? 'Tiqueteadores' : activeTab === 'prestadoras' ? 'Prestadoras' : activeTab === 'clientes' ? 'Clientes' : activeTab === 'proveedores' ? 'Proveedores' : activeTab === 'productos' ? 'Productos' : activeTab === 'variables' ? 'Variables' : activeTab === 'parametros' ? 'Parámetros' : activeTab === 'combos' ? 'Combos' : activeTab === 'logs' ? 'Logs' : 'Implants'}...`}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full h-14 pl-14 pr-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-zinc-900 dark:text-white"
+                    />
+                </div>
+            </div>
+
             {/* Content Area */}
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[500px]">
                 {loading ? (
@@ -480,7 +499,10 @@ export default function SettingsPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 font-medium">
-                                {activeTab === 'usuarios' && (users || []).map(user => (
+                                {activeTab === 'usuarios' && (users || []).filter(user => 
+                                    user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map(user => (
                                     <tr key={user.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
                                         <td className="px-8 py-6">
                                             <div className="font-bold text-zinc-900 dark:text-white mb-0.5">{user.name}</div>
@@ -499,7 +521,10 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'impuestos' && taxes.map(tax => (
+                                {activeTab === 'impuestos' && taxes.filter(tax => 
+                                    tax.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    tax.code?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map(tax => (
                                     <tr key={tax.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{tax.code || '-'}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{tax.name}</td>
@@ -529,7 +554,11 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'prestadoras' && prestadoras.map(prestadora => (
+                                {activeTab === 'prestadoras' && prestadoras.filter(p => 
+                                    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    p.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    p.provider?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map(prestadora => (
                                     <tr key={prestadora.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{prestadora.code || '-'}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{prestadora.name}</td>
@@ -552,7 +581,10 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'clientes' && (clients || []).map((item: any) => (
+                                {activeTab === 'clientes' && (clients || []).filter(item => 
+                                    item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.document?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map((item: any) => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.document || item.id || '-'}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.name}</td>
@@ -569,7 +601,11 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'proveedores' && (providers || []).map((item: any) => (
+                                {activeTab === 'proveedores' && (providers || []).filter(item => 
+                                    item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.document?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.code?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map((item: any) => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.document || item.code || item.id || '-'}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.name}</td>
@@ -586,7 +622,11 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'productos' && (products || []).map((item: any) => (
+                                {activeTab === 'productos' && (products || []).filter(item => 
+                                    item.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.type?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map((item: any) => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code || '-'}</td>
                                         <td className="px-8 py-6">
@@ -606,7 +646,11 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'parametros' && (parameters || []).map(item => (
+                                {activeTab === 'parametros' && (parameters || []).filter(item => 
+                                    item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map(item => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.name}</td>
@@ -619,7 +663,10 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'combos' && (combos || []).map(item => (
+                                {activeTab === 'combos' && (combos || []).filter(item => 
+                                    item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.code?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map(item => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.name}</td>
@@ -632,7 +679,12 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : []) || []).map(item => (
+                                {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : []) || [])
+                                .filter((item: any) => 
+                                    item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map(item => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code || '-'}</td>
                                         <td className="px-8 py-6">
@@ -658,7 +710,12 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'logs' && logs.map(log => (
+                                {activeTab === 'logs' && logs.filter(log => 
+                                    log.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    log.action?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    log.module?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    log.user?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map(log => (
                                     <tr key={log.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-4 whitespace-nowrap text-zinc-500 dark:text-zinc-400 text-xs font-mono">
                                             {new Date(log.createdAt).toLocaleString()}

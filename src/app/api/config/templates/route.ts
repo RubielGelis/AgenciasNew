@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
             break
         case 'vendedores':
         case 'tiqueteadores':
-            data = [{ code: 'COD-001', name: 'Juan Perez', email: 'juan@correo.com' }]
+            data = [{ name: 'Juan Perez', email: 'juan@correo.com', code: 'COD-001' }]
             filename = `plantilla_${type}`
             break
         case 'clientes':
@@ -28,20 +28,28 @@ export async function GET(req: NextRequest) {
             filename = 'plantilla_clientes'
             break
         case 'proveedores':
-            data = [{ code: 'AMADEUS', name: 'Proveedor Ejemplo', contactInfo: 'reservas@proveedor.com' }]
+            data = [{ name: 'Proveedor Ejemplo', contactInfo: 'reservas@proveedor.com', code: 'AMADEUS' }]
             filename = 'plantilla_proveedores'
             break
         case 'productos':
-            data = [{ code: 'P-001', type: 'HOTEL', description: 'Habitación Estándar', basePrice: 150000 }]
+            data = [{ description: 'Habitación Estándar', basePrice: 150000, code: 'P-001', type: 'HOTEL', billingConcept: 'ALOS', serviceType: 'ALOJAMIENTO' }]
             filename = 'plantilla_productos'
             break
         case 'impuestos':
-            data = [{ name: 'IVA 19%', type: 'TAX', valueType: 'PERCENTAGE', value: 19 }]
+            data = [{ code: 'IVA-19', name: 'IVA 19%', type: 'TAX', valueType: 'PERCENTAGE', value: 19, inNationality: 1 }]
             filename = 'plantilla_impuestos'
             break
         case 'prestadoras':
-            data = [{ code: 'H-001', name: 'Prestadora San Luis', category: '4*', providerName: 'Decameron', type: 'HOTEL' }]
+            data = [{ name: 'Prestadora San Luis', providerName: 'Decameron', code: 'H-001', category: '4*', location: 'San Andrés', type: 'HOTEL' }]
             filename = 'plantilla_prestadoras'
+            break
+        case 'variables':
+            data = [{ code: 'VAR-001', name: 'Variable Ejemplo' }]
+            filename = 'plantilla_variables'
+            break
+        case 'parametros':
+            data = [{ code: 'PAR-001', name: 'Parametro Ejemplo', value: 'Valor' }]
+            filename = 'plantilla_parametros'
             break
         case 'usuarios':
             data = [{ email: 'ejemplo@correo.com', name: 'Usuario Nuevo', roleName: 'Admin', password: 'password123' }]

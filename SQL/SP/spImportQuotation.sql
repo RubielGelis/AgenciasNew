@@ -36,6 +36,7 @@ DECLARE
     v_var_parts TEXT[];
     v_total_amount DECIMAL := 0;
     v_imported_count INT := 0;
+    v_created_ids TEXT := '';
 BEGIN
     -- 1. Crear tabla temporal
     CREATE TEMP TABLE IF NOT EXISTS tmp_import_rows (
@@ -145,6 +146,8 @@ BEGIN
             v_ticket_printer_id, 0, COALESCE(v_quotation_record.comision_global, 0), 
             COALESCE(v_quotation_record.cargos_global, 0), 0, p_user_id
         ) RETURNING id INTO v_quotation_id;
+
+        v_created_ids := v_created_ids || v_quotation_id || ',';
 
         v_total_amount := COALESCE(v_quotation_record.cargos_global, 0);
 
@@ -261,7 +264,7 @@ BEGIN
         v_imported_count := v_imported_count + 1;
     END LOOP;
 
-    p_mensaje_resultado := 'SUCCESS: ' || v_imported_count || ' cotizaciones importadas.';
+    p_mensaje_resultado := 'SUCCESS: ' || v_imported_count || ' cotizaciones importadas. ID_LIST[' || RTRIM(v_created_ids, ',') || ']';
 
 EXCEPTION
     WHEN OTHERS THEN

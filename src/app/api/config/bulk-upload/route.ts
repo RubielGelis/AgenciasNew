@@ -47,7 +47,11 @@ export async function POST(req: NextRequest) {
             } else if (type === 'productos') {
                 cols = [item.description, item.basePrice, item.code, item.type, item.billingConcept, item.serviceType]
             } else if (type === 'prestadoras') {
-                cols = [item.name, item.providerNM || item.providerName, item.code, item.category || item.stars, item.location]
+                cols = [item.name, item.providerNM || item.providerName, item.code, item.category || item.stars, item.location, item.type || 'HOTEL']
+            } else if (type === 'variables') {
+                cols = [item.code, item.name]
+            } else if (type === 'parametros') {
+                cols = [item.code, item.name, item.value]
             } else if (type === 'usuarios') {
                 cols = [item.email, item.name, item.roleName, item.password]
             }
@@ -65,14 +69,14 @@ export async function POST(req: NextRequest) {
 
         const message = results[0]?.p_mensaje_resultado || '';
 
-        import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ 
-                userId: actingUserId, 
-                action: 'IMPORT', 
-                module: type.toUpperCase(), 
-                description: `Importación masiva de ${type} vía SP (Texto). Resultado: ${message}`, 
-                metadata: { type, message } 
-            });
+        import('@/lib/logger').then(({ registerLog }) => {
+            registerLog(
+                actingUserId, 
+                type, 
+                'IMPORT', 
+                `Importación masiva de ${type} vía SP (Texto). Resultado: ${message}`, 
+                { type, message } 
+            );
         });
 
         if (message.startsWith('ERROR')) {

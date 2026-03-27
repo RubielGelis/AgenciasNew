@@ -153,6 +153,24 @@ BEGIN
                     END IF;
                 END IF;
 
+            ELSIF p_tipo = 'variables' THEN
+                -- Format: code^name
+                IF v_cols[1] IS NOT NULL AND v_cols[2] IS NOT NULL THEN
+                    INSERT INTO public."Variable" ("code", "name")
+                    VALUES (TRIM(v_cols[1]), TRIM(v_cols[2]))
+                    ON CONFLICT ("code") DO UPDATE SET "name" = EXCLUDED."name";
+                    v_count := v_count + 1;
+                END IF;
+
+            ELSIF p_tipo = 'parametros' THEN
+                -- Format: code^name^value
+                IF v_cols[1] IS NOT NULL AND v_cols[2] IS NOT NULL THEN
+                    INSERT INTO public."SystemParameter" ("code", "name", "value")
+                    VALUES (TRIM(v_cols[1]), TRIM(v_cols[2]), TRIM(v_cols[3]))
+                    ON CONFLICT ("code") DO UPDATE SET "name" = EXCLUDED."name", "value" = EXCLUDED."value";
+                    v_count := v_count + 1;
+                END IF;
+
             ELSIF p_tipo = 'usuarios' THEN
                 -- Format: email^name^roleName^password
                 IF v_cols[1] IS NOT NULL AND v_cols[2] IS NOT NULL THEN

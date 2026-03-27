@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { registerLog } from '@/lib/logger'
+import { executeSQLServerProcedure } from '@/lib/sqlserver'
 
 export const dynamic = 'force-dynamic'
 
@@ -67,20 +69,65 @@ export async function POST(req: NextRequest) {
             throw new Error(dbMessage);
         }
 
-        import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({
-                userId: actingUserId,
-                action: 'IMPORT',
-                module: 'QUOTATION',
-                description: `Importación masiva mediante SP (Versión Texto). Filas enviadas: ${rows.length}`,
-                metadata: { rowCount: rows.length, dbMessage }
+        // 3. Extraer IDs de las cotizaciones creadas (Formato SUCCESS: ... ID_LIST[1,2,3])
+        const idMatch = dbMessage.match(/ID_LIST\[(.*?)\]/);
+        const createdIdsStr = idMatch ? idMatch[1] : '';
+        const createdIds = createdIdsStr ? createdIdsStr.split(',').map((id: string) => parseInt(id.trim())) : [];
+
+        // 4. Auditoría de la importación
+        await registerLog(
+            actingUserId,
+            'QUOTATION',
+            'IMPORT',
+            `Importación masiva mediante SP. Filas: ${rows.length}. IDs creados: ${createdIdsStr}`,
+            { rowCount: rows.length, dbMessage, createdIds }
+        );
+
+        // 5. Exportación automática a SQL Server si se requiere
+        let autoExportResult = null;
+        if (createdIds.length > 0) {
+            const autoExportParam = await prisma.systemParameter.findUnique({
+                where: { code: 'EnviarCotizacionesAutoSQLserver' }
             });
-        });
+
+            if (autoExportParam?.value === '1') {
+                try {
+                    console.log(`[AUTO_EXPORT] Iniciando exportación automática para IDs: ${createdIdsStr}`);
+                    
+                    // Obtener XML desde Postgres
+                    const exportResult = await prisma.$queryRawUnsafe<any[]>(
+                        `CALL spExportQuotation($1, $2, $3)`,
+                        createdIdsStr,
+                        actingUserId,
+                        ''
+                    );
+
+                    const row = exportResult && exportResult.length > 0 ? exportResult[0] : null;
+                    const xmlStr = (row?.mensaje_resultado || row?.p_mensaje_resultado || (row && typeof row === 'object' ? Object.values(row)[0] : '')) as string;
+
+                    if (xmlStr && typeof xmlStr === 'string' && !xmlStr.startsWith('ERROR')) {
+                        const sqlResult = await executeSQLServerProcedure('spCotizacionesCrear', { xml: xmlStr });
+                        
+                        autoExportResult = { success: true, message: 'Exportado automáticamente a SQL Server', sqlResult };
+                        await registerLog(actingUserId, 'QUOTATION', 'AUTO_EXPORT_SUCCESS', `ID(s) ${createdIdsStr}: Exportación automática exitosa`, { sqlResult });
+                    } else {
+                        autoExportResult = { success: false, message: 'No se generó XML válido para exportación automática' };
+                        await registerLog(actingUserId, 'QUOTATION', 'AUTO_EXPORT_ERROR', `ID(s) ${createdIdsStr}: Error en generación de XML`, { xml: xmlStr });
+                    }
+                } catch (exportError: any) {
+                    console.error('[AUTO_EXPORT] Error:', exportError.message);
+                    autoExportResult = { success: false, error: exportError.message };
+                    await registerLog(actingUserId, 'QUOTATION', 'AUTO_EXPORT_SQL_ERROR', `ID(s) ${createdIdsStr}: ${exportError.message}`, { error: exportError.message });
+                }
+            }
+        }
 
         return NextResponse.json({ 
             message: 'Importación finalizada',
             detail: dbMessage,
-            importedCount: rows.length
+            importedCount: rows.length,
+            createdIds,
+            autoExport: autoExportResult
         })
     } catch (error: any) {
         console.error('Import error (via SP TEXT):', error);
