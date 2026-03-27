@@ -90,6 +90,16 @@ BEGIN
 
     p_mensaje_resultado := 'SUCCESS: Cotización ' || p_id || ' actualizada correctamente.';
 
+    -- Registrar en Auditoría
+    CALL public."spLogRegistrar"(
+        p_acting_user_id, 
+        'QUOTATION', 
+        'UPDATE', 
+        'Se actualizó la cotización con ID ' || p_id, 
+        p_data, 
+        v_quotation_product_id -- Reutilizamos variable para el logId temporal
+    );
+
 EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;

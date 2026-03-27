@@ -565,8 +565,8 @@ BEGIN
 		cd_CotizacionServicios, cd_Cotizacion
     )
     SELECT 
-        t."id"::text as cd_CotizacionCargos,
-		COALESCE(tp."id", 1)::text as cd_CotizacionImpuestos,
+        COALESCE(tp."id", 1)::text  as cd_CotizacionCargos,
+		t."id"::text as cd_CotizacionImpuestos,
         ct.name as cd_ImpRet, 
         COALESCE(ct.name, '') as ds_Impas, 
         '' as cd_impcta, 
@@ -701,8 +701,8 @@ BEGIN
                                                 imp.bl_contabilizar, imp.am_contado,
                                                 imp.am_credito, imp.am_valor, imp.am_contado_ME,
                                                 imp.am_credito_ME, imp.am_valor_ME,
-												imp.orig_id_ref::text AS CotizacionImpuestos,
-												cr.cd_Cotizacion as cd_Cotizacion 
+												imp.cd_CotizacionImpuestos AS cd_CotizacionImpuestos,
+												imp.cd_Cotizacion as cd_Cotizacion 
                                             )
                                         )
                                     )

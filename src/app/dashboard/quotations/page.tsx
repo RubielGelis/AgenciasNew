@@ -63,28 +63,41 @@ export default function QuotationsListPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    ids: q.id.toString(),
+                    ids: [q.id], // Enviamos como arreglo para consistencia
                     userId: loggedUser.id
                 })
             });
 
+            const data = await res.json();
+
             if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.message || 'Error exportando XML');
+                // Si el servidor devolvió un error (400, 500), mostramos el mensaje detallado
+                alert("ERROR DE SERVIDOR: " + (data.message || "Error desconocido") + (data.details ? "\nDetalles: " + data.details : ""));
+                return;
             }
 
-            const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `cotizacion_${q.id}.xml`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            // Mostrar resultado de SQL Server si existe
+            if (data.success) {
+                alert("EXPORTACIÓN EXITOSA A SQL SERVER:\n" + data.message);
+            } else {
+                alert("ATENCIÓN: Se generó el XML pero hubo un problema con SQL Server.\nMensaje: " + data.message);
+            }
+
+            // Descargar el XML localmente
+            if (data.xml) {
+                const blob = new Blob([data.xml], { type: 'application/xml' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `cotizacion_${q.id}.xml`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }
         } catch (err: any) {
             console.error(err);
-            alert("Error al exportar XML: " + err.message);
+            alert("Error al exportar: " + err.message);
         }
     }
 

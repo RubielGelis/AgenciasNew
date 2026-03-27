@@ -91,6 +91,16 @@ BEGIN
     p_quotation_id := v_quotation_id;
     p_mensaje_resultado := 'SUCCESS: Cotización creada correctamente con ID ' || v_quotation_id;
 
+    -- Registrar en Auditoría
+    CALL public."spLogRegistrar"(
+        p_acting_user_id, 
+        'QUOTATION', 
+        'CREATE', 
+        'Se creó la cotización ' || v_internal_number || ' (ID: ' || v_quotation_id || ')', 
+        p_data, 
+        v_quotation_id -- Reutilizamos variable para el logId temporal
+    );
+
 EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;

@@ -1,0 +1,31 @@
+﻿[dotenv@17.3.1] injecting env (1) from .env -- tip: ­ƒøá´©Å  run anywhere with `dotenvx run -- yourcommand`
+============================================================
+  TEST DE CONEXI├ôN A SQL SERVER
+============================================================
+
+[1] Conectando a PostgreSQL...
+    Ô£à Conectado a Postgres.
+
+[2] Ejecutando fnGetSQLServerConfig()...
+
+[3] Configuraci├│n SQL Server obtenida:
+   servidor   : RUBIEL\RUBIEL
+   usuario    : sa
+   clave      : ***
+   base_datos : Agencias
+   puerto     : 
+
+[4] Modo conexi├│n: INSTANCIA ÔåÆ RUBIEL\RUBIEL
+
+[5] Conectando a SQL Server...
+    Ô£à ┬íCONEXI├ôN EXITOSA!
+
+[6] Informaci├│n del servidor SQL:
+   DB activa  : Agencias
+   Versi├│n    : Microsoft SQL Server 2025 (RTM) - 17.0.1000.7 (X64) 
+
+[7] Conexi├│n cerrada correctamente.
+
+Ô£à PRUEBA COMPLETADA EXITOSAMENTE
+
+============================================================
