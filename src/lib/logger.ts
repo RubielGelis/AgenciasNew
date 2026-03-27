@@ -1,23 +1,32 @@
-import prisma from '@/lib/prisma'
+import prisma from '@/lib/prisma';
 
-export async function logSystemEvent(params: {
-    userId?: number;
-    action: string;
-    module: string;
-    description: string;
-    metadata?: any;
-}) {
+/**
+ * Registra un evento de auditoría en el sistema usando el Stored Procedure spLogRegistrar.
+ */
+export async function registerLog(
+    userId: number | null,
+    module: string,
+    action: string,
+    description: string,
+    metadata: any = null
+) {
     try {
-        await prisma.systemLog.create({
+        console.log(`[AuditLog_DEBUG] Intentando registrar: ${module} - ${action}: ${description}`);
+        
+        const logEntry = await prisma.systemLog.create({
             data: {
-                userId: params.userId || null,
-                action: params.action,
-                module: params.module,
-                description: params.description,
-                metadata: params.metadata ? JSON.parse(JSON.stringify(params.metadata)) : null
+                userId: userId && userId !== 0 ? Number(userId) : null,
+                module: module.toUpperCase(),
+                action: action.toUpperCase(),
+                description,
+                metadata: metadata || null
             }
         });
-    } catch (error) {
-        console.error('Failed to log system event:', error);
+
+        console.log(`[AuditLog_SUCCESS] Evento registrado ID: ${logEntry.id}`);
+        return logEntry;
+    } catch (error: any) {
+        console.error('[AuditLog_ERROR] Fallo al crear log en Prisma:', error.message);
+        if (error.code) console.error('  Code:', error.code);
     }
 }

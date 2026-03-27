@@ -68,30 +68,37 @@ export default function QuotationsHistoryPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    ids: selectedIds.join(','),
+                    ids: selectedIds, // Enviamos como arreglo
                     userId: user.id || 1
                 })
             });
 
+            const data = await res.json();
+
             if (!res.ok) {
-                const err = await res.json();
-                throw new Error(err.message || 'Error al exportar');
+                alert("ERROR DE EXPORTACIÓN:\n" + (data.message || "Error desconocido") + (data.details ? "\nDetalles: " + data.details : ""));
+                return;
             }
 
-            // Download the XML file
-            const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `Exportacion_Cotizaciones_${format(new Date(), 'yyyyMMdd_HHmm')}.xml`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            if (data.success) {
+                // Construir detalle del resultado del SP
+                let detalle = "✅ EXPORTACIÓN EXITOSA\n\n";
+                if (data.spResult && data.spResult.length > 0) {
+                    detalle += "Resultado por cotización:\n";
+                    data.spResult.forEach((row: any) => {
+                        detalle += `  • ${row.Cotizacion}: ${row.Estado}${row.IdProcesado ? ' (ID SQL: ' + row.IdProcesado + ')' : ''}\n`;
+                    });
+                } else {
+                    detalle += "Cotización enviada a SQL Server correctamente.";
+                }
+                alert(detalle);
+            } else {
+                alert("❌ ERROR EN SQL SERVER:\n" + data.message);
+            }
 
         } catch (error: any) {
             console.error('Export error:', error);
-            alert(`Error exportando: ${error.message}`);
+            alert(`Error crítico al conectar con el servidor: ${error.message}`);
         }
     }
 

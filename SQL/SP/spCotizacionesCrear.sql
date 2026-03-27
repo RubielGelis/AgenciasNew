@@ -80,7 +80,8 @@ BEGIN
 			ds_hotelTieneTiquete varchar(2) NULL,
 			ds_GDS varchar(2) NULL,
 			id_Evento INT NULL,
-			id_Cotizacion INT NULL
+			id_Cotizacion INT NULL,
+			bl_existe BIT NULL
 		)
 
 		DECLARE @CotizacionServicios TABLE(
@@ -347,7 +348,8 @@ BEGIN
 			ds_hotelTieneTiquete,
 			ds_GDS,
 			id_Evento,
-			id_Cotizacion
+			id_Cotizacion,
+			bl_existe
 		)	
         SELECT 
 			id_sucursal = ISNULL(S.id,1),
@@ -411,7 +413,8 @@ BEGIN
 			ds_hotelTieneTiquete = NULL,
 			ds_GDS = C.Cotizacion.value('ds_GDS[1]','VARCHAR(2)'),
 			id_Evento = NULL,
-			id_Cotizacion = NULL
+			id_Cotizacion = NULL,
+			bl_existe = CASE WHEN CC.id IS NOT NULL THEN 1 ELSE 0 END 
         FROM @xmlData.nodes('Cotizaciones/Cotizacion') AS C(Cotizacion)
 		LEFT JOIN dbo.Sucursales S ON S.cd_codigo=C.Cotizacion.value('cd_sucursal[1]','VARCHAR(25)')
 		LEFT JOIN dbo.Implantes I ON I.cd_codigo=C.Cotizacion.value('cd_implante[1]','VARCHAR(25)')
@@ -421,6 +424,7 @@ BEGIN
 		LEFT JOIN dbo.Monedas_IATA M ON M.cd_codigo=C.Cotizacion.value('cd_monedas_IATA[1]','VARCHAR(3)')
 		LEFT JOIN dbo.Tiqueteadores Tq ON Tq.cd_codigo=C.Cotizacion.value('cd_tiqueteador[1]','VARCHAR(6)')
 		LEFT JOIN dbo.TipoVenta Tv ON Tv.cd_codigo=C.Cotizacion.value('cd_tipoventa[1]','VARCHAR(16)')
+		LEFT JOIN dbo.Cotizacion CC ON CC.cd_consecutivo = C.Cotizacion.value('cd_consecutivo[1]','VARCHAR(25)')		 
 		
 		INSERT INTO @CotizacionServicios(
 			id_TiposConceptFac ,
@@ -578,10 +582,10 @@ BEGIN
 			am_porcomision=ISNULL(C.CotizacionServicios.value('am_porcomision[1]','MONEY'),0) ,
 			cd_voucherPrefijo='',
 			bl_notdomicilionacional=0,
-			Valor_Comision=ISNULL(C.CotizacionServicios.value('Valor_Comision[1]','MONEY'),0) ,
+			Valor_Comision=ISNULL(C.CotizacionServicios.value('valor_comision[1]','MONEY'),0) ,
 			Valor_Recaudo=0,
 			dias_recaudo=0,
-			ds_paxClasificacion=ISNULL(C.CotizacionServicios.value('ds_paxClasificacion[1]','VARCHAR(25)'),'') ,
+			ds_paxClasificacion=ISNULL(C.CotizacionServicios.value('ds_paxclasificacion[1]','VARCHAR(25)'),'') ,
 			id_tipoplan=NULL,
 			id_acomodacion=NULL ,
 			in_dias=ISNULL(C.CotizacionServicios.value('in_dias[1]','INT'),1),
@@ -608,7 +612,7 @@ BEGIN
 			id_TipoPlanSrv=NULL ,
 			in_habitaciones=0 ,
 			in_habitacionesSrv=0 ,
-			cd_Consecutivo_VariablesAdicionales='' ,
+			cd_Consecutivo_VariablesAdicionales=ISNULL(C.CotizacionServicios.value('cd_consecutivo_variablesadicionales[1]','VARCHAR(25)'),'') ,
 			cd_confirmacion='',
 			ds_confirmadopor='',
 			cd_paxidentificacion='',
@@ -646,7 +650,7 @@ BEGIN
 			am_pordescuento=0,
 			id_CotizacionServicios_Depende=NULL,
 			id_CotizacionServicios=NULL,
-			cd_Cotizacion = ISNULL(C.CotizacionServicios.value('cd_Cotizacion[1]','VARCHAR(25)'),'') 
+			cd_Cotizacion = ISNULL(C.CotizacionServicios.value('cd_cotizacion[1]','VARCHAR(25)'),'') 
 		 FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios') AS C(CotizacionServicios)
 		 LEFT JOIN dbo.ConceptoFacturacion CF ON CF.cd_codigo=C.CotizacionServicios.value('cd_ConceptoFacturacion[1]','VARCHAR(25)')
 		 LEFT JOIN dbo.TiposServicios TS ON CF.cd_codigo=C.CotizacionServicios.value('cd_TiposServicio[1]','VARCHAR(25)')
@@ -705,10 +709,10 @@ BEGIN
 			am_contado_ME=ISNULL(C.CotizacionCargos.value('am_contado_ME[1]','MONEY'),''),
 			am_credito_ME=ISNULL(C.CotizacionCargos.value('am_credito_ME[1]','MONEY'),''),
 			id_CotizacionCargos=NULL,
-			cd_CotizacionCargos = ISNULL(C.CotizacionCargos.value('cd_CotizacionCargos[1]','VARCHAR(25)'),''),
+			cd_CotizacionCargos = ISNULL(C.CotizacionCargos.value('cd_cotizacioncargos[1]','VARCHAR(25)'),''),
 			cd_Cotizacion=ISNULL(C.CotizacionCargos.value('cd_cotizacion[1]','VARCHAR(25)'),''),
-			cd_CotizacionServicios=ISNULL(C.CotizacionCargos.value('cd_CotizacionServicios[1]','VARCHAR(25)'),'') 
-		 FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionCargos') AS C(CotizacionCargos)
+			cd_CotizacionServicios=ISNULL(C.CotizacionCargos.value('cd_cotizacionservicios[1]','VARCHAR(25)'),'') 
+		 FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios/CotizacionCargos') AS C(CotizacionCargos)
 		 LEFT JOIN dbo.CargosDesc CD ON CD.cd_codigo=ISNULL(C.CotizacionCargos.value('cd_cargosdesc[1]','VARCHAR(3)'),'') 
 
 		INSERT INTO @CotizacionImpuestos(
@@ -728,9 +732,9 @@ BEGIN
 			cd_CotizacionServicios
 		)
 		SELECT
-			id_CotizacionCargos=0,
+			id_CotizacionCargos=NULL,
 			id_ImpRet=IR.id,
-			ds_Impas= ISNULL(C.CotizacionImpuestos.value('ds_Impas[1]','VARCHAR(16)'),''),
+			ds_Impas= ISNULL(C.CotizacionImpuestos.value('ds_impas[1]','VARCHAR(16)'),''),
 			cd_impcta= ISNULL(C.CotizacionImpuestos.value('cd_impcta[1]','VARCHAR(16)'),''),
 			am_porcentaje=ISNULL(C.CotizacionImpuestos.value('am_porcentaje[1]','MONEY'),0),
 			bl_contabilizar=ISNULL(C.CotizacionImpuestos.value('bl_contabilizar[1]','INT'),0),
@@ -738,12 +742,12 @@ BEGIN
 			am_credito=ISNULL(C.CotizacionImpuestos.value('am_credito[1]','MONEY'),0),
 			am_contado_ME=ISNULL(C.CotizacionImpuestos.value('am_contado_ME[1]','MONEY'),0),
 			am_credito_ME=ISNULL(C.CotizacionImpuestos.value('am_credito_ME[1]','MONEY'),0),
-			cd_CotizacionImpuestos = ISNULL(C.CotizacionImpuestos.value('cd_CotizacionImpuestos[1]','VARCHAR(25)'),''),
-			cd_CotizacionCargos = ISNULL(C.CotizacionImpuestos.value('cd_CotizacionCargos[1]','VARCHAR(25)'),''),
+			cd_CotizacionImpuestos = ISNULL(C.CotizacionImpuestos.value('cd_cotizacionimpuestos[1]','VARCHAR(25)'),''),
+			cd_CotizacionCargos = ISNULL(C.CotizacionImpuestos.value('cd_cotizacioncargos[1]','VARCHAR(25)'),''),
 			cd_Cotizacion=ISNULL(C.CotizacionImpuestos.value('cd_cotizacion[1]','VARCHAR(25)'),''),
-			cd_CotizacionServicios=ISNULL(C.CotizacionImpuestos.value('cd_CotizacionServicios[1]','VARCHAR(25)'),'')
-		FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionImpuestos') AS C(CotizacionImpuestos)
-		LEFT JOIN dbo.ImpRet IR ON IR.cd_codigo=ISNULL(C.CotizacionImpuestos.value('cd_ImpRet[1]','VARCHAR(3)'),'') 
+			cd_CotizacionServicios=ISNULL(C.CotizacionImpuestos.value('cd_cotizacionservicios[1]','VARCHAR(25)'),'')
+		FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios/CotizacionImpuestos') AS C(CotizacionImpuestos)
+		LEFT JOIN dbo.ImpRet IR ON IR.cd_codigo=ISNULL(C.CotizacionImpuestos.value('cd_impret[1]','VARCHAR(3)'),'') 
 
 		INSERT INTO @VariableDatosMaestro(
 			IDEN_Maestro ,
@@ -872,6 +876,7 @@ BEGIN
 				ds_GDS, 	
 				id_evento
 		FROM @Cotizacion
+		WHERE bl_existe=0
 
 		UPDATE CC
 		SET CC.id_cotizacion=C.id
@@ -995,127 +1000,130 @@ BEGIN
 			id_CotizacionServicios_Depende
 		)
 		SELECT
-			id_TiposConceptFac,
-			id_ConceptoFacturacion,
-			id_TiposServicio,
-			id_Cotizacion,
-			id_fac_factura,
-			id_fac_remision,
-			cd_proveedores,
-			ds_tiposervnm ,
-			cd_prov_hotel,
-			cd_prov_car,
-			cd_prov_air,
-			ds_destino ,
-			ds_servicio,
-			ds_descrip ,
-			ds_paxname,
-			ds_paxape,
-			cd_paxtype ,
-			in_nacionalidad,
-			cd_voucher,
-			in_cantpax ,
-			dt_llegada ,
-			dt_salida ,
-			cd_cencosto ,
-			cd_auxiliar,
-			cd_item ,
-			am_valorprov,
-			id_monedaprov,
-			ds_InfoAdicional,
-			id_carrental,
-			id_hoteles,
-			bl_anulado ,
-			cd_tiquete ,
-			cd_fuente_anul ,
-			cd_serie_anul ,
-			cd_consecutivo_anul,
-			id_usuario_anul,
-			id_sucursal_anul,
-			id_implante_anul,
-			am_basecomisionable,
-			am_porcomision,
-			cd_voucherPrefijo,
-			bl_notdomicilionacional,
-			Valor_Comision,
-			Valor_Recaudo,
-			dias_recaudo,
-			ds_paxClasificacion,
-			id_tipoplan,
-			id_acomodacion,
-			in_dias,
-			in_noches,
-			ds_records,
-			id_GrConcepto,
-			in_diasSrv,
-			in_nochesSrv,
-			Id_Especialista,
-			am_porcentaje_descuento,
-			am_valor_descuento,
-			ds_motivo_descuento,
-			id_cargosdesc_descuento,
-			in_NumeroOpcion,
-			dt_FechaSalidaSrv,
-			dt_FechaLlegadaSrv,
-			cd_localizador,
-			cd_voucherpax,
-			am_basecomisionableprov,
-			am_porcomisionprov,
-			cd_NumeFac,
-			dt_VenceFac,
-			id_AcomodacionSrv,
-			id_TipoPlanSrv,
-			in_habitaciones,
-			in_habitacionesSrv,
-			cd_Consecutivo_VariablesAdicionales,
-			cd_confirmacion ,
-			ds_confirmadopor ,
-			cd_paxidentificacion ,
-			bl_politicaCancelacion ,
-			dt_politicaCancelacion ,
-			id_tipoHabitacion ,
-			id_fac_facturaComision,
-			id_fac_remisionComision,
-			id_TarjetaAsistencia ,
-			id_Regiones,
-			Iden_GDS,
-			id_sys_entidades,
-			ds_TipoAuto,
-			ds_Origen,
-			ds_DirOrigen,
-			ds_DirDestino,
-			ds_TipoTarifa,
-			am_ValorUSD,
-			ds_NoVuelo,
-			ds_Vehiculo,
-			ds_Placa,
-			ds_CategoriaVehiculo,
-			ds_NombreConductor,
-			ds_telefono,
-			ds_IdiomaConductor,
-			id_MonedaSrv,
-			id_TipoServicio,
-			id_Aerolinea,
-			in_EdadPax,
-			am_PorFacParcial,
-			ds_GDS,
-			dt_fechaficheroBBVA,
-			bl_tiquete ,
-			am_basedescuento,
-			am_pordescuento,
-			id_CotizacionServicios_Depende	
-		FROM @CotizacionServicios
+			cs.id_TiposConceptFac,
+			cs.id_ConceptoFacturacion,
+			cs.id_TiposServicio,
+			cs.id_Cotizacion,
+			cs.id_fac_factura,
+			cs.id_fac_remision,
+			cs.cd_proveedores,
+			cs.ds_tiposervnm ,
+			cs.cd_prov_hotel,
+			cs.cd_prov_car,
+			cs.cd_prov_air,
+			cs.ds_destino ,
+			cs.ds_servicio,
+			cs.ds_descrip ,
+			cs.ds_paxname,
+			cs.ds_paxape,
+			cs.cd_paxtype ,
+			cs.in_nacionalidad,
+			cs.cd_voucher,
+			cs.in_cantpax ,
+			cs.dt_llegada ,
+			cs.dt_salida ,
+			cs.cd_cencosto ,
+			cs.cd_auxiliar,
+			cs.cd_item ,
+			cs.am_valorprov,
+			cs.id_monedaprov,
+			cs.ds_InfoAdicional,
+			cs.id_carrental,
+			cs.id_hoteles,
+			cs.bl_anulado ,
+			cs.cd_tiquete ,
+			cs.cd_fuente_anul ,
+			cs.cd_serie_anul ,
+			cs.cd_consecutivo_anul,
+			cs.id_usuario_anul,
+			cs.id_sucursal_anul,
+			cs.id_implante_anul,
+			cs.am_basecomisionable,
+			cs.am_porcomision,
+			cs.cd_voucherPrefijo,
+			cs.bl_notdomicilionacional,
+			cs.Valor_Comision,
+			cs.Valor_Recaudo,
+			cs.dias_recaudo,
+			cs.ds_paxClasificacion,
+			cs.id_tipoplan,
+			cs.id_acomodacion,
+			cs.in_dias,
+			cs.in_noches,
+			cs.ds_records,
+			cs.id_GrConcepto,
+			cs.in_diasSrv,
+			cs.in_nochesSrv,
+			cs.Id_Especialista,
+			cs.am_porcentaje_descuento,
+			cs.am_valor_descuento,
+			cs.ds_motivo_descuento,
+			cs.id_cargosdesc_descuento,
+			cs.in_NumeroOpcion,
+			cs.dt_FechaSalidaSrv,
+			cs.dt_FechaLlegadaSrv,
+			cs.cd_localizador,
+			cs.cd_voucherpax,
+			cs.am_basecomisionableprov,
+			cs.am_porcomisionprov,
+			cs.cd_NumeFac,
+			cs.dt_VenceFac,
+			cs.id_AcomodacionSrv,
+			cs.id_TipoPlanSrv,
+			cs.in_habitaciones,
+			cs.in_habitacionesSrv,
+			cs.cd_Consecutivo_VariablesAdicionales,
+			cs.cd_confirmacion ,
+			cs.ds_confirmadopor ,
+			cs.cd_paxidentificacion ,
+			cs.bl_politicaCancelacion ,
+			cs.dt_politicaCancelacion ,
+			cs.id_tipoHabitacion ,
+			cs.id_fac_facturaComision,
+			cs.id_fac_remisionComision,
+			cs.id_TarjetaAsistencia ,
+			cs.id_Regiones,
+			cs.Iden_GDS,
+			cs.id_sys_entidades,
+			cs.ds_TipoAuto,
+			cs.ds_Origen,
+			cs.ds_DirOrigen,
+			cs.ds_DirDestino,
+			cs.ds_TipoTarifa,
+			cs.am_ValorUSD,
+			cs.ds_NoVuelo,
+			cs.ds_Vehiculo,
+			cs.ds_Placa,
+			cs.ds_CategoriaVehiculo,
+			cs.ds_NombreConductor,
+			cs.ds_telefono,
+			cs.ds_IdiomaConductor,
+			cs.id_MonedaSrv,
+			cs.id_TipoServicio,
+			cs.id_Aerolinea,
+			cs.in_EdadPax,
+			cs.am_PorFacParcial,
+			cs.ds_GDS,
+			cs.dt_fechaficheroBBVA,
+			cs.bl_tiquete ,
+			cs.am_basedescuento,
+			cs.am_pordescuento,
+			cs.id_CotizacionServicios_Depende	
+		FROM @CotizacionServicios cs
+		INNER JOIN @Cotizacion c ON c.cd_consecutivo=cs.cd_Cotizacion AND c.bl_existe=0
 
 		UPDATE CCS
 		SET CCS.id_CotizacionServicios=CS.id
 		FROM @CotizacionServicios CCS
 		INNER JOIN dbo.CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales=CCS.cd_Consecutivo_VariablesAdicionales
+		INNER JOIN @Cotizacion C ON C.cd_consecutivo = CCS.cd_Cotizacion AND bl_existe=0
 
 		UPDATE CSP
 		SET CSP.id_Cotizacion=CS.id_Cotizacion,
 			CSP.id_CotizacionServicios=CS.id
 		FROM @CotizacionServicios_PaxAdicional CSP 
 		INNER JOIN dbo.CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales=CSP.cd_CotizacionServicios
+		INNER JOIN @Cotizacion C ON C.cd_consecutivo = CSP.cd_Cotizacion AND bl_existe=0
 
 		INSERT INTO dbo.CotizacionServicios_PaxAdicional(
 			id_Cotizacion,
@@ -1141,13 +1149,14 @@ BEGIN
 			in_edad,
 			cd_tiquete
 		FROM @CotizacionServicios_PaxAdicional
-		
-		UPDATE CC
-		SET CC.id_Cotizacion=CS.id_Cotizacion,
-			CC.id_CotizacionServicios=CS.id
-		FROM @CotizacionCargos CC
-		INNER JOIN dbo.CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales=CSP.cd_CotizacionServicios
+		WHERE id_CotizacionServicios IS NOT NULL 
 
+		UPDATE CC
+		SET CC.id_CotizacionServicios=CS.id
+		FROM @CotizacionCargos CC
+		INNER JOIN dbo.CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales=CC.cd_CotizacionServicios
+		INNER JOIN @Cotizacion C ON C.cd_consecutivo = CC.cd_Cotizacion AND bl_existe=0
+		
 		INSERT INTO dbo.CotizacionCargos(
 			id_CotizacionServicios,
 			id_cargosdesc,
@@ -1168,11 +1177,26 @@ BEGIN
 			am_contado_ME,
 			am_credito_ME
 		 FROM @CotizacionCargos
+		 WHERE id_CotizacionServicios IS NOT NULL 
+
+		 --SELECT c.*
+		 --FROM CotizacionCargos C
+		 --INNER JOIN @CotizacionCargos CC ON CC.id_cargosdesc=C.id_cargosdesc AND CC.id_CotizacionServicios=C.id_CotizacionServicios
 
 		 UPDATE CC
 		 SET CC.id_CotizacionCargos=C.id
 		 FROM @CotizacionCargos CC
 		 INNER JOIN dbo.CotizacionCargos C ON C.id_cargosdesc=CC.id_cargosdesc AND C.id_CotizacionServicios=CC.id_CotizacionServicios
+		 INNER JOIN @Cotizacion CT ON CT.cd_consecutivo = CC.cd_Cotizacion AND bl_existe=0
+		 
+		 --select  * from @CotizacionCargos
+		 
+		 UPDATE I
+		 SET I.id_CotizacionCargos=C.id_CotizacionCargos
+		 FROM @CotizacionImpuestos I
+		 INNER JOIN @CotizacionCargos C ON C.cd_CotizacionCargos = I.cd_CotizacionCargos AND C.cd_CotizacionServicios=I.cd_CotizacionServicios
+		 INNER JOIN @Cotizacion CT ON CT.cd_consecutivo = C.cd_Cotizacion AND bl_existe=0
+
 
 		 INSERT INTO dbo.CotizacionImpuestos(
 			id_CotizacionCargos,
@@ -1198,6 +1222,7 @@ BEGIN
 			am_contado_ME,
 			am_credito_ME
 		FROM @CotizacionImpuestos
+		WHERE id_CotizacionCargos IS NOT NULL 
 		
 		INSERT INTO dbo.VariableDatosMaestro(
 			IDEN_Maestro,
@@ -1208,20 +1233,36 @@ BEGIN
 			ValorVarchar
 		 )
 		 SELECT 
-			IDEN_Maestro,
-			IDEN_Variable,
-			CodigoMaestro,
-			ValorNumerico,
-			ValorFecha,
-			ValorVarchar
-		 FROM @VariableDatosMaestro
-		
+			V.IDEN_Maestro,
+			V.IDEN_Variable,
+			V.CodigoMaestro,
+			V.ValorNumerico,
+			V.ValorFecha,
+			V.ValorVarchar
+		 FROM @VariableDatosMaestro V
+		 INNER JOIN @CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales = V.CodigoMaestro
+		 INNER JOIN @Cotizacion C ON C.cd_consecutivo = CS.cd_Cotizacion AND bl_existe=0
+		 GROUP BY V.IDEN_Maestro,
+				  V.IDEN_Variable,
+				  V.CodigoMaestro,
+				  V.ValorNumerico,
+				  V.ValorFecha,
+				  V.ValorVarchar
+
+		--ROLLBACK TRANSACTION;
         COMMIT TRANSACTION;
 
-        -- Retorno
-        --SELECT cd_consecutivo FROM @Cotizacion;
-		--SELECT * FROM @Cotizacion
-		SELECT * FROM @CotizacionServicios
+        -- Retorno mejorado: Lista resumida de lo procesado
+        SELECT 
+            cd_consecutivo AS Cotizacion,
+            CASE 
+                WHEN bl_existe = 1 THEN 'Ya existe en SQL Server'
+                ELSE 'Creada exitosamente'
+            END AS Estado,
+            bl_existe,
+            id_Cotizacion AS IdProcesado
+        FROM @Cotizacion;
+
 		RETURN 0
     END TRY
     BEGIN CATCH
