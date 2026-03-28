@@ -29,18 +29,18 @@ AS $$
         -- Insertar productos nuevos
         IF p_products IS NOT NULL AND jsonb_array_length(p_products) > 0 THEN
             FOR v_item IN SELECT * FROM jsonb_to_recordset(p_products) AS x(
-                "productId" INT, price FLOAT, "providerId" INT, "prestadoraId" INT, 
+                "productId" INT, quantity INT, price FLOAT, "providerId" INT, "prestadoraId" INT, 
                 "checkInDate" TIMESTAMP, "checkOutDate" TIMESTAMP,
                 "paxAdults" INT, "paxChildren" INT, "mainTaxId" INT, "appliedTaxes" JSONB, "inNationality" INT
             )
             LOOP
                 IF v_item."productId" IS NOT NULL THEN
                     INSERT INTO public."ComboProduct" (
-                        "comboId", "productId", "price", "providerId", "prestadoraId", 
+                        "comboId", "productId", "quantity", "price", "providerId", "prestadoraId", 
                         "checkInDate", "checkOutDate",
                         "paxAdults", "paxChildren", "mainTaxId", "inNationality"
                     ) VALUES (
-                        v_local_combo_id, v_item."productId", COALESCE(v_item.price, 0), v_item."providerId", v_item."prestadoraId",
+                        v_local_combo_id, v_item."productId", COALESCE(v_item.quantity, 1), COALESCE(v_item.price, 0), v_item."providerId", v_item."prestadoraId",
                         v_item."checkInDate", v_item."checkOutDate",
                         v_item."paxAdults", v_item."paxChildren", v_item."mainTaxId", COALESCE(v_item."inNationality", 1)
                     ) RETURNING id INTO v_combo_product_id;

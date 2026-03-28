@@ -44,6 +44,14 @@ export async function GET(req: NextRequest) {
             }) || Promise.resolve([])
         ])
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const validCombos = (combos || []).map((combo: any) => ({
+            ...combo,
+            products: combo.products.filter((p: any) => !p.checkOutDate || new Date(p.checkOutDate) >= today)
+        })).filter((combo: any) => combo.products.length > 0);
+
         return NextResponse.json({
             clients,
             providers,
@@ -55,7 +63,7 @@ export async function GET(req: NextRequest) {
             ticketPrinters,
             variables,
             currentUser,
-            combos
+            combos: validCombos
         })
     } catch (error: any) {
         console.error('Data fetch error:', error)

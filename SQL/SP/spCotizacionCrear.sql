@@ -88,6 +88,16 @@ BEGIN
         END IF;
     END LOOP;
 
+    -- Calcular y actualizar el totalAmount basado en QuotationProductTax
+    UPDATE public."Quotation"
+    SET "totalAmount" = COALESCE("chargesAndTaxes", 0) + (
+        SELECT COALESCE(SUM(qpt."explicitAmount"), 0)
+        FROM public."QuotationProductTax" qpt
+        JOIN public."QuotationProduct" qp ON qpt."quotationProductId" = qp.id
+        WHERE qp."quotationId" = v_quotation_id
+    )
+    WHERE id = v_quotation_id;
+
     p_quotation_id := v_quotation_id;
     p_mensaje_resultado := 'SUCCESS: Cotización creada correctamente con ID ' || v_quotation_id;
 

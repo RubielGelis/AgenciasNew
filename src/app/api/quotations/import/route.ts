@@ -6,17 +6,17 @@ import { executeSQLServerProcedure } from '@/lib/sqlserver'
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
+    const userIdHeader = req.headers.get('X-User-Id');
+    const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1;
+
     try {
         const rows = await req.json()
         if (!Array.isArray(rows) || rows.length === 0) {
             return NextResponse.json({ message: 'El archivo está vacío o no es válido' }, { status: 400 })
         }
 
-        const userIdHeader = req.headers.get('X-User-Id')
-        const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
-
         // 1. Convertir el array de objetos a un string delimitado (Texto Plano)
-        const textData = rows.map(row => {
+        const textData = rows.map((row: any) => {
             const cols = [
                 row.Grupo_Cotizacion || '',
                 row.Cliente_Documento || '',
@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
                 row.Comision_Global_Pct || '',
                 row.Cargos_A_Cotizacion || '',
                 row.Producto_Codigo || '',
-                '', // Proveedor_Nombre (Empty)
+                '', // Proveedor_Nombre
                 row.Proveedor_Codigo || '',
-                row.Prestadora_Codigo || '',
+                row.Prestadora_Codigo || row.Hotel_Codigo || row.Hotel_id || '', // Soporte para alias de columna
                 row.Impuestos_Nombres_Y_Valores || '',
                 row.Variables_Codigos_Y_Valores || '',
                 row.Pasajeros || '',
@@ -47,9 +47,11 @@ export async function POST(req: NextRequest) {
                 row.Comision_Vendedor_Producto || '',
                 row.Comision_Tiqueteador_Producto || '',
                 row.Combo_Codigos || '',
-                row.Nacionalidad || '1'
+                row.Nacionalidad || '1',
+                row.Cargo_Principal || ''
             ];
-            return cols.join('^');
+            // Limpieza profunda: evitar que caracteres especiales rompan el formato caret (^)
+            return cols.map(c => (c !== undefined && c !== null ? c.toString().replace(/\^/g, ' ') : '')).join('^');
         }).join('\n');
 
         // 2. Ejecutar el Stored Procedure enviando el TEXTO
@@ -61,8 +63,10 @@ export async function POST(req: NextRequest) {
             null // Valor inicial para el INOUT
         );
 
-        // PostgreSQL cuando usa CALL devuelve una fila con los valores de salida
-        const dbMessage = result[0]?.p_mensaje_resultado || 'Importación completada';
+        // Extraer mensaje (algunas versiones de Prisma/PG devuelven nombres distintos)
+        const rowData = result && result.length > 0 ? result[0] : null;
+        const dbMessage = (rowData?.p_mensaje_resultado || rowData?.mensaje_resultado || (rowData ? Object.values(rowData)[0] : '')) as string;
+        
         console.log('[Import API] SP Result:', dbMessage);
 
         if (dbMessage.startsWith('ERROR')) {
@@ -96,7 +100,7 @@ export async function POST(req: NextRequest) {
                     
                     // Obtener XML desde Postgres
                     const exportResult = await prisma.$queryRawUnsafe<any[]>(
-                        `CALL spExportQuotation($1, $2, $3)`,
+                        `CALL spexportquotation($1::TEXT, $2::INT, $3::TEXT)`,
                         createdIdsStr,
                         actingUserId,
                         ''
@@ -131,8 +135,12 @@ export async function POST(req: NextRequest) {
         })
     } catch (error: any) {
         console.error('Import error (via SP TEXT):', error);
+        
+        // Registrar error catastrófico en auditoría
+        await registerLog(userIdHeader ? parseInt(userIdHeader) : 1, 'QUOTATION', 'IMPORT_CRITICAL_ERROR', error.message, { stack: error.stack });
+
         return NextResponse.json({ 
-            message: 'Error durante la importación (Texto)', 
+            message: `Error durante la importación: ${error.message}`, 
             error: error.message,
             detail: error.toString()
         }, { status: 500 })

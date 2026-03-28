@@ -76,15 +76,17 @@ BEGIN
 	    WITH (fillfactor=100, deduplicate_items=True)
 	    TABLESPACE pg_default;
 
-	CREATE TABLE IF NOT EXISTS public."Hotel"
+	CREATE TABLE IF NOT EXISTS public."Prestadora"
 	(
-	    id integer NOT NULL DEFAULT nextval('"Hotel_id_seq"'::regclass),
+	    id integer NOT NULL DEFAULT nextval('"Prestadora_id_seq"'::regclass),
 	    name text COLLATE pg_catalog."default" NOT NULL,
 	    location text COLLATE pg_catalog."default",
 	    category text COLLATE pg_catalog."default",
 	    "providerId" integer NOT NULL,
-	    CONSTRAINT "Hotel_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Hotel_providerId_fkey" FOREIGN KEY ("providerId")
+	    code text COLLATE pg_catalog."default",
+	    type text COLLATE pg_catalog."default",
+	    CONSTRAINT "Prestadora_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "Prestadora_providerId_fkey" FOREIGN KEY ("providerId")
 	        REFERENCES public."Provider" (id) MATCH SIMPLE
 	        ON UPDATE CASCADE
 	        ON DELETE RESTRICT
@@ -92,7 +94,7 @@ BEGIN
 
 	TABLESPACE pg_default;
 
-	ALTER TABLE IF EXISTS public."Hotel"
+	ALTER TABLE IF EXISTS public."Prestadora"
 	    OWNER to postgres;
 
 	CREATE TABLE IF NOT EXISTS public."Implant"
@@ -268,7 +270,7 @@ BEGIN
 	    quantity integer NOT NULL,
 	    price double precision NOT NULL,
 	    "providerId" integer,
-	    "hotelId" integer,
+	    "prestadoraId" integer,
 	    "checkInDate" timestamp(3) without time zone,
 	    "checkOutDate" timestamp(3) without time zone,
 	    nights integer,
@@ -279,9 +281,12 @@ BEGIN
 	    "reservationCode" text COLLATE pg_catalog."default",
 	    "sellerCommission" double precision,
 	    "ticketPrinterCommission" double precision,
+	    "comboId" integer,
+	    "mainTaxId" integer,
+	    "inNationality" integer DEFAULT 1,
 	    CONSTRAINT "QuotationProduct_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationProduct_hotelId_fkey" FOREIGN KEY ("hotelId")
-	        REFERENCES public."Hotel" (id) MATCH SIMPLE
+	    CONSTRAINT "QuotationProduct_prestadoraId_fkey" FOREIGN KEY ("prestadoraId")
+	        REFERENCES public."Prestadora" (id) MATCH SIMPLE
 	        ON UPDATE CASCADE
 	        ON DELETE SET NULL,
 	    CONSTRAINT "QuotationProduct_productId_fkey" FOREIGN KEY ("productId")

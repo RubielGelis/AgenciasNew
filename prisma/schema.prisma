@@ -277,6 +277,7 @@ model ComboProduct {
   id           Int               @id @default(autoincrement())
   comboId      Int
   productId    Int
+  quantity     Int               @default(1)
   price        Float
   providerId   Int?
   prestadoraId Int?

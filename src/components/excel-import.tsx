@@ -41,7 +41,18 @@ export default function ExcelImport() {
 
                 if (res.ok) {
                     const result = await res.json();
-                    setStatus({ type: 'success', message: `Se importaron ${result.importedCount} cotizaciones exitosamente.` })
+                    let successMsg = `Se importaron ${result.importedCount} cotizaciones exitosamente. `;
+                    if (result.createdIds && result.createdIds.length > 0) {
+                        successMsg += `IDs creados: ${result.createdIds.join(', ')}. `;
+                    }
+                    if (result.autoExport) {
+                        if (result.autoExport.success) {
+                            successMsg += 'Exportadas automáticamente a SQL Server.';
+                        } else {
+                            successMsg += `No se exportaron a SQL Server (${result.autoExport.message || 'Error'}).`;
+                        }
+                    }
+                    setStatus({ type: 'success', message: successMsg })
                     if (fileInputRef.current) fileInputRef.current.value = ''
                 } else {
                     const error = await res.json();
@@ -86,7 +97,8 @@ export default function ExcelImport() {
                 Reserva: 'RES123',
                 Comision_Vendedor_Producto: 0,
                 Comision_Tiqueteador_Producto: 0,
-                Combo_Codigos: 'COM-001|COM-002'
+                Combo_Codigos: 'COM-001|COM-002',
+                Cargo_Principal: ''
             },
             {
                 Grupo_Cotizacion: '1',
@@ -116,7 +128,8 @@ export default function ExcelImport() {
                 Reserva: 'XXL123',
                 Comision_Vendedor_Producto: 5,
                 Comision_Tiqueteador_Producto: 2,
-                Combo_Codigos: ''
+                Combo_Codigos: '',
+                Cargo_Principal: 'IVA-19'
             }
         ]
         const ws = XLSX.utils.json_to_sheet(templateData)

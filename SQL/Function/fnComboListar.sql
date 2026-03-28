@@ -16,6 +16,7 @@ BEGIN
                         'id', cp.id,
                         'productId', cp."productId",
                         'product', jsonb_build_object('id', p.id, 'description', p.description),
+                        'quantity', cp.quantity,
                         'price', cp.price,
                         'providerId', cp."providerId",
                         'prestadoraId', cp."prestadoraId",
