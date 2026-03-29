@@ -1,5 +1,154 @@
 do $$
 BEGIN
+	CREATE TABLE IF NOT EXISTS public."Role"
+	(
+	    id integer NOT NULL DEFAULT nextval('"Role_id_seq"'::regclass),
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    CONSTRAINT "Role_pkey" PRIMARY KEY (id)
+	)
+
+	TABLESPACE pg_default;
+
+	ALTER TABLE IF EXISTS public."Role"
+	    OWNER to postgres;
+	-- Index: Role_name_key
+	
+	-- DROP INDEX IF EXISTS public."Role_name_key";
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "Role_name_key"
+	    ON public."Role" USING btree
+	    (name COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+
+	ALTER TABLE IF EXISTS public."Branch"
+	    OWNER to postgres;
+	
+	CREATE UNIQUE INDEX IF NOT EXISTS "Branch_code_key"
+	    ON public."Branch" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+	
+	TABLESPACE pg_default;
+
+	CREATE TABLE IF NOT EXISTS public."Implant"
+	(
+	    id integer NOT NULL DEFAULT nextval('"Implant_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default" NOT NULL,
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    "branchId" integer,
+	    CONSTRAINT "Implant_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "Implant_branchId_fkey" FOREIGN KEY ("branchId")
+	        REFERENCES public."Branch" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE SET NULL
+	)
+
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."Implant"
+	    OWNER to postgres;
+	-- Index: Implant_code_key
+	
+	-- DROP INDEX IF EXISTS public."Implant_code_key";
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "Implant_code_key"
+	    ON public."Implant" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+
+
+	CREATE TABLE IF NOT EXISTS public."ChargeAndTax"
+	(
+	    id integer NOT NULL DEFAULT nextval('"ChargeAndTax_id_seq"'::regclass),
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    type text COLLATE pg_catalog."default" NOT NULL,
+	    "valueType" text COLLATE pg_catalog."default" NOT NULL,
+	    value double precision NOT NULL,
+	    "isEditable" boolean NOT NULL DEFAULT true,
+	    CONSTRAINT "ChargeAndTax_pkey" PRIMARY KEY (id)
+	)
+
+	TABLESPACE pg_default;
+
+	CREATE TABLE IF NOT EXISTS public."TicketPrinter"
+	(
+	    id integer NOT NULL DEFAULT nextval('"TicketPrinter_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default",
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    email text COLLATE pg_catalog."default",
+	    CONSTRAINT "TicketPrinter_pkey" PRIMARY KEY (id)
+	)
+	
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."TicketPrinter"
+	    OWNER to postgres;
+
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "TicketPrinter_code_key"
+	    ON public."TicketPrinter" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+	
+	CREATE TABLE IF NOT EXISTS public."User"
+	(
+	    id integer NOT NULL DEFAULT nextval('"User_id_seq"'::regclass),
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    email text COLLATE pg_catalog."default" NOT NULL,
+	    "passwordHash" text COLLATE pg_catalog."default" NOT NULL,
+	    "resetPasswordToken" text COLLATE pg_catalog."default",
+	    "resetPasswordExpires" timestamp(3) without time zone,
+	    "roleId" integer NOT NULL,
+	    "branchId" integer,
+	    "implantId" integer,
+	    "ticketPrinterId" integer,
+	    CONSTRAINT "User_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "User_branchId_fkey" FOREIGN KEY ("branchId")
+	        REFERENCES public."Branch" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE SET NULL,
+	    CONSTRAINT "User_implantId_fkey" FOREIGN KEY ("implantId")
+	        REFERENCES public."Implant" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE SET NULL,
+	    CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId")
+	        REFERENCES public."Role" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE RESTRICT,
+	    CONSTRAINT "User_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId")
+	        REFERENCES public."TicketPrinter" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE SET NULL
+	)
+
+	TABLESPACE pg_default;
+
+	ALTER TABLE IF EXISTS public."User"
+	    OWNER to postgres;
+
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key"
+	    ON public."User" USING btree
+	    (email COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+	    TABLESPACE pg_default;
+
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "User_resetPasswordToken_key"
+	    ON public."User" USING btree
+	    ("resetPasswordToken" COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+
+	
+	
 	CREATE TABLE IF NOT EXISTS public."Attachment"
 	(
 	    id integer NOT NULL DEFAULT nextval('"Attachment_id_seq"'::regclass),
@@ -30,28 +179,7 @@ BEGIN
 	
 	TABLESPACE pg_default;
 	
-	ALTER TABLE IF EXISTS public."Branch"
-	    OWNER to postgres;
 	
-	CREATE UNIQUE INDEX IF NOT EXISTS "Branch_code_key"
-	    ON public."Branch" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;
-
-	CREATE TABLE IF NOT EXISTS public."ChargeAndTax"
-	(
-	    id integer NOT NULL DEFAULT nextval('"ChargeAndTax_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    type text COLLATE pg_catalog."default" NOT NULL,
-	    "valueType" text COLLATE pg_catalog."default" NOT NULL,
-	    value double precision NOT NULL,
-	    "isEditable" boolean NOT NULL DEFAULT true,
-	    CONSTRAINT "ChargeAndTax_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-
 	ALTER TABLE IF EXISTS public."ChargeAndTax"
 	    OWNER to postgres;
 
@@ -76,9 +204,72 @@ BEGIN
 	    WITH (fillfactor=100, deduplicate_items=True)
 	    TABLESPACE pg_default;
 
+	CREATE TABLE IF NOT EXISTS public."Provider"
+	(
+	    id integer NOT NULL DEFAULT nextval('"Provider_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default",
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    "contactInfo" text COLLATE pg_catalog."default",
+	    "commissionConfig" jsonb,
+	    CONSTRAINT "Provider_pkey" PRIMARY KEY (id)
+	)
+	
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."Provider"
+	    OWNER to postgres;
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "Provider_code_key"
+	    ON public."Provider" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+	    
+	TABLESPACE pg_default;	
+
+	CREATE TABLE IF NOT EXISTS public."MasterVariable"
+	(
+	    id integer NOT NULL DEFAULT nextval('"MasterVariable_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default" NOT NULL,
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    CONSTRAINT "MasterVariable_pkey" PRIMARY KEY (id)
+	)
+	
+	TABLESPACE pg_default;
+
+	CREATE TABLE IF NOT EXISTS public."Seller"
+	(
+	    id integer NOT NULL DEFAULT nextval('"Seller_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default",
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    email text COLLATE pg_catalog."default",
+	    CONSTRAINT "Seller_pkey" PRIMARY KEY (id)
+	)
+
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."Seller"
+	    OWNER to postgres;
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "Seller_code_key"
+	    ON public."Seller" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."MasterVariable"
+	    OWNER to postgres;
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "MasterVariable_code_key"
+	    ON public."MasterVariable" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+
 	CREATE TABLE IF NOT EXISTS public."Prestadora"
 	(
-	    id integer NOT NULL DEFAULT nextval('"Prestadora_id_seq"'::regclass),
+	    id integer NOT NULL DEFAULT nextval('"Hotel_id_seq"'::regclass),
 	    name text COLLATE pg_catalog."default" NOT NULL,
 	    location text COLLATE pg_catalog."default",
 	    category text COLLATE pg_catalog."default",
@@ -97,48 +288,55 @@ BEGIN
 	ALTER TABLE IF EXISTS public."Prestadora"
 	    OWNER to postgres;
 
-	CREATE TABLE IF NOT EXISTS public."Implant"
+	CREATE UNIQUE INDEX IF NOT EXISTS "Hotel_code_key"
+	    ON public."Prestadora" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+
+	CREATE TABLE IF NOT EXISTS public."SystemLog"
 	(
-	    id integer NOT NULL DEFAULT nextval('"Implant_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    "branchId" integer,
-	    CONSTRAINT "Implant_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Implant_branchId_fkey" FOREIGN KEY ("branchId")
-	        REFERENCES public."Branch" (id) MATCH SIMPLE
+	    id integer NOT NULL DEFAULT nextval('"SystemLog_id_seq"'::regclass),
+	    "userId" integer,
+	    action text COLLATE pg_catalog."default" NOT NULL,
+	    module text COLLATE pg_catalog."default" NOT NULL,
+	    description text COLLATE pg_catalog."default" NOT NULL,
+	    metadata jsonb,
+	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	    CONSTRAINT "SystemLog_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "SystemLog_userId_fkey" FOREIGN KEY ("userId")
+	        REFERENCES public."User" (id) MATCH SIMPLE
 	        ON UPDATE CASCADE
 	        ON DELETE SET NULL
 	)
 
 	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."SystemLog"
+	    OWNER to postgres;
 
-	ALTER TABLE IF EXISTS public."Implant"
-    	OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Implant_code_key"
-	    ON public."Implant" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;
-
-	CREATE TABLE IF NOT EXISTS public."MasterVariable"
+	CREATE TABLE IF NOT EXISTS public."SystemParameter"
 	(
-	    id integer NOT NULL DEFAULT nextval('"MasterVariable_id_seq"'::regclass),
+	    id integer NOT NULL DEFAULT nextval('"SystemParameter_id_seq"'::regclass),
 	    code text COLLATE pg_catalog."default" NOT NULL,
 	    name text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "MasterVariable_pkey" PRIMARY KEY (id)
+	    value text COLLATE pg_catalog."default" NOT NULL,
+	    CONSTRAINT "SystemParameter_pkey" PRIMARY KEY (id)
 	)
-
-	TABLESPACE pg_default;
-
-	ALTER TABLE IF EXISTS public."MasterVariable"
-	    OWNER to postgres;
 	
-	CREATE UNIQUE INDEX IF NOT EXISTS "MasterVariable_code_key"
-	    ON public."MasterVariable" USING btree
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."SystemParameter"
+	    OWNER to postgres;
+
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "SystemParameter_code_key"
+	    ON public."SystemParameter" USING btree
 	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
 	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;
+    
+	TABLESPACE pg_default;	
 
 	CREATE TABLE IF NOT EXISTS public."Product"
 	(
@@ -148,68 +346,109 @@ BEGIN
 	    "basePrice" double precision NOT NULL,
 	    "billingConcept" text COLLATE pg_catalog."default",
 	    "serviceType" text COLLATE pg_catalog."default",
+	    code text COLLATE pg_catalog."default",
 	    CONSTRAINT "Product_pkey" PRIMARY KEY (id)
 	)
-
+	
 	TABLESPACE pg_default;
-
+	
 	ALTER TABLE IF EXISTS public."Product"
-    	OWNER to postgres;
-
-	CREATE TABLE IF NOT EXISTS public."Provider"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Provider_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    "contactInfo" text COLLATE pg_catalog."default",
-	    "commissionConfig" jsonb,
-	    CONSTRAINT "Provider_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Provider"
 	    OWNER to postgres;
+	-- Index: Product_code_key
 	
-	CREATE TABLE IF NOT EXISTS public."Seller"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Seller_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default",
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    email text COLLATE pg_catalog."default",
-	    CONSTRAINT "Seller_pkey" PRIMARY KEY (id)
-	)
+	-- DROP INDEX IF EXISTS public."Product_code_key";
 	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Seller"
-	    OWNER to postgres;
-	
-	CREATE UNIQUE INDEX IF NOT EXISTS "Seller_code_key"
-	    ON public."Seller" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;
-
-
-	CREATE TABLE IF NOT EXISTS public."TicketPrinter"
-	(
-	    id integer NOT NULL DEFAULT nextval('"TicketPrinter_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default",
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    email text COLLATE pg_catalog."default",
-	    CONSTRAINT "TicketPrinter_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."TicketPrinter"
-	    OWNER to postgres;
-	
-	CREATE UNIQUE INDEX IF NOT EXISTS "TicketPrinter_code_key"
-	    ON public."TicketPrinter" USING btree
+	CREATE UNIQUE INDEX IF NOT EXISTS "Product_code_key"
+	    ON public."Product" USING btree
 	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
 	    WITH (fillfactor=100, deduplicate_items=True)
 	    TABLESPACE pg_default;	
+
+	CREATE TABLE IF NOT EXISTS public."Combo"
+	(
+	    id integer NOT NULL DEFAULT nextval('"Combo_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default" NOT NULL,
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	    "updatedAt" timestamp without time zone DEFAULT now(),
+	    CONSTRAINT "Combo_pkey" PRIMARY KEY (id)
+	)
+	
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."Combo"
+	    OWNER to postgres;
+	-- Index: Combo_code_key
+
+ 	DROP INDEX IF EXISTS public."Combo_code_key";
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "Combo_code_key"
+		ON public."Combo" USING btree
+		(code COLLATE pg_catalog."default" ASC NULLS LAST)
+		WITH (fillfactor=100, deduplicate_items=True)
+		TABLESPACE pg_default;
+
+	CREATE TABLE IF NOT EXISTS public."ComboProduct"
+	(
+	    id integer NOT NULL DEFAULT nextval('"ComboProduct_id_seq"'::regclass),
+	    "comboId" integer NOT NULL,
+	    "productId" integer NOT NULL,
+	    price double precision NOT NULL,
+	    "checkInDate" timestamp(3) without time zone,
+	    "checkOutDate" timestamp(3) without time zone,
+	    "prestadoraId" integer,
+	    "mainTaxId" integer,
+	    "paxAdults" integer,
+	    "paxChildren" integer,
+	    "providerId" integer,
+	    "inNationality" integer DEFAULT 1,
+	    quantity integer NOT NULL DEFAULT 1,
+	    CONSTRAINT "ComboProduct_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "ComboProduct_comboId_fkey" FOREIGN KEY ("comboId")
+	        REFERENCES public."Combo" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE CASCADE,
+	    CONSTRAINT "ComboProduct_prestadoraId_fkey" FOREIGN KEY ("prestadoraId")
+	        REFERENCES public."Prestadora" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE SET NULL,
+	    CONSTRAINT "ComboProduct_productId_fkey" FOREIGN KEY ("productId")
+	        REFERENCES public."Product" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE RESTRICT,
+	    CONSTRAINT "ComboProduct_providerId_fkey" FOREIGN KEY ("providerId")
+	        REFERENCES public."Provider" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE SET NULL
+	)
+	
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."ComboProduct"
+	    OWNER to postgres;
+
+	CREATE TABLE IF NOT EXISTS public."ComboProductTax"
+	(
+	    id integer NOT NULL DEFAULT nextval('"ComboProductTax_id_seq"'::regclass),
+	    "comboProductId" integer NOT NULL,
+	    "chargeAndTaxId" integer NOT NULL,
+	    amount double precision NOT NULL,
+	    "isMain" boolean NOT NULL DEFAULT false,
+	    CONSTRAINT "ComboProductTax_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "ComboProductTax_chargeAndTaxId_fkey" FOREIGN KEY ("chargeAndTaxId")
+	        REFERENCES public."ChargeAndTax" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE RESTRICT,
+	    CONSTRAINT "ComboProductTax_comboProductId_fkey" FOREIGN KEY ("comboProductId")
+	        REFERENCES public."ComboProduct" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE CASCADE
+	)
+	
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."ComboProductTax"
+	    OWNER to postgres;	
 
 	CREATE TABLE IF NOT EXISTS public."Quotation"
 	(
@@ -227,6 +466,7 @@ BEGIN
 	    "commissionPercentage" double precision NOT NULL,
 	    "chargesAndTaxes" double precision NOT NULL,
 	    "totalAmount" double precision NOT NULL,
+	    "userId" integer,
 	    CONSTRAINT "Quotation_pkey" PRIMARY KEY (id),
 	    CONSTRAINT "Quotation_branchId_fkey" FOREIGN KEY ("branchId")
 	        REFERENCES public."Branch" (id) MATCH SIMPLE
@@ -247,20 +487,48 @@ BEGIN
 	    CONSTRAINT "Quotation_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId")
 	        REFERENCES public."TicketPrinter" (id) MATCH SIMPLE
 	        ON UPDATE CASCADE
+	        ON DELETE SET NULL,
+	    CONSTRAINT "Quotation_userId_fkey" FOREIGN KEY ("userId")
+	        REFERENCES public."User" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
 	        ON DELETE SET NULL
 	)
-
+	
 	TABLESPACE pg_default;
-
+	
 	ALTER TABLE IF EXISTS public."Quotation"
 	    OWNER to postgres;
-
-
+	-- Index: Quotation_internalNumber_key
+	
+	-- DROP INDEX IF EXISTS public."Quotation_internalNumber_key";
+	
 	CREATE UNIQUE INDEX IF NOT EXISTS "Quotation_internalNumber_key"
 	    ON public."Quotation" USING btree
 	    ("internalNumber" COLLATE pg_catalog."default" ASC NULLS LAST)
 	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;
+	    TABLESPACE pg_default;	
+
+	
+	CREATE TABLE IF NOT EXISTS public."QuotationCombo"
+	(
+	    id integer NOT NULL DEFAULT nextval('"QuotationCombo_id_seq"'::regclass),
+	    "quotationId" integer NOT NULL,
+	    "comboId" integer NOT NULL,
+	    CONSTRAINT "QuotationCombo_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "QuotationCombo_comboId_fkey" FOREIGN KEY ("comboId")
+	        REFERENCES public."Combo" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE RESTRICT,
+	    CONSTRAINT "QuotationCombo_quotationId_fkey" FOREIGN KEY ("quotationId")
+	        REFERENCES public."Quotation" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE CASCADE
+	)
+	
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."QuotationCombo"
+	    OWNER to postgres;
 
 	CREATE TABLE IF NOT EXISTS public."QuotationProduct"
 	(
@@ -307,7 +575,7 @@ BEGIN
 	
 	ALTER TABLE IF EXISTS public."QuotationProduct"
 	    OWNER to postgres;
-
+	
 	CREATE TABLE IF NOT EXISTS public."QuotationProductPassenger"
 	(
 	    id integer NOT NULL DEFAULT nextval('"QuotationProductPassenger_id_seq"'::regclass),
@@ -320,7 +588,7 @@ BEGIN
 	        ON UPDATE CASCADE
 	        ON DELETE CASCADE
 	)
-
+	
 	TABLESPACE pg_default;
 	
 	ALTER TABLE IF EXISTS public."QuotationProductPassenger"
@@ -334,6 +602,7 @@ BEGIN
 	    "valueSnapshot" double precision NOT NULL,
 	    "valueTypeSnapshot" text COLLATE pg_catalog."default" NOT NULL,
 	    "explicitAmount" double precision,
+	    "isMain" boolean NOT NULL DEFAULT false,
 	    CONSTRAINT "QuotationProductTax_pkey" PRIMARY KEY (id),
 	    CONSTRAINT "QuotationProductTax_chargeAndTaxId_fkey" FOREIGN KEY ("chargeAndTaxId")
 	        REFERENCES public."ChargeAndTax" (id) MATCH SIMPLE
@@ -344,11 +613,11 @@ BEGIN
 	        ON UPDATE CASCADE
 	        ON DELETE CASCADE
 	)
-
+	
 	TABLESPACE pg_default;
 	
 	ALTER TABLE IF EXISTS public."QuotationProductTax"
-	    OWNER to postgres;	
+	    OWNER to postgres;
 
 	CREATE TABLE IF NOT EXISTS public."QuotationProductVariable"
 	(
@@ -371,97 +640,5 @@ BEGIN
 	
 	ALTER TABLE IF EXISTS public."QuotationProductVariable"
 	    OWNER to postgres;	
-
-	CREATE TABLE IF NOT EXISTS public."Role"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Role_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "Role_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Role"
-	    OWNER to postgres;
-	
-	CREATE UNIQUE INDEX IF NOT EXISTS "Role_name_key"
-	    ON public."Role" USING btree
-	    (name COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;	
-	
-
-	CREATE TABLE IF NOT EXISTS public."User"
-	(
-	    id integer NOT NULL DEFAULT nextval('"User_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    email text COLLATE pg_catalog."default" NOT NULL,
-	    "passwordHash" text COLLATE pg_catalog."default" NOT NULL,
-	    "resetPasswordToken" text COLLATE pg_catalog."default",
-	    "resetPasswordExpires" timestamp(3) without time zone,
-	    "roleId" integer NOT NULL,
-	    "branchId" integer,
-	    "implantId" integer,
-	    "ticketPrinterId" integer,
-	    CONSTRAINT "User_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "User_branchId_fkey" FOREIGN KEY ("branchId")
-	        REFERENCES public."Branch" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "User_implantId_fkey" FOREIGN KEY ("implantId")
-	        REFERENCES public."Implant" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId")
-	        REFERENCES public."Role" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "User_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId")
-	        REFERENCES public."TicketPrinter" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."User"
-	    OWNER to postgres;
-	-- Index: User_email_key
-	
-	-- DROP INDEX IF EXISTS public."User_email_key";
-	
-	CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key"
-	    ON public."User" USING btree
-	    (email COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;
-	
-	CREATE UNIQUE INDEX IF NOT EXISTS "User_resetPasswordToken_key"
-	    ON public."User" USING btree
-	    ("resetPasswordToken" COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;	
-
-	CREATE TABLE IF NOT EXISTS public."SystemLog"
-	(
-	    id integer NOT NULL DEFAULT nextval('"SystemLog_id_seq"'::regclass),
-	    "userId" integer,
-	    action text COLLATE pg_catalog."default" NOT NULL,
-	    module text COLLATE pg_catalog."default" NOT NULL,
-	    description text COLLATE pg_catalog."default" NOT NULL,
-	    metadata jsonb,
-	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    CONSTRAINT "SystemLog_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "SystemLog_userId_fkey" FOREIGN KEY ("userId")
-	        REFERENCES public."User" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."SystemLog"
-	    OWNER to postgres;
-		
 	
 END	$$ 		

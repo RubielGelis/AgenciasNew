@@ -45,15 +45,9 @@ export async function POST(req: NextRequest) {
         // response.cookies.set('authenticated', 'true', { httpOnly: true, path: '/' })
 
         // Log the successful login
-        import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({
-                userId: user.id,
-                action: 'LOGIN',
-                module: 'USER',
-                description: `El usuario ${user.name} ha iniciado sesión.`,
-                metadata: { email: user.email, role: user.role.name }
-            });
-        });
+        import('@/lib/logger').then(({ registerLog }) => {
+            registerLog(user.id, 'USER', 'LOGIN', `El usuario ${user.name} ha iniciado sesión.`, { email: user.email, role: user.role.name });
+        }).catch(err => console.error(err));
 
         return response
     } catch (error) {

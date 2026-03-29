@@ -26,6 +26,7 @@
     "lucide-react": "^0.575.0",
     "mssql": "^12.2.1",
     "next": "16.1.6",
+    "node-windows": "^1.0.0-beta.8",
     "nodemailer": "^8.0.1",
     "pg": "^8.19.0",
     "react": "19.2.3",

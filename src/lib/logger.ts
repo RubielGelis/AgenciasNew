@@ -30,3 +30,16 @@ export async function registerLog(
         if (error.code) console.error('  Code:', error.code);
     }
 }
+
+/**
+ * Función compatibilidad para soportar compilación Next.js limpia sin refactorizar.
+ */
+export async function logSystemEvent(params: {
+    userId: number | null | undefined,
+    action: string,
+    module: string,
+    description: string,
+    metadata?: any
+}) {
+    return registerLog(params.userId || null, params.module, params.action, params.description, params.metadata);
+}

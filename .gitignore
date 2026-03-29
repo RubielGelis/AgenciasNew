@@ -57,3 +57,5 @@ tmp_*.js
 SQL/Backupcontalocal.bak
 tmp_*.json
 tmp_*.txt
+# Build Release
+RELEASE_AGENCIAS/
