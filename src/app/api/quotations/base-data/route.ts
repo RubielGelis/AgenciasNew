@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
 
         // Defensive check for models
-        const requiredModels = ['client', 'provider', 'branch', 'implant', 'product', 'chargeAndTax', 'seller', 'ticketPrinter', 'masterVariable', 'user', 'combo']
+        const requiredModels = ['client', 'provider', 'branch', 'implant', 'product', 'chargeAndTax', 'seller', 'ticketPrinter', 'masterVariable', 'user', 'combo', 'currency']
         const availableModels = Object.keys(prisma).filter(k => k[0] !== '$' && k[0] !== '_');
         
         for (const model of requiredModels) {
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        const [clients, providers, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos] = await Promise.all([
+        const [clients, providers, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies] = await Promise.all([
             (prisma as any).client?.findMany({ select: { id: true, name: true, document: true } }) || Promise.resolve([]),
             (prisma as any).provider?.findMany({ include: { prestadoras: true } }) || Promise.resolve([]),
             (prisma as any).branch?.findMany() || Promise.resolve([]),
@@ -36,12 +36,14 @@ export async function GET(req: NextRequest) {
                         include: {
                             appliedTaxes: {
                                 include: { chargeAndTax: true }
-                            }
+                            },
+                            product: true
                         }
                     }
                 },
                 orderBy: { createdAt: 'desc' }
-            }) || Promise.resolve([])
+            }),
+            (prisma as any).currency?.findMany() || Promise.resolve([])
         ])
 
         const today = new Date();
@@ -50,7 +52,7 @@ export async function GET(req: NextRequest) {
         const validCombos = (combos || []).map((combo: any) => ({
             ...combo,
             products: combo.products.filter((p: any) => !p.checkOutDate || new Date(p.checkOutDate) >= today)
-        })).filter((combo: any) => combo.products.length > 0);
+        })).filter((combo: any) => combo.products.length > 0 && (combo.cupos === undefined || combo.cupos === null || combo.cupos > 0));
 
         return NextResponse.json({
             clients,
@@ -63,7 +65,8 @@ export async function GET(req: NextRequest) {
             ticketPrinters,
             variables,
             currentUser,
-            combos: validCombos
+            combos: validCombos,
+            currencies
         })
     } catch (error: any) {
         console.error('Data fetch error:', error)

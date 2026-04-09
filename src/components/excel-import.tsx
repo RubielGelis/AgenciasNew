@@ -41,22 +41,16 @@ export default function ExcelImport() {
 
                 if (res.ok) {
                     const result = await res.json();
-                    let successMsg = `Se importaron ${result.importedCount} cotizaciones exitosamente. `;
-                    if (result.createdIds && result.createdIds.length > 0) {
-                        successMsg += `IDs creados: ${result.createdIds.join(', ')}. `;
-                    }
-                    if (result.autoExport) {
-                        if (result.autoExport.success) {
-                            successMsg += 'Exportadas automáticamente a SQL Server.';
-                        } else {
-                            successMsg += `No se exportaron a SQL Server (${result.autoExport.message || 'Error'}).`;
-                        }
-                    }
+                    // Usar directamente el detalle desre el SP si está disponible, o construir uno amigable
+                    const successMsg = result.detail || `Se importaron ${result.importedCount} cotizaciones exitosamente.`;
+                    
                     setStatus({ type: 'success', message: successMsg })
                     if (fileInputRef.current) fileInputRef.current.value = ''
                 } else {
                     const error = await res.json();
-                    setStatus({ type: 'error', message: error.message || 'Error al procesar el archivo Excel.' })
+                    // Mostrar el detalle del error que viene del SP o de la API
+                    const errorMsg = error.detail || error.message || 'Error al procesar el archivo Excel.';
+                    setStatus({ type: 'error', message: errorMsg })
                 }
             } catch (err: any) {
                 setStatus({ type: 'error', message: err.message || 'Ocurrió un error inesperado al leer el archivo.' })

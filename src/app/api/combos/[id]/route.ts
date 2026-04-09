@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma'
 export async function PUT(req: NextRequest, context: any) {
     try {
         const body = await req.json()
-        const { code, name, products } = body
+        const { code, name, cupos, currencyId, products } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
@@ -25,12 +25,15 @@ export async function PUT(req: NextRequest, context: any) {
         }
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spComboActualizar($1::INT, $2::TEXT, $3::TEXT, $4::JSONB, $5::INT, $6::TEXT)`,
+            `CALL public.spComboActualizar($1::INT, $2::TEXT, $3::TEXT, $4::INT, $5::INT, $6::JSONB, $7::INT, $8::TEXT)`,
            comboId,
             code,
             name,
+            parseInt(cupos?.toString() || '0'),
+            currencyId || null,
             JSON.stringify((products || []).map((p: any) => ({
                 ...p,
+                cost: p.cost || 0,
                 checkInDate: p.checkInDate || null,
                 checkOutDate: p.checkOutDate || null,
                 providerId: p.providerId || null,

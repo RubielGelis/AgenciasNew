@@ -1,16 +1,25 @@
 var Service = require('node-windows').Service;
 var path = require('path');
 
+var fs = require('fs');
+
+// Verifica la ubicación de server.js
+var scriptPath = path.join(__dirname, 'server.js');
+if (!fs.existsSync(scriptPath)) {
+    scriptPath = path.join(__dirname, '..', '.next', 'standalone', 'server.js');
+}
+
 // Crea el objeto del nuevo servicio
 var svc = new Service({
   name: 'AgenciasNew_NextJS',
   description: 'Servicio backend de Next.js para el proyecto AgenciasNew ejecutándose en Standalone Mode.',
   // El entry point de Next-standalone es un archivo 'server.js' en la carpeta compilada
-  script: path.join(__dirname, '..', '.next', 'standalone', 'server.js'),
+  script: scriptPath,
+  workingDirectory: __dirname, // Fuerza a que la ruta de ejecución sea desde la carpeta del sitio publicado en IIS
   env: [
     {
       name: "PORT",
-      value: 3000 // Escuchará internamente en 3000. IIS enrutará el puerto 80 a este.
+      value: 3001 // Internal port for Next.js. IIS proxies from 3000 to this internal port.
     },
     {
       name: "NODE_ENV",
@@ -31,7 +40,7 @@ svc.on('alreadyinstalled', function() {
 });
 
 svc.on('start', function() {
-  console.log('El servicio está ejecutándose de forma persistente. (Puerto 3000)');
+  console.log('El servicio está ejecutándose de forma persistente internamente en el puerto 3001');
 });
 
 // Instalar el servicio

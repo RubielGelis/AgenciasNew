@@ -9,15 +9,18 @@ BEGIN
             'id', c.id,
             'code', c.code,
             'name', c.name,
+            'cupos', c."cupos",
+            'currencyId', c."currencyId",
             'createdAt', c."createdAt",
             'products', COALESCE((
                 SELECT jsonb_agg(
                     jsonb_build_object(
                         'id', cp.id,
                         'productId', cp."productId",
-                        'product', jsonb_build_object('id', p.id, 'description', p.description),
+                        'product', jsonb_build_object('id', p.id, 'code', p.code, 'description', p.description),
                         'quantity', cp.quantity,
                         'price', cp.price,
+                        'cost', COALESCE(cp."cost", 0),
                         'providerId', cp."providerId",
                         'prestadoraId', cp."prestadoraId",
                         'checkInDate', cp."checkInDate",

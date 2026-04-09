@@ -32,6 +32,9 @@ Copy-Item ".\.next\standalone\*" -Destination $ReleaseDir -Recurse -Force
 Copy-Item ".\public" -Destination "$ReleaseDir\public" -Recurse -Force
 Copy-Item ".\.next\static" -Destination "$ReleaseDir\.next\static" -Recurse -Force
 
+# Borrar carpeta 'daemon' si se copió, para evitar archivos XML hardcodeados y rotos en el cliente
+if (Test-Path "$ReleaseDir\daemon") { Remove-Item "$ReleaseDir\daemon" -Recurse -Force }
+
 # 4. Copiar Herramientas y SQL
 Write-Host "`n[4/5] Ensamblando Assets y Bases de Datos..." -ForegroundColor Yellow
 Copy-Item ".\deploy\install-service.js" -Destination $ReleaseDir -Force
@@ -45,7 +48,7 @@ if (Test-Path ".\SQL\Data\Inicial.sql") { Copy-Item ".\SQL\Data\Inicial.sql" -De
 # 5. Instalar librería temporal de PG en Release para el auto-setup
 Write-Host "`n[5/5] Inyectando conectores de Postgres al Release..." -ForegroundColor Yellow
 Set-Location $ReleaseDir
-npm install pg  --no-save --silent | Out-Null
+npm install pg node-windows --no-save --silent | Out-Null
 Set-Location $RootDir
 
 Write-Host "`n==========================================================================" -ForegroundColor Green

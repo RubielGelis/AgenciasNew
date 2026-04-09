@@ -112,6 +112,7 @@ model Product {
   type              String
   description       String
   basePrice         Float
+  cost              Float?             @default(0)
   billingConcept    String?
   serviceType       String?
   code              String?            @unique
@@ -171,6 +172,7 @@ model QuotationProduct {
   productId               Int
   quantity                Int
   price                   Float
+  cost                    Float?                      @default(0)
   providerId              Int?
   prestadoraId            Int?
   checkInDate             DateTime?
@@ -267,6 +269,9 @@ model Combo {
   id             Int              @id @default(autoincrement())
   code           String           @unique
   name           String
+  cupos          Int              @default(0)
+  currencyId     Int?
+  currency       Currency?        @relation(fields: [currencyId], references: [id])
   products       ComboProduct[]
   quotationCombos QuotationCombo[]
   createdAt      DateTime         @default(now())
@@ -279,6 +284,7 @@ model ComboProduct {
   productId    Int
   quantity     Int               @default(1)
   price        Float
+  cost         Float?            @default(0)
   providerId   Int?
   prestadoraId Int?
   checkInDate  DateTime?
@@ -304,4 +310,12 @@ model ComboProductTax {
   
   comboProduct   ComboProduct @relation(fields: [comboProductId], references: [id], onDelete: Cascade)
   chargeAndTax   ChargeAndTax @relation(fields: [chargeAndTaxId], references: [id])
+}
+
+model Currency {
+  id           Int      @id @default(autoincrement())
+  code         String   @unique
+  name         String
+  exchangeRate Float
+  combos       Combo[]
 }

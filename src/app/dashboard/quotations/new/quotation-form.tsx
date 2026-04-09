@@ -22,6 +22,7 @@ interface QuotationFormData {
         productId: string;
         quantity: number;
         price: number;
+        cost: number;
         providerId: string;
         prestadoraId: string;
         checkIn: string;
@@ -67,12 +68,6 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     const router = useRouter()
 
     const handleSave = async (e: React.FormEvent, downloadPdf = false) => {
-        if (e) e.preventDefault()
-        if (!formData.clientId || !formData.branchId || formData.items.length === 0 || formData.items.some(i => !i.productId || !i.mainTaxId)) {
-            alert('Por favor completa los campos requeridos (Cliente, Sucursal) y asegúrate de seleccionar un producto y su Cargo Principal en el desglose.')
-            return
-        }
-
         setSaving(true)
         try {
             const payload = {
@@ -106,6 +101,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                         productId: item.productId || null,
                         providerId: item.providerId || null,
                         prestadoraId: item.prestadoraId || null,
+                        cost: item.cost || 0,
                         appliedTaxes: taxes,
                         variables: item.variables || []
                     };
@@ -338,6 +334,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     productId: p.productId?.toString() || '',
                                                     quantity: p.quantity,
                                                     price: inferredPrice,
+                                                    cost: p.cost || 0,
                                                     providerId: p.providerId?.toString() || '',
                                                     prestadoraId: p.prestadoraId?.toString() || '',
                                                     checkIn: p.checkInDate ? format(new Date(p.checkInDate), 'yyyy-MM-dd') : '',
@@ -383,7 +380,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         setFormData({
             ...formData,
             items: [...formData.items, {
-                productId: '', quantity: 1, price: 0,
+                productId: '', quantity: 1, price: 0, cost: 0,
                 providerId: '', prestadoraId: '', checkIn: '', checkOut: '',
                 paxAdults: 1, paxChildren: 0, destination: '', serviceType: '', reservationCode: '', passengers: [{ name: '', document: '' }],
                 sellerCommission: 0, ticketPrinterCommission: 0,
@@ -427,6 +424,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 productId: cp.productId.toString(),
                 quantity: 1,
                 price: cp.price,
+                cost: cp.product?.cost || 0,
                 providerId: cp.providerId?.toString() || '',
                 prestadoraId: cp.prestadoraId?.toString() || '',
                 checkIn: cp.checkInDate ? new Date(cp.checkInDate).toISOString().split('T')[0] : '',
@@ -447,8 +445,20 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             };
         });
 
+        let newCurrency = formData.currency;
+        let newExchangeRate = formData.exchangeRate;
+        if (combo.currencyId && data.currencies) {
+            const comboCurrency = data.currencies.find((c: any) => c.id === combo.currencyId);
+            if (comboCurrency) {
+                newCurrency = comboCurrency.code;
+                newExchangeRate = comboCurrency.exchangeRate;
+            }
+        }
+
         setFormData({
             ...formData,
+            currency: newCurrency,
+            exchangeRate: newExchangeRate,
             items: [...formData.items, ...newItemsFromCombo],
             selectedCombos: [...(formData.selectedCombos || []), { id: combo.id, name: combo.name }]
         });
@@ -621,6 +631,26 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     {data.ticketPrinters?.map((t: any) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
                                 </select>
                             </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-zinc-500">Moneda a Cotizar</label>
+                                <select
+                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                    value={formData.currency}
+                                    onChange={(e) => {
+                                        const code = e.target.value;
+                                        const curr = data.currencies?.find((c: any) => c.code === code);
+                                        setFormData({ 
+                                            ...formData, 
+                                            currency: code, 
+                                            exchangeRate: curr ? curr.exchangeRate : 1 
+                                        });
+                                    }}
+                                >
+                                    {(data.currencies || [{code: 'USD', name: 'Dólar Estadounidense'}]).map((c: any) => (
+                                        <option key={c.id || c.code} value={c.code}>{c.code} - {c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -643,7 +673,9 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                 >
                                     <option value="">+ Agregar un Combo...</option>
                                     {(data.combos || []).map((c: any) => (
-                                        <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                                        <option key={c.id} value={c.id}>
+                                            {c.name} ({c.code}) — {c.cupos != null ? `${c.cupos} cupos` : 'Sin límite'}
+                                        </option>
                                     ))}
                                 </select>
                             </div>
@@ -714,7 +746,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     newItems[index] = {
                                                         ...newItems[index],
                                                         productId: val,
-                                                        price: 0 // No more base price from product master
+                                                        price: 0, // No more base price from product master
+                                                        cost: p?.cost || 0
                                                     };
                                                     setFormData({ ...formData, items: newItems });
                                                 }}
@@ -940,6 +973,17 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                             )}
 
                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-orange-500 dark:text-orange-400">Costo ($)</label>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-orange-200 dark:border-orange-800 outline-none text-xs font-bold text-orange-600 dark:text-orange-400 focus:ring-1 focus:ring-orange-400"
+                                                        value={item.cost ?? 0}
+                                                        onChange={(e) => updateItem(index, 'cost', parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Com. Vend. ($)</label>
                                                     <input
@@ -1178,10 +1222,19 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     <select
                                         className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold"
                                         value={formData.currency}
-                                        onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                                        onChange={(e) => {
+                                            const code = e.target.value;
+                                            const curr = data.currencies?.find((c: any) => c.code === code);
+                                            setFormData({ 
+                                                ...formData, 
+                                                currency: code,
+                                                exchangeRate: curr ? curr.exchangeRate : formData.exchangeRate
+                                            });
+                                        }}
                                     >
-                                        <option value="USD">USD - Dólares</option>
-                                        <option value="COP">COP - Pesos Col.</option>
+                                        {(data.currencies || []).map((c: any) => (
+                                            <option key={c.id || c.code} value={c.code}>{c.code} - {c.name}</option>
+                                        ))}
                                     </select>
                                 </div>
                                 <div className="space-y-1 flex-1">

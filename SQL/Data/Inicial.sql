@@ -1,60 +1,82 @@
 -- SCRIPT DE DATOS INICIALES - AGENCIAS NEW
 -- RUTA: c:\Proyectos\AgenciasNew\SQL\Data\Inicial.sql
+-- IDEMPOTENTE: Puede ejecutarse múltiples veces sin errores
 
--- 1. Limpieza rápida (Opcional, pero recomendada)
---TRUNCATE public."User", public."Role", public."Branch", public."Client", public."Seller", 
---         public."Provider", public."TicketPrinter", public."Product", public."ChargeAndTax",
---         public."Implant", public."Hotel" RESTART IDENTITY CASCADE;
+-- 1. Rol Admin
+INSERT INTO public."Role" (name)
+VALUES ('Admin')
+ON CONFLICT (name) DO NOTHING;
 
--- 2. Creación de Rol
-INSERT INTO public."Role" (name) VALUES ('Admin');
+-- 2. Sucursal
+INSERT INTO public."Branch" (code, name)
+VALUES ('BOG', 'BOG')
+ON CONFLICT (code) DO NOTHING;
 
--- 3. Creación de Sucursal
-INSERT INTO public."Branch" (code, name) VALUES ('BOG', 'BOG');
--- 5. Clientes, Vendedores, Proveedores y Tiqueteadores (Mismo Rubiel)
-INSERT INTO public."Client" (document, name) VALUES ('73009263', 'Rubiel');
-INSERT INTO public."Seller" (code, name, email) VALUES ('73009263', 'Rubiel', 'rubiel1985@msn.com');
-INSERT INTO public."Provider" (code, name) VALUES ('73009263', 'Rubiel');
-INSERT INTO public."TicketPrinter" (code, name, email) VALUES ('73009263', 'Rubiel', 'rubiel1985@msn.com');
+-- 3. Clientes, Vendedores, Proveedores y Tiqueteadores
+INSERT INTO public."Client" (document, name)
+VALUES ('73009263', 'Rubiel')
+ON CONFLICT (document) DO NOTHING;
 
--- 4. Creación de Usuario Administrativo
--- Contraseña: 111985
-INSERT INTO public."User" (email, name, "passwordHash", "roleId", "branchId","implanteId","ticketPrinterId") 
-VALUES ('rubiel1985@msn.com', 'Rubiel', '$2b$10$IUxxw/yzr2bpC4wRMUcBYOsrIJrG4e0j.FI/p2baH2CGNfKNLbn.S', 
-        (SELECT id FROM public."Role" WHERE name = 'Admin'), 
-        (SELECT id FROM public."Branch" WHERE code = 'BOG'),
-		null
-		(SELECT id FROM public."TicketPrinter" WHERE code = '73009263')
-		);
+INSERT INTO public."Seller" (code, name, email)
+VALUES ('73009263', 'Rubiel', 'rubiel1985@msn.com')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."Provider" (code, name)
+VALUES ('73009263', 'Rubiel')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."TicketPrinter" (code, name, email)
+VALUES ('73009263', 'Rubiel', 'rubiel1985@msn.com')
+ON CONFLICT (code) DO NOTHING;
+
+-- 4. Usuario Administrativo (Contraseña: 111985)
+INSERT INTO public."User" (email, name, "passwordHash", "roleId", "branchId", "implantId", "ticketPrinterId")
+VALUES (
+    'rubiel1985@msn.com',
+    'Rubiel',
+    '$2b$10$IUxxw/yzr2bpC4wRMUcBYOsrIJrG4e0j.FI/p2baH2CGNfKNLbn.S',
+    (SELECT id FROM public."Role"          WHERE name = 'Admin'),
+    (SELECT id FROM public."Branch"        WHERE code = 'BOG'),
+    null,
+    (SELECT id FROM public."TicketPrinter" WHERE code = '73009263')
+)
+ON CONFLICT (email) DO NOTHING;
+
+-- 5. Productos
+INSERT INTO public."Product" (type, description, "basePrice", cost)
+VALUES ('ALOJAMIENTO', 'Hotel', 0, 0)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO public."Product" (type, description, "basePrice", cost)
+VALUES ('ALQUILER', 'RestaAuto', 0, 0)
+ON CONFLICT DO NOTHING;
 
 
--- 6. Productos
-INSERT INTO public."Product" (type, description, "basePrice") VALUES ('ALOJAMIENTO', 'Hotel', 0);
-INSERT INTO public."Product" (type, description, "basePrice") VALUES ('ALQUILER', 'RestaAuto', 0);
+-- 6. Cargos e Impuestos
+INSERT INTO public."ChargeAndTax" (code, name, type, "valueType", value, "isEditable")
+VALUES
+    ('TAR',   'TAR',   'CHARGE', 'FIXED',      0,  true),
+    ('IVA',   'IVA',   'TAX',    'PERCENTAGE', 19,  true),
+    ('OTROS', 'OTROS', 'CHARGE', 'FIXED',       0,  true)
+ON CONFLICT (code) DO NOTHING;
 
--- 7. Cargos e Impuestos
-INSERT INTO public."ChargeAndTax" (name, type, "valueType", value, "isEditable") VALUES ('TAR', 'CHARGE', 'FIXED', 0, true);
-INSERT INTO public."ChargeAndTax" (name, type, "valueType", value, "isEditable") VALUES ('IVA', 'TAX', 'PERCENTAGE', 19, true);
-INSERT INTO public."ChargeAndTax" (name, type, "valueType", value, "isEditable") VALUES ('OTROS', 'CHARGE', 'FIXED', 0, true);
+-- 7. Parámetros de conectividad SQL Server
+INSERT INTO public."SystemParameter" (code, name, value)
+VALUES
+    ('ServidorSQLServer',                'Host de SQL Server',                           'Rubiel/RUBIEL'),
+    ('UsuarioSQLServer',                 'Usuario SQL Server',                           'sa'),
+    ('ClaveSQLServer',                   'Contraseña SQL Server',                        '111985*'),
+    ('BaseSQLServer',                    'Base de Datos SQL Server',                     'Agencias'),
+    ('PuertoSQLServer',                  'Puerto SQL Server',                            ''),
+    ('EnviarCotizacionesAutoSQLserver',  'Envío automático a SQL Server (1: Sí, 0: No)', '1')
+ON CONFLICT (code) DO UPDATE
+    SET name  = EXCLUDED.name,
+        value = EXCLUDED.value;
 
--- SCRIPT DE PARÁMETROS DE CONECTIVIDAD SQL SERVER (ACTUALIZADO)
--- RUTA: c:\Proyectos\AgenciasNew\SQL\Data\Inicla.sql
-
--- Borrar si existen para evitar duplicados en la carga inicial
-DELETE FROM public."Parameter" WHERE code IN (
-    'ServidorSQLServer', 
-    'UsuarioSQLServer', 
-    'ClaveSQLServer', 
-    'BaseSQLServer', 
-    'PuertoSQLServer', 
-    'EnviarCotizacionesAutoSQLserver'
-);
-
--- Insertar parámetros solicitados
-INSERT INTO public."Parameter" (code, name, value) VALUES ('ServidorSQLServer', 'Host de SQL Server', 'Rubiel/RUBIEL');
-INSERT INTO public."Parameter" (code, name, value) VALUES ('UsuarioSQLServer', 'Usuario SQL Server', 'sa');
-INSERT INTO public."Parameter" (code, name, value) VALUES ('ClaveSQLServer', 'Contraseña SQL Server', '111985*');
-INSERT INTO public."Parameter" (code, name, value) VALUES ('BaseSQLServer', 'Base de Datos SQL Server', 'Agencias');
-INSERT INTO public."Parameter" (code, name, value) VALUES ('PuertoSQLServer', 'Puerto SQL Server', '');
-INSERT INTO public."Parameter" (code, name, value) VALUES ('EnviarCotizacionesAutoSQLserver', 'Envío automático a SQL Server (1: Sí, 0: No)', '1');
-
+-- 8. Monedas iniciales
+INSERT INTO public."Currency" (code, name, "exchangeRate")
+VALUES
+    ('COP', 'Peso Colombiano',      1.00),
+    ('USD', 'Dólar Estadounidense', 4200.00),
+    ('EUR', 'Euro',                 4500.00)
+ON CONFLICT (code) DO NOTHING;

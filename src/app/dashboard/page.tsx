@@ -21,11 +21,7 @@ export default function DashboardIndex() {
             .catch(() => setLoading(false))
     }, [])
 
-    const stats = [
-        { label: 'Cotizaciones Hoy', value: '12', color: 'bg-blue-500/10 text-blue-500' },
-        { label: 'Nuevos Clientes', value: '4', color: 'bg-purple-500/10 text-purple-500' },
-        { label: 'Volumen Mensual', value: '$24,500', color: 'bg-emerald-500/10 text-emerald-500' },
-    ]
+
 
     return (
         <main className="flex-1 flex flex-col p-8 md:p-12">
@@ -45,25 +41,7 @@ export default function DashboardIndex() {
                 </motion.button>
             </header>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                {stats.map((stat) => (
-                    <motion.div
-                        key={stat.label}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm"
-                    >
-                        <div className="text-zinc-500 dark:text-zinc-400 font-medium mb-3">{stat.label}</div>
-                        <div className="flex items-center gap-4">
-                            <div className="text-3xl font-bold text-zinc-900 dark:text-white">{stat.value}</div>
-                            <div className={`px-2.5 py-1 rounded-lg text-xs font-bold ${stat.color}`}>
-                                +12.5%
-                            </div>
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
+
 
             {/* Grid for Table and Import */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">

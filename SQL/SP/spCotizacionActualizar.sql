@@ -14,6 +14,30 @@ DECLARE
     v_combo RECORD;
     v_quotation_product_id INT;
 BEGIN
+    -- Validaciones
+    IF NOT EXISTS (SELECT 1 FROM public."Quotation" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: La cotización con ID ' || p_id || ' no existe.';
+        RETURN;
+    END IF;
+
+    IF NULLIF(p_data->>'clientId', '') IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El campo Cliente es obligatorio.';
+        RETURN;
+    END IF;
+
+    IF p_data->'items' IS NULL OR jsonb_array_length(p_data->'items') = 0 THEN
+        p_mensaje_resultado := 'ERROR: La cotización debe tener al menos un producto.';
+        RETURN;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM jsonb_to_recordset(p_data->'items') AS x("productId" INT, "mainTaxId" TEXT)
+        WHERE "productId" IS NULL OR NULLIF("mainTaxId", '') IS NULL
+    ) THEN
+        p_mensaje_resultado := 'ERROR: Todos los productos deben tener un producto y un Cargo Principal seleccionado.';
+        RETURN;
+    END IF;
+
     UPDATE public."Quotation" SET
         "clientId" = NULLIF(p_data->>'clientId', '')::INT,
         "currency" = p_data->>'currency',
@@ -37,7 +61,7 @@ BEGIN
 
     DELETE FROM public."QuotationProduct" WHERE "quotationId" = p_id;
     FOR v_item IN SELECT * FROM jsonb_to_recordset(p_data->'items') AS x(
-                      "productId" INT, quantity INT, price FLOAT, "providerId" TEXT, "prestadoraId" TEXT,
+                      "productId" INT, quantity INT, price FLOAT, cost FLOAT, "providerId" TEXT, "prestadoraId" TEXT,
                       "checkIn" TEXT, "checkOut" TEXT, "nights" INT, "mainTaxId" TEXT,
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
@@ -45,12 +69,12 @@ BEGIN
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
-            "quotationId", "productId", "quantity", "price", "providerId", "prestadoraId",
+            "quotationId", "productId", "quantity", "price", "cost", "providerId", "prestadoraId",
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality"
         ) VALUES (
-            p_id, v_item."productId", v_item.quantity, v_item.price, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
+            p_id, v_item."productId", v_item.quantity, v_item.price, v_item.cost, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
             CASE WHEN v_item."checkOut" IS NOT NULL AND v_item."checkOut" <> '' THEN v_item."checkOut"::TIMESTAMP ELSE NULL END,
             v_item.nights, v_item."paxAdults", v_item."paxChildren",

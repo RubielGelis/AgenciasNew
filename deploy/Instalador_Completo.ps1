@@ -9,7 +9,7 @@
     - Configura el enrutamiento Proxy en IIS.
     - Compila la app Next.js en Standalone.
     - Construye un Servicio Oculto en Windows usando node-windows.
-    - Crea y enciende el sitio completo en IIS (Puerto 8081).
+    - Crea y enciende el sitio completo en IIS (Puerto 3000).
 #>
 
 Write-Host "======================================================" -ForegroundColor Cyan
@@ -19,7 +19,7 @@ Write-Host "======================================================" -ForegroundC
 # Variables y Rutas
 $StandalonePath = "C:\Proyectos\AgenciasNew\.next\standalone"
 $SiteName = "AgenciasNew"
-$SitePort = 8081
+$SitePort = 3000
 
 # 1. Descarga e Instalación Automática de Módulos (ARR y Rewrite)
 Write-Host "`n1. Verificando e instalando complementos IIS necesarios en segundo plano..." -ForegroundColor Yellow
@@ -67,6 +67,11 @@ Copy-Item ".\deploy\web.config" -Destination "$StandalonePath\web.config" -Force
 
 # 4. Crear o Reiniciar el Servicio Oculto de Windows (node-windows)
 Write-Host "`n4. Instalando y arrancando servicio interno Windows (AgenciasNew_NextJS)..." -ForegroundColor Yellow
+if (Get-Service -Name "AgenciasNew_NextJS" -ErrorAction SilentlyContinue) {
+    Stop-Service -Name "AgenciasNew_NextJS" -Force -ErrorAction SilentlyContinue 
+    sc.exe delete "AgenciasNew_NextJS" | Out-Null
+    Start-Sleep -Seconds 2
+}
 node .\deploy\install-service.js | Out-Null
 
 # 5. Crear e Iniciar el Sitio IIS Oficial
@@ -80,7 +85,7 @@ if (Get-Website -Name $SiteName -ErrorAction SilentlyContinue) {
 }
 
 # Crearlo
-New-IISSite -Name $SiteName -PhysicalPath $StandalonePath -BindingInformation "*:$SitePort:"
+New-IISSite -Name $SiteName -PhysicalPath $StandalonePath -BindingInformation "*:${SitePort}:"
 
 # Iniciar sitio nativo o forzar refresco
 Start-IISSite -Name $SiteName -ErrorAction SilentlyContinue

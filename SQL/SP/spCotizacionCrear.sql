@@ -16,6 +16,25 @@ DECLARE
     v_combo RECORD;
     v_quotation_product_id INT;
 BEGIN
+    -- Validaciones
+    IF NULLIF(p_data->>'clientId', '') IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El campo Cliente es obligatorio.';
+        RETURN;
+    END IF;
+
+    IF p_data->'items' IS NULL OR jsonb_array_length(p_data->'items') = 0 THEN
+        p_mensaje_resultado := 'ERROR: La cotización debe tener al menos un producto.';
+        RETURN;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM jsonb_to_recordset(p_data->'items') AS x("productId" INT, "mainTaxId" TEXT)
+        WHERE "productId" IS NULL OR NULLIF("mainTaxId", '') IS NULL
+    ) THEN
+        p_mensaje_resultado := 'ERROR: Todos los productos deben tener un producto y un Cargo Principal seleccionado.';
+        RETURN;
+    END IF;
+
     v_internal_number := 'QUO-' || to_char(CURRENT_DATE, 'YYYYMMDD') || '-' || floor(random() * 1000)::text;
 
     INSERT INTO public."Quotation" (
@@ -32,12 +51,29 @@ BEGIN
 
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
     LOOP
-        INSERT INTO public."QuotationCombo" ("quotationId", "comboId")
-        VALUES (v_quotation_id, COALESCE(v_combo."comboId", v_combo.id));
+        DECLARE
+            v_combo_real_id INT := COALESCE(v_combo."comboId", v_combo.id);
+            v_cupos_disponibles INT;
+            v_combo_name TEXT;
+        BEGIN
+            SELECT "cupos", "name" INTO v_cupos_disponibles, v_combo_name
+            FROM public."Combo" WHERE id = v_combo_real_id;
+
+            IF v_cupos_disponibles IS NOT NULL AND v_cupos_disponibles <= 0 THEN
+                p_mensaje_resultado := 'ERROR: El combo "' || COALESCE(v_combo_name, v_combo_real_id::TEXT) || '" no tiene cupos disponibles.';
+                RETURN;
+            END IF;
+
+            INSERT INTO public."QuotationCombo" ("quotationId", "comboId")
+            VALUES (v_quotation_id, v_combo_real_id);
+
+            -- Descontar 1 cupo
+            UPDATE public."Combo" SET "cupos" = "cupos" - 1 WHERE id = v_combo_real_id;
+        END;
     END LOOP;
 
     FOR v_item IN SELECT * FROM jsonb_to_recordset(p_data->'items') AS x(
-                      "productId" INT, quantity INT, price FLOAT, "providerId" TEXT, "prestadoraId" TEXT,
+                      "productId" INT, quantity INT, price FLOAT, cost FLOAT, "providerId" TEXT, "prestadoraId" TEXT,
                       "checkIn" TEXT, "checkOut" TEXT, "nights" INT, "mainTaxId" TEXT,
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
@@ -45,12 +81,12 @@ BEGIN
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
-            "quotationId", "productId", "quantity", "price", "providerId", "prestadoraId",
+            "quotationId", "productId", "quantity", "price", "cost", "providerId", "prestadoraId",
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality"
         ) VALUES (
-            v_quotation_id, v_item."productId", v_item.quantity, v_item.price, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
+            v_quotation_id, v_item."productId", v_item.quantity, v_item.price, v_item.cost, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
             CASE WHEN v_item."checkOut" IS NOT NULL AND v_item."checkOut" <> '' THEN v_item."checkOut"::TIMESTAMP ELSE NULL END,
             v_item.nights, v_item."paxAdults", v_item."paxChildren",

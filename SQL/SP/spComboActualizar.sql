@@ -2,6 +2,8 @@ CREATE OR REPLACE PROCEDURE public.spComboActualizar(
     p_id INT,
     p_code TEXT,
     p_name TEXT,
+    p_cupos INT,
+    p_currency_id INT,
     p_products JSONB,
     p_acting_user_id INT,
     INOUT p_mensaje_resultado TEXT
@@ -20,7 +22,7 @@ AS $$
         END IF;
 
         -- Actualizar datos básicos
-        UPDATE public."Combo" SET "code" = p_code, "name" = p_name WHERE id = v_local_combo_id;
+        UPDATE public."Combo" SET "code" = p_code, "name" = p_name, "cupos" = COALESCE(p_cupos, 0), "currencyId" = p_currency_id, "updatedAt"=CURRENT_TIMESTAMP WHERE id = v_local_combo_id;
 
         -- Limpiar productos previos
         DELETE FROM public."ComboProductTax" WHERE "comboProductId" IN (SELECT id FROM public."ComboProduct" WHERE "comboId" = v_local_combo_id);
@@ -29,18 +31,18 @@ AS $$
         -- Insertar productos nuevos
         IF p_products IS NOT NULL AND jsonb_array_length(p_products) > 0 THEN
             FOR v_item IN SELECT * FROM jsonb_to_recordset(p_products) AS x(
-                "productId" INT, quantity INT, price FLOAT, "providerId" INT, "prestadoraId" INT, 
+                "productId" INT, quantity INT, price FLOAT, cost FLOAT, "providerId" INT, "prestadoraId" INT, 
                 "checkInDate" TIMESTAMP, "checkOutDate" TIMESTAMP,
                 "paxAdults" INT, "paxChildren" INT, "mainTaxId" INT, "appliedTaxes" JSONB, "inNationality" INT
             )
             LOOP
                 IF v_item."productId" IS NOT NULL THEN
                     INSERT INTO public."ComboProduct" (
-                        "comboId", "productId", "quantity", "price", "providerId", "prestadoraId", 
+                        "comboId", "productId", "quantity", "price", "cost", "providerId", "prestadoraId", 
                         "checkInDate", "checkOutDate",
                         "paxAdults", "paxChildren", "mainTaxId", "inNationality"
                     ) VALUES (
-                        v_local_combo_id, v_item."productId", COALESCE(v_item.quantity, 1), COALESCE(v_item.price, 0), v_item."providerId", v_item."prestadoraId",
+                        v_local_combo_id, v_item."productId", COALESCE(v_item.quantity, 1), COALESCE(v_item.price, 0), v_item.cost, v_item."providerId", v_item."prestadoraId",
                         v_item."checkInDate", v_item."checkOutDate",
                         v_item."paxAdults", v_item."paxChildren", v_item."mainTaxId", COALESCE(v_item."inNationality", 1)
                     ) RETURNING id INTO v_combo_product_id;

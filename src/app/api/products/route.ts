@@ -17,16 +17,17 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { code, type, description, basePrice, billingConcept, serviceType } = body
+        const { code, type, description, basePrice, cost, billingConcept, serviceType } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spProductoCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::FLOAT, $5::TEXT, $6::TEXT, $7::INT, $8::INT, $9::TEXT)`,
+            `CALL public.spProductoCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::FLOAT, $5::FLOAT, $6::TEXT, $7::TEXT, $8::INT, $9::INT, $10::TEXT)`,
             code || null,
             type,
             description,
-            parseFloat(basePrice.toString()),
+            parseFloat(basePrice?.toString() || '0'),
+            parseFloat(cost?.toString() || '0'),
             billingConcept || null,
             serviceType || null,
             actingUserId,
@@ -57,17 +58,18 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json()
-        const { id, code, type, description, basePrice, billingConcept, serviceType } = body
+        const { id, code, type, description, basePrice, cost, billingConcept, serviceType } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spProductoActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::FLOAT, $6::TEXT, $7::TEXT, $8::INT, $9::TEXT)`,
+            `CALL public.spProductoActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::FLOAT, $6::FLOAT, $7::TEXT, $8::TEXT, $9::INT, $10::TEXT)`,
             parseInt(id),
             code || null,
             type,
             description,
-            parseFloat(basePrice.toString()),
+            parseFloat(basePrice?.toString() || '0'),
+            parseFloat(cost?.toString() || '0'),
             billingConcept || null,
             serviceType || null,
             actingUserId,

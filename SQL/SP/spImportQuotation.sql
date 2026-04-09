@@ -147,10 +147,16 @@ BEGIN
     ) LOOP
         -- Resolución de Maestros
         SELECT id INTO v_client_id FROM public."Client" WHERE document = v_quotation_record.cliente_doc;
-        IF v_client_id IS NULL THEN CONTINUE; END IF;
+        IF v_client_id IS NULL THEN 
+            p_mensaje_resultado := 'ERROR: Cliente con documento o código "' || v_quotation_record.cliente_doc || '" no encontrado en el sistema.';
+            RETURN;
+        END IF;
 
         SELECT id INTO v_branch_id FROM public."Branch" WHERE LOWER(code) = LOWER(v_quotation_record.sucursal_cd);
-        IF v_branch_id IS NULL THEN CONTINUE; END IF;
+        IF v_branch_id IS NULL THEN 
+            p_mensaje_resultado := 'ERROR: Sucursal con código "' || v_quotation_record.sucursal_cd || '" no encontrada en el sistema.';
+            RETURN;
+        END IF;
 
         SELECT id INTO v_implant_id FROM public."Implant" WHERE LOWER(code) = LOWER(v_quotation_record.implant_cd);
         SELECT id INTO v_seller_id FROM public."Seller" WHERE LOWER(code) = LOWER(v_quotation_record.vendedor_cd);
@@ -338,7 +344,7 @@ BEGIN
         v_imported_count := v_imported_count + 1;
     END LOOP;
 
-    p_mensaje_resultado := 'SUCCESS: ' || v_imported_count || ' cotizaciones importadas. ID_LIST[' || RTRIM(v_created_ids, ',') || ']';
+    p_mensaje_resultado := 'SUCCESS: ' || v_imported_count || ' cotizaciones importadas. [' || RTRIM(v_created_ids, ',') || ']';
 
 EXCEPTION
     WHEN OTHERS THEN

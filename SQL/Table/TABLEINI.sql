@@ -1,5 +1,256 @@
 do $$
 BEGIN
+	CREATE SEQUENCE IF NOT EXISTS public."Attachment_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."Attachment_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Branch_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+		
+	ALTER SEQUENCE public."Branch_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."ChargeAndTax_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+		
+	ALTER SEQUENCE public."ChargeAndTax_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Client_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."Client_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Combo_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."Combo_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."Currency_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."ComboProduct_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+		
+	ALTER SEQUENCE public."ComboProduct_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."ComboProductTax_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."ComboProductTax_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Hotel_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."Hotel_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Implant_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."Implant_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."MasterVariable_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+
+	
+	ALTER SEQUENCE public."MasterVariable_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Product_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."Product_id_seq"
+	    OWNER TO postgres;	
+
+	CREATE SEQUENCE IF NOT EXISTS public."Provider_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."Provider_id_seq"
+	    OWNER TO postgres;	
+
+	CREATE SEQUENCE IF NOT EXISTS public."QuotationCombo_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."QuotationCombo_id_seq"
+	    OWNER TO postgres;	
+
+	CREATE SEQUENCE IF NOT EXISTS public."QuotationProductPassenger_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."QuotationProductPassenger_id_seq"
+	    OWNER TO postgres;	
+
+	CREATE SEQUENCE IF NOT EXISTS public."QuotationProductTax_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."QuotationProductTax_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."QuotationProductVariable_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."QuotationProductVariable_id_seq"
+	    OWNER TO postgres;	
+
+	CREATE SEQUENCE IF NOT EXISTS public."QuotationProduct_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."QuotationProduct_id_seq"
+	    OWNER TO postgres;	
+
+	CREATE SEQUENCE IF NOT EXISTS public."Quotation_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."Quotation_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Role_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."Role_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Seller_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."Seller_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."SystemLog_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."SystemLog_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."SystemParameter_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."SystemParameter_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."TicketPrinter_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."TicketPrinter_id_seq"
+		OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."User_id_seq"
+		INCREMENT 1
+		START 1
+		MINVALUE 1
+		MAXVALUE 2147483647
+		CACHE 1;
+	
+	ALTER SEQUENCE public."User_id_seq"
+	    OWNER TO postgres;	
+		
 	CREATE TABLE IF NOT EXISTS public."Role"
 	(
 	    id integer NOT NULL DEFAULT nextval('"Role_id_seq"'::regclass),
@@ -22,15 +273,30 @@ BEGIN
     
 	TABLESPACE pg_default;
 
+	ALTER SEQUENCE public."Role_id_seq"
+	    OWNED BY public."Role".id;
+
+	CREATE TABLE IF NOT EXISTS public."Branch"
+	(
+	    id integer NOT NULL DEFAULT nextval('"Branch_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default" NOT NULL,
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    CONSTRAINT "Branch_pkey" PRIMARY KEY (id)
+	)
+
+	TABLESPACE pg_default;
+
 	ALTER TABLE IF EXISTS public."Branch"
 	    OWNER to postgres;
-	
+
 	CREATE UNIQUE INDEX IF NOT EXISTS "Branch_code_key"
 	    ON public."Branch" USING btree
 	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
 	    WITH (fillfactor=100, deduplicate_items=True)
-	
-	TABLESPACE pg_default;
+    TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."Branch_id_seq"
+	    OWNED BY public."Branch".id;
 
 	CREATE TABLE IF NOT EXISTS public."Implant"
 	(
@@ -60,6 +326,9 @@ BEGIN
     
 	TABLESPACE pg_default;
 
+	ALTER SEQUENCE public."Implant_id_seq"
+	    OWNED BY public."Implant".id;
+
 
 	CREATE TABLE IF NOT EXISTS public."ChargeAndTax"
 	(
@@ -73,6 +342,9 @@ BEGIN
 	)
 
 	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."ChargeAndTax_id_seq"
+	    OWNED BY public."ChargeAndTax".id;
 
 	CREATE TABLE IF NOT EXISTS public."TicketPrinter"
 	(
@@ -95,6 +367,9 @@ BEGIN
 	    WITH (fillfactor=100, deduplicate_items=True)
     
 	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."TicketPrinter_id_seq"
+	    OWNED BY public."TicketPrinter".id;
 	
 	CREATE TABLE IF NOT EXISTS public."User"
 	(
@@ -137,7 +412,7 @@ BEGIN
 	    ON public."User" USING btree
 	    (email COLLATE pg_catalog."default" ASC NULLS LAST)
 	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;
+	TABLESPACE pg_default;
 
 
 	CREATE UNIQUE INDEX IF NOT EXISTS "User_resetPasswordToken_key"
@@ -147,27 +422,9 @@ BEGIN
     
 	TABLESPACE pg_default;
 
+	ALTER SEQUENCE public."User_id_seq"
+	    OWNED BY public."User".id;
 	
-	
-	CREATE TABLE IF NOT EXISTS public."Attachment"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Attachment_id_seq"'::regclass),
-	    "quotationId" integer NOT NULL,
-	    "fileName" text COLLATE pg_catalog."default" NOT NULL,
-	    "fileType" text COLLATE pg_catalog."default" NOT NULL,
-	    "fileSize" integer NOT NULL,
-	    "fileContent" bytea NOT NULL,
-	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    CONSTRAINT "Attachment_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Attachment_quotationId_fkey" FOREIGN KEY ("quotationId")
-	        REFERENCES public."Quotation" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Attachment" OWNER to postgres;
 
 	CREATE TABLE IF NOT EXISTS public."Branch"
 	(
@@ -180,8 +437,11 @@ BEGIN
 	TABLESPACE pg_default;
 	
 	
-	ALTER TABLE IF EXISTS public."ChargeAndTax"
+	ALTER TABLE IF EXISTS public."Branch"
 	    OWNER to postgres;
+
+	ALTER SEQUENCE public."Branch_id_seq"
+	    OWNED BY public."Branch".id;	
 
 	CREATE TABLE IF NOT EXISTS public."Client"
 	(
@@ -202,7 +462,12 @@ BEGIN
 	    ON public."Client" USING btree
 	    (document COLLATE pg_catalog."default" ASC NULLS LAST)
 	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;
+	
+	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."Client_id_seq"
+	    OWNED BY public."Client".id;
+
 
 	CREATE TABLE IF NOT EXISTS public."Provider"
 	(
@@ -226,6 +491,10 @@ BEGIN
 	    
 	TABLESPACE pg_default;	
 
+	ALTER SEQUENCE public."Provider_id_seq"
+	    OWNED BY public."Provider".id;
+		
+
 	CREATE TABLE IF NOT EXISTS public."MasterVariable"
 	(
 	    id integer NOT NULL DEFAULT nextval('"MasterVariable_id_seq"'::regclass),
@@ -233,8 +502,21 @@ BEGIN
 	    name text COLLATE pg_catalog."default" NOT NULL,
 	    CONSTRAINT "MasterVariable_pkey" PRIMARY KEY (id)
 	)
-	
+
 	TABLESPACE pg_default;
+
+	ALTER TABLE IF EXISTS public."MasterVariable"
+	    OWNER to postgres;
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "MasterVariable_code_key"
+	    ON public."MasterVariable" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+		
+	TABLESPACE pg_default;
+	
+	ALTER SEQUENCE public."MasterVariable_id_seq"
+	    OWNED BY public."MasterVariable".id;
 
 	CREATE TABLE IF NOT EXISTS public."Seller"
 	(
@@ -256,17 +538,11 @@ BEGIN
 	    WITH (fillfactor=100, deduplicate_items=True)
     
 	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."Seller_id_seq"
+	    OWNED BY public."Seller".id;
+	    
 	
-	ALTER TABLE IF EXISTS public."MasterVariable"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "MasterVariable_code_key"
-	    ON public."MasterVariable" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
 	CREATE TABLE IF NOT EXISTS public."Prestadora"
 	(
 	    id integer NOT NULL DEFAULT nextval('"Hotel_id_seq"'::regclass),
@@ -282,7 +558,6 @@ BEGIN
 	        ON UPDATE CASCADE
 	        ON DELETE RESTRICT
 	)
-
 	TABLESPACE pg_default;
 
 	ALTER TABLE IF EXISTS public."Prestadora"
@@ -294,6 +569,9 @@ BEGIN
 	    WITH (fillfactor=100, deduplicate_items=True)
     
 	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."Hotel_id_seq"
+	    OWNED BY public."Prestadora".id;
 
 	CREATE TABLE IF NOT EXISTS public."SystemLog"
 	(
@@ -315,6 +593,9 @@ BEGIN
 	
 	ALTER TABLE IF EXISTS public."SystemLog"
 	    OWNER to postgres;
+
+	ALTER SEQUENCE public."SystemLog_id_seq"
+	    OWNED BY public."SystemLog".id;	
 
 	CREATE TABLE IF NOT EXISTS public."SystemParameter"
 	(
@@ -338,12 +619,16 @@ BEGIN
     
 	TABLESPACE pg_default;	
 
+	ALTER SEQUENCE public."SystemParameter_id_seq"
+	    OWNED BY public."SystemParameter".id;	
+
 	CREATE TABLE IF NOT EXISTS public."Product"
 	(
 	    id integer NOT NULL DEFAULT nextval('"Product_id_seq"'::regclass),
 	    type text COLLATE pg_catalog."default" NOT NULL,
 	    description text COLLATE pg_catalog."default" NOT NULL,
 	    "basePrice" double precision NOT NULL,
+	    cost double precision DEFAULT 0,
 	    "billingConcept" text COLLATE pg_catalog."default",
 	    "serviceType" text COLLATE pg_catalog."default",
 	    code text COLLATE pg_catalog."default",
@@ -362,16 +647,48 @@ BEGIN
 	    ON public."Product" USING btree
 	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
 	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;	
+	TABLESPACE pg_default;	
+
+	ALTER SEQUENCE public."Product_id_seq"
+	    OWNED BY public."Product".id;	
+
+	CREATE TABLE IF NOT EXISTS public."Currency"
+	(
+	    id integer NOT NULL DEFAULT nextval('"Currency_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default" NOT NULL,
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    "exchangeRate" double precision NOT NULL,
+	    CONSTRAINT "Currency_pkey" PRIMARY KEY (id)
+	)
+	
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."Currency"
+	    OWNER to postgres;
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "Currency_code_key"
+	    ON public."Currency" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."Currency_id_seq"
+	    OWNED BY public."Currency".id;
 
 	CREATE TABLE IF NOT EXISTS public."Combo"
 	(
 	    id integer NOT NULL DEFAULT nextval('"Combo_id_seq"'::regclass),
 	    code text COLLATE pg_catalog."default" NOT NULL,
 	    name text COLLATE pg_catalog."default" NOT NULL,
+	    cupos integer DEFAULT 0,
+	    "currencyId" integer,
 	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	    "updatedAt" timestamp without time zone DEFAULT now(),
-	    CONSTRAINT "Combo_pkey" PRIMARY KEY (id)
+	    CONSTRAINT "Combo_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "Combo_currencyId_fkey" FOREIGN KEY ("currencyId")
+	        REFERENCES public."Currency" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE SET NULL
 	)
 	
 	TABLESPACE pg_default;
@@ -380,13 +697,17 @@ BEGIN
 	    OWNER to postgres;
 	-- Index: Combo_code_key
 
- 	DROP INDEX IF EXISTS public."Combo_code_key";
+ 	--DROP INDEX IF EXISTS public."Combo_code_key";
 
 	CREATE UNIQUE INDEX IF NOT EXISTS "Combo_code_key"
 		ON public."Combo" USING btree
 		(code COLLATE pg_catalog."default" ASC NULLS LAST)
 		WITH (fillfactor=100, deduplicate_items=True)
-		TABLESPACE pg_default;
+	
+	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."Combo_id_seq"
+	    OWNED BY public."Combo".id;		
 
 	CREATE TABLE IF NOT EXISTS public."ComboProduct"
 	(
@@ -394,6 +715,7 @@ BEGIN
 	    "comboId" integer NOT NULL,
 	    "productId" integer NOT NULL,
 	    price double precision NOT NULL,
+	    cost double precision DEFAULT 0,
 	    "checkInDate" timestamp(3) without time zone,
 	    "checkOutDate" timestamp(3) without time zone,
 	    "prestadoraId" integer,
@@ -427,6 +749,9 @@ BEGIN
 	ALTER TABLE IF EXISTS public."ComboProduct"
 	    OWNER to postgres;
 
+	ALTER SEQUENCE public."ComboProduct_id_seq"
+	    OWNED BY public."ComboProduct".id;		
+
 	CREATE TABLE IF NOT EXISTS public."ComboProductTax"
 	(
 	    id integer NOT NULL DEFAULT nextval('"ComboProductTax_id_seq"'::regclass),
@@ -448,7 +773,10 @@ BEGIN
 	TABLESPACE pg_default;
 	
 	ALTER TABLE IF EXISTS public."ComboProductTax"
-	    OWNER to postgres;	
+	    OWNER to postgres;
+
+	ALTER SEQUENCE public."ComboProductTax_id_seq"
+	    OWNED BY public."ComboProductTax".id;		
 
 	CREATE TABLE IF NOT EXISTS public."Quotation"
 	(
@@ -506,8 +834,10 @@ BEGIN
 	    ON public."Quotation" USING btree
 	    ("internalNumber" COLLATE pg_catalog."default" ASC NULLS LAST)
 	    WITH (fillfactor=100, deduplicate_items=True)
-	    TABLESPACE pg_default;	
+	TABLESPACE pg_default;	
 
+	ALTER SEQUENCE public."Quotation_id_seq"
+	    OWNED BY public."Quotation".id;
 	
 	CREATE TABLE IF NOT EXISTS public."QuotationCombo"
 	(
@@ -530,6 +860,9 @@ BEGIN
 	ALTER TABLE IF EXISTS public."QuotationCombo"
 	    OWNER to postgres;
 
+	ALTER SEQUENCE public."QuotationCombo_id_seq"
+	    OWNED BY public."QuotationCombo".id;	
+
 	CREATE TABLE IF NOT EXISTS public."QuotationProduct"
 	(
 	    id integer NOT NULL DEFAULT nextval('"QuotationProduct_id_seq"'::regclass),
@@ -537,6 +870,7 @@ BEGIN
 	    "productId" integer NOT NULL,
 	    quantity integer NOT NULL,
 	    price double precision NOT NULL,
+	    cost double precision DEFAULT 0,
 	    "providerId" integer,
 	    "prestadoraId" integer,
 	    "checkInDate" timestamp(3) without time zone,
@@ -575,6 +909,9 @@ BEGIN
 	
 	ALTER TABLE IF EXISTS public."QuotationProduct"
 	    OWNER to postgres;
+
+	ALTER SEQUENCE public."QuotationProduct_id_seq"
+	    OWNED BY public."QuotationProduct".id;	
 	
 	CREATE TABLE IF NOT EXISTS public."QuotationProductPassenger"
 	(
@@ -593,6 +930,9 @@ BEGIN
 	
 	ALTER TABLE IF EXISTS public."QuotationProductPassenger"
 	    OWNER to postgres;
+
+	ALTER SEQUENCE public."QuotationProductPassenger_id_seq"
+	    OWNED BY public."QuotationProductPassenger".id;	
 
 	CREATE TABLE IF NOT EXISTS public."QuotationProductTax"
 	(
@@ -619,6 +959,9 @@ BEGIN
 	ALTER TABLE IF EXISTS public."QuotationProductTax"
 	    OWNER to postgres;
 
+	ALTER SEQUENCE public."QuotationProductTax_id_seq"
+	    OWNED BY public."QuotationProductTax".id;		
+
 	CREATE TABLE IF NOT EXISTS public."QuotationProductVariable"
 	(
 	    id integer NOT NULL DEFAULT nextval('"QuotationProductVariable_id_seq"'::regclass),
@@ -639,6 +982,68 @@ BEGIN
 	TABLESPACE pg_default;
 	
 	ALTER TABLE IF EXISTS public."QuotationProductVariable"
-	    OWNER to postgres;	
+	    OWNER to postgres;
+
+	ALTER SEQUENCE public."QuotationProductVariable_id_seq"
+	    OWNED BY public."QuotationProductVariable".id;
+
+	CREATE TABLE IF NOT EXISTS public."Attachment"
+	(
+	    id integer NOT NULL DEFAULT nextval('"Attachment_id_seq"'::regclass),
+	    "quotationId" integer NOT NULL,
+	    "fileName" text COLLATE pg_catalog."default" NOT NULL,
+	    "fileType" text COLLATE pg_catalog."default" NOT NULL,
+	    "fileSize" integer NOT NULL,
+	    "fileContent" bytea NOT NULL,
+	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	    CONSTRAINT "Attachment_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "Attachment_quotationId_fkey" FOREIGN KEY ("quotationId")
+	        REFERENCES public."Quotation" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE CASCADE
+	)
 	
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."Attachment" OWNER to postgres;
+
+	ALTER SEQUENCE public."Attachment_id_seq"
+	    OWNED BY public."Attachment".id;
+
+	ALTER TABLE public."ChargeAndTax" ADD COLUMN IF NOT EXISTS "isEditable" boolean NOT NULL DEFAULT true;
+	ALTER TABLE public."ComboProduct" ADD COLUMN IF NOT EXISTS "inNationality" integer DEFAULT 1;
+	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "inNationality" integer DEFAULT 1;
+	ALTER TABLE public."QuotationProductTax" ADD COLUMN IF NOT EXISTS "explicitAmount" double precision;
+	ALTER TABLE public."QuotationProductTax" ADD COLUMN IF NOT EXISTS "isMain" boolean NOT NULL DEFAULT false;
+	ALTER TABLE public."ComboProductTax" ADD COLUMN IF NOT EXISTS "isMain" boolean NOT NULL DEFAULT false;	
+	--ALTER TABLE public."ComboProduct" RENAME COLUMN "hotelId" TO "prestadoraId";
+	--ALTER TABLE public."QuotationProduct" RENAME COLUMN "hotelId" TO "prestadoraId";
+	ALTER TABLE public."ChargeAndTax" ADD COLUMN IF NOT EXISTS "code" text;
+	ALTER TABLE public."ChargeAndTax" DROP CONSTRAINT IF EXISTS "ChargeAndTax_code_key";
+	ALTER TABLE public."ChargeAndTax" ADD CONSTRAINT "ChargeAndTax_code_key" UNIQUE ("code");
+	-- Columnas de costo en productos
+	ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
+	ALTER TABLE public."ComboProduct" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
+	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
+	-- Tabla Currency ya incluida en la creación arriba, pero por si la BD es existente:
+	CREATE TABLE IF NOT EXISTS public."Currency"
+	(
+	    id integer NOT NULL DEFAULT nextval('"Currency_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default" NOT NULL,
+	    name text COLLATE pg_catalog."default" NOT NULL,
+	    "exchangeRate" double precision NOT NULL,
+	    CONSTRAINT "Currency_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."Currency" OWNER to postgres;
+	CREATE UNIQUE INDEX IF NOT EXISTS "Currency_code_key"
+	    ON public."Currency" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+	TABLESPACE pg_default;
+	-- Columna currencyId en Combo para BDs existentes
+	ALTER TABLE public."Combo" ADD COLUMN IF NOT EXISTS "currencyId" integer;
+	ALTER TABLE public."Combo" DROP CONSTRAINT IF EXISTS "Combo_currencyId_fkey";
+	ALTER TABLE public."Combo" ADD CONSTRAINT "Combo_currencyId_fkey"
+	    FOREIGN KEY ("currencyId") REFERENCES public."Currency"(id)
+	    ON UPDATE CASCADE ON DELETE SET NULL;
 END	$$ 		

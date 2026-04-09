@@ -29,7 +29,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs';
+type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
@@ -55,6 +55,7 @@ export default function SettingsPage() {
     const [variables, setVariables] = useState<any[]>([])
     const [parameters, setParameters] = useState<any[]>([])
     const [combos, setCombos] = useState<any[]>([])
+    const [currencies, setCurrencies] = useState<any[]>([])
 
     // Form states
     const [formData, setFormData] = useState<any>({})
@@ -71,7 +72,7 @@ export default function SettingsPage() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts, resVariables, resParams, resCombos] = await Promise.all([
+            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts, resVariables, resParams, resCombos, resCurrencies] = await Promise.all([
                 fetch('/api/config/users').then(res => res.json()),
                 fetch('/api/config/roles').then(res => res.json()),
                 fetch('/api/config/branches').then(res => res.json()),
@@ -86,7 +87,8 @@ export default function SettingsPage() {
                 fetch('/api/products').then(res => res.json()),
                 fetch('/api/config/variables').then(res => res.json()),
                 fetch('/api/config/parameters').then(res => res.json()),
-                fetch('/api/combos').then(res => res.json())
+                fetch('/api/combos').then(res => res.json()),
+                fetch('/api/config/currencies').then(res => res.json())
             ])
             setUsers(Array.isArray(u) ? u : [])
             setRoles(Array.isArray(r) ? r : [])
@@ -103,6 +105,7 @@ export default function SettingsPage() {
             setVariables(Array.isArray(resVariables) ? resVariables : [])
             setParameters(Array.isArray(resParams) ? resParams : [])
             setCombos(Array.isArray(resCombos) ? resCombos : [])
+            setCurrencies(Array.isArray(resCurrencies) ? resCurrencies : [])
         } finally {
             setLoading(false)
         }
@@ -117,6 +120,7 @@ export default function SettingsPage() {
                     productId: cp.productId ? parseInt(cp.productId) : '',
                     quantity: parseInt(cp.quantity) || 1,
                     price: parseFloat(cp.price) || 0,
+                    cost: parseFloat(cp.cost) || 0,
                     providerId: cp.providerId ? parseInt(cp.providerId) : null,
                     prestadoraId: cp.prestadoraId ? parseInt(cp.prestadoraId) : null,
                     mainTaxId: cp.mainTaxId ? parseInt(cp.mainTaxId) : null,
@@ -146,11 +150,13 @@ export default function SettingsPage() {
             } else if (activeTab === 'proveedores') {
                 setFormData({ code: '', name: '', contactInfo: '' })
             } else if (activeTab === 'productos') {
-                setFormData({ code: '', type: 'Servicio', description: '', basePrice: '', billingConcept: '', serviceType: '' })
+                setFormData({ code: '', type: 'Servicio', description: '', basePrice: '', cost: '', billingConcept: '', serviceType: '' })
             } else if (activeTab === 'variables') {
                 setFormData({ code: '', name: '' })
+            } else if (activeTab === 'monedas') {
+                setFormData({ code: '', name: '', exchangeRate: '' })
             } else if (activeTab === 'combos') {
-                setFormData({ code: '', name: '', products: [] })
+                setFormData({ code: '', name: '', cupos: 0, currencyId: '', products: [] })
             } else {
                 setFormData({ code: '', name: '' })
             }
@@ -173,8 +179,9 @@ export default function SettingsPage() {
                                         activeTab === 'productos' ? '/api/products' :
                                             activeTab === 'variables' ? '/api/config/variables' :
                                                 activeTab === 'parametros' ? '/api/config/parameters' :
-                                                    activeTab === 'combos' ? (formData.id ? `/api/combos/${formData.id}` : '/api/combos') :
-                                                        '/api/config/implants'
+                                                    activeTab === 'monedas' ? '/api/config/currencies' :
+                                                        activeTab === 'combos' ? (formData.id ? `/api/combos/${formData.id}` : '/api/combos') :
+                                                            '/api/config/implants'
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -264,8 +271,9 @@ export default function SettingsPage() {
                                         activeTab === 'productos' ? '/api/products' :
                                             activeTab === 'variables' ? '/api/config/variables' :
                                                 activeTab === 'parametros' ? '/api/config/parameters' :
-                                                    activeTab === 'combos' ? `/api/combos/${id}` :
-                                                        '/api/config/implants'
+                                                    activeTab === 'monedas' ? '/api/config/currencies' :
+                                                        activeTab === 'combos' ? `/api/combos/${id}` :
+                                                            '/api/config/implants'
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -366,7 +374,7 @@ export default function SettingsPage() {
                                 className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                             >
                                 <Plus className="w-5 h-5" />
-                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'combos' ? 'Nuevo Combo' : 'Nuevo Implant'}
+                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'monedas' ? 'Nueva Moneda' : activeTab === 'combos' ? 'Nuevo Combo' : 'Nuevo Implant'}
                             </motion.button>
                         </>
                     )}
@@ -388,6 +396,7 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'productos'} onClick={() => setActiveTab('productos')} icon={<Tags className="w-4 h-4" />} label="Productos" />
                 <TabButton active={activeTab === 'variables'} onClick={() => setActiveTab('variables')} icon={<Tags className="w-4 h-4" />} label="Variables Adic." />
                 <TabButton active={activeTab === 'combos'} onClick={() => setActiveTab('combos')} icon={<Database className="w-4 h-4" />} label="Combos" />
+                <TabButton active={activeTab === 'monedas'} onClick={() => setActiveTab('monedas')} icon={<DollarSign className="w-4 h-4" />} label="Monedas" />
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
                 <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<TerminalSquare className="w-4 h-4" />} label="Logs del Sistema" />
             </div>
@@ -398,7 +407,7 @@ export default function SettingsPage() {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
                     <input
                         type="text"
-                        placeholder={`Buscar en ${activeTab === 'usuarios' ? 'Usuarios' : activeTab === 'sucursales' ? 'Sucursales' : activeTab === 'impuestos' ? 'Cargos e Impuestos' : activeTab === 'vendedores' ? 'Vendedores' : activeTab === 'tiqueteadores' ? 'Tiqueteadores' : activeTab === 'prestadoras' ? 'Prestadoras' : activeTab === 'clientes' ? 'Clientes' : activeTab === 'proveedores' ? 'Proveedores' : activeTab === 'productos' ? 'Productos' : activeTab === 'variables' ? 'Variables' : activeTab === 'parametros' ? 'Parámetros' : activeTab === 'combos' ? 'Combos' : activeTab === 'logs' ? 'Logs' : 'Implants'}...`}
+                        placeholder={`Buscar en ${activeTab === 'usuarios' ? 'Usuarios' : activeTab === 'sucursales' ? 'Sucursales' : activeTab === 'impuestos' ? 'Cargos e Impuestos' : activeTab === 'vendedores' ? 'Vendedores' : activeTab === 'tiqueteadores' ? 'Tiqueteadores' : activeTab === 'prestadoras' ? 'Prestadoras' : activeTab === 'clientes' ? 'Clientes' : activeTab === 'proveedores' ? 'Proveedores' : activeTab === 'productos' ? 'Productos' : activeTab === 'variables' ? 'Variables' : activeTab === 'parametros' ? 'Parámetros' : activeTab === 'monedas' ? 'Monedas' : activeTab === 'combos' ? 'Combos' : activeTab === 'logs' ? 'Logs' : 'Implants'}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full h-14 pl-14 pr-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-zinc-900 dark:text-white"
@@ -459,7 +468,15 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Tipo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Descripción</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Costo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Precio Base</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'monedas' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Moneda</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Tasa Conv.</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : activeTab === 'logs' ? (
@@ -635,6 +652,9 @@ export default function SettingsPage() {
                                             </span>
                                         </td>
                                         <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.description}</td>
+                                        <td className="px-8 py-6 font-medium text-zinc-500">
+                                            {item.cost != null ? `$${item.cost.toLocaleString()}` : '-'}
+                                        </td>
                                         <td className="px-8 py-6 font-black text-emerald-600">
                                             ${item.basePrice?.toLocaleString() || '0'}
                                         </td>
@@ -673,6 +693,22 @@ export default function SettingsPage() {
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button onClick={() => handleDuplicateCombo(item)} title="Duplicar Combo" className="p-2 text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all"><Copy className="w-5 h-5" /></button>
+                                                <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {activeTab === 'monedas' && (currencies || []).filter(item => 
+                                    item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.code?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map(item => (
+                                    <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.name}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.exchangeRate}</td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
                                                 <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
                                                 <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
                                             </div>
@@ -780,7 +816,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'combos' ? 'Combo' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'monedas' ? 'Moneda' : activeTab === 'combos' ? 'Combo' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -913,7 +949,6 @@ export default function SettingsPage() {
                                                 className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                                                 value={formData.providerId || ''}
                                                 onChange={(e) => setFormData({ ...formData, providerId: e.target.value })}
-                                                required
                                             >
                                                 <option value="">Seleccionar Proveedor</option>
                                                 {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -967,6 +1002,7 @@ export default function SettingsPage() {
                                                             <option value="Otro">Otro</option>
                                                         </select>
                                                     </div>
+                                                    <Input label="Costo ($)" value={formData.cost ?? ''} onChange={(v: string) => setFormData({ ...formData, cost: v === '' ? '' : parseFloat(v) })} type="number" step="0.01" placeholder="0.00" />
                                                     <Input label="Precio Base ($)" value={formData.basePrice ?? ''} onChange={(v: string) => setFormData({ ...formData, basePrice: v === '' ? '' : parseFloat(v) })} type="number" step="0.01" required placeholder="0.00" />
                                                 </div>
                                                 <Input label="Descripción / Nombre" value={formData.description || ''} onChange={(v: string) => setFormData({ ...formData, description: v })} required placeholder="Ej. Tiquete Aéreo Nacional" />
@@ -975,11 +1011,40 @@ export default function SettingsPage() {
                                                     <Input label="Clasificación Servicio" value={formData.serviceType || ''} onChange={(v: string) => setFormData({ ...formData, serviceType: v })} placeholder="Opcional" />
                                                 </div>
                                             </>
+                                        ) : activeTab === 'monedas' ? (
+                                            <>
+                                                <Input label="Código de Moneda" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. USD, EUR, PA" />
+                                                <Input label="Nombre de la Moneda" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Dólar Estadounidense" />
+                                                <Input label="Tasa de Cambio (respecto a moneda base)" value={formData.exchangeRate ?? ''} onChange={(v: string) => setFormData({ ...formData, exchangeRate: v === '' ? '' : parseFloat(v) })} type="number" step="0.0001" required placeholder="Ej. 1.000" />
+                                            </>
                                         ) : activeTab === 'combos' ? (
                                             <div className="max-h-[70vh] overflow-y-auto pr-4 custom-scrollbar space-y-10 p-2">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
                                                     <Input label="Código del Combo" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. COMBO-PROMO" />
-                                                    <Input label="Nombre del Combo" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Paquete Turístico Todo Incluido" />
+                                                    <Input label="Nombre del Combo" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Paquete Turístico" />
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Cupos Disponibles</label>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            step="1"
+                                                            className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-emerald-500 transition-all outline-none text-emerald-600 dark:text-emerald-400"
+                                                            value={formData.cupos ?? 0}
+                                                            placeholder="0"
+                                                            onChange={(e) => setFormData({ ...formData, cupos: parseInt(e.target.value) || 0 })}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Moneda del Combo</label>
+                                                        <select
+                                                            className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                            value={formData.currencyId || ''}
+                                                            onChange={(e) => setFormData({ ...formData, currencyId: e.target.value ? parseInt(e.target.value) : null })}
+                                                        >
+                                                            <option value="">Seleccionar Moneda...</option>
+                                                            {currencies.map((c: any) => <option key={c.id} value={c.id}>{c.code} - {c.name}</option>)}
+                                                        </select>
+                                                    </div>
                                                 </div>
                                                 
                                                 <div className="space-y-6">
@@ -1026,15 +1091,24 @@ export default function SettingsPage() {
                                                                             className="w-full h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                                                                             value={cp.productId?.toString() || ''}
                                                                             onChange={(e) => {
-                                                                                const prod = products.find(p => p.id === parseInt(e.target.value));
+                                                                                const prod = products.find((p: any) => p.id === parseInt(e.target.value));
                                                                                 const newProds = [...formData.products];
-                                                                                newProds[idx] = { ...cp, productId: e.target.value, price: prod?.basePrice || 0 };
+                                                                                newProds[idx] = {
+                                                                                    ...cp,
+                                                                                    productId: e.target.value,
+                                                                                    price: prod?.basePrice || 0,
+                                                                                    cost: prod?.cost ?? 0
+                                                                                };
                                                                                 setFormData({ ...formData, products: newProds });
                                                                             }}
                                                                             required
                                                                         >
                                                                             <option value="">Seleccionar Producto...</option>
-                                                                            {products.map(p => <option key={p.id} value={p.id}>{p.description}</option>)}
+                                                                            {products.map((p: any) => (
+                                                                                <option key={p.id} value={p.id}>
+                                                                                    {p.code ? `[${p.code}] ` : ''}{p.description}
+                                                                                </option>
+                                                                            ))}
                                                                         </select>
                                                                     </div>
                                                                 </div>
@@ -1093,7 +1167,7 @@ export default function SettingsPage() {
                                                                         </select>
                                                                     </div>
                                                                 </div>
-                                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                                                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                                                                     <div>
                                                                         <label className="text-[9px] font-bold text-zinc-400 uppercase ml-1">Check-In</label>
                                                                         <input type="date" className="w-full h-10 bg-white dark:bg-zinc-900 rounded-xl px-2 border border-zinc-200 dark:border-zinc-700 text-[10px] font-bold outline-none" value={cp.checkInDate ? cp.checkInDate.split('T')[0] : ''} onChange={(e) => {
@@ -1107,6 +1181,15 @@ export default function SettingsPage() {
                                                                         <input type="date" className="w-full h-10 bg-white dark:bg-zinc-900 rounded-xl px-2 border border-zinc-200 dark:border-zinc-700 text-[10px] font-bold outline-none" value={cp.checkOutDate ? cp.checkOutDate.split('T')[0] : ''} onChange={(e) => {
                                                                             const newProds = [...formData.products];
                                                                             newProds[idx] = { ...cp, checkOutDate: e.target.value };
+                                                                            setFormData({ ...formData, products: newProds });
+                                                                        }} />
+                                                                    </div>
+                                                                    <div>
+                                                                        <label className="text-[9px] font-bold text-zinc-400 uppercase ml-1">Cantidad</label>
+                                                                        <input type="number" min="1" className="w-full h-10 bg-white dark:bg-zinc-900 rounded-xl px-2 border border-zinc-200 dark:border-zinc-700 text-xs font-bold outline-none transition-all focus:ring-1 focus:ring-emerald-500" value={cp.quantity || 1} onChange={(e) => {
+                                                                            const val = Math.max(1, parseInt(e.target.value) || 1);
+                                                                            const newProds = [...formData.products];
+                                                                            newProds[idx] = { ...cp, quantity: val };
                                                                             setFormData({ ...formData, products: newProds });
                                                                         }} />
                                                                     </div>
@@ -1179,7 +1262,7 @@ export default function SettingsPage() {
                                                                     </div>
                                                                 </div>
 
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                                     {/* Left: Total Calculation Area */}
                                                                     <div className="p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800 flex flex-col justify-center gap-2">
                                                                         <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest text-center">Valor Total de Fila (Sumatoria)</label>
@@ -1195,7 +1278,6 @@ export default function SettingsPage() {
                                                                                     const newChargeAmount = newTotal - currentOtherTaxes;
                                                                                     const newProds = [...formData.products];
                                                                                     
-                                                                                    // Recalculate other percentage-based taxes based on the NEW main charge
                                                                                     let newApplied = (cp.appliedTaxes || []).map((at: any) => {
                                                                                         if (at.chargeAndTaxId === cp.mainTaxId) return { ...at, amount: newChargeAmount };
                                                                                         const originalTax = taxes.find(t => t.id === at.chargeAndTaxId);
@@ -1210,6 +1292,27 @@ export default function SettingsPage() {
                                                                                         price: newChargeAmount / (cp.quantity || 1),
                                                                                         appliedTaxes: newApplied
                                                                                     };
+                                                                                    setFormData({ ...formData, products: newProds });
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Center: Cost Field */}
+                                                                    <div className="p-4 bg-orange-50/50 dark:bg-orange-900/10 rounded-2xl border border-orange-100 dark:border-orange-800 flex flex-col justify-center gap-2">
+                                                                        <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest text-center">Costo del Producto ($)</label>
+                                                                        <div className="relative">
+                                                                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400" />
+                                                                            <input
+                                                                                type="number"
+                                                                                min="0"
+                                                                                step="0.01"
+                                                                                className="w-full h-14 bg-white dark:bg-zinc-900 rounded-2xl pl-10 pr-4 text-xl font-black text-orange-600 outline-none border-2 border-orange-200 focus:border-orange-500 shadow-sm text-center"
+                                                                                value={cp.cost ?? 0}
+                                                                                placeholder="0.00"
+                                                                                onChange={(e) => {
+                                                                                    const newProds = [...formData.products];
+                                                                                    newProds[idx] = { ...cp, cost: parseFloat(e.target.value) || 0 };
                                                                                     setFormData({ ...formData, products: newProds });
                                                                                 }}
                                                                             />

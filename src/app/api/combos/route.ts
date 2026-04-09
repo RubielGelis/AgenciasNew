@@ -18,16 +18,19 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { code, name, products } = body
+        const { code, name, cupos, currencyId, products } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spComboCrear($1::TEXT, $2::TEXT, $3::JSONB, $4::INT, $5::INT, $6::TEXT)`,
+            `CALL public.spComboCrear($1::TEXT, $2::TEXT, $3::INT, $4::INT, $5::JSONB, $6::INT, $7::INT, $8::TEXT)`,
             code,
             name,
+            parseInt(cupos?.toString() || '0'),
+            currencyId || null,
             JSON.stringify((products || []).map((p: any) => ({
                 ...p,
+                cost: p.cost || 0,
                 checkInDate: p.checkInDate || null,
                 checkOutDate: p.checkOutDate || null,
                 providerId: p.providerId || null,

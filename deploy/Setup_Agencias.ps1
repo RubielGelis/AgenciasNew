@@ -34,7 +34,7 @@ $PgPass = Read-Host "6. Clave BD [] "
 
 # Generar Variables Derivadas
 $CurrentDir = $PSScriptRoot
-$SitePort = 8081
+$SitePort = 3000
 $SiteName = "AgenciasNew"
 
 # 1. VERIFICAR INSTALAR NODE.JS (Si no existe, se instala en Modo Silencioso)
@@ -78,7 +78,8 @@ Copy-Item "$CurrentDir\*" -Destination $TargetDir -Recurse -Force | Out-Null
 # 4. CONFIGURAR VARIABLES DE ENTORNO DESTINO (.env)
 $DatabaseUrl = "postgresql://$($PgUser):$($PgPass)@$($PgHost):$($PgPort)/$($PgDb)?schema=public"
 $EnvPath = "$TargetDir\.env"
-Set-Content -Path $EnvPath -Value "DATABASE_URL=`"$DatabaseUrl`"`n" -Encoding UTF8
+$EnvContent = "DATABASE_URL=`"$DatabaseUrl`"`nNEXTAUTH_SECRET=`"AgenciasProductionSecretKey2024_Security`"`nNEXTAUTH_URL=`"http://localhost:$SitePort`"`n"
+Set-Content -Path $EnvPath -Value $EnvContent -Encoding UTF8
 
 # 5. ACTUALIZAR/CREAR BASE DE DATOS
 Write-Host "`n[-] Inyectando Estructuras Maestras en PostgreSQL..." -ForegroundColor Gray
@@ -93,6 +94,17 @@ if ($LASTEXITCODE -ne 0) {
 
 # 6. INSTALAR SERVICIO DE WINDOWS
 Write-Host "`n[-] Creando servicio oculto del sistema operativo (Motor Background)..." -ForegroundColor Gray
+if (Get-Service -Name "AgenciasNew_NextJS" -ErrorAction SilentlyContinue) {
+    Stop-Service -Name "AgenciasNew_NextJS" -Force -ErrorAction SilentlyContinue 
+    sc.exe delete "AgenciasNew_NextJS" | Out-Null
+    Start-Sleep -Seconds 2
+}
+
+if (Test-Path "$TargetDir\daemon") {
+    Write-Host "    Limpiando cache del servicio anterior..." -ForegroundColor DarkGray
+    Remove-Item "$TargetDir\daemon" -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 node .\install-service.js | Out-Null
 
 # 7. PUBLICAR SITIO IIS
@@ -100,11 +112,12 @@ Write-Host "`n[-] Configurando Portal en Internet Information Services..." -Fore
 Import-Module WebAdministration 
 
 if (Get-Website -Name $SiteName -ErrorAction SilentlyContinue) {
-    Remove-IISSite -Name $SiteName -Confirm:$false
+    Stop-Website -Name $SiteName -ErrorAction SilentlyContinue 
+    Remove-Website -Name $SiteName -Force -Confirm:$false -ErrorAction SilentlyContinue
     Remove-Item "IIS:\Sites\$SiteName" -Recurse -Force -ErrorAction SilentlyContinue
 }
-New-IISSite -Name $SiteName -PhysicalPath $TargetDir -BindingInformation "*:$SitePort:" | Out-Null
-Start-IISSite -Name $SiteName -ErrorAction SilentlyContinue | Out-Null
+New-Website -Name $SiteName -PhysicalPath $TargetDir -Port $SitePort -Force | Out-Null
+Start-Website -Name $SiteName -ErrorAction SilentlyContinue | Out-Null
 
 Write-Host "`n========================================================" -ForegroundColor Green
 Write-Host " ¡INSTALACIÓN COMPLETADA! " -ForegroundColor Green
