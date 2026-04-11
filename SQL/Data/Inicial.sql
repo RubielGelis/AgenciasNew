@@ -43,13 +43,14 @@ VALUES (
 ON CONFLICT (email) DO NOTHING;
 
 -- 5. Productos
-INSERT INTO public."Product" (type, description, "basePrice", cost)
-VALUES ('ALOJAMIENTO', 'Hotel', 0, 0)
-ON CONFLICT DO NOTHING;
 
-INSERT INTO public."Product" (type, description, "basePrice", cost)
-VALUES ('ALQUILER', 'RestaAuto', 0, 0)
-ON CONFLICT DO NOTHING;
+INSERT INTO public."Product" (code, type, description, "basePrice", cost)
+VALUES ('HTL','ALOJAMIENTO', 'Hotel', 0, 0)
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."Product" (code, type, description, "basePrice", cost)
+VALUES ('RTA','ALQUILER', 'RestaAuto', 0, 0)
+ON CONFLICT (code) DO NOTHING;
 
 
 -- 6. Cargos e Impuestos

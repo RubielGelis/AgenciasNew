@@ -64,9 +64,9 @@ model Prestadora {
   type              String?
   location          String?
   category          String?
-  providerId        Int
+  providerId        Int?
   code              String?            @unique
-  provider          Provider           @relation(fields: [providerId], references: [id])
+  provider          Provider?          @relation(fields: [providerId], references: [id])
   quotationProducts QuotationProduct[]
   comboProducts     ComboProduct[]
 }

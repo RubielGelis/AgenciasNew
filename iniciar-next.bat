@@ -1,40 +1,16 @@
 @echo off
-title Servidor Next.js
+title Servidor Produccion Next.js
+cd /d "%~dp0"
 
-echo ==============================
-echo Iniciando servidor Next.js
-echo ==============================
+echo ===========================================
+echo   ARRANCANDO SERVIDOR AGENCIA (PRODUCCION)
+echo ===========================================
+echo.
 
-cd /d C:\Proyectos\AgenciasNew
-
-IF NOT EXIST package.json (
- echo ERROR: No se encontro package.json
- pause
- exit
-)
+call npm run start
 
 echo.
-echo Instalando dependencias...
-call npm install
-
-IF %ERRORLEVEL% NEQ 0 (
- echo Error instalando dependencias
- pause
- exit
-)
-
-echo.
-echo Compilando proyecto...
-call npm run build
-
-IF %ERRORLEVEL% NEQ 0 (
- echo Error en build
- pause
- exit
-)
-
-echo.
-echo Iniciando servidor Next.js...
-npm run start
-
+echo ===========================================
+echo  EL SERVIDOR SE HA DETENIDO
+echo ===========================================
 pause

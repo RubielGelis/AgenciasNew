@@ -712,6 +712,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                 Desglose de Productos
                             </h3>
                             <button
+                                type="button"
                                 onClick={addItem}
                                 className="text-emerald-600 font-bold flex items-center gap-1 hover:underline text-sm"
                             >

@@ -549,7 +549,7 @@ BEGIN
 	    name text COLLATE pg_catalog."default" NOT NULL,
 	    location text COLLATE pg_catalog."default",
 	    category text COLLATE pg_catalog."default",
-	    "providerId" integer NOT NULL,
+	    "providerId" integer,
 	    code text COLLATE pg_catalog."default",
 	    type text COLLATE pg_catalog."default",
 	    CONSTRAINT "Prestadora_pkey" PRIMARY KEY (id),
