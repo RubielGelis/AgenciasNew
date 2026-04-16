@@ -158,7 +158,7 @@ export default function ResetPasswordPage() {
             </div>
 
             <footer className="absolute bottom-10 text-zinc-600 dark:text-zinc-500 text-sm">
-                &copy; {new Date().getFullYear()} Agencias New. Todos los derechos reservados.
+                &copy; {new Date().getFullYear()} KoreX. Todos los derechos reservados.
             </footer>
         </main>
     )

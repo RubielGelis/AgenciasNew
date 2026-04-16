@@ -14,7 +14,7 @@ export function generateQuotationPDF(data: any) {
 
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
-    doc.text('AGENCIAS NEW', 10, 25);
+    doc.text('KOREX', 10, 25);
     doc.setFontSize(10);
     doc.text('COTIZACIÓN DE SERVICIOS TURÍSTICOS', 10, 32);
 
@@ -94,7 +94,7 @@ export function generateQuotationPDF(data: any) {
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text('Esta es una cotización informativa válida por 48 horas.', 105, 280, { align: 'center' });
-    doc.text('Agencias New - Tecnología para servicios turísticos.', 105, 285, { align: 'center' });
+    doc.text('KoreX - Tecnología para servicios turísticos.', 105, 285, { align: 'center' });
 
     doc.save(`cotizacion_${data.internalNumber || 'draft'}.pdf`);
 }

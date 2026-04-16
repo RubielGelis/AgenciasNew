@@ -45,12 +45,12 @@ export async function POST(req: NextRequest) {
         })
 
         const mailOptions = {
-            from: `"Soporte Agencias New" <${process.env.SMTP_USER}>`,
+            from: `"Soporte KoreX" <${process.env.SMTP_USER}>`,
             to: email,
-            subject: 'Recuperación de Contraseña - Agencias New',
+            subject: 'Recuperación de Contraseña - KoreX',
             html: `
                 <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                    <h2 style="color: #2563eb; text-align: center;">Agencias New</h2>
+                    <h2 style="color: #2563eb; text-align: center;">KoreX</h2>
                     <p>Hola,</p>
                     <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta. Haz clic en el siguiente botón para crear una nueva:</p>
                     <div style="text-align: center; margin: 30px 0;">

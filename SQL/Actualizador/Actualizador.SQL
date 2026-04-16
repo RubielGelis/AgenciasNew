@@ -1053,8 +1053,6 @@
 	ALTER TABLE public."Combo" ADD CONSTRAINT "Combo_currencyId_fkey"
 	    FOREIGN KEY ("currencyId") REFERENCES public."Currency"(id)
 	    ON UPDATE CASCADE ON DELETE SET NULL;
-	ALTER TABLE public."Combo" ADD COLUMN IF NOT EXISTS "cupos" integer DEFAULT 1;
-	ALTER TABLE public."Prestadora" ALTER COLUMN "providerId" DROP NOT NULL;	
 --END	$$ 		
 
 -- >>> 2. FUNCIONES <<<
@@ -1962,6 +1960,12 @@ BEGIN
     -- 1. Inicializar
     mensaje_resultado := '';
 
+    Quotation_id := TRIM(BOTH ',' FROM TRIM(COALESCE(Quotation_id, '')));
+    IF Quotation_id = '' THEN
+        mensaje_resultado := 'ERROR: No se han proporcionado IDs de cotización válidos.';
+        RETURN;
+    END IF;
+
     -- 2. Validación de usuario
     SELECT "name" INTO v_nombre_usuario FROM public."User" WHERE id = User_id;
     IF NOT FOUND THEN
@@ -2212,6 +2216,19 @@ BEGIN
 		cd_Cotizacion VARCHAR(25)
 	) ON COMMIT DROP;
 
+	CREATE TEMP TABLE IF NOT EXISTS Fac_Servicios_TiposFacturacionHoteles(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		cd_Cotizacion varchar(25),
+		cd_CotizacionServicios varchar(25),
+		cd_TiposFacturacionHoteles varchar(25),
+		cd_cargosdesc varchar(25),
+		in_cantidad INT,
+		am_contado DECIMAL,
+		am_credito DECIMAL,
+		am_valor DECIMAL GENERATED ALWAYS AS (am_contado + am_credito) STORED,
+		ds_cargonm varchar(50) NULL
+	) ON COMMIT DROP;
+
     -- 4. Poblar Tablas Temporales (POBLANDO TODAS LAS COLUMNAS CON NOMBRES EXPLÍCITOS)
     
     INSERT INTO Cotizacion (
@@ -2343,10 +2360,21 @@ BEGIN
         COALESCE(qp.destination, '') as ds_destino, 
         COALESCE(pr.description, '') as ds_servicio, 
         COALESCE(pr.description, '') as ds_descrip, 
-        '' as ds_paxname,
-        '' as ds_paxape, 
-        '' as cd_paxtype, 
-        0 as in_nacionalidad, 
+		CASE 
+	        WHEN qpp.name IS NULL OR TRIM(qpp.name) = '' THEN ''
+	        WHEN TRIM(qpp.name) NOT LIKE '% %' THEN TRIM(qpp.name)
+	        ELSE COALESCE(arr[1], '')
+	    END AS ds_paxname,
+	    CASE 
+	        WHEN qpp.name IS NULL OR TRIM(qpp.name) = '' THEN ''
+	        WHEN TRIM(qpp.name) NOT LIKE '% %' THEN ''
+	        ELSE COALESCE(arr[2], '')
+	    END AS ds_paxape,
+        CASE 
+	        WHEN TRIM(qpp.name) LIKE '% %' THEN COALESCE(arr[3], '')
+	        ELSE ''
+	    END as cd_paxtype, 
+        COALESCE(qp."inNationality", 1) as in_nacionalidad, 
         '' as cd_voucher, 
         qp.quantity as in_cantpax, 
         COALESCE(qp."checkInDate", q.dt_fecha) as dt_llegada,
@@ -2374,7 +2402,10 @@ BEGIN
         0 as Valor_Comision, 
         0 as Valor_Recaudo,
         0 as dias_recaudo, 
-        '' as ds_paxClasificacion, 
+        CASE 
+	        WHEN TRIM(qpp.name) LIKE '% %' THEN COALESCE(arr[4], '')
+	        ELSE ''
+	    END  as ds_paxClasificacion, 
         '' as cd_tipoplan, 
         '' as cd_acomodacion, 
         0 as in_dias,
@@ -2404,7 +2435,7 @@ BEGIN
         'Q' || LPAD(qp."id"::text, 7, '0') as cd_Consecutivo_VARiablesAdicionales, 
         '' as cd_confirmacion,
         '' as ds_confirmadopor, 
-        '' as cd_paxidentificacion, 
+        COALESCE(qpp.document,'') as cd_paxidentificacion, 
         B'0' as bl_politicaCancelacion,
         q.dt_fecha as dt_politicaCancelacion, 
         '' as cd_tipoHabitacionacion, 
@@ -2445,25 +2476,77 @@ BEGIN
 	JOIN public."Quotation" qt ON qp."quotationId" = qt.id
     JOIN public."Product" pr ON qp."productId" = pr.id
     JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
-    LEFT JOIN public."Provider" prov ON qp."providerId" = prov."id";
+    LEFT JOIN public."Provider" prov ON qp."providerId" = prov."id"
+	LEFT JOIN LATERAL ( SELECT  pp.*,
+		        				regexp_split_to_array(TRIM(pp.name), '\s+') AS arr
+		    			FROM public."QuotationProductPassenger" pp 
+						WHERE pp."quotationProductId" = qp.id
+    					ORDER BY pp.id
+    					LIMIT 1) qpp ON true;
 
-    INSERT INTO CotizacionServicios_PaxAdicional (
-        cd_Cotizacion, cd_CotizacionServicios, ds_paxape, ds_paxname, ds_paxprefix,
-        ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion, in_edad, cd_tiquete
-    )
-    SELECT 
-        cs.cd_Cotizacion, 
-        cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios, 
-        '' as ds_paxape, 
-        p.name as ds_paxname, 
-        '' as ds_paxprefix, 
-        '' as ds_paxClasificacion, 
-        '' as cd_voucherpax, 
-        p.document as cd_paxidentificacion, 
-        0 as in_edad, 
-        '' as cd_tiquete
-    FROM public."QuotationProductPassenger" p
-    JOIN CotizacionServicios cs ON p."quotationProductId" = cs.orig_id_ref;
+    --INSERT INTO CotizacionServicios_PaxAdicional (
+    --    cd_Cotizacion, cd_CotizacionServicios, ds_paxape, ds_paxname, ds_paxprefix,
+    --    ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion, in_edad, cd_tiquete
+    --)
+    --SELECT 
+    --    cs.cd_Cotizacion, 
+    --    cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios, 
+    --    '' as ds_paxape, 
+    --    p.name as ds_paxname, 
+    --    '' as ds_paxprefix, 
+    --    '' as ds_paxClasificacion, 
+    --    '' as cd_voucherpax, 
+    --    p.document as cd_paxidentificacion, 
+    --    0 as in_edad, 
+    --    '' as cd_tiquete
+    --FROM public."QuotationProductPassenger" p
+    --JOIN CotizacionServicios cs ON p."quotationProductId" = cs.orig_id_ref;
+
+	INSERT INTO CotizacionServicios_PaxAdicional (
+				cd_Cotizacion,cd_CotizacionServicios, ds_paxape, ds_paxname, ds_paxprefix,
+				ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion,in_edad, cd_tiquete
+	)
+	SELECT 
+	    cs.cd_Cotizacion, 
+	    cs.cd_Consecutivo_VARiablesAdicionales AS cd_CotizacionServicios, 
+	    CASE 
+	        WHEN p.name IS NULL OR TRIM(p.name) = '' THEN ''
+	        WHEN TRIM(p.name) NOT LIKE '% %' THEN ''
+	        ELSE COALESCE(arr[2], '')
+	    END AS ds_paxape,
+	    CASE 
+	        WHEN p.name IS NULL OR TRIM(p.name) = '' THEN ''
+	        WHEN TRIM(p.name) NOT LIKE '% %' THEN TRIM(p.name)
+	        ELSE COALESCE(arr[1], '')
+	    END AS ds_paxname,
+	    CASE 
+	        WHEN TRIM(p.name) LIKE '% %' THEN COALESCE(arr[3], '')
+	        ELSE ''
+	    END AS ds_paxprefix,
+	    CASE 
+	        WHEN TRIM(p.name) LIKE '% %' THEN COALESCE(arr[4], '')
+	        ELSE ''
+	    END AS ds_paxClasificacion,
+	    CASE 
+	        WHEN TRIM(p.name) LIKE '% %' THEN COALESCE(arr[5], '')
+	        ELSE ''
+	    END AS cd_voucherpax,
+	    p.document AS cd_paxidentificacion, 
+	    0 AS in_edad, 
+	    '' AS cd_tiquete
+		FROM (
+		    SELECT 
+		        p.*,
+		        regexp_split_to_array(TRIM(p.name), '\s+') AS arr,
+		        ROW_NUMBER() OVER (
+		            PARTITION BY p."quotationProductId"
+		            ORDER BY p.id
+		        ) AS rn
+		    FROM public."QuotationProductPassenger" p
+		) p
+		JOIN CotizacionServicios cs 
+		    ON p."quotationProductId" = cs.orig_id_ref
+		WHERE p.rn > 1;
 
     INSERT INTO CotizacionServicios_VariableAdicional (
         cd_Cotizacion, cd_CotizacionServicios, ds_maestro, ds_VariableAdicional, ds_valor, cd_codigo
@@ -2509,8 +2592,8 @@ BEGIN
     SELECT 
         COALESCE(tp."id", 1)::text  as cd_CotizacionCargos,
 		t."id"::text as cd_CotizacionImpuestos,
-        ct.name as cd_ImpRet, 
-        COALESCE(ct.name, '') as ds_Impas, 
+        COALESCE(ct."code", '') as cd_ImpRet, 
+        COALESCE(ct."name", '') as ds_Impas, 
         '' as cd_impcta, 
         COALESCE(t."valueSnapshot", 0) as am_porcentaje,
         B'0' as bl_contabilizar, 
@@ -2526,6 +2609,29 @@ BEGIN
 	JOIN Cotizacion c ON c.orig_id_ref = cs.orig_id_quotationref
 	LEFT JOIN public."QuotationProductTax" tp ON tp."quotationProductId" = cs.orig_id_ref and tp."chargeAndTaxId" = cs.mainTaxId
     WHERE ct.type = 'TAX';
+
+	INSERT INTO Fac_Servicios_TiposFacturacionHoteles(
+		cd_Cotizacion,
+		cd_CotizacionServicios,
+		cd_TiposFacturacionHoteles,
+		cd_cargosdesc,
+		in_cantidad,
+		am_contado,
+		am_credito,
+		ds_cargonm
+	)	
+	SELECT 
+		'Q' || LPAD(qp."quotationId"::text, 7, '0') as cd_Cotizacion, 
+		'Q' || LPAD(qp."id"::text, 7, '0') as cd_CotizacionServicios,
+		'NCH' AS cd_TiposFacturacionHoteles, --ADT Adulto,CHD Niño,HAB Habitacion,CAN Cantidad,NCH Noches
+		COALESCE(ct."code",'TAR') AS cd_cargosdesc,
+		COALESCE(qp."quantity",0) AS in_cantidad,
+		COALESCE(tp."explicitAmount",0)/COALESCE(qp."quantity",1) AS am_contado,
+		0 AS am_credito,
+		COALESCE(ct."name",'Tarifa') AS ds_cargonm
+	FROM public."QuotationProduct" qp
+	LEFT JOIN public."ChargeAndTax" ct ON ct.id = qp."mainTaxId"
+	LEFT JOIN public."QuotationProductTax" tp ON tp."quotationProductId" = qp."id" and tp."chargeAndTaxId" = qp."mainTaxId";
 
     -- 5. Generar XML
     SELECT xmlroot(
@@ -2650,7 +2756,26 @@ BEGIN
                                     )
                                     FROM CotizacionImpuestos imp
                                     WHERE imp.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
-                                )
+                                ),
+								(
+									SELECT xmlagg(
+                                        xmlelement(name "Fac_Servicios_TiposFacturacionHoteles",
+                                            xmlforest(
+													TF.cd_Cotizacion as cd_Cotizacion,
+													TF.cd_CotizacionServicios as cd_CotizacionServicios,
+													TF.cd_TiposFacturacionHoteles as cd_TiposFacturacionHoteles,
+													TF.cd_cargosdesc as cd_cargosdesc,
+													TF.in_cantidad as in_cantidad,
+													TF.am_contado as am_contado,
+													TF.am_credito as am_credito,
+													TF.am_valor as am_valor,
+													TF.ds_cargonm as ds_cargonm
+											)
+                                        )
+                                    )				
+									FROM Fac_Servicios_TiposFacturacionHoteles TF
+									WHERE TF.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
+								)
                             )
                         )
                         FROM CotizacionServicios s
@@ -2676,7 +2801,7 @@ EXCEPTION
             v_context = PG_EXCEPTION_CONTEXT;
 
         -- 2. Extraer la línea del texto del contexto (usando Regex)
-		v_line := substring(v_context from 'línea ([0-9]+)')::TEXT;
+		v_line :=substring(v_context from 'line ([0-9]+)')::TEXT;
 	
 
         mensaje_resultado := format('ERROR: %s | EN LÍNEA: %s | ESTADO: %s', v_msg, v_line, v_state);
@@ -2727,38 +2852,39 @@ DECLARE
 BEGIN
     -- 1. Crear tabla temporal
     CREATE TEMP TABLE IF NOT EXISTS tmp_import_rows (
-        row_id INT GENERATED ALWAYS AS IDENTITY,
-        grupo TEXT,
-        cliente_doc TEXT,
-        sucursal_cd TEXT,
-        implant_cd TEXT,
-        vendedor_cd TEXT,
-        tiqueteador_cd TEXT,
-        moneda TEXT,
-        tasa_cambio DECIMAL,
-        comision_global DECIMAL,
-        cargos_global DECIMAL,
-        producto_cd TEXT,
-        proveedor_nm TEXT, 
-        proveedor_cd TEXT,
-        prestadora_cd TEXT,
-        impuestos_str TEXT,
-        variables_str TEXT,
-        pasajeros_str TEXT,
-        precio DECIMAL,
-        cantidad INT,
-        check_in TIMESTAMP,
-        check_out TIMESTAMP,
-        pax_adultos INT,
-        pax_ninos INT,
-        destino TEXT,
-        tipo_servicio TEXT,
-        reserva TEXT,
-        com_vendedor DECIMAL,
-        com_tiqueteador DECIMAL,
-        combos_str TEXT,
-        nacionalidad INT DEFAULT 1,
-        cargo_principal_cd TEXT
+        row_id INT GENERATED ALWAYS AS IDENTITY, --0
+        grupo TEXT, --1
+        cliente_doc TEXT, --2
+        sucursal_cd TEXT, --3
+        implant_cd TEXT, --4
+        vendedor_cd TEXT, --5
+        tiqueteador_cd TEXT, --6
+        moneda TEXT, --7
+        tasa_cambio DECIMAL, -- 8
+        comision_global DECIMAL, -- 9
+        cargos_global DECIMAL, --10
+        producto_cd TEXT, --11
+        proveedor_nm TEXT, --12 
+        proveedor_cd TEXT, --13
+        prestadora_cd TEXT, --14
+        impuestos_str TEXT, --15
+        variables_str TEXT, --16
+        pasajeros_str TEXT, --17
+        precio DECIMAL, --18
+        cantidad INT, --19
+        check_in TIMESTAMP, --20
+        check_out TIMESTAMP, --21
+        pax_adultos INT, --22
+        pax_ninos INT, --23
+        destino TEXT, --24
+        tipo_servicio TEXT, --25
+        reserva TEXT, --26
+        com_vendedor DECIMAL, --27
+        com_tiqueteador DECIMAL, --28
+        combos_str TEXT, --29
+        nacionalidad INT DEFAULT 1, --30
+        cargo_principal_cd TEXT, --31
+		cost DECIMAL DEFAULT 0--32
     ) ON COMMIT DROP;
 
     DELETE FROM tmp_import_rows;
@@ -2784,28 +2910,71 @@ BEGIN
             END IF;
             
             INSERT INTO tmp_import_rows (
-                grupo, cliente_doc, sucursal_cd, implant_cd, vendedor_cd, tiqueteador_cd,
-                moneda, tasa_cambio, comision_global, cargos_global, producto_cd,
-                proveedor_nm, proveedor_cd, prestadora_cd, impuestos_str, variables_str, pasajeros_str,
-                precio, cantidad, check_in, check_out, pax_adultos, pax_ninos,
-                destino, tipo_servicio, reserva, com_vendedor, com_tiqueteador,
-                combos_str, nacionalidad, cargo_principal_cd
+                grupo, -- 1
+				cliente_doc, -- 2 
+				sucursal_cd, -- 3
+				implant_cd, -- 4
+				vendedor_cd, -- 5
+				tiqueteador_cd, -- 6
+                moneda, -- 7
+				tasa_cambio, -- 8 
+				comision_global, -- 9
+				cargos_global, -- 10
+				producto_cd, -- 11
+                proveedor_nm, -- 12
+				proveedor_cd, -- 13
+				prestadora_cd, -- 14
+				impuestos_str, -- 15
+				variables_str, -- 16
+				pasajeros_str, -- 17
+                precio, -- 18
+				cantidad, -- 19
+				check_in, -- 20
+				check_out, -- 21
+				pax_adultos, -- 22
+				pax_ninos, -- 23
+                destino, -- 24
+				tipo_servicio, -- 25
+				reserva, -- 26
+				com_vendedor, -- 27 
+				com_tiqueteador, -- 28
+                combos_str, -- 29
+				nacionalidad, -- 30
+				cargo_principal_cd, -- 31
+				cost -- 32
             ) VALUES (
-                TRIM(v_cols[1]), TRIM(v_cols[2]), TRIM(v_cols[3]), TRIM(v_cols[4]), TRIM(v_cols[5]), TRIM(v_cols[6]),
-                TRIM(v_cols[7]), NULLIF(TRIM(v_cols[8]), '')::DECIMAL, NULLIF(TRIM(v_cols[9]), '')::DECIMAL,
-                NULLIF(TRIM(v_cols[10]), '')::DECIMAL, TRIM(v_cols[11]), -- Producto Codigo
+                TRIM(v_cols[1]), -- grupo 
+				TRIM(v_cols[2]), -- cliente_doc 
+				TRIM(v_cols[3]), -- sucursal_cd
+				TRIM(v_cols[4]), -- implant_cd
+				TRIM(v_cols[5]), -- vendedor_cd
+				TRIM(v_cols[6]), -- tiqueteador_cd
+                TRIM(v_cols[7]), -- moneda
+				NULLIF(TRIM(v_cols[8]), '')::DECIMAL, -- tasa_cambio
+				NULLIF(TRIM(v_cols[9]), '')::DECIMAL, -- comision_global
+                NULLIF(TRIM(v_cols[10]), '')::DECIMAL, --cargos_global
+				TRIM(v_cols[11]), -- Producto Codigo
                 TRIM(v_cols[12]), -- Prov Nombre
                 TRIM(v_cols[13]), -- Prov Codigo
                 TRIM(v_cols[14]), -- Prestadora Codigo
-                TRIM(v_cols[15]), TRIM(v_cols[16]), TRIM(v_cols[17]), -- Impuestos, Vars, Pasajeros
-                NULLIF(TRIM(v_cols[18]), '')::DECIMAL, NULLIF(TRIM(v_cols[19]), '')::INT,
-                CASE WHEN TRIM(v_cols[20]) <> '' THEN TRIM(v_cols[20])::TIMESTAMP ELSE NULL END,
-                CASE WHEN TRIM(v_cols[21]) <> '' THEN TRIM(v_cols[21])::TIMESTAMP ELSE NULL END,
-                NULLIF(TRIM(v_cols[22]), '')::INT, NULLIF(TRIM(v_cols[23]), '')::INT,
-                TRIM(v_cols[24]), TRIM(v_cols[25]), TRIM(v_cols[26]),
-                NULLIF(TRIM(v_cols[27]), '')::DECIMAL, NULLIF(TRIM(v_cols[28]), '')::DECIMAL,
-                TRIM(v_cols[29]), COALESCE(NULLIF(TRIM(v_cols[30]), '')::INT, 1),
-                TRIM(v_cols[31])
+                TRIM(v_cols[15]), -- Vars
+				TRIM(v_cols[16]), -- Impuestos
+				TRIM(v_cols[17]), -- Pasajeros
+                NULLIF(TRIM(v_cols[18]), '')::DECIMAL, -- precio
+				NULLIF(TRIM(v_cols[19]), '')::INT, -- cantidad
+                CASE WHEN TRIM(v_cols[20]) <> '' THEN TRIM(v_cols[20])::TIMESTAMP ELSE NULL END, -- check_in
+                CASE WHEN TRIM(v_cols[21]) <> '' THEN TRIM(v_cols[21])::TIMESTAMP ELSE NULL END, -- check_out
+                NULLIF(TRIM(v_cols[22]), '')::INT, -- pax_adultos
+				NULLIF(TRIM(v_cols[23]), '')::INT, -- pax_ninos
+                TRIM(v_cols[24]), -- destino
+				TRIM(v_cols[25]), -- tipo_servicio
+				TRIM(v_cols[26]), -- reserva 
+                NULLIF(TRIM(v_cols[27]), '')::DECIMAL, -- comision vendedor
+				NULLIF(TRIM(v_cols[28]), '')::DECIMAL, -- comision tiqueteador
+                TRIM(v_cols[29]), -- codigo combos
+				COALESCE(NULLIF(TRIM(v_cols[30]), '')::INT, 1), -- nacionalidad
+                TRIM(v_cols[31]), --cargo_principal_cd
+				NULLIF(TRIM(v_cols[32]), '')::DECIMAL --costo
             );
         EXCEPTION WHEN OTHERS THEN
             p_mensaje_resultado := 'ERROR en FILA ' || v_imported_count || ': ' || SQLERRM || ' (Valor: ' || v_row_text || ')';
@@ -2880,9 +3049,9 @@ BEGIN
                         -- Insertar productos del combo
                         FOR v_cp_record IN (SELECT * FROM public."ComboProduct" WHERE "comboId" = v_combo_id) LOOP
                             INSERT INTO public."QuotationProduct" (
-                                "quotationId", "productId", "quantity", "price", "comboId", "mainTaxId", "inNationality"
+                                "quotationId", "productId", "quantity", "price", "comboId", "mainTaxId", "inNationality", "cost"
                             ) VALUES (
-                                v_quotation_id, v_cp_record."productId", v_cp_record.quantity, v_cp_record.price, v_combo_id, v_cp_record."mainTaxId", v_cp_record."inNationality"
+                                v_quotation_id, v_cp_record."productId", v_cp_record.quantity, v_cp_record.price, v_combo_id, v_cp_record."mainTaxId", v_cp_record."inNationality", v_cp_record."cost"
                             ) RETURNING id INTO v_qp_id;
 
                             v_total_amount := v_total_amount + (v_cp_record.price * v_cp_record.quantity);
@@ -2946,7 +3115,8 @@ BEGIN
                     "sellerCommission" = COALESCE(v_product_record.com_vendedor, "sellerCommission"),
                     "ticketPrinterCommission" = COALESCE(v_product_record.com_tiqueteador, "ticketPrinterCommission"),
                     "inNationality" = COALESCE(v_product_record.nacionalidad, "inNationality"),
-                    "mainTaxId" = COALESCE(v_main_tax_id, "mainTaxId")
+                    "mainTaxId" = COALESCE(v_main_tax_id, "mainTaxId"),
+					"cost" = COALESCE(v_product_record.cost, "cost")
                 WHERE id = v_qp_id;
 
                 -- Eliminar impuestos base del combo si hay overrides en Excel
@@ -2962,7 +3132,7 @@ BEGIN
                     "quotationId", "productId", "quantity", "price", "providerId", "prestadoraId", 
                     "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren", 
                     "serviceType", "destination", "reservationCode", "sellerCommission", "ticketPrinterCommission",
-                    "inNationality", "mainTaxId"
+                    "inNationality", "mainTaxId", "cost"
                 ) VALUES (
                     v_quotation_id, v_product_id, COALESCE(v_product_record.cantidad, 1), 
                     COALESCE(v_product_record.precio, 0), v_provider_id, v_prestadora_id, 
@@ -2973,7 +3143,7 @@ BEGIN
                     COALESCE(v_product_record.pax_adultos, 1), COALESCE(v_product_record.pax_ninos, 0),
                     v_product_record.tipo_servicio, v_product_record.destino, v_product_record.reserva,
                     v_product_record.com_vendedor, v_product_record.com_tiqueteador,
-                    COALESCE(v_product_record.nacionalidad, 1), v_main_tax_id
+                    COALESCE(v_product_record.nacionalidad, 1), v_main_tax_id, v_product_record.cost
                 ) RETURNING id INTO v_qp_id;
             END IF;
 

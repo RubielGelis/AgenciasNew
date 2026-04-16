@@ -265,6 +265,24 @@ BEGIN
 			cd_Cotizacion varchar(25) NULL,
 			cd_CotizacionServicios varchar(25) NULL
 		 )
+
+		 DECLARE @Fac_Servicios_TiposFacturacionHoteles TABLE(
+			id INT IDENTITY(1,1) NOT NULL,
+			cd_Cotizacion varchar(25) NULL,
+			cd_CotizacionServicios varchar(25) NULL,
+			cd_TiposFacturacionHoteles varchar(25) NULL,
+			cd_cargosdesc varchar(25) NULL,
+			id_Fac_Servicios int NULL,
+			id_CotizacionServicios int NULL,
+			Id_TiposFacturacionHoteles int NOT NULL,
+			in_cantidad int NULL,
+			am_valor money NULL,
+			am_contado money NOT NULL,
+			am_credito money NOT NULL,
+			Id_Cotizacion_Solicitud int NULL,
+			id_cargosdesc int NULL,
+			ds_cargonm varchar(50) NULL
+		 )
 		
 
         -- Validar que el XML sea correcto
@@ -683,8 +701,8 @@ BEGIN
 			cd_tiquete=ISNULL(C.CotizacionServicios_PaxAdicional.value('cd_tiquete[1]','VARCHAR(11)'),''),
 			cd_Cotizacion=ISNULL(C.CotizacionServicios_PaxAdicional.value('cd_cotizacion[1]','VARCHAR(25)'),''),
 			cd_CotizacionServicios=ISNULL(C.CotizacionServicios_PaxAdicional.value('cd_cotizacionservicios[1]','VARCHAR(25)'),'') 
-		FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios_PaxAdicional') AS C(CotizacionServicios_PaxAdicional)	
-
+		FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios/CotizacionServicios_PaxAdicional') AS C(CotizacionServicios_PaxAdicional)	
+		
 		INSERT INTO @CotizacionCargos(
 			id_CotizacionServicios,
 			id_cargosdesc,
@@ -760,13 +778,47 @@ BEGIN
 		 SELECT
 			IDEN_Maestro=M.IDEN ,
 			IDEN_Variable=V.IDEN ,
-			CodigoMaestro=ISNULL(C.CotizacionServicios_VariableAdicional.value('cd_CotizacionServicios[1]','VARCHAR(50)'),'') ,
+			CodigoMaestro=ISNULL(C.CotizacionServicios_VariableAdicional.value('cd_cotizacionservicios[1]','VARCHAR(50)'),'') ,
 			ValorNumerico=NULL ,
 			ValorFecha=NULL ,
 			ValorVarchar=ISNULL(C.CotizacionServicios_VariableAdicional.value('ds_valor[1]','VARCHAR(500)'),'') 
-		 FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios_VariableAdicional') AS C(CotizacionServicios_VariableAdicional)
+		 FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios/CotizacionServicios_VariableAdicional') AS C(CotizacionServicios_VariableAdicional)
 		 LEFT JOIN dbo.VariableDefinicion V ON V.Nombre = ISNULL(C.CotizacionServicios_VariableAdicional.value('cd_codigo[1]','VARCHAR(25)'),'')
 		 LEFT JOIN dbo.VariableDefinicionMaestro M ON M.Codigo = ISNULL(C.CotizacionServicios_VariableAdicional.value('ds_maestro[1]','VARCHAR(30)'),'')
+		 
+		 INSERT INTO @Fac_Servicios_TiposFacturacionHoteles (
+			cd_Cotizacion,
+			cd_CotizacionServicios,
+			cd_TiposFacturacionHoteles,
+			cd_cargosdesc,
+			id_Fac_Servicios,
+			id_CotizacionServicios,
+			Id_TiposFacturacionHoteles,
+			in_cantidad,
+			am_valor,
+			am_contado,
+			am_credito,
+			Id_Cotizacion_Solicitud,
+			id_cargosdesc,
+			ds_cargonm
+		)
+		SELECT cd_Cotizacion=ISNULL(C.TiposFacturacionHoteles.value('cd_cotizacion[1]','VARCHAR(25)'),''),
+			   cd_CotizacionServicios=ISNULL(C.TiposFacturacionHoteles.value('cd_cotizacionservicios[1]','VARCHAR(25)'),''),
+			   cd_TiposFacturacionHoteles=ISNULL(C.TiposFacturacionHoteles.value('cd_tiposfacturacionhoteles[1]','VARCHAR(25)'),''),
+			   cd_cargosdesc=ISNULL(C.TiposFacturacionHoteles.value('cd_cargosdesc[1]','VARCHAR(25)'),'TAR'),
+			   id_Fac_Servicios=NULL,
+			   id_CotizacionServicios=NULL,
+			   Id_TiposFacturacionHoteles=ISNULL(TF.id,5),
+			   in_cantidad=ISNULL(C.TiposFacturacionHoteles.value('in_cantidad[1]','INT'),1),
+			   am_valor=ISNULL(C.TiposFacturacionHoteles.value('am_valor[1]','MONEY'),0),
+			   am_contado=ISNULL(C.TiposFacturacionHoteles.value('am_contado[1]','MONEY'),0),
+			   am_credito=ISNULL(C.TiposFacturacionHoteles.value('am_credito[1]','MONEY'),0),
+			   Id_Cotizacion_Solicitud=NULL,
+			   id_cargosdesc=ISNULL(CD.id,1),
+			   ds_cargonm=ISNULL(CD.ds_nombre,'Tarifa')
+		FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios/Fac_Servicios_TiposFacturacionHoteles') AS C(TiposFacturacionHoteles)
+		LEFT JOIN dbo.TiposFacturacionHoteles TF ON TF.cd_codigo=ISNULL(C.TiposFacturacionHoteles.value('cd_tiposfacturacionhotel[1]','VARCHAR(3)'),'') 
+		LEFT JOIN dbo.CargosDesc CD ON CD.cd_codigo=ISNULL(C.TiposFacturacionHoteles.value('cd_cargosdesc[1]','VARCHAR(3)'),'') 
 
 		-- Insert (cd_consecutivo automático)
         INSERT INTO dbo.Cotizacion(
@@ -1248,6 +1300,36 @@ BEGIN
 				  V.ValorNumerico,
 				  V.ValorFecha,
 				  V.ValorVarchar
+		
+		UPDATE TF
+		SET TF.id_CotizacionServicios=CS.id_CotizacionServicios
+		FROM @Fac_Servicios_TiposFacturacionHoteles TF
+		INNER JOIN @CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales = TF.cd_CotizacionServicios
+
+		INSERT INTO dbo.Fac_Servicios_TiposFacturacionHoteles(
+			id_Fac_Servicios,
+			id_CotizacionServicios,
+			Id_TiposFacturacionHoteles,
+			in_cantidad,
+			am_valor,
+			am_contado,
+			am_credito,
+			Id_Cotizacion_Solicitud,
+			id_cargosdesc,
+			ds_cargonm
+		)
+		SELECT id_Fac_Servicios,
+			   id_CotizacionServicios,
+			   Id_TiposFacturacionHoteles,
+			   in_cantidad,
+			   am_valor,
+			   am_contado,
+			   am_credito,
+			   Id_Cotizacion_Solicitud,
+			   id_cargosdesc,
+			   ds_cargonm
+		FROM @Fac_Servicios_TiposFacturacionHoteles
+		WHERE Id_TiposFacturacionHoteles IS NOT NULL
 
 		--ROLLBACK TRANSACTION;
         COMMIT TRANSACTION;

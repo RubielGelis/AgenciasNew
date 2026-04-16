@@ -41,38 +41,39 @@ DECLARE
 BEGIN
     -- 1. Crear tabla temporal
     CREATE TEMP TABLE IF NOT EXISTS tmp_import_rows (
-        row_id INT GENERATED ALWAYS AS IDENTITY,
-        grupo TEXT,
-        cliente_doc TEXT,
-        sucursal_cd TEXT,
-        implant_cd TEXT,
-        vendedor_cd TEXT,
-        tiqueteador_cd TEXT,
-        moneda TEXT,
-        tasa_cambio DECIMAL,
-        comision_global DECIMAL,
-        cargos_global DECIMAL,
-        producto_cd TEXT,
-        proveedor_nm TEXT, 
-        proveedor_cd TEXT,
-        prestadora_cd TEXT,
-        impuestos_str TEXT,
-        variables_str TEXT,
-        pasajeros_str TEXT,
-        precio DECIMAL,
-        cantidad INT,
-        check_in TIMESTAMP,
-        check_out TIMESTAMP,
-        pax_adultos INT,
-        pax_ninos INT,
-        destino TEXT,
-        tipo_servicio TEXT,
-        reserva TEXT,
-        com_vendedor DECIMAL,
-        com_tiqueteador DECIMAL,
-        combos_str TEXT,
-        nacionalidad INT DEFAULT 1,
-        cargo_principal_cd TEXT
+        row_id INT GENERATED ALWAYS AS IDENTITY, --0
+        grupo TEXT, --1
+        cliente_doc TEXT, --2
+        sucursal_cd TEXT, --3
+        implant_cd TEXT, --4
+        vendedor_cd TEXT, --5
+        tiqueteador_cd TEXT, --6
+        moneda TEXT, --7
+        tasa_cambio DECIMAL, -- 8
+        comision_global DECIMAL, -- 9
+        cargos_global DECIMAL, --10
+        producto_cd TEXT, --11
+        proveedor_nm TEXT, --12 
+        proveedor_cd TEXT, --13
+        prestadora_cd TEXT, --14
+        impuestos_str TEXT, --15
+        variables_str TEXT, --16
+        pasajeros_str TEXT, --17
+        precio DECIMAL, --18
+        cantidad INT, --19
+        check_in TIMESTAMP, --20
+        check_out TIMESTAMP, --21
+        pax_adultos INT, --22
+        pax_ninos INT, --23
+        destino TEXT, --24
+        tipo_servicio TEXT, --25
+        reserva TEXT, --26
+        com_vendedor DECIMAL, --27
+        com_tiqueteador DECIMAL, --28
+        combos_str TEXT, --29
+        nacionalidad INT DEFAULT 1, --30
+        cargo_principal_cd TEXT, --31
+		cost DECIMAL DEFAULT 0--32
     ) ON COMMIT DROP;
 
     DELETE FROM tmp_import_rows;
@@ -98,28 +99,71 @@ BEGIN
             END IF;
             
             INSERT INTO tmp_import_rows (
-                grupo, cliente_doc, sucursal_cd, implant_cd, vendedor_cd, tiqueteador_cd,
-                moneda, tasa_cambio, comision_global, cargos_global, producto_cd,
-                proveedor_nm, proveedor_cd, prestadora_cd, impuestos_str, variables_str, pasajeros_str,
-                precio, cantidad, check_in, check_out, pax_adultos, pax_ninos,
-                destino, tipo_servicio, reserva, com_vendedor, com_tiqueteador,
-                combos_str, nacionalidad, cargo_principal_cd
+                grupo, -- 1
+				cliente_doc, -- 2 
+				sucursal_cd, -- 3
+				implant_cd, -- 4
+				vendedor_cd, -- 5
+				tiqueteador_cd, -- 6
+                moneda, -- 7
+				tasa_cambio, -- 8 
+				comision_global, -- 9
+				cargos_global, -- 10
+				producto_cd, -- 11
+                proveedor_nm, -- 12
+				proveedor_cd, -- 13
+				prestadora_cd, -- 14
+				impuestos_str, -- 15
+				variables_str, -- 16
+				pasajeros_str, -- 17
+                precio, -- 18
+				cantidad, -- 19
+				check_in, -- 20
+				check_out, -- 21
+				pax_adultos, -- 22
+				pax_ninos, -- 23
+                destino, -- 24
+				tipo_servicio, -- 25
+				reserva, -- 26
+				com_vendedor, -- 27 
+				com_tiqueteador, -- 28
+                combos_str, -- 29
+				nacionalidad, -- 30
+				cargo_principal_cd, -- 31
+				cost -- 32
             ) VALUES (
-                TRIM(v_cols[1]), TRIM(v_cols[2]), TRIM(v_cols[3]), TRIM(v_cols[4]), TRIM(v_cols[5]), TRIM(v_cols[6]),
-                TRIM(v_cols[7]), NULLIF(TRIM(v_cols[8]), '')::DECIMAL, NULLIF(TRIM(v_cols[9]), '')::DECIMAL,
-                NULLIF(TRIM(v_cols[10]), '')::DECIMAL, TRIM(v_cols[11]), -- Producto Codigo
+                TRIM(v_cols[1]), -- grupo 
+				TRIM(v_cols[2]), -- cliente_doc 
+				TRIM(v_cols[3]), -- sucursal_cd
+				TRIM(v_cols[4]), -- implant_cd
+				TRIM(v_cols[5]), -- vendedor_cd
+				TRIM(v_cols[6]), -- tiqueteador_cd
+                TRIM(v_cols[7]), -- moneda
+				NULLIF(TRIM(v_cols[8]), '')::DECIMAL, -- tasa_cambio
+				NULLIF(TRIM(v_cols[9]), '')::DECIMAL, -- comision_global
+                NULLIF(TRIM(v_cols[10]), '')::DECIMAL, --cargos_global
+				TRIM(v_cols[11]), -- Producto Codigo
                 TRIM(v_cols[12]), -- Prov Nombre
                 TRIM(v_cols[13]), -- Prov Codigo
                 TRIM(v_cols[14]), -- Prestadora Codigo
-                TRIM(v_cols[15]), TRIM(v_cols[16]), TRIM(v_cols[17]), -- Impuestos, Vars, Pasajeros
-                NULLIF(TRIM(v_cols[18]), '')::DECIMAL, NULLIF(TRIM(v_cols[19]), '')::INT,
-                CASE WHEN TRIM(v_cols[20]) <> '' THEN TRIM(v_cols[20])::TIMESTAMP ELSE NULL END,
-                CASE WHEN TRIM(v_cols[21]) <> '' THEN TRIM(v_cols[21])::TIMESTAMP ELSE NULL END,
-                NULLIF(TRIM(v_cols[22]), '')::INT, NULLIF(TRIM(v_cols[23]), '')::INT,
-                TRIM(v_cols[24]), TRIM(v_cols[25]), TRIM(v_cols[26]),
-                NULLIF(TRIM(v_cols[27]), '')::DECIMAL, NULLIF(TRIM(v_cols[28]), '')::DECIMAL,
-                TRIM(v_cols[29]), COALESCE(NULLIF(TRIM(v_cols[30]), '')::INT, 1),
-                TRIM(v_cols[31])
+                TRIM(v_cols[15]), -- Vars
+				TRIM(v_cols[16]), -- Impuestos
+				TRIM(v_cols[17]), -- Pasajeros
+                NULLIF(TRIM(v_cols[18]), '')::DECIMAL, -- precio
+				NULLIF(TRIM(v_cols[19]), '')::INT, -- cantidad
+                CASE WHEN TRIM(v_cols[20]) <> '' THEN TRIM(v_cols[20])::TIMESTAMP ELSE NULL END, -- check_in
+                CASE WHEN TRIM(v_cols[21]) <> '' THEN TRIM(v_cols[21])::TIMESTAMP ELSE NULL END, -- check_out
+                NULLIF(TRIM(v_cols[22]), '')::INT, -- pax_adultos
+				NULLIF(TRIM(v_cols[23]), '')::INT, -- pax_ninos
+                TRIM(v_cols[24]), -- destino
+				TRIM(v_cols[25]), -- tipo_servicio
+				TRIM(v_cols[26]), -- reserva 
+                NULLIF(TRIM(v_cols[27]), '')::DECIMAL, -- comision vendedor
+				NULLIF(TRIM(v_cols[28]), '')::DECIMAL, -- comision tiqueteador
+                TRIM(v_cols[29]), -- codigo combos
+				COALESCE(NULLIF(TRIM(v_cols[30]), '')::INT, 1), -- nacionalidad
+                TRIM(v_cols[31]), --cargo_principal_cd
+				NULLIF(TRIM(v_cols[32]), '')::DECIMAL --costo
             );
         EXCEPTION WHEN OTHERS THEN
             p_mensaje_resultado := 'ERROR en FILA ' || v_imported_count || ': ' || SQLERRM || ' (Valor: ' || v_row_text || ')';
@@ -194,9 +238,9 @@ BEGIN
                         -- Insertar productos del combo
                         FOR v_cp_record IN (SELECT * FROM public."ComboProduct" WHERE "comboId" = v_combo_id) LOOP
                             INSERT INTO public."QuotationProduct" (
-                                "quotationId", "productId", "quantity", "price", "comboId", "mainTaxId", "inNationality"
+                                "quotationId", "productId", "quantity", "price", "comboId", "mainTaxId", "inNationality", "cost"
                             ) VALUES (
-                                v_quotation_id, v_cp_record."productId", v_cp_record.quantity, v_cp_record.price, v_combo_id, v_cp_record."mainTaxId", v_cp_record."inNationality"
+                                v_quotation_id, v_cp_record."productId", v_cp_record.quantity, v_cp_record.price, v_combo_id, v_cp_record."mainTaxId", v_cp_record."inNationality", v_cp_record."cost"
                             ) RETURNING id INTO v_qp_id;
 
                             v_total_amount := v_total_amount + (v_cp_record.price * v_cp_record.quantity);
@@ -260,7 +304,8 @@ BEGIN
                     "sellerCommission" = COALESCE(v_product_record.com_vendedor, "sellerCommission"),
                     "ticketPrinterCommission" = COALESCE(v_product_record.com_tiqueteador, "ticketPrinterCommission"),
                     "inNationality" = COALESCE(v_product_record.nacionalidad, "inNationality"),
-                    "mainTaxId" = COALESCE(v_main_tax_id, "mainTaxId")
+                    "mainTaxId" = COALESCE(v_main_tax_id, "mainTaxId"),
+					"cost" = COALESCE(v_product_record.cost, "cost")
                 WHERE id = v_qp_id;
 
                 -- Eliminar impuestos base del combo si hay overrides en Excel
@@ -276,7 +321,7 @@ BEGIN
                     "quotationId", "productId", "quantity", "price", "providerId", "prestadoraId", 
                     "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren", 
                     "serviceType", "destination", "reservationCode", "sellerCommission", "ticketPrinterCommission",
-                    "inNationality", "mainTaxId"
+                    "inNationality", "mainTaxId", "cost"
                 ) VALUES (
                     v_quotation_id, v_product_id, COALESCE(v_product_record.cantidad, 1), 
                     COALESCE(v_product_record.precio, 0), v_provider_id, v_prestadora_id, 
@@ -287,7 +332,7 @@ BEGIN
                     COALESCE(v_product_record.pax_adultos, 1), COALESCE(v_product_record.pax_ninos, 0),
                     v_product_record.tipo_servicio, v_product_record.destino, v_product_record.reserva,
                     v_product_record.com_vendedor, v_product_record.com_tiqueteador,
-                    COALESCE(v_product_record.nacionalidad, 1), v_main_tax_id
+                    COALESCE(v_product_record.nacionalidad, 1), v_main_tax_id, v_product_record.cost
                 ) RETURNING id INTO v_qp_id;
             END IF;
 

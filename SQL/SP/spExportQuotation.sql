@@ -20,6 +20,12 @@ BEGIN
     -- 1. Inicializar
     mensaje_resultado := '';
 
+    Quotation_id := TRIM(BOTH ',' FROM TRIM(COALESCE(Quotation_id, '')));
+    IF Quotation_id = '' THEN
+        mensaje_resultado := 'ERROR: No se han proporcionado IDs de cotización válidos.';
+        RETURN;
+    END IF;
+
     -- 2. Validación de usuario
     SELECT "name" INTO v_nombre_usuario FROM public."User" WHERE id = User_id;
     IF NOT FOUND THEN
@@ -270,6 +276,19 @@ BEGIN
 		cd_Cotizacion VARCHAR(25)
 	) ON COMMIT DROP;
 
+	CREATE TEMP TABLE IF NOT EXISTS Fac_Servicios_TiposFacturacionHoteles(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		cd_Cotizacion varchar(25),
+		cd_CotizacionServicios varchar(25),
+		cd_TiposFacturacionHoteles varchar(25),
+		cd_cargosdesc varchar(25),
+		in_cantidad INT,
+		am_contado DECIMAL,
+		am_credito DECIMAL,
+		am_valor DECIMAL GENERATED ALWAYS AS (am_contado + am_credito) STORED,
+		ds_cargonm varchar(50) NULL
+	) ON COMMIT DROP;
+
     -- 4. Poblar Tablas Temporales (POBLANDO TODAS LAS COLUMNAS CON NOMBRES EXPLÍCITOS)
     
     INSERT INTO Cotizacion (
@@ -401,10 +420,21 @@ BEGIN
         COALESCE(qp.destination, '') as ds_destino, 
         COALESCE(pr.description, '') as ds_servicio, 
         COALESCE(pr.description, '') as ds_descrip, 
-        '' as ds_paxname,
-        '' as ds_paxape, 
-        '' as cd_paxtype, 
-        0 as in_nacionalidad, 
+		CASE 
+	        WHEN qpp.name IS NULL OR TRIM(qpp.name) = '' THEN ''
+	        WHEN TRIM(qpp.name) NOT LIKE '% %' THEN TRIM(qpp.name)
+	        ELSE COALESCE(arr[1], '')
+	    END AS ds_paxname,
+	    CASE 
+	        WHEN qpp.name IS NULL OR TRIM(qpp.name) = '' THEN ''
+	        WHEN TRIM(qpp.name) NOT LIKE '% %' THEN ''
+	        ELSE COALESCE(arr[2], '')
+	    END AS ds_paxape,
+        CASE 
+	        WHEN TRIM(qpp.name) LIKE '% %' THEN COALESCE(arr[3], '')
+	        ELSE ''
+	    END as cd_paxtype, 
+        COALESCE(qp."inNationality", 1) as in_nacionalidad, 
         '' as cd_voucher, 
         qp.quantity as in_cantpax, 
         COALESCE(qp."checkInDate", q.dt_fecha) as dt_llegada,
@@ -432,7 +462,10 @@ BEGIN
         0 as Valor_Comision, 
         0 as Valor_Recaudo,
         0 as dias_recaudo, 
-        '' as ds_paxClasificacion, 
+        CASE 
+	        WHEN TRIM(qpp.name) LIKE '% %' THEN COALESCE(arr[4], '')
+	        ELSE ''
+	    END  as ds_paxClasificacion, 
         '' as cd_tipoplan, 
         '' as cd_acomodacion, 
         0 as in_dias,
@@ -462,7 +495,7 @@ BEGIN
         'Q' || LPAD(qp."id"::text, 7, '0') as cd_Consecutivo_VARiablesAdicionales, 
         '' as cd_confirmacion,
         '' as ds_confirmadopor, 
-        '' as cd_paxidentificacion, 
+        COALESCE(qpp.document,'') as cd_paxidentificacion, 
         B'0' as bl_politicaCancelacion,
         q.dt_fecha as dt_politicaCancelacion, 
         '' as cd_tipoHabitacionacion, 
@@ -503,25 +536,77 @@ BEGIN
 	JOIN public."Quotation" qt ON qp."quotationId" = qt.id
     JOIN public."Product" pr ON qp."productId" = pr.id
     JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
-    LEFT JOIN public."Provider" prov ON qp."providerId" = prov."id";
+    LEFT JOIN public."Provider" prov ON qp."providerId" = prov."id"
+	LEFT JOIN LATERAL ( SELECT  pp.*,
+		        				regexp_split_to_array(TRIM(pp.name), '\s+') AS arr
+		    			FROM public."QuotationProductPassenger" pp 
+						WHERE pp."quotationProductId" = qp.id
+    					ORDER BY pp.id
+    					LIMIT 1) qpp ON true;
 
-    INSERT INTO CotizacionServicios_PaxAdicional (
-        cd_Cotizacion, cd_CotizacionServicios, ds_paxape, ds_paxname, ds_paxprefix,
-        ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion, in_edad, cd_tiquete
-    )
-    SELECT 
-        cs.cd_Cotizacion, 
-        cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios, 
-        '' as ds_paxape, 
-        p.name as ds_paxname, 
-        '' as ds_paxprefix, 
-        '' as ds_paxClasificacion, 
-        '' as cd_voucherpax, 
-        p.document as cd_paxidentificacion, 
-        0 as in_edad, 
-        '' as cd_tiquete
-    FROM public."QuotationProductPassenger" p
-    JOIN CotizacionServicios cs ON p."quotationProductId" = cs.orig_id_ref;
+    --INSERT INTO CotizacionServicios_PaxAdicional (
+    --    cd_Cotizacion, cd_CotizacionServicios, ds_paxape, ds_paxname, ds_paxprefix,
+    --    ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion, in_edad, cd_tiquete
+    --)
+    --SELECT 
+    --    cs.cd_Cotizacion, 
+    --    cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios, 
+    --    '' as ds_paxape, 
+    --    p.name as ds_paxname, 
+    --    '' as ds_paxprefix, 
+    --    '' as ds_paxClasificacion, 
+    --    '' as cd_voucherpax, 
+    --    p.document as cd_paxidentificacion, 
+    --    0 as in_edad, 
+    --    '' as cd_tiquete
+    --FROM public."QuotationProductPassenger" p
+    --JOIN CotizacionServicios cs ON p."quotationProductId" = cs.orig_id_ref;
+
+	INSERT INTO CotizacionServicios_PaxAdicional (
+				cd_Cotizacion,cd_CotizacionServicios, ds_paxape, ds_paxname, ds_paxprefix,
+				ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion,in_edad, cd_tiquete
+	)
+	SELECT 
+	    cs.cd_Cotizacion, 
+	    cs.cd_Consecutivo_VARiablesAdicionales AS cd_CotizacionServicios, 
+	    CASE 
+	        WHEN p.name IS NULL OR TRIM(p.name) = '' THEN ''
+	        WHEN TRIM(p.name) NOT LIKE '% %' THEN ''
+	        ELSE COALESCE(arr[2], '')
+	    END AS ds_paxape,
+	    CASE 
+	        WHEN p.name IS NULL OR TRIM(p.name) = '' THEN ''
+	        WHEN TRIM(p.name) NOT LIKE '% %' THEN TRIM(p.name)
+	        ELSE COALESCE(arr[1], '')
+	    END AS ds_paxname,
+	    CASE 
+	        WHEN TRIM(p.name) LIKE '% %' THEN COALESCE(arr[3], '')
+	        ELSE ''
+	    END AS ds_paxprefix,
+	    CASE 
+	        WHEN TRIM(p.name) LIKE '% %' THEN COALESCE(arr[4], '')
+	        ELSE ''
+	    END AS ds_paxClasificacion,
+	    CASE 
+	        WHEN TRIM(p.name) LIKE '% %' THEN COALESCE(arr[5], '')
+	        ELSE ''
+	    END AS cd_voucherpax,
+	    p.document AS cd_paxidentificacion, 
+	    0 AS in_edad, 
+	    '' AS cd_tiquete
+		FROM (
+		    SELECT 
+		        p.*,
+		        regexp_split_to_array(TRIM(p.name), '\s+') AS arr,
+		        ROW_NUMBER() OVER (
+		            PARTITION BY p."quotationProductId"
+		            ORDER BY p.id
+		        ) AS rn
+		    FROM public."QuotationProductPassenger" p
+		) p
+		JOIN CotizacionServicios cs 
+		    ON p."quotationProductId" = cs.orig_id_ref
+		WHERE p.rn > 1;
 
     INSERT INTO CotizacionServicios_VariableAdicional (
         cd_Cotizacion, cd_CotizacionServicios, ds_maestro, ds_VariableAdicional, ds_valor, cd_codigo
@@ -567,8 +652,8 @@ BEGIN
     SELECT 
         COALESCE(tp."id", 1)::text  as cd_CotizacionCargos,
 		t."id"::text as cd_CotizacionImpuestos,
-        ct.name as cd_ImpRet, 
-        COALESCE(ct.name, '') as ds_Impas, 
+        COALESCE(ct."code", '') as cd_ImpRet, 
+        COALESCE(ct."name", '') as ds_Impas, 
         '' as cd_impcta, 
         COALESCE(t."valueSnapshot", 0) as am_porcentaje,
         B'0' as bl_contabilizar, 
@@ -584,6 +669,29 @@ BEGIN
 	JOIN Cotizacion c ON c.orig_id_ref = cs.orig_id_quotationref
 	LEFT JOIN public."QuotationProductTax" tp ON tp."quotationProductId" = cs.orig_id_ref and tp."chargeAndTaxId" = cs.mainTaxId
     WHERE ct.type = 'TAX';
+
+	INSERT INTO Fac_Servicios_TiposFacturacionHoteles(
+		cd_Cotizacion,
+		cd_CotizacionServicios,
+		cd_TiposFacturacionHoteles,
+		cd_cargosdesc,
+		in_cantidad,
+		am_contado,
+		am_credito,
+		ds_cargonm
+	)	
+	SELECT 
+		'Q' || LPAD(qp."quotationId"::text, 7, '0') as cd_Cotizacion, 
+		'Q' || LPAD(qp."id"::text, 7, '0') as cd_CotizacionServicios,
+		'NCH' AS cd_TiposFacturacionHoteles, --ADT Adulto,CHD Niño,HAB Habitacion,CAN Cantidad,NCH Noches
+		COALESCE(ct."code",'TAR') AS cd_cargosdesc,
+		COALESCE(qp."quantity",0) AS in_cantidad,
+		COALESCE(tp."explicitAmount",0)/COALESCE(qp."quantity",1) AS am_contado,
+		0 AS am_credito,
+		COALESCE(ct."name",'Tarifa') AS ds_cargonm
+	FROM public."QuotationProduct" qp
+	LEFT JOIN public."ChargeAndTax" ct ON ct.id = qp."mainTaxId"
+	LEFT JOIN public."QuotationProductTax" tp ON tp."quotationProductId" = qp."id" and tp."chargeAndTaxId" = qp."mainTaxId";
 
     -- 5. Generar XML
     SELECT xmlroot(
@@ -708,7 +816,26 @@ BEGIN
                                     )
                                     FROM CotizacionImpuestos imp
                                     WHERE imp.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
-                                )
+                                ),
+								(
+									SELECT xmlagg(
+                                        xmlelement(name "Fac_Servicios_TiposFacturacionHoteles",
+                                            xmlforest(
+													TF.cd_Cotizacion as cd_Cotizacion,
+													TF.cd_CotizacionServicios as cd_CotizacionServicios,
+													TF.cd_TiposFacturacionHoteles as cd_TiposFacturacionHoteles,
+													TF.cd_cargosdesc as cd_cargosdesc,
+													TF.in_cantidad as in_cantidad,
+													TF.am_contado as am_contado,
+													TF.am_credito as am_credito,
+													TF.am_valor as am_valor,
+													TF.ds_cargonm as ds_cargonm
+											)
+                                        )
+                                    )				
+									FROM Fac_Servicios_TiposFacturacionHoteles TF
+									WHERE TF.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
+								)
                             )
                         )
                         FROM CotizacionServicios s
@@ -734,7 +861,7 @@ EXCEPTION
             v_context = PG_EXCEPTION_CONTEXT;
 
         -- 2. Extraer la línea del texto del contexto (usando Regex)
-		v_line := substring(v_context from 'línea ([0-9]+)')::TEXT;
+		v_line :=substring(v_context from 'line ([0-9]+)')::TEXT;
 	
 
         mensaje_resultado := format('ERROR: %s | EN LÍNEA: %s | ESTADO: %s', v_msg, v_line, v_state);
