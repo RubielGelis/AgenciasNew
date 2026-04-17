@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
             });
         });
 
-        return NextResponse.json({ message: 'Cotización guardada con éxito', quotation })
+        const finalMessage = message && message !== '' ? message : 'SUCCESS: Cotización creada correctamente con ID ' + dbQuotationId;
+        return NextResponse.json({ message: finalMessage, quotation })
     } catch (error: any) {
         console.error('Error saving quotation (POST):', error)
         return NextResponse.json({ message: 'Error al guardar la cotización: ' + (error.message || 'Error desconocido') }, { status: 500 })

@@ -20,7 +20,7 @@ BEGIN
             'totalAmount', q."totalAmount",
             'currency', q.currency,
             'userName', COALESCE(u.name, 'Sistema'),
-            'status', 'DRAFT',
+            'state', COALESCE(q.state, 'NUEVO'),
             'nights', COALESCE((
                 SELECT qp.nights 
                 FROM public."QuotationProduct" qp

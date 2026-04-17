@@ -54,6 +54,19 @@ export async function POST(req: NextRequest) {
                 sqlServerMsg = spResult[0].Respuesta;
             }
 
+            // 4. Actualizar Estado en Postgres (Nueva instrucción de usuario)
+            if (success && spResult.length > 0) {
+                console.log(`[EXPORT_API] Actualizando estados en Postgres para: ${idsStr}`);
+                try {
+                    await prisma.$executeRawUnsafe(
+                        `CALL public.spCotizacionActualizarEstado($1::JSONB)`,
+                        JSON.stringify(spResult)
+                    );
+                } catch (spPgError) {
+                    console.error('[EXPORT_API] Error al actualizar estado en Postgres:', spPgError);
+                }
+            }
+
             await registerLog(userId, 'QUOTATION', success ? 'EXPORT_SUCCESS' : 'EXPORT_SP_ERROR', 
                 `ID ${idsStr}: ${sqlServerMsg}`, { spResult, xml: xmlStr });
 

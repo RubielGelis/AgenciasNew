@@ -289,6 +289,16 @@ BEGIN
 		ds_cargonm varchar(50) NULL
 	) ON COMMIT DROP;
 
+	CREATE TEMP TABLE IF NOT EXISTS CotizacionServicios_TipoProv(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		cd_Cotizacion varchar(25),
+		cd_CotizacionServicios varchar(25),
+		cd_TipoProveedores varchar(25),
+		ds_TipoProveedores varchar(60),
+		cd_proveedores varchar(25),
+		ds_proveedores varchar(250)
+	) ON COMMIT DROP;
+
     -- 4. Poblar Tablas Temporales (POBLANDO TODAS LAS COLUMNAS CON NOMBRES EXPLÍCITOS)
     
     INSERT INTO Cotizacion (
@@ -407,8 +417,8 @@ BEGIN
     )
     SELECT 
         COALESCE(pr."type", '') as cd_TiposConceptFac, 
-        COALESCE(pr."code", '') as cd_ConceptoFacturacion, 
-        COALESCE(qp."serviceType", '') as cd_TiposServicio, 
+        COALESCE(pr."billingConcept", pr."code", '') as cd_ConceptoFacturacion, 
+        COALESCE(qp."serviceType", pr."serviceType", '') as cd_TiposServicio, 
         q.cd_consecutivo as cd_Cotizacion,
         '' as cd_fac_factura, 
         '' as cd_fac_remision, 
@@ -446,7 +456,7 @@ BEGIN
         qt.currency as cd_monedaprov,
         '' as ds_InfoAdicional, 
         '' as cd_carrental, 
-        '' as cd_hoteles, 
+        COALESCE(pre."code",'') as cd_hoteles, 
         B'0' as bl_anulado, 
         '' as cd_tiquete,
         '' as cd_fuente_anul, 
@@ -537,6 +547,7 @@ BEGIN
     JOIN public."Product" pr ON qp."productId" = pr.id
     JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
     LEFT JOIN public."Provider" prov ON qp."providerId" = prov."id"
+	LEFT JOIN public."Prestadora" pre ON pre."id" = qp."prestadoraId"
 	LEFT JOIN LATERAL ( SELECT  pp.*,
 		        				regexp_split_to_array(TRIM(pp.name), '\s+') AS arr
 		    			FROM public."QuotationProductPassenger" pp 
@@ -690,9 +701,29 @@ BEGIN
 		0 AS am_credito,
 		COALESCE(ct."name",'Tarifa') AS ds_cargonm
 	FROM public."QuotationProduct" qp
+	JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
 	LEFT JOIN public."ChargeAndTax" ct ON ct.id = qp."mainTaxId"
 	LEFT JOIN public."QuotationProductTax" tp ON tp."quotationProductId" = qp."id" and tp."chargeAndTaxId" = qp."mainTaxId";
 
+	INSERT INTO CotizacionServicios_TipoProv(
+		cd_Cotizacion,
+		cd_CotizacionServicios,
+		cd_TipoProveedores,
+		ds_TipoProveedores,
+		cd_proveedores,
+		ds_proveedores
+	)
+	SELECT 
+		'Q' || LPAD(qp."quotationId"::text, 7, '0') as cd_Cotizacion, 
+		'Q' || LPAD(qp."id"::text, 7, '0') as cd_CotizacionServicios,
+		'HTL' as cd_TipoProveedores,
+		'HOTEL' as ds_TipoProveedores,
+		COALESCE(pre."code",'') as cd_proveedores,
+		COALESCE(pre."name",'') as ds_proveedores
+	FROM public."QuotationProduct" qp
+	JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
+	LEFT JOIN public."Prestadora" pre ON pre."id" = qp."prestadoraId";
+	
     -- 5. Generar XML
     SELECT xmlroot(
         xmlelement(name "Cotizaciones",
@@ -835,6 +866,22 @@ BEGIN
                                     )				
 									FROM Fac_Servicios_TiposFacturacionHoteles TF
 									WHERE TF.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
+								),
+								(
+									SELECT xmlagg(
+                                        xmlelement(name "CotizacionServicios_TipoProv",
+                                            xmlforest(
+												PRE.cd_Cotizacion as cd_Cotizacion,
+												PRE.cd_CotizacionServicios as cd_CotizacionServicios,
+												PRE.cd_TipoProveedores as cd_TipoProveedores,
+												PRE.ds_TipoProveedores as ds_TipoProveedores,
+												PRE.cd_proveedores as cd_proveedores,
+												PRE.ds_proveedores as ds_proveedores
+											)
+                                        )
+                                    )				
+									FROM CotizacionServicios_TipoProv PRE
+									WHERE PRE.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales			
 								)
                             )
                         )

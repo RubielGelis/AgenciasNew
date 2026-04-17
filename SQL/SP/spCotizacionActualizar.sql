@@ -49,6 +49,7 @@ BEGIN
         "commissionPercentage" = NULLIF(p_data->>'commissionPercentage', '')::FLOAT,
         "chargesAndTaxes" = NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
         "totalAmount" = NULLIF(p_data->>'totalAmount', '')::FLOAT,
+        "state" = COALESCE(p_data->>'state', 'Nuevo'),
         "date" = CURRENT_TIMESTAMP
     WHERE id = p_id;
 

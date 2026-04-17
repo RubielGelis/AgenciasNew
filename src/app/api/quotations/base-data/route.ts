@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
 
         // Defensive check for models
-        const requiredModels = ['client', 'provider', 'branch', 'implant', 'product', 'chargeAndTax', 'seller', 'ticketPrinter', 'masterVariable', 'user', 'combo', 'currency']
+        const requiredModels = ['client', 'provider', 'prestadora', 'branch', 'implant', 'product', 'chargeAndTax', 'seller', 'ticketPrinter', 'masterVariable', 'user', 'combo', 'currency']
         const availableModels = Object.keys(prisma).filter(k => k[0] !== '$' && k[0] !== '_');
         
         for (const model of requiredModels) {
@@ -19,9 +19,10 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        const [clients, providers, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies] = await Promise.all([
+        const [clients, providers, prestadoras, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies] = await Promise.all([
             (prisma as any).client?.findMany({ select: { id: true, name: true, document: true } }) || Promise.resolve([]),
             (prisma as any).provider?.findMany({ include: { prestadoras: true } }) || Promise.resolve([]),
+            (prisma as any).prestadora?.findMany() || Promise.resolve([]),
             (prisma as any).branch?.findMany() || Promise.resolve([]),
             (prisma as any).implant?.findMany({ select: { id: true, name: true, branchId: true } }) || Promise.resolve([]),
             (prisma as any).product?.findMany() || Promise.resolve([]),
@@ -57,6 +58,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
             clients,
             providers,
+            prestadoras,
             branches,
             implants,
             products,

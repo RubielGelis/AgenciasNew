@@ -45,6 +45,7 @@ interface QuotationFormData {
         _prestadoraName?: string;
     }[];
     selectedCombos?: { id: number, name: string }[];
+    state: string;
 }
 
 export default function QuotationForm({ quotationId }: { quotationId?: string }) {
@@ -60,7 +61,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         commissionPercentage: 10,
         chargesAndTaxes: 0,
         items: [],
-        selectedCombos: []
+        selectedCombos: [],
+        state: 'Nuevo'
     })
     const [saving, setSaving] = useState(false)
     const [attachments, setAttachments] = useState<any[]>([])
@@ -68,6 +70,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     const router = useRouter()
 
     const handleSave = async (e: React.FormEvent, downloadPdf = false) => {
+        e.preventDefault();
         setSaving(true)
         try {
             const payload = {
@@ -124,25 +127,32 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             const result = await res.json()
             if (!res.ok) throw new Error(result.message || 'Error al guardar')
 
+            // Show success message immediately
+            const successMessage = result.message || 'Cotización guardada exitosamente';
+            alert(successMessage);
+
             if (downloadPdf) {
-                // Enrich data with names for the PDF
-                const client = data.clients.find((c: any) => c.id.toString() === formData.clientId)
-                const pdfData = {
-                    ...formData,
-                    internalNumber: result.quotation.internalNumber,
-                    clientName: client?.name,
-                    clientDocument: client?.document,
-                    totalAmount: total,
-                    taxSummary: taxSummary,
-                    items: formData.items.map(item => ({
-                        ...item,
-                        productDescription: data.products.find((p: any) => p.id.toString() === item.productId)?.description
-                    }))
+                try {
+                    // Enrich data with names for the PDF
+                    const client = data.clients.find((c: any) => c.id.toString() === formData.clientId)
+                    const pdfData = {
+                        ...formData,
+                        internalNumber: result.quotation?.internalNumber || `Q-${result.quotation?.id || '?' }`,
+                        clientName: client?.name,
+                        clientDocument: client?.document,
+                        totalAmount: total,
+                        taxSummary: taxSummary,
+                        items: formData.items.map(item => ({
+                            ...item,
+                            productDescription: data.products.find((p: any) => p.id.toString() === item.productId)?.description
+                        }))
+                    }
+                    generateQuotationPDF(pdfData)
+                } catch (pdfErr) {
+                    console.error('Error generating PDF:', pdfErr);
                 }
-                generateQuotationPDF(pdfData)
             }
 
-            alert('Cotización guardada exitosamente')
             router.push('/dashboard')
         } catch (err: any) {
             console.error(err)
@@ -285,7 +295,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                     setData(baseData)
                 } else {
                     console.error("No valid data received from base-data:", baseData)
-                    setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [], combos: [] })
+                    setData({ clients: [], providers: [], prestadoras: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [], combos: [] })
                 }
 
                 if (!quotationId) {
@@ -317,60 +327,61 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                             ticketPrinterId: qData.ticketPrinterId?.toString() || '',
                             commissionPercentage: qData.commissionPercentage || 0,
                             chargesAndTaxes: qData.chargesAndTaxes || 0,
+                            state: qData.state || 'Nuevo',
                             items: (qData.products || []).map((p: any) => {
-                                                const safeAppliedTaxes = Array.isArray(p.appliedTaxes) ? p.appliedTaxes : [];
-                                                const safeVariables = Array.isArray(p.variables) ? p.variables : [];
+                                const safeAppliedTaxes = Array.isArray(p.appliedTaxes) ? p.appliedTaxes : [];
+                                const safeVariables = Array.isArray(p.variables) ? p.variables : [];
 
-                                                const mainTaxId = p.mainTaxId;
+                                const mainTaxId = p.mainTaxId;
 
-                                                // Inferir el precio desde el monto del cargo principal guardado
-                                                const mainTaxEntry = safeAppliedTaxes.find((t: any) => t.chargeAndTaxId === mainTaxId);
-                                                let inferredPrice = p.price;
-                                                if (mainTaxEntry && mainTaxEntry.explicitAmount != null) {
-                                                    inferredPrice = mainTaxEntry.explicitAmount / (p.quantity || 1);
-                                                }
+                                // Inferir el precio desde el monto del cargo principal guardado
+                                const mainTaxEntry = safeAppliedTaxes.find((t: any) => t.chargeAndTaxId === mainTaxId);
+                                let inferredPrice = p.price;
+                                if (mainTaxEntry && mainTaxEntry.explicitAmount != null) {
+                                    inferredPrice = mainTaxEntry.explicitAmount / (p.quantity || 1);
+                                }
 
-                                                return {
-                                                    productId: p.productId?.toString() || '',
-                                                    quantity: p.quantity,
-                                                    price: inferredPrice,
-                                                    cost: p.cost || 0,
-                                                    providerId: p.providerId?.toString() || '',
-                                                    prestadoraId: p.prestadoraId?.toString() || '',
-                                                    checkIn: p.checkInDate ? new Date(p.checkInDate).toISOString().split('T')[0] : '',
-                                                    checkOut: p.checkOutDate ? new Date(p.checkOutDate).toISOString().split('T')[0] : '',
-                                                    paxAdults: p.paxAdults || 1,
-                                                    paxChildren: p.paxChildren || 0,
-                                                    destination: p.destination || '',
-                                                    serviceType: p.serviceType || '',
-                                                    reservationCode: p.reservationCode || '',
-                                                    passengers: Array.isArray(p.passengers) ? p.passengers : [],
-                                                    sellerCommission: p.sellerCommission || 0,
-                                                    ticketPrinterCommission: p.ticketPrinterCommission || 0,
-                                                    mainTaxId,
-                                                    inNationality: p.inNationality || 1,
-                                                    // Info extra para renderizado si el maestro no carga a tiempo
-                                                    _productName: p.product?.description,
-                                                    _providerName: p.provider?.name,
-                                                    _prestadoraName: p.prestadora?.name,
-                                                    appliedTaxes: safeAppliedTaxes.map((t: any) => ({
-                                                        chargeAndTaxId: t.chargeAndTaxId,
-                                                        amount: t.explicitAmount ?? 0
-                                                    })),
-                                                    variables: safeVariables.map((v: any) => ({
-                                                        id: v.id,
-                                                        masterVariableId: v.masterVariableId,
-                                                        value: v.value
-                                                    }))
-                                                }
-                                            }) || [],
+                                return {
+                                    productId: p.productId?.toString() || '',
+                                    quantity: p.quantity,
+                                    price: inferredPrice,
+                                    cost: p.cost || 0,
+                                    providerId: p.providerId?.toString() || '',
+                                    prestadoraId: p.prestadoraId?.toString() || '',
+                                    checkIn: p.checkInDate ? new Date(p.checkInDate).toISOString().split('T')[0] : '',
+                                    checkOut: p.checkOutDate ? new Date(p.checkOutDate).toISOString().split('T')[0] : '',
+                                    paxAdults: p.paxAdults || 1,
+                                    paxChildren: p.paxChildren || 0,
+                                    destination: p.destination || '',
+                                    serviceType: p.serviceType || '',
+                                    reservationCode: p.reservationCode || '',
+                                    passengers: Array.isArray(p.passengers) ? p.passengers : [],
+                                    sellerCommission: p.sellerCommission || 0,
+                                    ticketPrinterCommission: p.ticketPrinterCommission || 0,
+                                    mainTaxId,
+                                    inNationality: p.inNationality || 1,
+                                    // Info extra para renderizado si el maestro no carga a tiempo
+                                    _productName: p.product?.description,
+                                    _providerName: p.provider?.name,
+                                    _prestadoraName: p.prestadora?.name,
+                                    appliedTaxes: safeAppliedTaxes.map((t: any) => ({
+                                        chargeAndTaxId: t.chargeAndTaxId,
+                                        amount: t.explicitAmount ?? 0
+                                    })),
+                                    variables: safeVariables.map((v: any) => ({
+                                        id: v.id,
+                                        masterVariableId: v.masterVariableId,
+                                        value: v.value
+                                    }))
+                                }
+                            }) || [],
                             selectedCombos: qData.combos?.map((c: any) => ({ id: c.comboId, name: c.combo?.name })) || []
                         })
                     }
                 }
             } catch (err) {
                 console.error("Failed to load generic or quotation data", err);
-                setData({ clients: [], providers: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [], combos: [] })
+                setData({ clients: [], providers: [], prestadoras: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [], combos: [] })
             }
         }
         loadInitialData()
@@ -483,7 +494,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             const oldQty = oldItem.quantity || 1;
             const newQty = newItem.quantity || 1;
             const ratio = field === 'quantity' ? newQty / oldQty : 1;
-            
+
             const baseValue = (newItem.price || 0) * newQty;
             const mainTaxIdNum = newItem.mainTaxId != null ? Number(newItem.mainTaxId) : null;
 
@@ -531,7 +542,9 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         <form onSubmit={handleSave} className="max-w-6xl mx-auto space-y-8 pb-20">
             <div className="flex items-center justify-between bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                 <div>
-                    <h2 className="text-2xl font-bold dark:text-white">Generar Cotización</h2>
+                    <h2 className="text-2xl font-bold dark:text-white">
+                        {quotationId ? `Cotización #${quotationId}` : 'Generar Cotización'}
+                    </h2>
                     <p className="text-zinc-500 text-sm mt-1">Completa los detalles para tu cliente</p>
                 </div>
                 <div className="flex gap-3">
@@ -639,16 +652,32 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     onChange={(e) => {
                                         const code = e.target.value;
                                         const curr = data.currencies?.find((c: any) => c.code === code);
-                                        setFormData({ 
-                                            ...formData, 
-                                            currency: code, 
-                                            exchangeRate: curr ? curr.exchangeRate : 1 
+                                        setFormData({
+                                            ...formData,
+                                            currency: code,
+                                            exchangeRate: curr ? curr.exchangeRate : 1
                                         });
                                     }}
                                 >
-                                    {(data.currencies || [{code: 'USD', name: 'Dólar Estadounidense'}]).map((c: any) => (
+                                    {(data.currencies || [{ code: 'USD', name: 'Dólar Estadounidense' }]).map((c: any) => (
                                         <option key={c.id || c.code} value={c.code}>{c.code} - {c.name}</option>
                                     ))}
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-zinc-500">Estado de Cotización</label>
+                                <select
+                                    className={cn(
+                                        "w-full h-12 rounded-xl px-4 border outline-none font-bold focus:ring-2 transition-all",
+                                        formData.state === 'ENVIADO' 
+                                            ? "bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500" 
+                                            : "bg-blue-50/50 dark:bg-blue-500/5 border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
+                                    )}
+                                    value={formData.state}
+                                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                                >
+                                    <option value="Nuevo">NUEVO</option>
+                                    <option value="ENVIADO">ENVIADO</option>
                                 </select>
                             </div>
                         </div>
@@ -662,7 +691,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                 Combos de Venta
                             </h3>
                             <div className="flex items-center gap-3">
-                                <select 
+                                <select
                                     className="h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg px-4 border border-zinc-200 dark:border-zinc-700 outline-none text-sm font-bold focus:ring-2 focus:ring-purple-500"
                                     onChange={(e) => {
                                         if (e.target.value) {
@@ -687,7 +716,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     <div key={combo.id} className="flex items-center gap-2 px-3 py-1.5 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-300 rounded-xl border border-purple-100 dark:border-purple-800 text-xs font-bold animate-in fade-in zoom-in duration-300">
                                         <Briefcase className="w-3 h-3" />
                                         {combo.name}
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => removeCombo(combo.id)}
                                             className="p-0.5 hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full transition-colors"
@@ -821,10 +850,10 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                             const newTotal = parseFloat(e.target.value) || 0;
                                                             const currentTaxes = item.appliedTaxes || [];
                                                             const currentTotal = currentTaxes.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
-                                                            
+
                                                             // Calculate how much we need to add to the main tax
                                                             const diff = newTotal - currentTotal;
-                                                            
+
                                                             const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
                                                             const mainTax = currentTaxes.find((t: any) => {
                                                                 const rawId = t.id ?? t.chargeAndTaxId;
@@ -890,13 +919,12 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs"
                                                         value={item.prestadoraId}
                                                         onChange={(e) => updateItem(index, 'prestadoraId', e.target.value)}
-                                                        disabled={!item.providerId}
                                                     >
                                                         <option value="">Sel. Prestadora</option>
-                                                        {(data.providers.find((p: any) => p.id.toString() === item.providerId)?.prestadoras || []).map((h: any) => (
+                                                        {(data.prestadoras || []).map((h: any) => (
                                                             <option key={h.id} value={String(h.id)}>{h.name}</option>
                                                         ))}
-                                                        {item.prestadoraId && !data.providers.some((p: any) => (p.prestadoras || []).some((h: any) => h.id.toString() === item.prestadoraId)) && (
+                                                        {item.prestadoraId && !(data.prestadoras || []).some((h: any) => h.id.toString() === item.prestadoraId) && (
                                                             <option value={item.prestadoraId}>{item._prestadoraName || 'Cargando...'}</option>
                                                         )}
                                                     </select>
@@ -1059,7 +1087,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                                                     initialAmount = tax.value * item.quantity;
                                                                                 }
                                                                                 const nextTaxes = [...currentTaxes, { id: taxIdNum, amount: initialAmount }];
-                                                                                
+
                                                                                 // AUTO-PROMOTE to principal if none exists
                                                                                 if (mainTaxIdNum === null) {
                                                                                     const newItems = [...formData.items];
@@ -1226,8 +1254,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                         onChange={(e) => {
                                             const code = e.target.value;
                                             const curr = data.currencies?.find((c: any) => c.code === code);
-                                            setFormData({ 
-                                                ...formData, 
+                                            setFormData({
+                                                ...formData,
                                                 currency: code,
                                                 exchangeRate: curr ? curr.exchangeRate : formData.exchangeRate
                                             });

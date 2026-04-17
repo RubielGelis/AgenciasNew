@@ -85,7 +85,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
             });
         });
 
-        return NextResponse.json({ message: 'Cotización actualizada', quotation: { id } })
+        return NextResponse.json({ message: message || 'Cotización actualizada', quotation: { id } })
     } catch (error: any) {
         console.error('Error updating quotation (PUT):', error)
         return NextResponse.json({ message: 'Error al actualizar la cotización: ' + (error.message || 'Error desconocido') }, { status: 500 })
@@ -125,7 +125,7 @@ export async function DELETE(req: NextRequest, context: { params: Promise<{ id: 
             });
         });
 
-        return NextResponse.json({ message: 'Cotización eliminada con éxito' })
+        return NextResponse.json({ message: message || 'Cotización eliminada con éxito' })
     } catch (error: any) {
         console.error('Error deleting quotation:', error)
         return NextResponse.json({ message: 'Error al eliminar la cotización: ' + (error.message || 'Error desconocido') }, { status: 500 })

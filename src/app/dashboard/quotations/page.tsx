@@ -145,6 +145,7 @@ export default function QuotationsListPage() {
                             <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-wider">Cliente</th>
                             <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-wider">Fechas</th>
                             <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-wider">Total</th>
+                            <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-wider">Estado</th>
                             <th className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
@@ -185,6 +186,15 @@ export default function QuotationsListPage() {
                                             <div className="font-black text-zinc-900 dark:text-white">
                                                 ${q.totalAmount.toLocaleString()} <span className="text-[10px] text-zinc-500 uppercase">{q.currency}</span>
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${
+                                                q.state === 'ENVIADO' 
+                                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400" 
+                                                : "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                                            }`}>
+                                                {q.state || 'NUEVO'}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-2">

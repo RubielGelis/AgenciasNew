@@ -284,6 +284,17 @@ BEGIN
 			ds_cargonm varchar(50) NULL
 		 )
 		
+		DECLARE @CotizacionServicios_TipoProv TABLE(
+			id int IDENTITY(1,1) NOT NULL,
+			cd_Cotizacion varchar(25) NULL,
+			cd_CotizacionServicios varchar(25) NULL,
+			id_CotizacionServicios int NULL,
+			id_TipoProveedores int NULL,
+			cd_TipoProveedores varchar(25) NULL,
+			ds_TipoProveedores varchar(60) NULL,
+			cd_proveedores varchar(25) NULL,
+			ds_proveedores varchar(250) NULL
+		)
 
         -- Validar que el XML sea correcto
         IF @xml IS NULL OR LTRIM(RTRIM(@xml)) = ''
@@ -670,8 +681,8 @@ BEGIN
 			id_CotizacionServicios=NULL,
 			cd_Cotizacion = ISNULL(C.CotizacionServicios.value('cd_cotizacion[1]','VARCHAR(25)'),'') 
 		 FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios') AS C(CotizacionServicios)
-		 LEFT JOIN dbo.ConceptoFacturacion CF ON CF.cd_codigo=C.CotizacionServicios.value('cd_ConceptoFacturacion[1]','VARCHAR(25)')
-		 LEFT JOIN dbo.TiposServicios TS ON CF.cd_codigo=C.CotizacionServicios.value('cd_TiposServicio[1]','VARCHAR(25)')
+		 LEFT JOIN dbo.ConceptoFacturacion CF ON CF.cd_codigo=C.CotizacionServicios.value('cd_conceptofacturacion[1]','VARCHAR(25)')
+		 LEFT JOIN dbo.TiposServicios TS ON CF.cd_codigo=C.CotizacionServicios.value('cd_tiposservicio[1]','VARCHAR(25)')
 		 LEFT JOIN dbo.Hoteles H ON H.cd_codigo=C.CotizacionServicios.value('cd_hoteles[1]','VARCHAR(25)')
         
 		INSERT INTO @CotizacionServicios_PaxAdicional(
@@ -820,6 +831,29 @@ BEGIN
 		LEFT JOIN dbo.TiposFacturacionHoteles TF ON TF.cd_codigo=ISNULL(C.TiposFacturacionHoteles.value('cd_tiposfacturacionhotel[1]','VARCHAR(3)'),'') 
 		LEFT JOIN dbo.CargosDesc CD ON CD.cd_codigo=ISNULL(C.TiposFacturacionHoteles.value('cd_cargosdesc[1]','VARCHAR(3)'),'') 
 
+		INSERT INTO @CotizacionServicios_TipoProv(
+			cd_Cotizacion,
+			cd_CotizacionServicios,
+			id_CotizacionServicios,
+			id_TipoProveedores,
+			cd_TipoProveedores,
+			ds_TipoProveedores,
+			cd_proveedores,
+			ds_proveedores
+		)
+		SELECT
+			cd_Cotizacion=ISNULL(C.CotizacionServicios_TipoProv.value('cd_cotizacion[1]','VARCHAR(25)'),''),
+			cd_CotizacionServicios=ISNULL(C.CotizacionServicios_TipoProv.value('cd_cotizacionservicios[1]','VARCHAR(25)'),''),
+			id_CotizacionServicios=NULL,
+			id_TipoProveedores=ISNULL(TP.id,1),
+			cd_TipoProveedores=ISNULL(TP.cd_codigo,'Hotel'),
+			ds_TipoProveedores=ISNULL(TP.ds_descrip,'Proveedor Tipo Hotel'),
+			cd_proveedores=ISNULL(H.cd_codigo,''),
+			ds_proveedores=ISNULL(H.ds_nombre,'')	
+		FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios/CotizacionServicios_TipoProv') AS C(CotizacionServicios_TipoProv)
+		LEFT JOIN dbo.TipoProveedores TP ON TP.cd_codigo=ISNULL(C.CotizacionServicios_TipoProv.value('cd_tipoproveedores[1]','VARCHAR(3)'),'')
+		LEFT JOIN dbo.Hoteles H ON H.cd_codigo=ISNULL(C.CotizacionServicios_TipoProv.value('cd_proveedores[1]','VARCHAR(25)'),'')
+		
 		-- Insert (cd_consecutivo automático)
         INSERT INTO dbo.Cotizacion(
 				id_sucursal,
@@ -1331,9 +1365,37 @@ BEGIN
 		FROM @Fac_Servicios_TiposFacturacionHoteles
 		WHERE Id_TiposFacturacionHoteles IS NOT NULL
 
+		UPDATE TP
+		SET TP.id_CotizacionServicios=CS.id_CotizacionServicios
+		FROM @CotizacionServicios_TipoProv TP
+		INNER JOIN @CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales = TP.cd_CotizacionServicios
+
+		
+		INSERT INTO dbo.CotizacionServicios_TipoProv(
+			id_CotizacionServicios,
+			id_TipoProveedores,
+			cd_TipoProveedores,
+			ds_TipoProveedores,
+			cd_proveedores,
+			ds_proveedores
+		)
+		SELECT 
+			id_CotizacionServicios,
+			id_TipoProveedores,
+			cd_TipoProveedores,
+			ds_TipoProveedores,
+			cd_proveedores,
+			ds_proveedores
+		FROM @CotizacionServicios_TipoProv
+		WHERE ISNULL(cd_proveedores,'') <> ''  
+
 		--ROLLBACK TRANSACTION;
         COMMIT TRANSACTION;
 
+		DECLARE @estado VARCHAR(8000)
+		SET @estado=''
+		SELECT @estado=@estado+CONVERT(VARCHAR(25),CONVERT(INT,REPLACE(ISNULL(cd_consecutivo,'0'),'Q',''))) + ':' + CASE WHEN id_Cotizacion IS NOT NULL THEN 'Enviado' ELSE 'Nuevo' END + '|'
+		FROM @Cotizacion;
         -- Retorno mejorado: Lista resumida de lo procesado
         SELECT 
             cd_consecutivo AS Cotizacion,
@@ -1342,7 +1404,8 @@ BEGIN
                 ELSE 'Creada exitosamente'
             END AS Estado,
             bl_existe,
-            id_Cotizacion AS IdProcesado
+            id_Cotizacion AS IdProcesado,
+			@estado AS Estados
         FROM @Cotizacion;
 
 		RETURN 0

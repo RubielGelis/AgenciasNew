@@ -795,6 +795,7 @@ BEGIN
 	    "chargesAndTaxes" double precision NOT NULL,
 	    "totalAmount" double precision NOT NULL,
 	    "userId" integer,
+	    "state" varchar(25) DEFAULT 'NUEVO',
 	    CONSTRAINT "Quotation_pkey" PRIMARY KEY (id),
 	    CONSTRAINT "Quotation_branchId_fkey" FOREIGN KEY ("branchId")
 	        REFERENCES public."Branch" (id) MATCH SIMPLE
@@ -1046,4 +1047,7 @@ BEGIN
 	ALTER TABLE public."Combo" ADD CONSTRAINT "Combo_currencyId_fkey"
 	    FOREIGN KEY ("currencyId") REFERENCES public."Currency"(id)
 	    ON UPDATE CASCADE ON DELETE SET NULL;
+
+	-- Columna state en Quotation
+	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "state" varchar(25) DEFAULT 'NUEVO';
 END	$$ 		

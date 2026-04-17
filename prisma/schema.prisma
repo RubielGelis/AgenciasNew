@@ -136,6 +136,7 @@ model Quotation {
   chargesAndTaxes      Float
   totalAmount          Float
   userId               Int?
+  state                String?            @default("NUEVO") @db.VarChar(25)
   attachments          Attachment[]
   branch               Branch             @relation(fields: [branchId], references: [id])
   client               Client             @relation(fields: [clientId], references: [id])

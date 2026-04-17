@@ -802,6 +802,7 @@
 	    "chargesAndTaxes" double precision NOT NULL,
 	    "totalAmount" double precision NOT NULL,
 	    "userId" integer,
+	    "state" varchar(25) DEFAULT 'Nuevo',
 	    CONSTRAINT "Quotation_pkey" PRIMARY KEY (id),
 	    CONSTRAINT "Quotation_branchId_fkey" FOREIGN KEY ("branchId")
 	        REFERENCES public."Branch" (id) MATCH SIMPLE
@@ -1053,6 +1054,9 @@
 	ALTER TABLE public."Combo" ADD CONSTRAINT "Combo_currencyId_fkey"
 	    FOREIGN KEY ("currencyId") REFERENCES public."Currency"(id)
 	    ON UPDATE CASCADE ON DELETE SET NULL;
+		
+	-- Columna state en Quotation
+	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "state" varchar(25) DEFAULT 'Nuevo';
 --END	$$ 		
 
 -- >>> 2. FUNCIONES <<<
@@ -1153,7 +1157,7 @@ BEGIN
             'totalAmount', q."totalAmount",
             'currency', q.currency,
             'userName', COALESCE(u.name, 'Sistema'),
-            'status', 'DRAFT',
+            'state', COALESCE(q.state, 'NUEVO'),
             'nights', COALESCE((
                 SELECT qp.nights 
                 FROM public."QuotationProduct" qp
@@ -1661,6 +1665,7 @@ BEGIN
         "commissionPercentage" = NULLIF(p_data->>'commissionPercentage', '')::FLOAT,
         "chargesAndTaxes" = NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
         "totalAmount" = NULLIF(p_data->>'totalAmount', '')::FLOAT,
+        "state" = COALESCE(p_data->>'state', 'Nuevo'),
         "date" = CURRENT_TIMESTAMP
     WHERE id = p_id;
 
@@ -1797,12 +1802,12 @@ BEGIN
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
         "branchId", "implantId", "sellerId", "ticketPrinterId", 
         "baseCommissionable", "commissionPercentage", "chargesAndTaxes", 
-        "totalAmount", "userId"
+        "totalAmount", "userId", "state"
     ) VALUES (
         v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
         NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
         0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
-        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id
+        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'Nuevo'
     ) RETURNING id INTO v_quotation_id;
 
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
@@ -3902,5 +3907,75 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
+
+-- Archivo: spCotizacionActualizarEstado.sql
+CREATE OR REPLACE PROCEDURE public.spCotizacionActualizarEstado(
+    p_response JSONB
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_estados_str TEXT;
+    v_item_text TEXT;
+    v_id INT;
+    v_estado TEXT;
+    v_row_json JSONB;
+BEGIN
+    /**
+     * Este procedimiento recibe la respuesta de SQL Server (spCotizacionesCrear)
+     * Parsea UNICAMENTE el nodo 'Estados' que contiene el formato 'ID:Estado|ID:Estado|'
+     */
+    
+    -- El input puede ser un array de objetos o un objeto individual
+    -- Buscamos el campo 'Estados' en cada objeto
+    IF JSONB_TYPEOF(p_response) = 'array' THEN
+        FOR v_row_json IN SELECT jsonb_array_elements(p_response)
+        LOOP
+            v_estados_str := v_row_json->>'Estados';
+            
+            IF v_estados_str IS NOT NULL AND v_estados_str <> '' THEN
+                -- Iterar sobre cada par ID:Estado separado por '|'
+                FOR v_item_text IN SELECT unnest(string_to_array(btrim(v_estados_str, '|'), '|'))
+                LOOP
+                    v_item_text := trim(v_item_text);
+                    IF v_item_text LIKE '%:%' THEN
+                        BEGIN
+                            -- Split por ':'
+                            v_id := split_part(v_item_text, ':', 1)::INT;
+                            v_estado := split_part(v_item_text, ':', 2);
+                            
+                            -- Actualizar con el estado LITERAL recibido
+                            UPDATE public."Quotation"
+                            SET "state" = v_estado
+                            WHERE id = v_id;
+                        EXCEPTION WHEN OTHERS THEN
+                            -- Ignorar errores de casteo en items individuales
+                        END;
+                    END IF;
+                END LOOP;
+            END IF;
+        END LOOP;
+    ELSIF JSONB_TYPEOF(p_response) = 'object' THEN
+        v_estados_str := p_response->>'Estados';
+        IF v_estados_str IS NOT NULL AND v_estados_str <> '' THEN
+            FOR v_item_text IN SELECT unnest(string_to_array(btrim(v_estados_str, '|'), '|'))
+            LOOP
+                v_item_text := trim(v_item_text);
+                IF v_item_text LIKE '%:%' THEN
+                    BEGIN
+                        v_id := split_part(v_item_text, ':', 1)::INT;
+                        v_estado := split_part(v_item_text, ':', 2);
+                        
+                        UPDATE public."Quotation"
+                        SET "state" = v_estado
+                        WHERE id = v_id;
+                    EXCEPTION WHEN OTHERS THEN END;
+                END IF;
+            END LOOP;
+        END IF;
+    END IF;
+END;
+$$;
+
 
 

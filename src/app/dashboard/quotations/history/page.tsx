@@ -22,18 +22,19 @@ export default function QuotationsHistoryPage() {
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedIds, setSelectedIds] = useState<number[]>([])
 
-    useEffect(() => {
-        const fetchQuotations = async () => {
-            try {
-                const res = await fetch('/api/quotations/history')
-                const data = await res.json()
-                setQuotations(Array.isArray(data) ? data : [])
-            } catch (error) {
-                console.error('Error fetching history:', error)
-            } finally {
-                setLoading(false)
-            }
+    const fetchQuotations = async () => {
+        try {
+            const res = await fetch('/api/quotations/history')
+            const data = await res.json()
+            setQuotations(Array.isArray(data) ? data : [])
+        } catch (error) {
+            console.error('Error fetching history:', error)
+        } finally {
+            setLoading(false)
         }
+    }
+
+    useEffect(() => {
         fetchQuotations()
     }, [])
 
@@ -92,6 +93,7 @@ export default function QuotationsHistoryPage() {
                     detalle += "Cotización enviada a SQL Server correctamente.";
                 }
                 alert(detalle);
+                fetchQuotations(); // Recargar la lista para ver los estados actualizados
             } else {
                 alert("❌ ERROR EN SQL SERVER:\n" + data.message);
             }
@@ -192,6 +194,7 @@ export default function QuotationsHistoryPage() {
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Cliente</th>
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Elaborado por</th>
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Monto Total</th>
+                                    <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Estado</th>
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800 text-right">Acciones</th>
                                 </tr>
                             </thead>
@@ -230,6 +233,15 @@ export default function QuotationsHistoryPage() {
                                             <div className="font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
                                                 ${parseFloat(q.totalAmount).toLocaleString()} <span className="text-xs opacity-70">{q.currency}</span>
                                             </div>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className={`px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider ${
+                                                q.state === 'ENVIADO' 
+                                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400" 
+                                                : "bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
+                                            }`}>
+                                                {q.state || 'NUEVO'}
+                                            </span>
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
