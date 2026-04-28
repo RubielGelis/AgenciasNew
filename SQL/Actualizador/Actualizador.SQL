@@ -3977,5 +3977,193 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE PROCEDURE public.spUsuarioCrear(
+    p_name TEXT,
+    p_email TEXT,
+    p_password_hash TEXT,
+    p_role_id INT,
+    p_branch_id INT,
+    p_implant_id INT,
+    p_ticket_printer_id INT,
+    p_acting_user_id INT,
+    INOUT p_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Validar si el email ya existe
+    IF EXISTS (SELECT 1 FROM public."User" WHERE email = p_email) THEN
+        p_mensaje_resultado := 'ERROR: El email ' || p_email || ' ya está registrado.';
+        RETURN;
+    END IF;
 
+    INSERT INTO public."User" (
+        "name", 
+        "email", 
+        "passwordHash", 
+        "roleId", 
+        "branchId", 
+        "implantId", 
+        "ticketPrinterId"
+    )
+    VALUES (
+        p_name, 
+        p_email, 
+        p_password_hash, 
+        p_role_id, 
+        p_branch_id, 
+        p_implant_id, 
+        p_ticket_printer_id
+    )
+    RETURNING id INTO p_user_id;
+
+    p_mensaje_resultado := 'SUCCESS: Usuario creado con ID ' || p_user_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.spUsuarioConsultar(
+    p_id INT DEFAULT NULL,
+    p_email TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+    id INT,
+    "name" TEXT,
+    "email" TEXT,
+    "roleId" INT,
+    "branchId" INT,
+    "implantId" INT,
+    "ticketPrinterId" INT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        u.id,
+        u.name AS "name",
+        u.email AS "email",
+        u."roleId" AS "roleId",
+        u."branchId" AS "branchId",
+        u."implantId" AS "implantId",
+        u."ticketPrinterId" AS "ticketPrinterId"
+    FROM public."User" u
+    WHERE (p_id IS NULL OR u.id = p_id)
+      AND (p_email IS NULL OR u.email = p_email)
+    ORDER BY u.id ASC;
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE public.spUsuarioActualizar(
+    p_user_id INT,
+    p_name TEXT,
+    p_email TEXT,
+    p_password_hash TEXT, -- NULL significa que no se actualiza la contraseña
+    p_role_id INT,
+    p_branch_id INT,
+    p_implant_id INT,
+    p_ticket_printer_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Validar si el usuario existe
+    IF NOT EXISTS (SELECT 1 FROM public."User" WHERE id = p_user_id) THEN
+        p_mensaje_resultado := 'ERROR: Usuario con ID ' || p_user_id || ' no encontrado.';
+        RETURN;
+    END IF;
+
+    -- Validar si el email ya existe en otro usuario
+    IF EXISTS (SELECT 1 FROM public."User" WHERE email = p_email AND id != p_user_id) THEN
+        p_mensaje_resultado := 'ERROR: El email ' || p_email || ' ya está registrado por otro usuario.';
+        RETURN;
+    END IF;
+
+    -- Actualizar el usuario
+    UPDATE public."User"
+    SET 
+        "name" = COALESCE(p_name, "name"),
+        "email" = COALESCE(p_email, "email"),
+        "passwordHash" = COALESCE(p_password_hash, "passwordHash"),
+        "roleId" = COALESCE(p_role_id, "roleId"),
+        "branchId" = p_branch_id,
+        "implantId" = p_implant_id,
+        "ticketPrinterId" = p_ticket_printer_id
+    WHERE id = p_user_id;
+
+    p_mensaje_resultado := 'SUCCESS: Usuario actualizado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE public.spUsuarioEliminar(
+    p_user_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Validar si el usuario existe
+    IF NOT EXISTS (SELECT 1 FROM public."User" WHERE id = p_user_id) THEN
+        p_mensaje_resultado := 'ERROR: Usuario con ID ' || p_user_id || ' no encontrado.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."User" WHERE id = p_user_id;
+    
+    p_mensaje_resultado := 'SUCCESS: Usuario eliminado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.fnUsuarioListar()
+RETURNS SETOF JSONB
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        jsonb_build_object(
+            'id', u.id,
+            'name', u.name,
+            'email', u.email,
+            'roleId', u."roleId",
+            'role', (
+                SELECT jsonb_build_object('id', r.id, 'name', r.name)
+                FROM public."Role" r
+                WHERE r.id = u."roleId"
+            ),
+            'branchId', u."branchId",
+            'branch', CASE WHEN u."branchId" IS NOT NULL THEN (
+                SELECT jsonb_build_object('id', b.id, 'name', b.name, 'code', b.code)
+                FROM public."Branch" b
+                WHERE b.id = u."branchId"
+            ) ELSE NULL END,
+            'implantId', u."implantId",
+            'implant', CASE WHEN u."implantId" IS NOT NULL THEN (
+                SELECT jsonb_build_object('id', i.id, 'name', i.name, 'code', i.code)
+                FROM public."Implant" i
+                WHERE i.id = u."implantId"
+            ) ELSE NULL END,
+            'ticketPrinterId', u."ticketPrinterId",
+            'ticketPrinter', CASE WHEN u."ticketPrinterId" IS NOT NULL THEN (
+                SELECT jsonb_build_object('id', t.id, 'name', t.name, 'code', t.code)
+                FROM public."TicketPrinter" t
+                WHERE t.id = u."ticketPrinterId"
+            ) ELSE NULL END
+        )
+    FROM public."User" u
+    ORDER BY u.name ASC;
+END;
+$$;
 

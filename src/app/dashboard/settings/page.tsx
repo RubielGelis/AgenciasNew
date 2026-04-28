@@ -28,6 +28,7 @@ import {
     Copy
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { SearchSelect } from '@/components/SearchSelect'
 
 type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas';
 
@@ -846,36 +847,30 @@ export default function SettingsPage() {
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Sucursal</label>
-                                                <select
-                                                    className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                                                    value={formData.branchId || ''}
-                                                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                                                >
-                                                    <option value="">Ninguna / No aplica</option>
-                                                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                                </select>
+                                                <SearchSelect
+                                                    options={branches}
+                                                    value={formData.branchId?.toString() || ''}
+                                                    onChange={(val) => setFormData({ ...formData, branchId: val })}
+                                                    placeholder="Ninguna / No aplica"
+                                                />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Implant Asignado</label>
-                                                <select
-                                                    className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                                                    value={formData.implantId || ''}
-                                                    onChange={(e) => setFormData({ ...formData, implantId: e.target.value })}
-                                                >
-                                                    <option value="">Ninguno / No aplica</option>
-                                                    {implants.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-                                                </select>
+                                                <SearchSelect
+                                                    options={implants}
+                                                    value={formData.implantId?.toString() || ''}
+                                                    onChange={(val) => setFormData({ ...formData, implantId: val })}
+                                                    placeholder="Ninguno / No aplica"
+                                                />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Tiqueteador Pred.</label>
-                                                <select
-                                                    className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                                                    value={formData.ticketPrinterId || ''}
-                                                    onChange={(e) => setFormData({ ...formData, ticketPrinterId: e.target.value })}
-                                                >
-                                                    <option value="">Ninguno / No aplica</option>
-                                                    {ticketPrinters.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                                </select>
+                                                <SearchSelect
+                                                    options={ticketPrinters}
+                                                    value={formData.ticketPrinterId?.toString() || ''}
+                                                    onChange={(val) => setFormData({ ...formData, ticketPrinterId: val })}
+                                                    placeholder="Ninguno / No aplica"
+                                                />
                                             </div>
                                         </div>
                                     </>
@@ -945,14 +940,12 @@ export default function SettingsPage() {
                                         <Input label="Tipo (Texto Abierto)" value={formData.type || ''} onChange={(v: string) => setFormData({ ...formData, type: v })} placeholder="Ej. Alojamiento, Transporte, etc" />
                                         <div className="space-y-2">
                                             <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Proveedor / Operador</label>
-                                            <select
-                                                className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                                                value={formData.providerId || ''}
-                                                onChange={(e) => setFormData({ ...formData, providerId: e.target.value })}
-                                            >
-                                                <option value="">Seleccionar Proveedor</option>
-                                                {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                            </select>
+                                            <SearchSelect
+                                                options={providers}
+                                                value={formData.providerId?.toString() || ''}
+                                                onChange={(val) => setFormData({ ...formData, providerId: val })}
+                                                placeholder="Seleccionar Proveedor"
+                                            />
                                         </div>
                                     </>
                                 ) : activeTab === 'implants' ? (
@@ -961,14 +954,12 @@ export default function SettingsPage() {
                                         <Input label="Nombre / Descripción" value={formData.name} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Sede Norte Bogotá" />
                                         <div className="space-y-2">
                                             <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Sucursal Asociada</label>
-                                            <select
-                                                className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                                                value={formData.branchId || ''}
-                                                onChange={(e) => setFormData({ ...formData, branchId: e.target.value })}
-                                            >
-                                                <option value="">Seleccionar Sucursal</option>
-                                                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                                            </select>
+                                            <SearchSelect
+                                                options={branches}
+                                                value={formData.branchId?.toString() || ''}
+                                                onChange={(val) => setFormData({ ...formData, branchId: val })}
+                                                placeholder="Seleccionar Sucursal"
+                                            />
                                         </div>
                                     </>
                                 ) : (
@@ -1087,29 +1078,24 @@ export default function SettingsPage() {
                                                                 </label>
                                                                 <div className="grid grid-cols-12 gap-4">
                                                                     <div className="col-span-12">
-                                                                        <select 
-                                                                            className="w-full h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                                                                        <SearchSelect
+                                                                            options={products}
                                                                             value={cp.productId?.toString() || ''}
-                                                                            onChange={(e) => {
-                                                                                const prod = products.find((p: any) => p.id === parseInt(e.target.value));
+                                                                            onChange={(val) => {
+                                                                                const prod = products.find((p: any) => p.id === parseInt(val));
                                                                                 const newProds = [...formData.products];
                                                                                 newProds[idx] = {
                                                                                     ...cp,
-                                                                                    productId: e.target.value,
+                                                                                    productId: val,
                                                                                     price: prod?.basePrice || 0,
                                                                                     cost: prod?.cost ?? 0
                                                                                 };
                                                                                 setFormData({ ...formData, products: newProds });
                                                                             }}
-                                                                            required
-                                                                        >
-                                                                            <option value="">Seleccionar Producto...</option>
-                                                                            {products.map((p: any) => (
-                                                                                <option key={p.id} value={p.id}>
-                                                                                    {p.code ? `[${p.code}] ` : ''}{p.description}
-                                                                                </option>
-                                                                            ))}
-                                                                        </select>
+                                                                            placeholder="Seleccionar Producto..."
+                                                                            labelKey="description"
+                                                                            secondaryKey="code"
+                                                                        />
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -1121,35 +1107,33 @@ export default function SettingsPage() {
                                                                 </label>
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                                     <div className="space-y-1">
-                                                                        <select 
-                                                                            className="w-full h-10 bg-white dark:bg-zinc-900 rounded-xl px-3 border border-zinc-200 dark:border-zinc-700 text-xs font-bold outline-none"
-                                                                            value={cp.providerId || ''}
-                                                                            onChange={(e) => {
-                                                                                const val = e.target.value ? parseInt(e.target.value) : null;
+                                                                        <SearchSelect
+                                                                            options={providers}
+                                                                            value={cp.providerId?.toString() || ''}
+                                                                            onChange={(val) => {
+                                                                                const numericVal = val ? parseInt(val) : null;
                                                                                 const newProds = [...formData.products];
-                                                                                newProds[idx] = { ...cp, providerId: val, prestadoraId: null };
+                                                                                newProds[idx] = { ...cp, providerId: numericVal, prestadoraId: null };
                                                                                 setFormData({ ...formData, products: newProds });
                                                                             }}
-                                                                        >
-                                                                            <option value="">Sel. Proveedor...</option>
-                                                                            {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                                                        </select>
+                                                                            placeholder="Sel. Proveedor..."
+                                                                            secondaryKey="code"
+                                                                        />
                                                                     </div>
                                                                     <div className="space-y-1">
-                                                                        <select 
-                                                                            className="w-full h-10 bg-white dark:bg-zinc-900 rounded-xl px-3 border border-zinc-200 dark:border-zinc-700 text-xs font-bold outline-none"
-                                                                            value={cp.prestadoraId || ''}
-                                                                            onChange={(e) => {
-                                                                                const val = e.target.value ? parseInt(e.target.value) : null;
+                                                                        <SearchSelect
+                                                                            options={prestadoras.filter(h => !cp.providerId || h.providerId === cp.providerId)}
+                                                                            value={cp.prestadoraId?.toString() || ''}
+                                                                            onChange={(val) => {
+                                                                                const numericVal = val ? parseInt(val) : null;
                                                                                 const newProds = [...formData.products];
-                                                                                newProds[idx] = { ...cp, prestadoraId: val };
+                                                                                newProds[idx] = { ...cp, prestadoraId: numericVal };
                                                                                 setFormData({ ...formData, products: newProds });
                                                                             }}
                                                                             disabled={!cp.providerId}
-                                                                        >
-                                                                            <option value="">Sel. Prestadora...</option>
-                                                                            {prestadoras.filter(h => !cp.providerId || h.providerId === cp.providerId).map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-                                                                        </select>
+                                                                            placeholder="Sel. Prestadora..."
+                                                                            secondaryKey="code"
+                                                                        />
                                                                     </div>
                                                                     <div className="space-y-1">
                                                                         <select 

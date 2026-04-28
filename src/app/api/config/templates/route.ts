@@ -55,6 +55,10 @@ export async function GET(req: NextRequest) {
             data = [{ email: 'ejemplo@correo.com', name: 'Usuario Nuevo', roleName: 'Admin', password: 'password123' }]
             filename = 'plantilla_usuarios'
             break
+        case 'combos':
+            data = [{ code: 'CMB-001', name: 'Combo Básico', cupos: 10, currencyCode: 'USD' }]
+            filename = 'plantilla_combos'
+            break
         default:
             return NextResponse.json({ message: 'Tipo no válido' }, { status: 400 })
     }

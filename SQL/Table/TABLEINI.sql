@@ -1049,5 +1049,5 @@ BEGIN
 	    ON UPDATE CASCADE ON DELETE SET NULL;
 
 	-- Columna state en Quotation
-	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "state" varchar(25) DEFAULT 'NUEVO';
+	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "state" varchar(25) DEFAULT 'Nuevo';
 END	$$ 		

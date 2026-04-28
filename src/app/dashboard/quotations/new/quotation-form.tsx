@@ -7,6 +7,7 @@ import { format, differenceInDays } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { generateQuotationPDF } from '@/lib/pdf-utils'
+import { SearchSelect } from '@/components/SearchSelect'
 
 interface QuotationFormData {
     clientId: string;
@@ -588,61 +589,53 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-500">Cliente</label>
-                                <select
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                <SearchSelect
+                                    options={data.clients}
                                     value={formData.clientId}
-                                    onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-                                >
-                                    <option value="">Seleccionar Cliente</option>
-                                    {data.clients.map((c: any) => <option key={c.id} value={String(c.id)}>{c.name} - {c.document}</option>)}
-                                </select>
+                                    onChange={(val) => setFormData({ ...formData, clientId: val })}
+                                    placeholder="Seleccionar Cliente"
+                                    secondaryKey="document"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-500">Vendedor</label>
-                                <select
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                <SearchSelect
+                                    options={data.sellers || []}
                                     value={formData.sellerId}
-                                    onChange={(e) => setFormData({ ...formData, sellerId: e.target.value })}
-                                >
-                                    <option value="">Seleccionar Vendedor</option>
-                                    {data.sellers?.map((s: any) => <option key={s.id} value={String(s.id)}>{s.name}</option>)}
-                                </select>
+                                    onChange={(val) => setFormData({ ...formData, sellerId: val })}
+                                    placeholder="Seleccionar Vendedor"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-500">Sucursal</label>
-                                <select
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                <SearchSelect
+                                    options={data.branches}
                                     value={formData.branchId}
-                                    onChange={(e) => setFormData({ ...formData, branchId: e.target.value, implantId: '' })}
-                                >
-                                    <option value="">Sel. Sucursal</option>
-                                    {data.branches.map((b: any) => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
-                                </select>
+                                    onChange={(val) => setFormData({ ...formData, branchId: val, implantId: '' })}
+                                    placeholder="Sel. Sucursal"
+                                    secondaryKey="code"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-500">Implant</label>
-                                <select
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                <SearchSelect
+                                    options={data.implants.filter((i: any) => i.branchId?.toString() === formData.branchId)}
                                     value={formData.implantId}
-                                    onChange={(e) => setFormData({ ...formData, implantId: e.target.value })}
+                                    onChange={(val) => setFormData({ ...formData, implantId: val })}
                                     disabled={!formData.branchId}
-                                >
-                                    <option value="">Sel. Implant</option>
-                                    {data.implants
-                                        .filter((i: any) => i.branchId?.toString() === formData.branchId)
-                                        .map((i: any) => <option key={i.id} value={String(i.id)}>{i.name}</option>)}
-                                </select>
+                                    placeholder="Sel. Implant"
+                                    secondaryKey="code"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-500">Tiqueteador</label>
-                                <select
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                <SearchSelect
+                                    options={data.ticketPrinters || []}
                                     value={formData.ticketPrinterId}
-                                    onChange={(e) => setFormData({ ...formData, ticketPrinterId: e.target.value })}
-                                >
-                                    <option value="">Sel. Tiqueteador</option>
-                                    {data.ticketPrinters?.map((t: any) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
-                                </select>
+                                    onChange={(val) => setFormData({ ...formData, ticketPrinterId: val })}
+                                    placeholder="Sel. Tiqueteador"
+                                    secondaryKey="code"
+                                />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-500">Moneda a Cotizar</label>
@@ -691,22 +684,17 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                 Combos de Venta
                             </h3>
                             <div className="flex items-center gap-3">
-                                <select
-                                    className="h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg px-4 border border-zinc-200 dark:border-zinc-700 outline-none text-sm font-bold focus:ring-2 focus:ring-purple-500"
-                                    onChange={(e) => {
-                                        if (e.target.value) {
-                                            addCombo(parseInt(e.target.value));
-                                            e.target.value = "";
-                                        }
-                                    }}
-                                >
-                                    <option value="">+ Agregar un Combo...</option>
-                                    {(data.combos || []).map((c: any) => (
-                                        <option key={c.id} value={c.id}>
-                                            {c.name} ({c.code}) — {c.cupos != null ? `${c.cupos} cupos` : 'Sin límite'}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="w-[300px]">
+                                    <SearchSelect
+                                        options={(data.combos || []).map((c: any) => ({...c, cuposText: c.cupos != null ? `${c.cupos} cupos` : 'Sin límite'}))}
+                                        value=""
+                                        onChange={(val) => {
+                                            if (val) addCombo(parseInt(val));
+                                        }}
+                                        placeholder="+ Agregar un Combo..."
+                                        secondaryKey="cuposText"
+                                    />
+                                </div>
                             </div>
                         </div>
 
@@ -766,28 +754,23 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     >
                                         <div className="col-span-12 md:col-span-3 space-y-1">
                                             <label className="text-[10px] uppercase font-bold text-zinc-400">Producto</label>
-                                            <select
-                                                className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-sm"
+                                            <SearchSelect
+                                                options={data.products || []}
                                                 value={item.productId}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
+                                                onChange={(val) => {
                                                     const p = data.products.find((prod: any) => prod.id.toString() === val);
                                                     const newItems = [...formData.items];
                                                     newItems[index] = {
                                                         ...newItems[index],
                                                         productId: val,
-                                                        price: 0, // No more base price from product master
+                                                        price: 0,
                                                         cost: p?.cost || 0
                                                     };
                                                     setFormData({ ...formData, items: newItems });
                                                 }}
-                                            >
-                                                <option value="">Seleccionar Producto</option>
-                                                {(data.products || []).map((p: any) => <option key={p.id} value={String(p.id)}>{p.description}</option>)}
-                                                {item.productId && !data.products.some((p: any) => p.id.toString() === item.productId) && (
-                                                    <option value={item.productId}>{item._productName || 'Cargando...'}</option>
-                                                )}
-                                            </select>
+                                                placeholder="Seleccionar Producto"
+                                                labelKey="description"
+                                            />
                                         </div>
                                         <div className="col-span-4 md:col-span-2 space-y-1">
                                             <label className="text-[10px] uppercase font-bold text-zinc-400">Cant.</label>
@@ -889,17 +872,13 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 <div className="md:col-span-2 grid grid-cols-2 gap-2">
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] uppercase font-bold text-zinc-400">Proveedor</label>
-                                                        <select
-                                                            className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs"
+                                                        <SearchSelect
+                                                            options={data.providers || []}
                                                             value={item.providerId}
-                                                            onChange={(e) => updateItem(index, 'providerId', e.target.value)}
-                                                        >
-                                                            <option value="">Sel. Proveedor</option>
-                                                            {data.providers.map((p: any) => <option key={p.id} value={String(p.id)}>{p.code ? `[${p.code}] ` : ''}{p.name}</option>)}
-                                                            {item.providerId && !data.providers.some((p: any) => p.id.toString() === item.providerId) && (
-                                                                <option value={item.providerId}>{item._providerName || 'Cargando...'}</option>
-                                                            )}
-                                                        </select>
+                                                            onChange={(val) => updateItem(index, 'providerId', val)}
+                                                            placeholder="Sel. Proveedor"
+                                                            secondaryKey="code"
+                                                        />
                                                     </div>
                                                     <div className="space-y-1">
                                                         <label className="text-[10px] uppercase font-bold text-zinc-400">Nacionalidad</label>
@@ -915,19 +894,13 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-zinc-400">Prestadora</label>
-                                                    <select
-                                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs"
+                                                    <SearchSelect
+                                                        options={data.prestadoras || []}
                                                         value={item.prestadoraId}
-                                                        onChange={(e) => updateItem(index, 'prestadoraId', e.target.value)}
-                                                    >
-                                                        <option value="">Sel. Prestadora</option>
-                                                        {(data.prestadoras || []).map((h: any) => (
-                                                            <option key={h.id} value={String(h.id)}>{h.name}</option>
-                                                        ))}
-                                                        {item.prestadoraId && !(data.prestadoras || []).some((h: any) => h.id.toString() === item.prestadoraId) && (
-                                                            <option value={item.prestadoraId}>{item._prestadoraName || 'Cargando...'}</option>
-                                                        )}
-                                                    </select>
+                                                        onChange={(val) => updateItem(index, 'prestadoraId', val)}
+                                                        placeholder="Sel. Prestadora"
+                                                        secondaryKey="code"
+                                                    />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-zinc-400">Check-In</label>
