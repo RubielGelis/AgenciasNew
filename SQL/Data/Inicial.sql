@@ -69,7 +69,8 @@ VALUES
     ('ClaveSQLServer',                   'Contraseña SQL Server',                        '111985*'),
     ('BaseSQLServer',                    'Base de Datos SQL Server',                     'Agencias'),
     ('PuertoSQLServer',                  'Puerto SQL Server',                            ''),
-    ('EnviarCotizacionesAutoSQLserver',  'Envío automático a SQL Server (1: Sí, 0: No)', '1')
+    ('EnviarCotizacionesAutoSQLserver',  'Envío automático a SQL Server (1: Sí, 0: No)', '1'),
+	('Pais',                    		 'Pais',                     					 'Colombia')
 ON CONFLICT (code) DO UPDATE
     SET name  = EXCLUDED.name,
         value = EXCLUDED.value;
@@ -80,4 +81,46 @@ VALUES
     ('COP', 'Peso Colombiano',      1.00),
     ('USD', 'Dólar Estadounidense', 4200.00),
     ('EUR', 'Euro',                 4500.00)
+ON CONFLICT (code) DO NOTHING;
+
+
+-- 9. GDS iniciales
+INSERT INTO public."GDS" (name)
+VALUES
+	('SABRE'),
+	('AMADEUS'),
+	('AEROGAL'),
+	('GALILEO'),
+	('ZEUS ON LINE (ZOL)'),
+	('WEB SERVICE'),
+	('KIU'),
+	('IdeasFractal'),
+	('SparkCopa')
+ON CONFLICT (name) DO NOTHING;
+
+-- 10. Interfaces iniciales
+
+
+INSERT INTO public."Interfaces" (code, name, "inactivo", "bl_genera_archivoplano", "ds_storedprocedure_archivoplano", "bl_job", "ds_namejob" ,"bl_facturador", "id_gds")
+VALUES
+    ('SABRE', 'SABRE', true, false, 'spInterfaceSabre', false, '' ,false,  1),
+    ('AMADEUS', 'AMADEUS', true, false, 'spInterfaceAmadeus', false, '', false, 2),
+    ('IdeasFractal', 'IdeasFractal', false, false, 'spInterfaceIdeasFractal', false, '', false,  8)
+ON CONFLICT (code) DO NOTHING;
+
+
+-- 11. Maestros
+INSERT INTO public."Master" (code, name, "inactivo")
+VALUES
+    ('SystemParameter', 'parametros', false),
+    ('Client', 'clientes', false),
+    ('Provider', 'proveedor', false),
+	('Seller', 'vendedor', false),
+	('TicketPrinter', 'tiqueteador', false),
+	('Prestadora', 'prestadora', false),
+	('Branch', 'sucursal', false),
+	('Implant', 'implante', false),
+	('Product', 'producto', false),
+	('ChargeAndTax', 'cargos e impuesto', false),
+	('Currency', 'moneda', false)
 ON CONFLICT (code) DO NOTHING;

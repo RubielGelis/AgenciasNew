@@ -249,6 +249,26 @@ BEGIN
 		CACHE 1;
 	
 	ALTER SEQUENCE public."User_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."GDS_id_seq"
+		INCREMENT 1
+		START 1
+		MINVALUE 1
+		MAXVALUE 2147483647
+		CACHE 1;
+	
+	ALTER SEQUENCE public."GDS_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Interfaces_id_seq"
+		INCREMENT 1
+		START 1
+		MINVALUE 1
+		MAXVALUE 2147483647
+		CACHE 1;
+	
+	ALTER SEQUENCE public."Interfaces_id_seq"
 	    OWNER TO postgres;	
 		
 	CREATE TABLE IF NOT EXISTS public."Role"
@@ -1050,4 +1070,131 @@ BEGIN
 
 	-- Columna state en Quotation
 	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "state" varchar(25) DEFAULT 'Nuevo';
+
+	CREATE TABLE IF NOT EXISTS public."GDS"(
+		id integer NOT NULL DEFAULT nextval('"GDS_id_seq"'::regclass),
+		name text COLLATE pg_catalog."default" NOT NULL
+	)	
+
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."GDS" OWNER to postgres;
+
+	ALTER TABLE public."GDS" ADD PRIMARY KEY (id);
+
+	--DROP INDEX IF EXISTS public."gds_name_key";
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "gds_name_key"
+	    ON public."GDS" USING btree
+	    (name COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."GDS_id_seq"
+	    OWNED BY public."GDS".id;	
+
+	CREATE TABLE IF NOT EXISTS public."Interfaces"(
+		id integer NOT NULL DEFAULT nextval('"Interfaces_id_seq"'::regclass),
+		code text COLLATE pg_catalog."default" NOT NULL,
+		name text COLLATE pg_catalog."default" NOT NULL,
+		inactivo boolean NOT NULL DEFAULT false,
+		bl_genera_archivoplano boolean NOT NULL DEFAULT false,
+		ds_storedprocedure_archivoplano text COLLATE pg_catalog."default",
+		bl_job boolean NOT NULL DEFAULT false,
+		ds_nameJob text COLLATE pg_catalog."default",
+		bl_facturador boolean NOT NULL DEFAULT false,
+		id_GDS integer,
+		CONSTRAINT "Attachment_pkey" PRIMARY KEY (id)
+	)
+	
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."Interfaces" OWNER to postgres;
+
+	ALTER TABLE public."Interfaces" ADD PRIMARY KEY (id);
+
+	-- DROP INDEX IF EXISTS public."interfaces_code_key";
+	
+	CREATE UNIQUE INDEX IF NOT EXISTS "interfaces_code_key"
+	    ON public."Interfaces" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."Interfaces_id_seq"
+	    OWNED BY public."Interfaces".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Master_id_seq"
+		INCREMENT 1
+		START 1
+		MINVALUE 1
+		MAXVALUE 2147483647
+		CACHE 1;
+	
+	ALTER SEQUENCE public."Master_id_seq"
+	    OWNER TO postgres;	
+
+	CREATE TABLE IF NOT EXISTS public."Master"(
+		id integer NOT NULL DEFAULT nextval('"Master_id_seq"'::regclass),
+		code text COLLATE pg_catalog."default" NOT NULL,
+		name text COLLATE pg_catalog."default" NOT NULL,
+		inactivo boolean NOT NULL DEFAULT false
+	)
+
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."Master" OWNER to postgres;
+
+	ALTER TABLE public."Master" ADD PRIMARY KEY (id);
+
+	-- DROP INDEX IF EXISTS public."master_code_key";
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "master_code_key"
+	    ON public."Master" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."Master_id_seq"
+	    OWNED BY public."Master".id;
+
+
+	CREATE SEQUENCE IF NOT EXISTS public."EquivalencesInterfaces_id_seq"
+		INCREMENT 1
+		START 1
+		MINVALUE 1
+		MAXVALUE 2147483647
+		CACHE 1;
+	
+	ALTER SEQUENCE public."EquivalencesInterfaces_id_seq"
+	    OWNER TO postgres;	
+
+	CREATE TABLE IF NOT EXISTS public."EquivalencesInterfaces"(
+		id integer NOT NULL DEFAULT nextval('"EquivalencesInterfaces_id_seq"'::regclass),
+		id_interfaces integer NOT NULL,
+		id_master integer NOT NULL,
+		cd_maestro text COLLATE pg_catalog."default" NOT NULL,
+		cd_codigo text COLLATE pg_catalog."default" NOT NULL,
+		cd_codigoInte text COLLATE pg_catalog."default" NOT NULL,
+		dt_fecha timestamp without time zone DEFAULT now(),
+		CONSTRAINT "EquivalencesInterfaces_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "EquivalencesInterfaces_id_interfaces_fkey" FOREIGN KEY ("id_interfaces")
+	        REFERENCES public."Interfaces" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE RESTRICT,
+		CONSTRAINT "EquivalencesInterfaces_id_master_fkey" FOREIGN KEY ("id_master")
+	        REFERENCES public."Master" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE RESTRICT	
+	)
+
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."EquivalencesInterfaces" OWNER to postgres;
+
+	ALTER SEQUENCE public."EquivalencesInterfaces_id_seq"
+		OWNED BY public."EquivalencesInterfaces".id;
 END	$$ 		

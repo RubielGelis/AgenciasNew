@@ -30,7 +30,7 @@ import {
 import { cn } from '@/lib/utils'
 import { SearchSelect } from '@/components/SearchSelect'
 
-type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas';
+type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
@@ -57,6 +57,9 @@ export default function SettingsPage() {
     const [parameters, setParameters] = useState<any[]>([])
     const [combos, setCombos] = useState<any[]>([])
     const [currencies, setCurrencies] = useState<any[]>([])
+    const [equivalences, setEquivalences] = useState<any[]>([])
+    const [interfacesList, setInterfacesList] = useState<any[]>([])
+    const [masterList, setMasterList] = useState<any[]>([])
 
     // Form states
     const [formData, setFormData] = useState<any>({})
@@ -73,7 +76,7 @@ export default function SettingsPage() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts, resVariables, resParams, resCombos, resCurrencies] = await Promise.all([
+            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts, resVariables, resParams, resCombos, resCurrencies, resEquivalences, resInterfaces, resMasters] = await Promise.all([
                 fetch('/api/config/users').then(res => res.json()),
                 fetch('/api/config/roles').then(res => res.json()),
                 fetch('/api/config/branches').then(res => res.json()),
@@ -89,7 +92,10 @@ export default function SettingsPage() {
                 fetch('/api/config/variables').then(res => res.json()),
                 fetch('/api/config/parameters').then(res => res.json()),
                 fetch('/api/combos').then(res => res.json()),
-                fetch('/api/config/currencies').then(res => res.json())
+                fetch('/api/config/currencies').then(res => res.json()),
+                fetch('/api/config/equivalences').then(res => res.json()),
+                fetch('/api/config/interfaces').then(res => res.json()),
+                fetch('/api/config/masters').then(res => res.json())
             ])
             setUsers(Array.isArray(u) ? u : [])
             setRoles(Array.isArray(r) ? r : [])
@@ -107,6 +113,9 @@ export default function SettingsPage() {
             setParameters(Array.isArray(resParams) ? resParams : [])
             setCombos(Array.isArray(resCombos) ? resCombos : [])
             setCurrencies(Array.isArray(resCurrencies) ? resCurrencies : [])
+            setEquivalences(Array.isArray(resEquivalences) ? resEquivalences : [])
+            setInterfacesList(Array.isArray(resInterfaces) ? resInterfaces : [])
+            setMasterList(Array.isArray(resMasters) ? resMasters : [])
         } finally {
             setLoading(false)
         }
@@ -158,6 +167,8 @@ export default function SettingsPage() {
                 setFormData({ code: '', name: '', exchangeRate: '' })
             } else if (activeTab === 'combos') {
                 setFormData({ code: '', name: '', cupos: 0, currencyId: '', products: [] })
+            } else if (activeTab === 'equivalencias') {
+                setFormData({ id_interfaces: '', id_master: '', cd_maestro: '', cd_codigo: '', cd_codigoInte: '' })
             } else {
                 setFormData({ code: '', name: '' })
             }
@@ -181,8 +192,9 @@ export default function SettingsPage() {
                                             activeTab === 'variables' ? '/api/config/variables' :
                                                 activeTab === 'parametros' ? '/api/config/parameters' :
                                                     activeTab === 'monedas' ? '/api/config/currencies' :
-                                                        activeTab === 'combos' ? (formData.id ? `/api/combos/${formData.id}` : '/api/combos') :
-                                                            '/api/config/implants'
+                                                        activeTab === 'equivalencias' ? '/api/config/equivalences' :
+                                                            activeTab === 'combos' ? (formData.id ? `/api/combos/${formData.id}` : '/api/combos') :
+                                                                '/api/config/implants'
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -273,8 +285,9 @@ export default function SettingsPage() {
                                             activeTab === 'variables' ? '/api/config/variables' :
                                                 activeTab === 'parametros' ? '/api/config/parameters' :
                                                     activeTab === 'monedas' ? '/api/config/currencies' :
-                                                        activeTab === 'combos' ? `/api/combos/${id}` :
-                                                            '/api/config/implants'
+                                                        activeTab === 'equivalencias' ? '/api/config/equivalences' :
+                                                            activeTab === 'combos' ? `/api/combos/${id}` :
+                                                                '/api/config/implants'
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -375,7 +388,7 @@ export default function SettingsPage() {
                                 className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                             >
                                 <Plus className="w-5 h-5" />
-                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'monedas' ? 'Nueva Moneda' : activeTab === 'combos' ? 'Nuevo Combo' : 'Nuevo Implant'}
+                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'monedas' ? 'Nueva Moneda' : activeTab === 'combos' ? 'Nuevo Combo' : activeTab === 'equivalencias' ? 'Nueva Equivalencia' : 'Nuevo Implant'}
                             </motion.button>
                         </>
                     )}
@@ -398,6 +411,7 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'variables'} onClick={() => setActiveTab('variables')} icon={<Tags className="w-4 h-4" />} label="Variables Adic." />
                 <TabButton active={activeTab === 'combos'} onClick={() => setActiveTab('combos')} icon={<Database className="w-4 h-4" />} label="Combos" />
                 <TabButton active={activeTab === 'monedas'} onClick={() => setActiveTab('monedas')} icon={<DollarSign className="w-4 h-4" />} label="Monedas" />
+                <TabButton active={activeTab === 'equivalencias'} onClick={() => setActiveTab('equivalencias')} icon={<Tags className="w-4 h-4" />} label="Equivalencias" />
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
                 <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<TerminalSquare className="w-4 h-4" />} label="Logs del Sistema" />
             </div>
@@ -504,6 +518,14 @@ export default function SettingsPage() {
                                         <>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'equivalencias' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Interface</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Maestro</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código Maestro</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código Equiv.</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : (
@@ -716,6 +738,25 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
+                                {activeTab === 'equivalencias' && (equivalences || []).filter(item => 
+                                    item.interface_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.master_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.cd_maestro?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.cd_codigo?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map(item => (
+                                    <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.interface_name}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.master_name}</td>
+                                        <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.cd_maestro}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.cd_codigo}</td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+
                                 {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : []) || [])
                                 .filter((item: any) => 
                                     item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -1392,6 +1433,68 @@ export default function SettingsPage() {
                                             <Input label="Código Único" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. EMPRESA_NIT" />
                                             <Input label="Nombre descriptivo" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. NIT de la Empresa" />
                                             <Input label="Valor" value={formData.value || ''} onChange={(v: string) => setFormData({ ...formData, value: v })} required placeholder="Ej. 900.000.000-1" />
+                                        </>
+                                    ) : activeTab === 'equivalencias' ? (
+                                        <>
+                                            <div className="space-y-2 group">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Interface</label>
+                                                <SearchSelect 
+                                                    options={interfacesList} 
+                                                    value={formData.id_interfaces} 
+                                                    onChange={(val) => setFormData({ ...formData, id_interfaces: val })}
+                                                    labelKey="name"
+                                                    placeholder="Seleccionar Interface"
+                                                />
+                                            </div>
+                                            <div className="space-y-2 group">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Maestro</label>
+                                                <SearchSelect 
+                                                    options={masterList} 
+                                                    value={formData.id_master} 
+                                                    onChange={(val) => {
+                                                        setFormData({ ...formData, id_master: val, cd_maestro: '' })
+                                                    }}
+                                                    labelKey="name"
+                                                    placeholder="Seleccionar Maestro"
+                                                />
+                                            </div>
+                                            {formData.id_master && (() => {
+                                                const selectedMaster = masterList.find((m: any) => m.id == formData.id_master);
+                                                let optionsForMaster: any[] = [];
+                                                if (selectedMaster) {
+                                                    const code = selectedMaster.code.toLowerCase();
+                                                    if (code === 'client' || code === 'cliente') optionsForMaster = clients;
+                                                    else if (code === 'provider' || code === 'proveedor') optionsForMaster = providers;
+                                                    else if (code === 'seller' || code === 'vendedor') optionsForMaster = sellers;
+                                                    else if (code === 'prestadora' || code === 'hotel') optionsForMaster = prestadoras;
+                                                    else if (code === 'product' || code === 'producto') optionsForMaster = products;
+                                                    else if (code === 'branch' || code === 'sucursal') optionsForMaster = branches;
+                                                }
+                                                return optionsForMaster.length > 0 ? (
+                                                    <div className="space-y-2 group">
+                                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Registro del Maestro ({selectedMaster?.name})</label>
+                                                        <SearchSelect 
+                                                            options={optionsForMaster} 
+                                                            value={formData.cd_maestro} 
+                                                            onChange={(val) => {
+                                                                const selectedItem = optionsForMaster.find(o => String(o.id) === String(val) || String(o.code) === String(val));
+                                                                setFormData({ ...formData, cd_maestro: selectedItem?.code || selectedItem?.document || selectedItem?.id?.toString() || '' })
+                                                            }}
+                                                            labelKey="name"
+                                                            placeholder={`Seleccionar ${selectedMaster?.name}`}
+                                                        />
+                                                        {formData.cd_maestro && (
+                                                            <div className="text-xs text-blue-600 mt-1 font-bold">
+                                                                Código a usar: {formData.cd_maestro}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <Input label="Código del Maestro" value={formData.cd_maestro || ''} onChange={(v: string) => setFormData({ ...formData, cd_maestro: v })} required placeholder="Escriba el código del maestro" />
+                                                );
+                                            })()}
+                                            <Input label="Código Equivalente" value={formData.cd_codigo || ''} onChange={(v: string) => setFormData({ ...formData, cd_codigo: v })} required placeholder="Ej. BOG" />
+                                            <Input label="Código de Integración (Opcional)" value={formData.cd_codigoInte || ''} onChange={(v: string) => setFormData({ ...formData, cd_codigoInte: v })} placeholder="Ej. TKT-VUELO" />
                                         </>
                                     ) : (
                                         <>
