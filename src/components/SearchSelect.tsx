@@ -26,7 +26,7 @@ export function SearchSelect({
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
-    const selectedOption = options.find(o => String(o.id) === String(value) || String(o.code) === String(value));
+    const selectedOption = options.find(o => String(o.id) === String(value) || String(o.code) === String(value) || String(o.document) === String(value) || (secondaryKey && o[secondaryKey] && String(o[secondaryKey]) === String(value)));
 
     const filteredOptions = useMemo(() => {
         if (!searchTerm) return options;

@@ -60,6 +60,7 @@ export default function SettingsPage() {
     const [equivalences, setEquivalences] = useState<any[]>([])
     const [interfacesList, setInterfacesList] = useState<any[]>([])
     const [masterList, setMasterList] = useState<any[]>([])
+    const [dynamicMasterOptions, setDynamicMasterOptions] = useState<any[]>([])
 
     // Form states
     const [formData, setFormData] = useState<any>({})
@@ -120,6 +121,28 @@ export default function SettingsPage() {
             setLoading(false)
         }
     }
+
+    useEffect(() => {
+        if (formData.id_master && activeTab === 'equivalencias') {
+            const selectedMaster = masterList.find((m: any) => m.id == formData.id_master);
+            if (selectedMaster && selectedMaster.code) {
+                fetch(`/api/config/masters/dynamic?table=${selectedMaster.code}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (Array.isArray(data)) {
+                            setDynamicMasterOptions(data);
+                        } else {
+                            setDynamicMasterOptions([]);
+                        }
+                    })
+                    .catch(() => setDynamicMasterOptions([]));
+            } else {
+                setDynamicMasterOptions([]);
+            }
+        } else {
+            setDynamicMasterOptions([]);
+        }
+    }, [formData.id_master, activeTab, masterList]);
 
     const handleOpenModal = (item?: any) => {
         if (item) {
@@ -751,6 +774,7 @@ export default function SettingsPage() {
                                         <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.cd_codigo}</td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
                                                 <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
                                             </div>
                                         </td>
@@ -858,7 +882,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'monedas' ? 'Moneda' : activeTab === 'combos' ? 'Combo' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'monedas' ? 'Moneda' : activeTab === 'combos' ? 'Combo' : activeTab === 'equivalencias' ? 'Equivalencia' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -1458,43 +1482,46 @@ export default function SettingsPage() {
                                                     placeholder="Seleccionar Maestro"
                                                 />
                                             </div>
-                                            {formData.id_master && (() => {
-                                                const selectedMaster = masterList.find((m: any) => m.id == formData.id_master);
-                                                let optionsForMaster: any[] = [];
-                                                if (selectedMaster) {
-                                                    const code = selectedMaster.code.toLowerCase();
-                                                    if (code === 'client' || code === 'cliente') optionsForMaster = clients;
-                                                    else if (code === 'provider' || code === 'proveedor') optionsForMaster = providers;
-                                                    else if (code === 'seller' || code === 'vendedor') optionsForMaster = sellers;
-                                                    else if (code === 'prestadora' || code === 'hotel') optionsForMaster = prestadoras;
-                                                    else if (code === 'product' || code === 'producto') optionsForMaster = products;
-                                                    else if (code === 'branch' || code === 'sucursal') optionsForMaster = branches;
-                                                }
-                                                return optionsForMaster.length > 0 ? (
+                                            {(() => {
+                                                const selectedMaster = formData.id_master ? masterList.find((m: any) => m.id == formData.id_master) : null;
+                                                return (
                                                     <div className="space-y-2 group">
-                                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Registro del Maestro ({selectedMaster?.name})</label>
-                                                        <SearchSelect 
-                                                            options={optionsForMaster} 
-                                                            value={formData.cd_maestro} 
-                                                            onChange={(val) => {
-                                                                const selectedItem = optionsForMaster.find(o => String(o.id) === String(val) || String(o.code) === String(val));
-                                                                setFormData({ ...formData, cd_maestro: selectedItem?.code || selectedItem?.document || selectedItem?.id?.toString() || '' })
-                                                            }}
-                                                            labelKey="name"
-                                                            placeholder={`Seleccionar ${selectedMaster?.name}`}
-                                                        />
-                                                        {formData.cd_maestro && (
-                                                            <div className="text-xs text-blue-600 mt-1 font-bold">
-                                                                Código a usar: {formData.cd_maestro}
+                                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Código Maestro {selectedMaster ? `(${selectedMaster.name})` : ''}</label>
+                                                        {selectedMaster && dynamicMasterOptions.length > 0 ? (
+                                                            <>
+                                                                <SearchSelect 
+                                                                    options={dynamicMasterOptions} 
+                                                                    value={formData.cd_maestro} 
+                                                                    onChange={(val) => {
+                                                                        const selectedItem = dynamicMasterOptions.find(o => String(o.id) === String(val) || String(o.code) === String(val) || String(o.document) === String(val));
+                                                                        setFormData({ ...formData, cd_maestro: selectedItem?.code || selectedItem?.document || selectedItem?.id?.toString() || '' })
+                                                                    }}
+                                                                    labelKey="name"
+                                                                    secondaryKey={selectedMaster.code === 'Client' ? 'document' : 'code'}
+                                                                    placeholder={`Seleccionar registro en ${selectedMaster.name}`}
+                                                                />
+                                                                {formData.cd_maestro && (
+                                                                    <div className="text-[10px] text-blue-600 font-black uppercase">
+                                                                        Código interno seleccionado: {formData.cd_maestro}
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <div className="relative">
+                                                                <input
+                                                                    type="text"
+                                                                    className={`w-full h-11 sm:h-12 rounded-xl px-3 sm:px-4 border outline-none flex items-center justify-between text-left text-xs sm:text-sm font-medium ${!selectedMaster ? 'bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200/50 dark:border-zinc-800/50 text-zinc-400 cursor-not-allowed' : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 dark:text-white focus:ring-2 focus:ring-blue-500'}`}
+                                                                    value={formData.cd_maestro || ''}
+                                                                    onChange={(e) => setFormData({ ...formData, cd_maestro: e.target.value })}
+                                                                    disabled={!selectedMaster}
+                                                                    placeholder={selectedMaster ? "Escriba el código del maestro" : "Seleccione un Maestro primero..."}
+                                                                />
                                                             </div>
                                                         )}
                                                     </div>
-                                                ) : (
-                                                    <Input label="Código del Maestro" value={formData.cd_maestro || ''} onChange={(v: string) => setFormData({ ...formData, cd_maestro: v })} required placeholder="Escriba el código del maestro" />
                                                 );
                                             })()}
                                             <Input label="Código Equivalente" value={formData.cd_codigo || ''} onChange={(v: string) => setFormData({ ...formData, cd_codigo: v })} required placeholder="Ej. BOG" />
-                                            <Input label="Código de Integración (Opcional)" value={formData.cd_codigoInte || ''} onChange={(v: string) => setFormData({ ...formData, cd_codigoInte: v })} placeholder="Ej. TKT-VUELO" />
                                         </>
                                     ) : (
                                         <>

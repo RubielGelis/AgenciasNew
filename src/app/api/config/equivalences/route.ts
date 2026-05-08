@@ -30,6 +30,27 @@ export async function POST(req: Request) {
     }
 }
 
+export async function PUT(req: Request) {
+    try {
+        const body = await req.json()
+        const { id, id_interfaces, id_master, cd_maestro, cd_codigo, cd_codigoInte } = body
+
+        if (!id) return NextResponse.json({ message: 'ID required' }, { status: 400 })
+
+        // No hay un procedure de actualizar, por lo tanto usamos un update directo temporalmente
+        // hasta que se cree spEquivalencesInterfacesActualizar en DB
+        await prisma.$executeRawUnsafe(
+            `UPDATE public."EquivalencesInterfaces" 
+             SET id_interfaces = $1, id_master = $2, cd_maestro = $3, cd_codigo = $4, "cd_codigointe" = $5 
+             WHERE id = $6`,
+            Number(id_interfaces), Number(id_master), cd_maestro, cd_codigo, cd_codigoInte || '', Number(id)
+        )
+        return NextResponse.json({ success: true })
+    } catch (error: any) {
+        return NextResponse.json({ message: error.message }, { status: 500 })
+    }
+}
+
 export async function DELETE(req: Request) {
     try {
         const { searchParams } = new URL(req.url)

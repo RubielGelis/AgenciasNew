@@ -1197,4 +1197,53 @@ BEGIN
 
 	ALTER SEQUENCE public."EquivalencesInterfaces_id_seq"
 		OWNED BY public."EquivalencesInterfaces".id;
+	CREATE TABLE IF NOT EXISTS public."Report" (
+	    id SERIAL PRIMARY KEY,
+	    name VARCHAR(255) NOT NULL,
+	    base_table VARCHAR(100), -- Puede ser NULL si es Custom SQL
+	    description TEXT,
+	    custom_sql TEXT, -- Para reportes definidos por script
+	    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE TABLE IF NOT EXISTS public."ReportSorts" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    column_expr TEXT NOT NULL,
+	    direction VARCHAR(10) DEFAULT 'ASC',
+	    sort_order INTEGER DEFAULT 0
+	);
+
+	CREATE TABLE IF NOT EXISTS public."ReportJoins" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    table_name VARCHAR(100) NOT NULL,
+	    alias VARCHAR(20) NOT NULL,
+	    join_type VARCHAR(50) NOT NULL DEFAULT 'INNER JOIN',
+	    join_condition TEXT NOT NULL,
+	    sort_order INTEGER DEFAULT 0
+	);
+
+	CREATE TABLE IF NOT EXISTS public."ReportColumns" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    table_alias VARCHAR(20),
+	    column_name VARCHAR(100) NOT NULL,
+	    alias VARCHAR(150),
+	    is_calculated BOOLEAN DEFAULT false,
+	    is_visible BOOLEAN DEFAULT true,
+	    formula_expression TEXT,
+	    sort_order INTEGER DEFAULT 0
+	);
+
+	CREATE TABLE IF NOT EXISTS public."ReportFilters" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    table_alias VARCHAR(20),
+	    column_name VARCHAR(100) NOT NULL,
+	    filter_label VARCHAR(150),
+	    filter_type VARCHAR(50) NOT NULL, -- 'text', 'date', 'number', 'select'
+	    operator VARCHAR(20) DEFAULT '=',
+	    sort_order INTEGER DEFAULT 0
+	);
 END	$$ 		

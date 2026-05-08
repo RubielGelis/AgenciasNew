@@ -1,3 +1,5 @@
+DROP FUNCTION IF EXISTS public."fnInterfacesList"();
+
 CREATE OR REPLACE FUNCTION public."fnInterfacesList"()
 RETURNS TABLE(
     id integer,
@@ -7,9 +9,9 @@ RETURNS TABLE(
     bl_genera_archivoplano boolean,
     ds_storedprocedure_archivoplano text,
     bl_job boolean,
-    ds_nameJob text,
+    ds_namejob text,
     bl_facturador boolean,
-    "id_GDS" integer
+    id_gds integer
 ) 
 LANGUAGE 'plpgsql'
 AS $BODY$
@@ -23,9 +25,9 @@ BEGIN
         i.bl_genera_archivoplano,
         i.ds_storedprocedure_archivoplano,
         i.bl_job,
-        i.ds_nameJob,
+        i.ds_namejob,
         i.bl_facturador,
-        i."id_GDS"
+        i.id_gds
     FROM public."Interfaces" i
     ORDER BY i.name ASC;
 END;
