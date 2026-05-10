@@ -1046,6 +1046,10 @@ BEGIN
 	ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
 	ALTER TABLE public."ComboProduct" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
 	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
+	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "service" text;
+	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "description" text;
+	ALTER TABLE public."Prestadora" ADD COLUMN IF NOT EXISTS "initials" text;
+	ALTER TABLE public."Prestadora" ADD COLUMN IF NOT EXISTS "nogds" text;
 	-- Tabla Currency ya incluida en la creación arriba, pero por si la BD es existente:
 	CREATE TABLE IF NOT EXISTS public."Currency"
 	(
@@ -1073,14 +1077,17 @@ BEGIN
 
 	CREATE TABLE IF NOT EXISTS public."GDS"(
 		id integer NOT NULL DEFAULT nextval('"GDS_id_seq"'::regclass),
-		name text COLLATE pg_catalog."default" NOT NULL
+		name text COLLATE pg_catalog."default" NOT NULL,
+		CONSTRAINT "GDS_pkey" PRIMARY KEY (id)
 	)	
 
 	TABLESPACE pg_default;
 	
 	ALTER TABLE IF EXISTS public."GDS" OWNER to postgres;
-
-	ALTER TABLE public."GDS" ADD PRIMARY KEY (id);
+	
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN
+		ALTER TABLE public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id);
+	END IF;
 
 	--DROP INDEX IF EXISTS public."gds_name_key";
 
@@ -1105,14 +1112,16 @@ BEGIN
 		ds_nameJob text COLLATE pg_catalog."default",
 		bl_facturador boolean NOT NULL DEFAULT false,
 		id_GDS integer,
-		CONSTRAINT "Attachment_pkey" PRIMARY KEY (id)
+		CONSTRAINT "interfaces_pkey" PRIMARY KEY (id)
 	)
 	
 	TABLESPACE pg_default;
 	
 	ALTER TABLE IF EXISTS public."Interfaces" OWNER to postgres;
 
-	ALTER TABLE public."Interfaces" ADD PRIMARY KEY (id);
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'interfaces_pkey') THEN
+		ALTER TABLE public."Interfaces" ADD CONSTRAINT "interfaces_pkey" PRIMARY KEY (id);
+	END IF;
 
 	-- DROP INDEX IF EXISTS public."interfaces_code_key";
 	
@@ -1140,14 +1149,17 @@ BEGIN
 		id integer NOT NULL DEFAULT nextval('"Master_id_seq"'::regclass),
 		code text COLLATE pg_catalog."default" NOT NULL,
 		name text COLLATE pg_catalog."default" NOT NULL,
-		inactivo boolean NOT NULL DEFAULT false
+		inactivo boolean NOT NULL DEFAULT false,
+		CONSTRAINT "master_pkey" PRIMARY KEY (id)
 	)
 
 	TABLESPACE pg_default;
 	
 	ALTER TABLE IF EXISTS public."Master" OWNER to postgres;
 
-	ALTER TABLE public."Master" ADD PRIMARY KEY (id);
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'master_pkey') THEN
+		ALTER TABLE public."Master" ADD CONSTRAINT "master_pkey" PRIMARY KEY (id);
+	END IF;
 
 	-- DROP INDEX IF EXISTS public."master_code_key";
 
@@ -1197,6 +1209,7 @@ BEGIN
 
 	ALTER SEQUENCE public."EquivalencesInterfaces_id_seq"
 		OWNED BY public."EquivalencesInterfaces".id;
+<<<<<<< HEAD
 	CREATE TABLE IF NOT EXISTS public."Report" (
 	    id SERIAL PRIMARY KEY,
 	    name VARCHAR(255) NOT NULL,
@@ -1247,3 +1260,241 @@ BEGIN
 	    sort_order INTEGER DEFAULT 0
 	);
 END	$$ 		
+=======
+
+	-- SEQUENCES FOR BOOKING GDS
+	CREATE SEQUENCE IF NOT EXISTS public."BookingGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingGDS_id_seq" OWNER TO postgres;
+	
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductGDS_id_seq" OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductTaxGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductTaxGDS_id_seq" OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductPassangerGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductPassangerGDS_id_seq" OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductVariableGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductVariableGDS_id_seq" OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductPaymentGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductPaymentGDS_id_seq" OWNER TO postgres;
+
+	-- TABLES FOR BOOKING GDS
+	CREATE TABLE IF NOT EXISTS public."BookingGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingGDS_id_seq"'::regclass),
+		code VARCHAR(25) NOT NULL,
+		type VARCHAR(25) NOT NULL,
+		"blanch" VARCHAR(25) NOT NULL,
+		"implant" VARCHAR(25) NULL,
+		"external" boolean NOT NULL DEFAULT false,
+		"gds" integer,
+		"date" timestamp without time zone DEFAULT now(),
+		"currency" text COLLATE pg_catalog."default" NOT NULL,
+	    "exchangeRate" double precision NOT NULL,
+		"tiquetPrinter" VARCHAR(25) NOT NULL,
+		"seller" VARCHAR(25) NOT NULL,
+		"client" VARCHAR(25) NOT NULL,
+		"booking" text NULL,
+		"typetransaction" VARCHAR(25),
+		"iata" VARCHAR(25),
+		"description" text,
+		"observation" text,
+		"state" VARCHAR(25),
+		CONSTRAINT "BookingGDS_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingGDS_id_seq" OWNED BY public."BookingGDS".id;
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "bookingds_code_key"
+	    ON public."BookingGDS" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+	TABLESPACE pg_default;	
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductGDS_id_seq"'::regclass),
+		"bookingId" integer NOT NULL,
+		code VARCHAR(25) NOT NULL,
+		type VARCHAR(25),
+		"service" text COLLATE pg_catalog."default",
+		"description" text COLLATE pg_catalog."default",
+		"prestadoracode" VARCHAR(25),
+		"prestadorainitials" VARCHAR(25),
+		"prestadoradist" VARCHAR(25),
+		"provider" VARCHAR(25),
+		"quantity" integer NOT NULL,
+	    price double precision NOT NULL,
+	    cost double precision DEFAULT 0,
+		"checkInDate" timestamp(3) without time zone,
+	    "checkOutDate" timestamp(3) without time zone,
+	    "nights" integer,
+	    "paxAdults" integer,
+	    "paxChildren" integer,
+	    "serviceType" text COLLATE pg_catalog."default",
+		"billingConcept" text COLLATE pg_catalog."default",
+	    "destination" text COLLATE pg_catalog."default",
+	    "reservationCode" text COLLATE pg_catalog."default",
+	    "sellerCom" double precision,
+	    "ticketPrinterCom" double precision,
+	    "inNationality" integer DEFAULT 1,
+		"state" VARCHAR(25) DEFAULT 'NUEVO',
+		CONSTRAINT "BookingProductGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductGDS_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES public."BookingGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductGDS_id_seq" OWNED BY public."BookingProductGDS".id;
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductTaxGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductTaxGDS_id_seq"'::regclass),
+		"bookingProductId" integer NOT NULL,
+		code VARCHAR(25) NOT NULL,
+		name VARCHAR(50) NOT NULL,
+		type VARCHAR(25) NOT NULL,
+		"ismain" boolean DEFAULT false,
+		"percentage" double precision NOT NULL,
+		"amount" double precision NOT NULL, 
+		CONSTRAINT "BookingProductTaxGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductTaxGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductTaxGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductTaxGDS_id_seq" OWNED BY public."BookingProductTaxGDS".id;
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductPassangerGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductPassangerGDS_id_seq"'::regclass),
+		"bookingProductId" integer NOT NULL,
+		code VARCHAR(25),
+		"firstnm" VARCHAR(30),
+		"lastnm" VARCHAR(30),
+		"prefix" VARCHAR(25),
+		"identification" VARCHAR(25),
+		"phone" VARCHAR(25),
+		"email" VARCHAR(250),
+		CONSTRAINT "BookingProductPassangerGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductPassangerGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductPassangerGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductPassangerGDS_id_seq" OWNED BY public."BookingProductPassangerGDS".id;
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductVariableGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductVariableGDS_id_seq"'::regclass),
+		"bookingProductId" integer NOT NULL,
+		code text COLLATE pg_catalog."default",
+		name text COLLATE pg_catalog."default",
+		"value" text COLLATE pg_catalog."default",
+		CONSTRAINT "BookingProductVariableGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductVariableGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductVariableGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductVariableGDS_id_seq" OWNED BY public."BookingProductVariableGDS".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductFEEGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductFEEGDS_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductFEEGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductFEEGDS_id_seq"'::regclass),
+		"bookingProductId" integer NOT NULL,
+		code text COLLATE pg_catalog."default" NOT NULL,
+		name text COLLATE pg_catalog."default" NOT NULL,
+		type text COLLATE pg_catalog."default" NOT NULL,
+		"description" text COLLATE pg_catalog."default" NOT NULL,
+		"billigconcept" text COLLATE pg_catalog."default" NOT NULL,
+		"servicetype" text COLLATE pg_catalog."default" NOT NULL,
+		"amount" double precision NOT NULL,
+		"tax" double precision NOT NULL,
+		"other" double precision NOT NULL,
+		"total" double precision NOT NULL,
+		CONSTRAINT "BookingProductFEEGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductFEEGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductFEEGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductFEEGDS_id_seq" OWNED BY public."BookingProductFEEGDS".id;
+
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductPaymentGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductPaymentGDS_id_seq"'::regclass),
+		"bookingProductId" integer NULL,
+		"bookingProductFEEId" integer NULL,
+		code VARCHAR(50) NOT NULL,
+		name VARCHAR(50) NOT NULL,
+		type VARCHAR(50) NOT NULL,
+		"typecreditcard" VARCHAR(25),
+		"numbercreditcard" VARCHAR(16),
+		"vouchercreditcard" VARCHAR(25),
+		"expiredcreditcard" VARCHAR(5),
+		"authcreditcard" VARCHAR(25),
+		"quotas" integer,
+		"bank" VARCHAR(25),
+		"square" VARCHAR(30),
+		"reference" VARCHAR(50),
+		"policy" VARCHAR(25),
+		"policyannex" VARCHAR(25),
+		"amount" double precision NOT NULL, 
+		CONSTRAINT "BookingProductPaymentGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductPaymentGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE,
+		CONSTRAINT "BookingProductPaymentGDS_bookingProductFEEId_fkey" FOREIGN KEY ("bookingProductFEEId") REFERENCES public."BookingProductFEEGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductPaymentGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductPaymentGDS_id_seq" OWNED BY public."BookingProductPaymentGDS".id;
+
+	
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductItineraryGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductItineraryGDS_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductItineraryGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductItineraryGDS_id_seq"'::regclass),
+		"bookingProductId" integer NOT NULL,
+		"orden" integer,
+		"origin" text COLLATE pg_catalog."default" NOT NULL,
+		"destination" text COLLATE pg_catalog."default" NOT NULL,
+		"class" text COLLATE pg_catalog."default" NOT NULL,
+		"checkInDate" timestamp(3) without time zone,
+		"checkOutDate" timestamp(3) without time zone,
+		"terminal" text COLLATE pg_catalog."default" NOT NULL,
+		"prestadoraCode" text COLLATE pg_catalog."default" NOT NULL,
+		"farebasis" text COLLATE pg_catalog."default" NOT NULL,
+		"Numflight" VARCHAR(25),
+		"Typeflight" VARCHAR(1),
+		"amount" double precision NOT NULL,
+		CONSTRAINT "BookingProductItineraryGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductItineraryGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductItineraryGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductItineraryGDS_id_seq" OWNED BY public."BookingProductItineraryGDS".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Payment_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."Payment_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."Payment"
+	(
+	    id integer NOT NULL DEFAULT nextval('"Payment_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default" NOT NULL,
+	    "name" text COLLATE pg_catalog."default" NOT NULL,
+	    "inactive" boolean NOT NULL DEFAULT false,
+	    "iscash" boolean NOT NULL DEFAULT false,
+		"iscredit" boolean NOT NULL DEFAULT false,
+	    CONSTRAINT "Payment_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."Payment" OWNER to postgres;
+	CREATE UNIQUE INDEX IF NOT EXISTS "Payment_code_key" ON public."Payment" USING btree (code COLLATE pg_catalog."default" ASC NULLS LAST) WITH (fillfactor=100, deduplicate_items=True) TABLESPACE pg_default;
+	ALTER SEQUENCE public."Payment_id_seq" OWNED BY public."Payment".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."CreditCard_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."CreditCard_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."CreditCard"
+	(
+	    id integer NOT NULL DEFAULT nextval('"CreditCard_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default" NOT NULL,
+	    "name" text COLLATE pg_catalog."default" NOT NULL,
+		"type" text COLLATE pg_catalog."default" NOT NULL,
+	    "inactive" boolean NOT NULL DEFAULT false,
+	    CONSTRAINT "CreditCard_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."CreditCard" OWNER to postgres;
+	CREATE UNIQUE INDEX IF NOT EXISTS "CreditCard_code_key" ON public."CreditCard" USING btree (code COLLATE pg_catalog."default" ASC NULLS LAST) WITH (fillfactor=100, deduplicate_items=True) TABLESPACE pg_default;
+	ALTER SEQUENCE public."CreditCard_id_seq" OWNED BY public."CreditCard".id;
+
+END	$$
+
