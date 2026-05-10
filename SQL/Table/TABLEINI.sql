@@ -1262,6 +1262,47 @@ BEGIN
 END	$$ 		
 =======
 
+	CREATE TABLE IF NOT EXISTS public."ReportSorts" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    column_expr TEXT NOT NULL,
+	    direction VARCHAR(10) DEFAULT 'ASC',
+	    sort_order INTEGER DEFAULT 0
+	);
+
+	CREATE TABLE IF NOT EXISTS public."ReportJoins" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    table_name VARCHAR(100) NOT NULL,
+	    alias VARCHAR(20) NOT NULL,
+	    join_type VARCHAR(50) NOT NULL DEFAULT 'INNER JOIN',
+	    join_condition TEXT NOT NULL,
+	    sort_order INTEGER DEFAULT 0
+	);
+
+	CREATE TABLE IF NOT EXISTS public."ReportColumns" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    table_alias VARCHAR(20),
+	    column_name VARCHAR(100) NOT NULL,
+	    alias VARCHAR(150),
+	    is_calculated BOOLEAN DEFAULT false,
+	    is_visible BOOLEAN DEFAULT true,
+	    formula_expression TEXT,
+	    sort_order INTEGER DEFAULT 0
+	);
+
+	CREATE TABLE IF NOT EXISTS public."ReportFilters" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    table_alias VARCHAR(20),
+	    column_name VARCHAR(100) NOT NULL,
+	    filter_label VARCHAR(150),
+	    filter_type VARCHAR(50) NOT NULL, -- 'text', 'date', 'number', 'select'
+	    operator VARCHAR(20) DEFAULT '=',
+	    sort_order INTEGER DEFAULT 0
+	);	
+
 	-- SEQUENCES FOR BOOKING GDS
 	CREATE SEQUENCE IF NOT EXISTS public."BookingGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
 	ALTER SEQUENCE public."BookingGDS_id_seq" OWNER TO postgres;
