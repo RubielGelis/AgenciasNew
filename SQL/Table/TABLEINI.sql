@@ -1209,7 +1209,7 @@ BEGIN
 
 	ALTER SEQUENCE public."EquivalencesInterfaces_id_seq"
 		OWNED BY public."EquivalencesInterfaces".id;
-<<<<<<< HEAD
+
 	CREATE TABLE IF NOT EXISTS public."Report" (
 	    id SERIAL PRIMARY KEY,
 	    name VARCHAR(255) NOT NULL,
@@ -1259,49 +1259,8 @@ BEGIN
 	    operator VARCHAR(20) DEFAULT '=',
 	    sort_order INTEGER DEFAULT 0
 	);
-END	$$ 		
-=======
+		
 
-	CREATE TABLE IF NOT EXISTS public."ReportSorts" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    column_expr TEXT NOT NULL,
-	    direction VARCHAR(10) DEFAULT 'ASC',
-	    sort_order INTEGER DEFAULT 0
-	);
-
-	CREATE TABLE IF NOT EXISTS public."ReportJoins" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    table_name VARCHAR(100) NOT NULL,
-	    alias VARCHAR(20) NOT NULL,
-	    join_type VARCHAR(50) NOT NULL DEFAULT 'INNER JOIN',
-	    join_condition TEXT NOT NULL,
-	    sort_order INTEGER DEFAULT 0
-	);
-
-	CREATE TABLE IF NOT EXISTS public."ReportColumns" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    table_alias VARCHAR(20),
-	    column_name VARCHAR(100) NOT NULL,
-	    alias VARCHAR(150),
-	    is_calculated BOOLEAN DEFAULT false,
-	    is_visible BOOLEAN DEFAULT true,
-	    formula_expression TEXT,
-	    sort_order INTEGER DEFAULT 0
-	);
-
-	CREATE TABLE IF NOT EXISTS public."ReportFilters" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    table_alias VARCHAR(20),
-	    column_name VARCHAR(100) NOT NULL,
-	    filter_label VARCHAR(150),
-	    filter_type VARCHAR(50) NOT NULL, -- 'text', 'date', 'number', 'select'
-	    operator VARCHAR(20) DEFAULT '=',
-	    sort_order INTEGER DEFAULT 0
-	);	
 
 	-- SEQUENCES FOR BOOKING GDS
 	CREATE SEQUENCE IF NOT EXISTS public."BookingGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
@@ -1381,12 +1340,20 @@ END	$$
 	    "ticketPrinterCom" double precision,
 	    "inNationality" integer DEFAULT 1,
 		"state" VARCHAR(25) DEFAULT 'NUEVO',
+		"conjunction" integer DEFAULT 0,
+		"revised" VARCHAR(25),
+		"typeproduct" VARCHAR(25),
 		CONSTRAINT "BookingProductGDS_pkey" PRIMARY KEY (id),
 		CONSTRAINT "BookingProductGDS_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES public."BookingGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
 	) TABLESPACE pg_default;
 	ALTER TABLE IF EXISTS public."BookingProductGDS" OWNER to postgres;
 	ALTER SEQUENCE public."BookingProductGDS_id_seq" OWNED BY public."BookingProductGDS".id;
 
+	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "conjunction" integer DEFAULT 0;
+	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "revised" VARCHAR(25);
+	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "penalty" VARCHAR(25);
+	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "typeproduct" VARCHAR(25);
+	
 	CREATE TABLE IF NOT EXISTS public."BookingProductTaxGDS" (
 		id integer NOT NULL DEFAULT nextval('"BookingProductTaxGDS_id_seq"'::regclass),
 		"bookingProductId" integer NOT NULL,
@@ -1504,6 +1471,21 @@ END	$$
 	ALTER TABLE IF EXISTS public."BookingProductItineraryGDS" OWNER to postgres;
 	ALTER SEQUENCE public."BookingProductItineraryGDS_id_seq" OWNED BY public."BookingProductItineraryGDS".id;
 
+	CREATE SEQUENCE IF NOT EXISTS public."BranchGDSInvoiceAuto_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BranchGDSInvoiceAuto_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."BranchGDSInvoiceAuto" (
+		id integer NOT NULL DEFAULT nextval('"BranchGDSInvoiceAuto_id_seq"'::regclass),
+		"branchId" integer NOT NULL,
+		"gdsId" integer NOT NULL,
+		"EnvoiceAuto" boolean DEFAULT false,
+		CONSTRAINT "BranchGDSInvoiceAuto_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BranchGDSInvoiceAuto_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BranchGDSInvoiceAuto" OWNER to postgres;
+	ALTER SEQUENCE public."BranchGDSInvoiceAuto_id_seq" OWNED BY public."BranchGDSInvoiceAuto".id;
+
+
 	CREATE SEQUENCE IF NOT EXISTS public."Payment_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
 	ALTER SEQUENCE public."Payment_id_seq" OWNER TO postgres;
 
@@ -1537,5 +1519,120 @@ END	$$
 	CREATE UNIQUE INDEX IF NOT EXISTS "CreditCard_code_key" ON public."CreditCard" USING btree (code COLLATE pg_catalog."default" ASC NULLS LAST) WITH (fillfactor=100, deduplicate_items=True) TABLESPACE pg_default;
 	ALTER SEQUENCE public."CreditCard_id_seq" OWNED BY public."CreditCard".id;
 
-END	$$
+	CREATE SEQUENCE IF NOT EXISTS public."BookingsGDS_log_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingsGDS_log_id_seq" OWNER TO postgres;
 
+	CREATE TABLE IF NOT EXISTS public."BookingsGDS_log"
+	(
+	    id integer NOT NULL DEFAULT nextval('"BookingsGDS_log_id_seq"'::regclass),
+	    blanch VARCHAR(25),
+	    implant VARCHAR(25),
+	    "message" TEXT,
+	    file VARCHAR(250),
+	    codebooking VARCHAR(50),
+	    booking TEXT,
+	    error integer NOT NULL DEFAULT 0,
+	    CONSTRAINT "BookingsGDS_log_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingsGDS_log" OWNER to postgres;
+	ALTER SEQUENCE public."BookingsGDS_log_id_seq" OWNED BY public."BookingsGDS_log".id;
+	CREATE SEQUENCE IF NOT EXISTS public."BookingsGDSInvoiceAuto_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingsGDSInvoiceAuto_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."BookingsGDSInvoiceAuto"
+	(
+	    id integer NOT NULL DEFAULT nextval('"BookingsGDSInvoiceAuto_id_seq"'::regclass),
+	    "Branch" VARCHAR(25),
+	    implant VARCHAR(25),
+	    "bookingCode" VARCHAR(25),
+	    "bookingId" integer,
+	    CONSTRAINT "BookingsGDSInvoiceAuto_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingsGDSInvoiceAuto" OWNER to postgres;
+	ALTER SEQUENCE public."BookingsGDSInvoiceAuto_id_seq" OWNED BY public."BookingsGDSInvoiceAuto".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingGDSInvoiceAutoLog_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingGDSInvoiceAutoLog_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."BookingGDSInvoiceAutoLog"
+	(
+	    "Id" integer NOT NULL DEFAULT nextval('"BookingGDSInvoiceAutoLog_id_seq"'::regclass),
+	    "branchId" integer,
+	    "implanteId" integer,
+	    "date" TIMESTAMP,
+	    menssage text,
+	    "bookingCode" VARCHAR(25),
+	    "bookingId" integer,
+	    error boolean,
+	    file text,
+	    "userId" integer,
+	    CONSTRAINT "BookingGDSInvoiceAutoLog_pkey" PRIMARY KEY ("Id")
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingGDSInvoiceAutoLog" OWNER to postgres;
+	ALTER SEQUENCE public."BookingGDSInvoiceAutoLog_id_seq" OWNED BY public."BookingGDSInvoiceAutoLog"."Id";
+	CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."Currency_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."Currency" (
+		id integer NOT NULL DEFAULT nextval('"Currency_id_seq"'::regclass),
+		code VARCHAR(10) NOT NULL,
+		name VARCHAR(50) NOT NULL,
+		"exchangeRate" double precision,
+		CONSTRAINT "Currency_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."Currency" OWNER to postgres;
+	ALTER SEQUENCE public."Currency_id_seq" OWNED BY public."Currency".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Countries_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."Countries_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."Countries" (
+		id integer NOT NULL DEFAULT nextval('"Countries_id_seq"'::regclass),
+		code VARCHAR(10) NOT NULL,
+		name VARCHAR(100) NOT NULL,
+		dane VARCHAR(25),
+		region VARCHAR(50),
+		prefix VARCHAR(10),
+		"curencyId" integer,
+		CONSTRAINT "Countries_pkey" PRIMARY KEY (id),
+		CONSTRAINT "Countries_curencyId_fkey" FOREIGN KEY ("curencyId") REFERENCES public."Currency" (id) ON UPDATE CASCADE ON DELETE SET NULL
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."Countries" OWNER to postgres;
+	ALTER SEQUENCE public."Countries_id_seq" OWNED BY public."Countries".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Cities_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."Cities_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."Cities" (
+		id integer NOT NULL DEFAULT nextval('"Cities_id_seq"'::regclass),
+		code VARCHAR(10) NOT NULL,
+		name VARCHAR(100) NOT NULL,
+		"countriesId" integer NOT NULL,
+		statecode VARCHAR(25),
+		iata VARCHAR(10),
+		CONSTRAINT "Cities_pkey" PRIMARY KEY (id),
+		CONSTRAINT "Cities_countriesId_fkey" FOREIGN KEY ("countriesId") REFERENCES public."Countries" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."Cities" OWNER to postgres;
+	ALTER SEQUENCE public."Cities_id_seq" OWNED BY public."Cities".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Airports_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."Airports_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."Airports" (
+		id integer NOT NULL DEFAULT nextval('"Airports_id_seq"'::regclass),
+		code VARCHAR(10) NOT NULL,
+		name VARCHAR(150) NOT NULL,
+		"citiesId" integer NOT NULL,
+		CONSTRAINT "Airports_pkey" PRIMARY KEY (id),
+		CONSTRAINT "Airports_citiesId_fkey" FOREIGN KEY ("citiesId") REFERENCES public."Cities" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."Airports" OWNER to postgres;
+	ALTER SEQUENCE public."Airports_id_seq" OWNED BY public."Airports".id;
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "currency_code_key" ON public."Currency" USING btree (code ASC NULLS LAST);
+	CREATE UNIQUE INDEX IF NOT EXISTS "countries_code_key" ON public."Countries" USING btree (code ASC NULLS LAST);
+	CREATE UNIQUE INDEX IF NOT EXISTS "cities_code_key" ON public."Cities" USING btree (code ASC NULLS LAST);
+	CREATE UNIQUE INDEX IF NOT EXISTS "airports_code_key" ON public."Airports" USING btree (code ASC NULLS LAST);
+
+END	$$
