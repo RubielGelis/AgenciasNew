@@ -1343,6 +1343,7 @@ BEGIN
 		"conjunction" integer DEFAULT 0,
 		"revised" VARCHAR(25),
 		"typeproduct" VARCHAR(25),
+		"consecutive" VARCHAR(25),
 		CONSTRAINT "BookingProductGDS_pkey" PRIMARY KEY (id),
 		CONSTRAINT "BookingProductGDS_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES public."BookingGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
 	) TABLESPACE pg_default;
@@ -1353,6 +1354,7 @@ BEGIN
 	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "revised" VARCHAR(25);
 	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "penalty" VARCHAR(25);
 	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "typeproduct" VARCHAR(25);
+	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "consecutive" VARCHAR(25);
 	
 	CREATE TABLE IF NOT EXISTS public."BookingProductTaxGDS" (
 		id integer NOT NULL DEFAULT nextval('"BookingProductTaxGDS_id_seq"'::regclass),
@@ -1570,7 +1572,8 @@ BEGIN
 	) TABLESPACE pg_default;
 	ALTER TABLE IF EXISTS public."BookingGDSInvoiceAutoLog" OWNER to postgres;
 	ALTER SEQUENCE public."BookingGDSInvoiceAutoLog_id_seq" OWNED BY public."BookingGDSInvoiceAutoLog"."Id";
-	CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
 	ALTER SEQUENCE public."Currency_id_seq" OWNER TO postgres;
 
 	CREATE TABLE IF NOT EXISTS public."Currency" (
