@@ -22,6 +22,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { icon: <Settings className="w-5 h-5" />, label: 'Configuración', href: '/dashboard/settings', active: pathname === '/dashboard/settings' },
     ]
 
+    if (pathname === '/dashboard/quotations/print') {
+        return (
+            <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+                {children}
+            </div>
+        )
+    }
+
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex">
             {/* Sidebar */}

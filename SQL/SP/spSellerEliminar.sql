@@ -1,0 +1,20 @@
+CREATE OR REPLACE PROCEDURE public.spSellerEliminar(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."Seller" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Vendedor con ID ' || p_id || ' no encontrado.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."Seller" WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Vendedor eliminado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;

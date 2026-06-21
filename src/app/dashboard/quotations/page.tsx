@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Plus, Filter, FileText, Download, Trash2, Eye, Edit2, MoreVertical, FileDown, FileCode } from 'lucide-react'
+import { Search, Plus, Filter, FileText, Download, Trash2, Eye, Edit2, MoreVertical, Printer, FileCode } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { generateQuotationPDF } from '@/lib/pdf-utils'
@@ -11,6 +11,9 @@ export default function QuotationsListPage() {
     const [quotations, setQuotations] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
+    const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
+    const [idIni, setIdIni] = useState('')
+    const [idFin, setIdFin] = useState('')
     const router = useRouter()
 
     useEffect(() => {
@@ -108,15 +111,26 @@ export default function QuotationsListPage() {
                     <h1 className="text-4xl font-bold text-zinc-900 dark:text-white mb-2">Cotizaciones</h1>
                     <p className="text-zinc-500 dark:text-zinc-400 font-medium">Gestión y seguimiento de tus ofertas</p>
                 </div>
-                <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => router.push('/dashboard/quotations/new')}
-                    className="px-6 h-14 bg-blue-600 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-blue-500/20 font-bold"
-                >
-                    <Plus className="w-5 h-5" />
-                    Nueva Cotización
-                </motion.button>
+                <div className="flex items-center gap-3">
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setIsPrintModalOpen(true)}
+                        className="px-6 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl flex items-center gap-3 shadow-sm font-bold transition-all hover:bg-zinc-50"
+                    >
+                        <Printer className="w-5 h-5" />
+                        Imprimir Reporte
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => router.push('/dashboard/quotations/new')}
+                        className="px-6 h-14 bg-blue-600 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-blue-500/20 font-bold"
+                    >
+                        <Plus className="w-5 h-5" />
+                        Nueva Cotización
+                    </motion.button>
+                </div>
             </header>
 
             {/* Filters & Search */}
@@ -206,11 +220,11 @@ export default function QuotationsListPage() {
                                                     <FileCode className="w-5 h-5" />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDownloadPdf(q)}
+                                                    onClick={() => window.open(`/dashboard/quotations/print?idIni=${q.id}&idFin=${q.id}`, '_blank')}
                                                     className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all"
-                                                    title="Descargar PDF"
+                                                    title="Imprimir Cotización"
                                                 >
-                                                    <FileDown className="w-5 h-5" />
+                                                    <Printer className="w-5 h-5" />
                                                 </button>
                                                 <button
                                                     onClick={() => router.push(`/dashboard/quotations/${q.id}/edit`)}
@@ -231,6 +245,76 @@ export default function QuotationsListPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Print Range Modal */}
+            <AnimatePresence>
+                {isPrintModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/40 backdrop-blur-sm"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-md shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+                        >
+                            <div className="p-8">
+                                <h3 className="text-2xl font-black text-zinc-900 dark:text-white mb-2">Imprimir Reporte</h3>
+                                <p className="text-zinc-500 text-sm mb-6">Selecciona el rango de cotizaciones para generar el reporte.</p>
+                                
+                                <div className="space-y-4 mb-8">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Cotización Inicial</label>
+                                        <input
+                                            type="number"
+                                            value={idIni}
+                                            onChange={(e) => setIdIni(e.target.value)}
+                                            className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-4 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                            placeholder="Ej. 1"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Cotización Final</label>
+                                        <input
+                                            type="number"
+                                            value={idFin}
+                                            onChange={(e) => setIdFin(e.target.value)}
+                                            className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-4 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                            placeholder="Ej. 100"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4">
+                                    <button
+                                        onClick={() => setIsPrintModalOpen(false)}
+                                        className="flex-1 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 font-bold text-zinc-600 hover:bg-zinc-200 transition-all"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (idIni && idFin) {
+                                                window.open(`/dashboard/quotations/print?idIni=${idIni}&idFin=${idFin}`, '_blank');
+                                                setIsPrintModalOpen(false);
+                                            } else {
+                                                alert("Ingresa ambos IDs para continuar.");
+                                            }
+                                        }}
+                                        className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black shadow-lg shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Printer className="w-4 h-4" />
+                                        Generar
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }

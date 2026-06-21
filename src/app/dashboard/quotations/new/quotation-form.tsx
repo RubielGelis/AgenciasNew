@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X } from 'lucide-react'
+import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -72,6 +72,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
     const handleSave = async (e: React.FormEvent, downloadPdf = false) => {
         e.preventDefault();
+        // Synchronously open a blank window if printing, to bypass browser popup blockers
+        const printWindow = downloadPdf ? window.open('about:blank', '_blank') : null;
         setSaving(true)
         try {
             const payload = {
@@ -128,34 +130,29 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             const result = await res.json()
             if (!res.ok) throw new Error(result.message || 'Error al guardar')
 
-            // Show success message immediately
-            const successMessage = result.message || 'Cotización guardada exitosamente';
-            alert(successMessage);
-
-            if (downloadPdf) {
+            if (downloadPdf && printWindow) {
                 try {
-                    // Enrich data with names for the PDF
-                    const client = data.clients.find((c: any) => c.id.toString() === formData.clientId)
-                    const pdfData = {
-                        ...formData,
-                        internalNumber: result.quotation?.internalNumber || `Q-${result.quotation?.id || '?' }`,
-                        clientName: client?.name,
-                        clientDocument: client?.document,
-                        totalAmount: total,
-                        taxSummary: taxSummary,
-                        items: formData.items.map(item => ({
-                            ...item,
-                            productDescription: data.products.find((p: any) => p.id.toString() === item.productId)?.description
-                        }))
+                    const targetId = result.quotation?.id || quotationId;
+                    if (targetId) {
+                        printWindow.location.href = `/dashboard/quotations/print?idIni=${targetId}&idFin=${targetId}`;
+                    } else {
+                        printWindow.close();
                     }
-                    generateQuotationPDF(pdfData)
-                } catch (pdfErr) {
-                    console.error('Error generating PDF:', pdfErr);
+                } catch (printErr) {
+                    console.error('Error opening print page:', printErr);
+                    printWindow.close();
                 }
+            } else {
+                if (printWindow) printWindow.close();
+                const successMessage = result.message || 'Cotización guardada exitosamente';
+                alert(successMessage);
             }
 
             router.push('/dashboard')
         } catch (err: any) {
+            if (printWindow) {
+                try { printWindow.close(); } catch (e) {}
+            }
             console.error(err)
             alert(err.message || 'Ocurrió un error al guardar la cotización')
         } finally {
@@ -561,9 +558,10 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                         onClick={(e) => handleSave(e as any, true)}
                         disabled={saving}
                         className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-bold shadow-lg transition-all flex items-center gap-2 disabled:opacity-50"
+                        title="Imprimir Cotización"
                     >
-                        <FileDown className="w-5 h-5" />
-                        PDF
+                        <Printer className="w-5 h-5" />
+                        Imprimir
                     </button>
                     <button
                         type="submit"

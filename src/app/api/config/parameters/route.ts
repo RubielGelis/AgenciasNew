@@ -5,9 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
     try {
-        const parameters = await prisma.systemParameter.findMany({
-            orderBy: { id: 'desc' }
-        })
+        const parameters = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public.fnParameterListar()`)
         return NextResponse.json(parameters)
     } catch (error) {
         return NextResponse.json({ message: 'Error retrieving system parameters' }, { status: 500 })
@@ -18,23 +16,35 @@ export async function POST(req: NextRequest) {
     try {
         const { code, name, value } = await req.json()
         const userIdHeader = req.headers.get('X-User-Id')
-        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
         
-        const parameter = await prisma.systemParameter.create({
-            data: {
-                code,
-                name,
-                value
-            }
-        })
+        const results: any[] = await prisma.$queryRawUnsafe(
+            `CALL public.spParameterCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::INT, $5::INT, $6::TEXT)`,
+            code,
+            name,
+            value,
+            actingUserId,
+            0, // p_parameter_id
+            '' // p_mensaje_resultado
+        );
+
+        const dbId = results[0]?.p_parameter_id;
+        const message = results[0]?.p_mensaje_resultado || '';
+
+        if (!dbId || message.startsWith('ERROR')) {
+            throw new Error(message || 'Error creating parameter');
+        }
+
+        const parameter = { id: dbId, code, name, value };
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'PARAMETER', description: `Parámetro ${parameter.name} creado.`, metadata: parameter });
+            logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'PARAMETER', description: `Parámetro ${parameter.name} creado (SP).`, metadata: parameter });
         });
 
         return NextResponse.json({ message: 'Parámetro creado', parameter })
-    } catch (error) {
-        return NextResponse.json({ message: 'Error creating parameter' }, { status: 500 })
+    } catch (error: any) {
+        console.error('Error creating parameter:', error);
+        return NextResponse.json({ message: 'Error al crear parámetro: ' + error.message }, { status: 500 })
     }
 }
 
@@ -42,24 +52,33 @@ export async function PUT(req: NextRequest) {
     try {
         const { id, code, name, value } = await req.json()
         const userIdHeader = req.headers.get('X-User-Id')
-        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
         
-        const parameter = await prisma.systemParameter.update({
-            where: { id },
-            data: {
-                code,
-                name,
-                value
-            }
-        })
+        const results: any[] = await prisma.$queryRawUnsafe(
+            `CALL public.spParameterActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::INT, $6::TEXT)`,
+            parseInt(id),
+            code,
+            name,
+            value,
+            actingUserId,
+            '' // p_mensaje_resultado
+        );
+
+        const message = results[0]?.p_mensaje_resultado || '';
+        if (message.startsWith('ERROR')) {
+            throw new Error(message);
+        }
+
+        const parameter = { id, code, name, value };
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'PARAMETER', description: `Parámetro ${parameter.name} actualizado.`, metadata: parameter });
+            logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'PARAMETER', description: `Parámetro ${parameter.name} actualizado (SP).`, metadata: parameter });
         });
 
         return NextResponse.json({ message: 'Parámetro actualizado', parameter })
-    } catch (error) {
-        return NextResponse.json({ message: 'Error updating parameter' }, { status: 500 })
+    } catch (error: any) {
+        console.error('Error updating parameter:', error);
+        return NextResponse.json({ message: 'Error al actualizar parámetro: ' + error.message }, { status: 500 })
     }
 }
 
@@ -68,20 +87,29 @@ export async function DELETE(req: NextRequest) {
         const url = new URL(req.url)
         const id = url.searchParams.get('id')
         const userIdHeader = req.headers.get('X-User-Id')
-        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
         
         if (!id) return NextResponse.json({ message: 'Missing ID' }, { status: 400 })
 
-        await prisma.systemParameter.delete({
-            where: { id: parseInt(id) }
-        })
+        const results: any[] = await prisma.$queryRawUnsafe(
+            `CALL public.spParameterEliminar($1::INT, $2::INT, $3::TEXT)`,
+            parseInt(id),
+            actingUserId,
+            '' // p_mensaje_resultado
+        );
+
+        const message = results[0]?.p_mensaje_resultado || '';
+        if (message.startsWith('ERROR')) {
+            throw new Error(message);
+        }
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'DELETE', module: 'PARAMETER', description: `Parámetro con ID ${id} eliminado.` });
+            logSystemEvent({ userId: actingUserId, action: 'DELETE', module: 'PARAMETER', description: `Parámetro con ID ${id} eliminado (SP).` });
         });
 
         return NextResponse.json({ message: 'Parámetro eliminado' })
-    } catch (error) {
-        return NextResponse.json({ message: 'Error deleting parameter' }, { status: 500 })
+    } catch (error: any) {
+        console.error('Error deleting parameter:', error);
+        return NextResponse.json({ message: 'Error al eliminar parámetro: ' + error.message }, { status: 500 })
     }
 }

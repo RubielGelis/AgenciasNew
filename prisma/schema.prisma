@@ -72,22 +72,30 @@ model Prestadora {
 }
 
 model Branch {
-  id         Int         @id @default(autoincrement())
-  code       String      @unique
-  name       String
-  implants   Implant[]
-  quotations Quotation[]
-  users      User[]
+  id             Int         @id @default(autoincrement())
+  code           String      @unique
+  name           String
+  logo           Bytes?
+  template       Bytes?
+  templateConfig Json?
+  htmlTemplate   String?
+  implants       Implant[]
+  quotations     Quotation[]
+  users          User[]
 }
 
 model Implant {
-  id         Int         @id @default(autoincrement())
-  code       String      @unique
-  name       String
-  branchId   Int?
-  branch     Branch?     @relation(fields: [branchId], references: [id])
-  quotations Quotation[]
-  users      User[]
+  id             Int         @id @default(autoincrement())
+  code           String      @unique
+  name           String
+  logo           Bytes?
+  template       Bytes?
+  templateConfig Json?
+  htmlTemplate   String?
+  branchId       Int?
+  branch         Branch?     @relation(fields: [branchId], references: [id])
+  quotations     Quotation[]
+  users          User[]
 }
 
 model Seller {

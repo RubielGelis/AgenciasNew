@@ -872,11 +872,11 @@ export default function SettingsPage() {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95 }}
                             className={cn(
-                                "bg-white dark:bg-zinc-900 w-full rounded-[3.5rem] shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden transition-all duration-300",
+                                "bg-white dark:bg-zinc-900 w-full rounded-[3.5rem] shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden transition-all duration-300 max-h-[90vh] flex flex-col",
                                 activeTab === 'combos' ? "max-w-6xl" : "max-w-xl"
                             )}
                         >
-                            <div className="p-10 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                            <div className="p-10 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between shrink-0">
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 bg-blue-600/10 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner">
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
@@ -891,7 +891,8 @@ export default function SettingsPage() {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="p-10 space-y-6">
+                            <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden min-h-0">
+                                <div className="flex-1 overflow-y-auto p-10 space-y-6 min-h-0">
                                 {activeTab === 'usuarios' ? (
                                     <>
                                         <Input label="Nombre Completo" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Alex Smith" />
@@ -1016,7 +1017,7 @@ export default function SettingsPage() {
                                 ) : activeTab === 'implants' ? (
                                     <>
                                         <Input label="Código Único" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. BOG-01" />
-                                        <Input label="Nombre / Descripción" value={formData.name} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Sede Norte Bogotá" />
+                                        <Input label="Nombre / Descripción" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Sede Norte Bogotá" />
                                         <div className="space-y-2">
                                             <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Sucursal Asociada</label>
                                             <SearchSelect
@@ -1025,6 +1026,191 @@ export default function SettingsPage() {
                                                 onChange={(val) => setFormData({ ...formData, branchId: val })}
                                                 placeholder="Seleccionar Sucursal"
                                             />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Logo de Implant (Opcional)</label>
+                                            <div className="flex items-center gap-4">
+                                                {formData.logo && (
+                                                    <img src={formData.logo} alt="Logo preview" className="w-16 h-16 object-contain bg-white rounded-xl border border-zinc-200" />
+                                                )}
+                                                <input 
+                                                    type="file" 
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const reader = new FileReader();
+                                                            reader.onloadend = () => {
+                                                                setFormData({ ...formData, logo: reader.result });
+                                                            };
+                                                            reader.readAsDataURL(file);
+                                                        }
+                                                    }}
+                                                    className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Excel Template and Configuration Section */}
+                                        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-6 space-y-4">
+                                            <h4 className="text-sm font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                                                Plantilla de Reporte Excel
+                                            </h4>
+                                            
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">
+                                                    Archivo de Plantilla (.xlsx, .xls)
+                                                </label>
+                                                <div className="flex items-center gap-4">
+                                                    <input 
+                                                        type="file" 
+                                                        accept=".xlsx,.xls"
+                                                        onChange={(e) => {
+                                                            const file = e.target.files?.[0];
+                                                            if (file) {
+                                                                const reader = new FileReader();
+                                                                reader.onloadend = () => {
+                                                                    setFormData({ ...formData, template: reader.result });
+                                                                };
+                                                                reader.readAsDataURL(file);
+                                                            }
+                                                        }}
+                                                        className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                                                    />
+                                                    {formData.hasTemplate && !formData.template && (
+                                                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
+                                                            ✓ Guardada
+                                                        </span>
+                                                    )}
+                                                    {formData.template && (
+                                                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
+                                                            ✓ Nueva
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Coordinates Editor */}
+                                            <div className="space-y-3">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1 block">
+                                                    Coordenadas de Celdas (Ej. B4, G4)
+                                                </label>
+                                                
+                                                <details className="group border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
+                                                    <summary className="p-4 font-bold text-xs uppercase cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 flex items-center justify-between dark:text-zinc-300">
+                                                        <span>Personalizar Mapeo de Celdas</span>
+                                                        <span className="text-zinc-400 group-open:rotate-180 transition-transform">▼</span>
+                                                    </summary>
+                                                    
+                                                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                                                        {(() => {
+                                                            const fields = [
+                                                                { key: 'idCotizacion', label: 'ID Cotización' },
+                                                                { key: 'asesor', label: 'Asesor' },
+                                                                { key: 'fecha', label: 'Fecha' },
+                                                                { key: 'clienteNombre', label: 'Cliente Nombre' },
+                                                                { key: 'clienteIdentificacion', label: 'Cliente ID' },
+                                                                { key: 'clienteDireccion', label: 'Dirección' },
+                                                                { key: 'clienteTelefono', label: 'Teléfono' },
+                                                                { key: 'centroCosto', label: 'C. Costo' },
+                                                                { key: 'solicita', label: 'Solicita' },
+                                                                { key: 'tCambio', label: 'T. Cambio' },
+                                                                { key: 'descripcionPlan', label: 'Desc Plan' },
+                                                                { key: 'fechasViaje', label: 'Fechas Viaje' },
+                                                                { key: 'hotelesServicios', label: 'Servicios' },
+                                                                { key: 'pasajeros', label: 'Pasajeros' },
+                                                                { key: 'totalAdultos', label: 'Total Adultos' },
+                                                                { key: 'totalNinos', label: 'Total Niños' },
+                                                                { key: 'logo', label: 'Celda Logo' },
+                                                                
+                                                                { key: 'proveedor1Nombre', label: 'Prov 1: Nombre' },
+                                                                { key: 'proveedor1NIT', label: 'Prov 1: NIT' },
+                                                                { key: 'proveedor1Contacto', label: 'Prov 1: Contacto' },
+                                                                { key: 'prov1TarifaNeta', label: 'Prov 1: Neta' },
+                                                                { key: 'prov1TarifaNetaPago', label: 'Prov 1: Neta Pago' },
+                                                                { key: 'prov1Impuestos', label: 'Prov 1: Impuestos' },
+                                                                { key: 'prov1ImpuestosPago', label: 'Prov 1: Impuestos Pago' },
+                                                                { key: 'prov1Adicionales', label: 'Prov 1: Adicionales' },
+                                                                { key: 'prov1AdicionalesPago', label: 'Prov 1: Adicionales Pago' },
+                                                                { key: 'prov1Comision', label: 'Prov 1: Comisión' },
+                                                                { key: 'prov1Descuento', label: 'Prov 1: Descuento' },
+                                                                { key: 'prov1Sobrecomision', label: 'Prov 1: Sobrecomisión' },
+                                                                { key: 'prov1Fee', label: 'Prov 1: Fee' },
+                                                                { key: 'prov1Total', label: 'Prov 1: Total' },
+                                                                { key: 'prov1TotalPago', label: 'Prov 1: Total Pago' },
+
+                                                                { key: 'proveedor2Nombre', label: 'Prov 2: Nombre' },
+                                                                { key: 'proveedor2NIT', label: 'Prov 2: NIT' },
+                                                                { key: 'proveedor2Contacto', label: 'Prov 2: Contacto' },
+                                                                { key: 'prov2TarifaNeta', label: 'Prov 2: Neta' },
+                                                                { key: 'prov2TarifaNetaPago', label: 'Prov 2: Neta Pago' },
+                                                                { key: 'prov2Impuestos', label: 'Prov 2: Impuestos' },
+                                                                { key: 'prov2ImpuestosPago', label: 'Prov 2: Impuestos Pago' },
+                                                                { key: 'prov2Adicionales', label: 'Prov 2: Adicionales' },
+                                                                { key: 'prov2AdicionalesPago', label: 'Prov 2: Adicionales Pago' },
+                                                                { key: 'prov2Comision', label: 'Prov 2: Comisión' },
+                                                                { key: 'prov2Descuento', label: 'Prov 2: Descuento' },
+                                                                { key: 'prov2Sobrecomision', label: 'Prov 2: Sobrecomisión' },
+                                                                { key: 'prov2Fee', label: 'Prov 2: Fee' },
+                                                                { key: 'prov2Total', label: 'Prov 2: Total' },
+                                                                { key: 'prov2TotalPago', label: 'Prov 2: Total Pago' },
+
+                                                                { key: 'tarifaNeta', label: 'Total: Tarifa Neta' },
+                                                                { key: 'tarifaNetaPago', label: 'Total: Neta Pago' },
+                                                                { key: 'impuestos', label: 'Total: Impuestos' },
+                                                                { key: 'impuestosPago', label: 'Total: Impuestos Pago' },
+                                                                { key: 'adicionalesServ', label: 'Total: Adicionales' },
+                                                                { key: 'adicionalesServPago', label: 'Total: Adicionales Pago' },
+                                                                { key: 'comision', label: 'Total: Comisión' },
+                                                                { key: 'descuento', label: 'Total: Descuento' },
+                                                                { key: 'sobrecomision', label: 'Total: Sobrecomisión' },
+                                                                { key: 'fee', label: 'Total: Fee' },
+                                                                { key: 'total', label: 'Total: Total' },
+                                                                { key: 'totalPago', label: 'Total: Total Pago' },
+
+                                                                { key: 'baseComisionable', label: 'Base Comisión' },
+                                                                { key: 'comisionAsesor', label: 'Comisión Asesor' },
+                                                                { key: 'baseComisionTop', label: 'Comisión Top' },
+                                                                { key: 'observaciones', label: 'Observaciones' }
+                                                            ];
+
+                                                            const config = formData.templateConfig || {};
+                                                            const DEFAULT_CONFIG = {
+                                                                asesor: "B4", fecha: "G4", clienteNombre: "B7", clienteIdentificacion: "G7",
+                                                                clienteDireccion: "B8", clienteTelefono: "G8", centroCosto: "B9", solicita: "G9",
+                                                                tCambio: "G11", descripcionPlan: "B12", fechasViaje: "G12", hotelesServicios: "A13",
+                                                                pasajeros: "B14", totalAdultos: "C15", totalNinos: "G15", logo: "A1",
+                                                                proveedor1Nombre: "B18", proveedor1NIT: "E18", proveedor1Contacto: "H18",
+                                                                proveedor2Nombre: "B19", proveedor2NIT: "E19", proveedor2Contacto: "H19",
+                                                                prov1TarifaNeta: "B23", prov1TarifaNetaPago: "D23", prov1Impuestos: "B24", prov1ImpuestosPago: "D24",
+                                                                prov1Adicionales: "B25", prov1AdicionalesPago: "D25", prov1Comision: "B26", prov1Descuento: "B27",
+                                                                prov1Sobrecomision: "B28", prov1Fee: "B29", prov1Total: "B30", prov1TotalPago: "D30",
+                                                                prov2TarifaNeta: "G23", prov2TarifaNetaPago: "I23", prov2Impuestos: "G24", prov2ImpuestosPago: "I24",
+                                                                prov2Adicionales: "G25", prov2AdicionalesPago: "G25", prov2Comision: "G26", prov2Descuento: "G27",
+                                                                prov2Sobrecomision: "G28", prov2Fee: "G29", prov2Total: "G30", prov2TotalPago: "I30",
+                                                                baseComisionable: "B35", comisionAsesor: "B36", baseComisionTop: "B37", observaciones: "B42"
+                                                            };
+
+                                                            return fields.map((f) => (
+                                                                <div key={f.key} className="space-y-1">
+                                                                    <label className="text-[10px] font-bold text-zinc-500 uppercase block truncate">{f.label}</label>
+                                                                    <input 
+                                                                        type="text"
+                                                                        value={config[f.key] || ''}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                                                            const newConfig = { ...config, [f.key]: val };
+                                                                            setFormData({ ...formData, templateConfig: newConfig });
+                                                                        }}
+                                                                        placeholder={DEFAULT_CONFIG[f.key as keyof typeof DEFAULT_CONFIG]}
+                                                                        className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white uppercase"
+                                                                    />
+                                                                </div>
+                                                            ));
+                                                        })()}
+                                                    </div>
+                                                </details>
+                                            </div>
                                         </div>
                                     </>
                                 ) : (
@@ -1526,30 +1712,220 @@ export default function SettingsPage() {
                                     ) : (
                                         <>
                                             <Input label="Código Único" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. BOG-01" />
-                                            <Input label="Nombre / Descripción" value={formData.name} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Sede Norte Bogotá" />
+                                            <Input label="Nombre / Descripción" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Sede Norte Bogotá" />
+                                            {activeTab === 'sucursales' && (
+                                                <>
+                                                    <div className="space-y-2 mt-4">
+                                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Logo de Sucursal (Opcional)</label>
+                                                        <div className="flex items-center gap-4">
+                                                            {formData.logo && (
+                                                                <img src={formData.logo} alt="Logo preview" className="w-16 h-16 object-contain bg-white rounded-xl border border-zinc-200" />
+                                                            )}
+                                                            <input 
+                                                                type="file" 
+                                                                accept="image/*"
+                                                                onChange={(e) => {
+                                                                    const file = e.target.files?.[0];
+                                                                    if (file) {
+                                                                        const reader = new FileReader();
+                                                                        reader.onloadend = () => {
+                                                                            setFormData({ ...formData, logo: reader.result });
+                                                                        };
+                                                                        reader.readAsDataURL(file);
+                                                                    }
+                                                                }}
+                                                                className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Excel Template and Configuration Section */}
+                                                    <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-6 space-y-4">
+                                                        <h4 className="text-sm font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                                                            Plantilla de Reporte Excel
+                                                        </h4>
+                                                        
+                                                        <div className="space-y-2">
+                                                            <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">
+                                                                Archivo de Plantilla (.xlsx, .xls)
+                                                            </label>
+                                                            <div className="flex items-center gap-4">
+                                                                <input 
+                                                                    type="file" 
+                                                                    accept=".xlsx,.xls"
+                                                                    onChange={(e) => {
+                                                                        const file = e.target.files?.[0];
+                                                                        if (file) {
+                                                                            const reader = new FileReader();
+                                                                            reader.onloadend = () => {
+                                                                                setFormData({ ...formData, template: reader.result });
+                                                                            };
+                                                                            reader.readAsDataURL(file);
+                                                                        }
+                                                                    }}
+                                                                    className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                                                                />
+                                                                {formData.hasTemplate && !formData.template && (
+                                                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
+                                                                        ✓ Guardada
+                                                                    </span>
+                                                                )}
+                                                                {formData.template && (
+                                                                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
+                                                                        ✓ Nueva
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Coordinates Editor */}
+                                                        <div className="space-y-3">
+                                                            <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1 block">
+                                                                Coordenadas de Celdas (Ej. B4, G4)
+                                                            </label>
+                                                            
+                                                            <details className="group border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 overflow-hidden">
+                                                                <summary className="p-4 font-bold text-xs uppercase cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 flex items-center justify-between dark:text-zinc-300">
+                                                                    <span>Personalizar Mapeo de Celdas</span>
+                                                                    <span className="text-zinc-400 group-open:rotate-180 transition-transform">▼</span>
+                                                                </summary>
+                                                                
+                                                                <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+                                                                    {(() => {
+                                                                        const fields = [
+                                                                            { key: 'idCotizacion', label: 'ID Cotización' },
+                                                                            { key: 'asesor', label: 'Asesor' },
+                                                                            { key: 'fecha', label: 'Fecha' },
+                                                                            { key: 'clienteNombre', label: 'Cliente Nombre' },
+                                                                            { key: 'clienteIdentificacion', label: 'Cliente ID' },
+                                                                            { key: 'clienteDireccion', label: 'Dirección' },
+                                                                            { key: 'clienteTelefono', label: 'Teléfono' },
+                                                                            { key: 'centroCosto', label: 'C. Costo' },
+                                                                            { key: 'solicita', label: 'Solicita' },
+                                                                            { key: 'tCambio', label: 'T. Cambio' },
+                                                                            { key: 'descripcionPlan', label: 'Desc Plan' },
+                                                                            { key: 'fechasViaje', label: 'Fechas Viaje' },
+                                                                            { key: 'hotelesServicios', label: 'Servicios' },
+                                                                            { key: 'pasajeros', label: 'Pasajeros' },
+                                                                            { key: 'totalAdultos', label: 'Total Adultos' },
+                                                                            { key: 'totalNinos', label: 'Total Niños' },
+                                                                            { key: 'logo', label: 'Celda Logo' },
+                                                                            
+                                                                            { key: 'proveedor1Nombre', label: 'Prov 1: Nombre' },
+                                                                            { key: 'proveedor1NIT', label: 'Prov 1: NIT' },
+                                                                            { key: 'proveedor1Contacto', label: 'Prov 1: Contacto' },
+                                                                            { key: 'prov1TarifaNeta', label: 'Prov 1: Neta' },
+                                                                            { key: 'prov1TarifaNetaPago', label: 'Prov 1: Neta Pago' },
+                                                                            { key: 'prov1Impuestos', label: 'Prov 1: Impuestos' },
+                                                                            { key: 'prov1ImpuestosPago', label: 'Prov 1: Impuestos Pago' },
+                                                                            { key: 'prov1Adicionales', label: 'Prov 1: Adicionales' },
+                                                                            { key: 'prov1AdicionalesPago', label: 'Prov 1: Adicionales Pago' },
+                                                                            { key: 'prov1Comision', label: 'Prov 1: Comisión' },
+                                                                            { key: 'prov1Descuento', label: 'Prov 1: Descuento' },
+                                                                            { key: 'prov1Sobrecomision', label: 'Prov 1: Sobrecomisión' },
+                                                                            { key: 'prov1Fee', label: 'Prov 1: Fee' },
+                                                                            { key: 'prov1Total', label: 'Prov 1: Total' },
+                                                                            { key: 'prov1TotalPago', label: 'Prov 1: Total Pago' },
+
+                                                                            { key: 'proveedor2Nombre', label: 'Prov 2: Nombre' },
+                                                                            { key: 'proveedor2NIT', label: 'Prov 2: NIT' },
+                                                                            { key: 'proveedor2Contacto', label: 'Prov 2: Contacto' },
+                                                                            { key: 'prov2TarifaNeta', label: 'Prov 2: Tarifa Neta' },
+                                                                            { key: 'prov2TarifaNetaPago', label: 'Prov 2: Neta Pago' },
+                                                                            { key: 'prov2Impuestos', label: 'Prov 2: Impuestos' },
+                                                                            { key: 'prov2ImpuestosPago', label: 'Prov 2: Impuestos Pago' },
+                                                                            { key: 'prov2Adicionales', label: 'Prov 2: Adicionales' },
+                                                                            { key: 'prov2AdicionalesPago', label: 'Prov 2: Adicionales Pago' },
+                                                                            { key: 'prov2Comision', label: 'Prov 2: Comisión' },
+                                                                            { key: 'prov2Descuento', label: 'Prov 2: Descuento' },
+                                                                            { key: 'prov2Sobrecomision', label: 'Prov 2: Sobrecomisión' },
+                                                                            { key: 'prov2Fee', label: 'Prov 2: Fee' },
+                                                                            { key: 'prov2Total', label: 'Prov 2: Total' },
+                                                                            { key: 'prov2TotalPago', label: 'Prov 2: Total Pago' },
+
+                                                                            { key: 'tarifaNeta', label: 'Total: Tarifa Neta' },
+                                                                            { key: 'tarifaNetaPago', label: 'Total: Neta Pago' },
+                                                                            { key: 'impuestos', label: 'Total: Impuestos' },
+                                                                            { key: 'impuestosPago', label: 'Total: Impuestos Pago' },
+                                                                            { key: 'adicionalesServ', label: 'Total: Adicionales' },
+                                                                            { key: 'adicionalesServPago', label: 'Total: Adicionales Pago' },
+                                                                            { key: 'comision', label: 'Total: Comisión' },
+                                                                            { key: 'descuento', label: 'Total: Descuento' },
+                                                                            { key: 'sobrecomision', label: 'Total: Sobrecomisión' },
+                                                                            { key: 'fee', label: 'Total: Fee' },
+                                                                            { key: 'total', label: 'Total: Total' },
+                                                                            { key: 'totalPago', label: 'Total: Total Pago' },
+
+                                                                            { key: 'baseComisionable', label: 'Base Comisión' },
+                                                                            { key: 'comisionAsesor', label: 'Comisión Asesor' },
+                                                                            { key: 'baseComisionTop', label: 'Comisión Top' },
+                                                                            { key: 'observaciones', label: 'Observaciones' }
+                                                                        ];
+
+                                                                        const config = formData.templateConfig || {};
+                                                                        const DEFAULT_CONFIG = {
+                                                                            asesor: "B4", fecha: "G4", clienteNombre: "B7", clienteIdentificacion: "G7",
+                                                                            clienteDireccion: "B8", clienteTelefono: "G8", centroCosto: "B9", solicita: "G9",
+                                                                            tCambio: "G11", descripcionPlan: "B12", fechasViaje: "G12", hotelesServicios: "A13",
+                                                                            pasajeros: "B14", totalAdultos: "C15", totalNinos: "G15", logo: "A1",
+                                                                            proveedor1Nombre: "B18", proveedor1NIT: "E18", proveedor1Contacto: "H18",
+                                                                            proveedor2Nombre: "B19", proveedor2NIT: "E19", proveedor2Contacto: "H19",
+                                                                            prov1TarifaNeta: "B23", prov1TarifaNetaPago: "D23", prov1Impuestos: "B24", prov1ImpuestosPago: "D24",
+                                                                            prov1Adicionales: "B25", prov1AdicionalesPago: "D25", prov1Comision: "B26", prov1Descuento: "B27",
+                                                                            prov1Sobrecomision: "B28", prov1Fee: "B29", prov1Total: "B30", prov1TotalPago: "D30",
+                                                                            prov2TarifaNeta: "G23", prov2TarifaNetaPago: "I23", prov2Impuestos: "G24", prov2ImpuestosPago: "I24",
+                                                                            prov2Adicionales: "G25", prov2AdicionalesPago: "G25", prov2Comision: "G26", prov2Descuento: "G27",
+                                                                            prov2Sobrecomision: "G28", prov2Fee: "G29", prov2Total: "G30", prov2TotalPago: "I30",
+                                                                            baseComisionable: "B35", comisionAsesor: "B36", baseComisionTop: "B37", observaciones: "B42"
+                                                                        };
+
+                                                                        return fields.map((f) => (
+                                                                            <div key={f.key} className="space-y-1">
+                                                                                <label className="text-[10px] font-bold text-zinc-500 uppercase block truncate">{f.label}</label>
+                                                                                <input 
+                                                                                    type="text"
+                                                                                    value={config[f.key] || ''}
+                                                                                    onChange={(e) => {
+                                                                                        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                                                                        const newConfig = { ...config, [f.key]: val };
+                                                                                        setFormData({ ...formData, templateConfig: newConfig });
+                                                                                    }}
+                                                                                    placeholder={DEFAULT_CONFIG[f.key as keyof typeof DEFAULT_CONFIG]}
+                                                                                    className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white uppercase"
+                                                                                />
+                                                                            </div>
+                                                                        ));
+                                                                    })()}
+                                                                </div>
+                                                            </details>
+                                                        </div>
+                                                    </div>
+                                                </>
+                                            )}
                                         </>
                                     )}
                                 </>
                             )}
 
-                            <div className="flex gap-4 pt-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 font-bold text-zinc-600 hover:bg-zinc-200 transition-all"
-                                >
-                                    Descartar
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={submitting}
-                                    className="flex-[2] h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-                                >
-                                    {submitting ? <Loader2 className="animate-spin w-5 h-5" /> : <Check className="w-6 h-6" />}
-                                    Confirmar Registro
-                                </button>
-                            </div>
-                        </form>
+                                </div>
+                                <div className="p-10 pt-6 border-t border-zinc-100 dark:border-zinc-800 shrink-0 bg-white dark:bg-zinc-900 flex gap-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsModalOpen(false)}
+                                        className="flex-1 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 font-bold text-zinc-600 hover:bg-zinc-200 transition-all"
+                                    >
+                                        Descartar
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={submitting}
+                                        className="flex-[2] h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                                    >
+                                        {submitting ? <Loader2 className="animate-spin w-5 h-5" /> : <Check className="w-6 h-6" />}
+                                        Confirmar Registro
+                                    </button>
+                                </div>
+                            </form>
                     </motion.div>
                 </div>
             )}
