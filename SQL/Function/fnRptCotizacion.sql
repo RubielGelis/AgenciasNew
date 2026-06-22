@@ -124,7 +124,15 @@ BEGIN
         0::double precision AS "descuento",
         0::double precision AS "sobrecomision",
         0::double precision AS "fee",
-        COALESCE(SUM(qp.price * qp.quantity), 0)::double precision AS "total",
+        COALESCE(
+            (
+                SELECT SUM(qpt2."explicitAmount")
+                FROM "QuotationProduct" qp2
+                JOIN "QuotationProductTax" qpt2 ON qpt2."quotationProductId" = qp2.id
+                WHERE qp2."quotationId" = q.id
+                  AND qp2."providerId" = prov.id
+            ), 0
+        )::double precision AS "total",
         
         q."baseCommissionable"::double precision AS "baseComisionable",
         q."commissionPercentage"::double precision AS "comisionAsesor",
