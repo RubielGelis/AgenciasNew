@@ -10,7 +10,8 @@ import {
     Loader2,
     Download,
     Edit,
-    Trash2
+    Trash2,
+    Printer
 } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
@@ -245,6 +246,14 @@ export default function QuotationsHistoryPage() {
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
+                                                <Link
+                                                    href={`/dashboard/quotations/print?idIni=${q.id}&idFin=${q.id}`}
+                                                    target="_blank"
+                                                    className="p-2 text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"
+                                                    title="Imprimir Cotización"
+                                                >
+                                                    <Printer className="w-5 h-5" />
+                                                </Link>
                                                 <Link
                                                     href={`/dashboard/quotations/${q.id}/edit`}
                                                     className="p-2 text-zinc-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-all"
