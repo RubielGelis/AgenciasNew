@@ -339,9 +339,9 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'idIni and idFin are required' }, { status: 400 });
         }
 
-        // 1. Fetch raw quotation data from stored procedure
+        // 1. Fetch raw quotation data from database function
         const rawRows: any[] = await prisma.$queryRawUnsafe(
-            `SELECT * FROM public."spRptCotizacion"($1, $2)`,
+            `SELECT * FROM public."fnRptCotizacion"($1, $2)`,
             parseInt(idIni), parseInt(idFin)
         );
 

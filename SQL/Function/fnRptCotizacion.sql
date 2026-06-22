@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public."spRptCotizacion"(
+CREATE OR REPLACE FUNCTION public."fnRptCotizacion"(
 	p_id_ini integer,
 	p_id_fin integer)
     RETURNS TABLE(

@@ -12,7 +12,7 @@ export async function GET(req: Request) {
         }
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `SELECT * FROM public."spRptCotizacion"($1, $2)`,
+            `SELECT * FROM public."fnRptCotizacion"($1, $2)`,
             parseInt(idIni), parseInt(idFin)
         );
 
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
 
         return NextResponse.json(formattedResults);
     } catch (error: any) {
-        console.error('Error executing spRptCotizacion:', error);
+        console.error('Error executing fnRptCotizacion:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
