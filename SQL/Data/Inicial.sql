@@ -1228,3 +1228,78 @@ INSERT INTO public."Airports" (code, name, "citiesId") VALUES ('BOG', 'Aeropuert
 INSERT INTO public."Airports" (code, name, "citiesId") VALUES ('CLO', 'Alfonso Bonilla Arag¢n', (SELECT id FROM public."Cities" WHERE code = 'CLO')) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Airports" (code, name, "citiesId") VALUES ('DIM', 'Aeropuerto Olaya Herrera', (SELECT id FROM public."Cities" WHERE code = 'MDE')) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Airports" (code, name, "citiesId") VALUES ('BAQ', 'AEROPUERTO ERNESTO CORTIZO', (SELECT id FROM public."Cities" WHERE code = 'BAQ')) ON CONFLICT (code) DO NOTHING;
+
+-- 22. CellCustomizations (Initial inserts for default celdas mapping for BOG)
+DO $$
+DECLARE
+    v_branch_id integer;
+BEGIN
+    SELECT id INTO v_branch_id FROM public."Branch" WHERE code = 'BOG' LIMIT 1;
+    IF v_branch_id IS NOT NULL THEN
+        INSERT INTO public."CellCustomization" (code, name, value, "branchId", "implantId") VALUES
+        ('idCotizacion', 'ID Cotización', 'B2', v_branch_id, NULL),
+        ('asesor', 'Asesor', 'B4', v_branch_id, NULL),
+        ('fecha', 'Fecha', 'G4', v_branch_id, NULL),
+        ('clienteNombre', 'Cliente Nombre', 'B7', v_branch_id, NULL),
+        ('clienteIdentificacion', 'Cliente ID', 'G7', v_branch_id, NULL),
+        ('clienteDireccion', 'Dirección', 'B8', v_branch_id, NULL),
+        ('clienteTelefono', 'Teléfono', 'G8', v_branch_id, NULL),
+        ('centroCosto', 'C. Costo', 'B9', v_branch_id, NULL),
+        ('solicita', 'Solicita', 'G9', v_branch_id, NULL),
+        ('tCambio', 'T. Cambio', 'I11', v_branch_id, NULL),
+        ('descripcionPlan', 'Desc Plan', 'B12', v_branch_id, NULL),
+        ('fechasViaje', 'Fechas Viaje', 'G12', v_branch_id, NULL),
+        ('hotelesServicios', 'Servicios', 'A13', v_branch_id, NULL),
+        ('pasajeros', 'Pasajeros', 'B14', v_branch_id, NULL),
+        ('totalAdultos', 'Total Adultos', 'C15', v_branch_id, NULL),
+        ('totalNinos', 'Total Niños', 'G15', v_branch_id, NULL),
+        ('logo', 'Celda Logo', 'A1', v_branch_id, NULL),
+        ('proveedor1Nombre', 'Prov 1: Nombre', 'B18', v_branch_id, NULL),
+        ('proveedor1NIT', 'Prov 1: NIT', 'E18', v_branch_id, NULL),
+        ('proveedor1Contacto', 'Prov 1: Contacto', 'H18', v_branch_id, NULL),
+        ('prov1TarifaNeta', 'Prov 1: Neta', 'B23', v_branch_id, NULL),
+        ('prov1TarifaNetaPago', 'Prov 1: Neta Pago', 'D23', v_branch_id, NULL),
+        ('prov1Impuestos', 'Prov 1: Impuestos', 'B24', v_branch_id, NULL),
+        ('prov1ImpuestosPago', 'Prov 1: Impuestos Pago', 'D24', v_branch_id, NULL),
+        ('prov1Adicionales', 'Prov 1: Adicionales', 'B25', v_branch_id, NULL),
+        ('prov1AdicionalesPago', 'Prov 1: Adicionales Pago', 'D25', v_branch_id, NULL),
+        ('prov1Comision', 'Prov 1: Comisión', 'B26', v_branch_id, NULL),
+        ('prov1Descuento', 'Prov 1: Descuento', 'B27', v_branch_id, NULL),
+        ('prov1Sobrecomision', 'Prov 1: Sobrecomisión', 'B28', v_branch_id, NULL),
+        ('prov1Fee', 'Prov 1: Fee', 'B29', v_branch_id, NULL),
+        ('prov1Total', 'Prov 1: Total', 'B30', v_branch_id, NULL),
+        ('prov1TotalPago', 'Prov 1: Total Pago', 'D30', v_branch_id, NULL),
+        ('proveedor2Nombre', 'Prov 2: Nombre', 'B19', v_branch_id, NULL),
+        ('proveedor2NIT', 'Prov 2: NIT', 'E19', v_branch_id, NULL),
+        ('proveedor2Contacto', 'Prov 2: Contacto', 'H29', v_branch_id, NULL),
+        ('prov2TarifaNeta', 'Prov 2: Neta', 'G23', v_branch_id, NULL),
+        ('prov2TarifaNetaPago', 'Prov 2: Neta Pago', 'I23', v_branch_id, NULL),
+        ('prov2Impuestos', 'Prov 2: Impuestos', 'G24', v_branch_id, NULL),
+        ('prov2ImpuestosPago', 'Prov 2: Impuestos Pago', 'I24', v_branch_id, NULL),
+        ('prov2Adicionales', 'Prov 2: Adicionales', 'G25', v_branch_id, NULL),
+        ('prov2AdicionalesPago', 'Prov 2: Adicionales Pago', 'I25', v_branch_id, NULL),
+        ('prov2Comision', 'Prov 2: Comisión', 'G26', v_branch_id, NULL),
+        ('prov2Descuento', 'Prov 2: Descuento', 'G27', v_branch_id, NULL),
+        ('prov2Sobrecomision', 'Prov 2: Sobrecomisión', 'G28', v_branch_id, NULL),
+        ('prov2Fee', 'Prov 2: Fee', 'G29', v_branch_id, NULL),
+        ('prov2Total', 'Prov 2: Total', 'G30', v_branch_id, NULL),
+        ('prov2TotalPago', 'Prov 2: Total Pago', 'I30', v_branch_id, NULL),
+        ('tarifaNeta', 'Total: Tarifa Neta', '', v_branch_id, NULL),
+        ('tarifaNetaPago', 'Total: Neta Pago', '', v_branch_id, NULL),
+        ('impuestos', 'Total: Impuestos', '', v_branch_id, NULL),
+        ('impuestosPago', 'Total: Impuestos Pago', '', v_branch_id, NULL),
+        ('adicionalesServ', 'Total: Adicionales', '', v_branch_id, NULL),
+        ('adicionalesServPago', 'Total: Adicionales Pago', '', v_branch_id, NULL),
+        ('comision', 'Total: Comisión', '', v_branch_id, NULL),
+        ('descuento', 'Total: Descuento', '', v_branch_id, NULL),
+        ('sobrecomision', 'Total: Sobrecomisión', '', v_branch_id, NULL),
+        ('fee', 'Total: Fee', '', v_branch_id, NULL),
+        ('total', 'Total: Total', '', v_branch_id, NULL),
+        ('totalPago', 'Total: Total Pago', '', v_branch_id, NULL),
+        ('baseComisionable', 'Base Comisión', 'B35', v_branch_id, NULL),
+        ('comisionAsesor', 'Comisión Asesor', 'B36', v_branch_id, NULL),
+        ('baseComisionTop', 'Comisión Top', 'B37', v_branch_id, NULL),
+        ('observaciones', 'Observaciones', 'B42', v_branch_id, NULL)
+        ON CONFLICT ("branchId", "code") WHERE "branchId" IS NOT NULL DO NOTHING;
+    END IF;
+END $$;

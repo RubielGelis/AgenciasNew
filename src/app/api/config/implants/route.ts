@@ -12,14 +12,18 @@ export async function GET() {
              LEFT JOIN public."Branch" b ON i."branchId" = b.id`
         )
         
-        const implantsWithLogo = implants.map(i => ({
-            ...i,
-            logo: i.logo ? `data:image/png;base64,${Buffer.from(i.logo).toString('base64')}` : null,
-            template: undefined,
-            hasTemplate: !!i.template,
-            templateConfig: i.templateConfig,
-            // Clean up empty branch objects created by json_build_object on left join mismatch
-            branch: i.branch && i.branch.id ? i.branch : null
+        const { getCellCustomizationConfig } = await import('@/lib/cell-customization')
+        const implantsWithLogo = await Promise.all(implants.map(async i => {
+            const physicalConfig = await getCellCustomizationConfig(null, i.id)
+            return {
+                ...i,
+                logo: i.logo ? `data:image/png;base64,${Buffer.from(i.logo).toString('base64')}` : null,
+                template: undefined,
+                hasTemplate: !!i.template,
+                templateConfig: physicalConfig || i.templateConfig,
+                // Clean up empty branch objects created by json_build_object on left join mismatch
+                branch: i.branch && i.branch.id ? i.branch : null
+            }
         }))
         
         return NextResponse.json(implantsWithLogo)
@@ -77,6 +81,11 @@ export async function POST(req: NextRequest) {
 
         if (!dbId || message.startsWith('ERROR')) {
             throw new Error(message || 'Error creating implant');
+        }
+
+        if (body.templateConfig) {
+            const { syncCellCustomization } = await import('@/lib/cell-customization');
+            await syncCellCustomization(null, dbId, body.templateConfig);
         }
 
         const implant = { id: dbId, ...body };
@@ -155,6 +164,11 @@ export async function PUT(req: NextRequest) {
         const message = results[0]?.p_mensaje_resultado || '';
         if (message.startsWith('ERROR')) {
             throw new Error(message);
+        }
+
+        if (body.templateConfig) {
+            const { syncCellCustomization } = await import('@/lib/cell-customization');
+            await syncCellCustomization(null, dbId, body.templateConfig);
         }
 
         const implant = { ...body };

@@ -540,6 +540,26 @@ export async function GET(req: Request) {
             setVal((config as any).totalPago, totalTotal - totalComision);
             setVal((config as any).idCotizacion, q.idCotizacion);
 
+            // Dynamically set any other columns from config/q
+            Object.entries(config).forEach(([key, cellKey]) => {
+                if (cellKey && typeof cellKey === 'string' && key !== '__customNames') {
+                    const standardKeys = [
+                        'asesor', 'fecha', 'clienteNombre', 'clienteIdentificacion', 'clienteDireccion',
+                        'clienteTelefono', 'tCambio', 'descripcionPlan', 'pasajeros', 'totalAdultos', 'totalNinos',
+                        'baseComisionable', 'comisionAsesor', 'baseComisionTop', 'observaciones', 'idCotizacion',
+                        'fechasViaje', 'hotelesServicios', 'tarifaNeta', 'tarifaNetaPago', 'impuestos', 'impuestosPago',
+                        'adicionalesServ', 'adicionalesServPago', 'comision', 'descuento', 'sobrecomision', 'fee',
+                        'total', 'totalPago'
+                    ];
+                    if (!standardKeys.includes(key) && !key.startsWith('prov') && !key.startsWith('proveedor')) {
+                        const qVal = (q as any)[key];
+                        if (qVal !== undefined && qVal !== null) {
+                            setVal(cellKey, qVal);
+                        }
+                    }
+                }
+            });
+
             // Inject logo if present
             if (q.logo) {
                 try {
@@ -718,6 +738,14 @@ export async function GET(req: Request) {
                     prov2Total: prov2 ? formatCurrency(prov2.total) : '',
                     prov2TotalPago: prov2 ? formatCurrency(prov2.total - prov2.comision) : '',
                 };
+
+                // Add any dynamic properties present in the query row 'q'
+                Object.keys(q).forEach(key => {
+                    if (replacements[key] === undefined && key !== 'logo') {
+                        const qVal = (q as any)[key];
+                        replacements[key] = qVal !== null && qVal !== undefined ? String(qVal) : '';
+                    }
+                });
 
                 // Replace all instances of {{key}} with value
                 Object.entries(replacements).forEach(([key, val]) => {

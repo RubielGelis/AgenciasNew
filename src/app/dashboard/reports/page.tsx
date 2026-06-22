@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FileText, Plus, Database, Table as TableIcon, X, Check, Calculator, Download, Play, Save, Loader2, Trash2, PieChart, Edit, Eye, EyeOff, Filter, Search } from 'lucide-react'
+import { FileText, Plus, Database, Table as TableIcon, X, Check, Calculator, Download, Play, Save, Loader2, Trash2, PieChart, Edit, Eye, EyeOff, Filter, Search, Printer, FileSpreadsheet } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { cn } from '@/lib/utils'
 
@@ -46,6 +46,11 @@ export default function ReportsPage() {
     const [isFormulaModalOpen, setIsFormulaModalOpen] = useState(false)
     const [formulaAlias, setFormulaAlias] = useState('')
     const [formulaExpression, setFormulaExpression] = useState('')
+
+    // Batch Report Modal State
+    const [isBatchReportModalOpen, setIsBatchReportModalOpen] = useState(false)
+    const [batchIdIni, setBatchIdIni] = useState('')
+    const [batchIdFin, setBatchIdFin] = useState('')
 
     useEffect(() => {
         fetchReports()
@@ -337,21 +342,34 @@ export default function ReportsPage() {
                 </div>
                 
                 {view === 'list' && (
-                    <button
-                        onClick={() => {
-                            setBaseTable('');
-                            setSelectedColumns([]);
-                            setTemplateName('');
-                            setEditingReportId(null);
-                            setSorts([]);
-                            setReportFilters([]);
-                            setView('builder');
-                        }}
-                        className="px-6 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-blue-500/20 font-bold transition-all"
-                    >
-                        <Plus className="w-5 h-5" />
-                        Crear Nuevo Reporte
-                    </button>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={() => {
+                                setBatchIdIni('');
+                                setBatchIdFin('');
+                                setIsBatchReportModalOpen(true);
+                            }}
+                            className="px-6 h-14 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-2xl flex items-center gap-2.5 font-bold transition-all border border-zinc-200 dark:border-zinc-700"
+                        >
+                            <FileText className="w-5 h-5 text-blue-600" />
+                            Reporte Dinámico (Lote)
+                        </button>
+                        <button
+                            onClick={() => {
+                                setBaseTable('');
+                                setSelectedColumns([]);
+                                setTemplateName('');
+                                setEditingReportId(null);
+                                setSorts([]);
+                                setReportFilters([]);
+                                setView('builder');
+                            }}
+                            className="px-6 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-blue-500/20 font-bold transition-all"
+                        >
+                            <Plus className="w-5 h-5" />
+                            Crear Nuevo Reporte
+                        </button>
+                    </div>
                 )}
                 {view !== 'list' && (
                     <button onClick={() => setView('list')} className="px-6 h-12 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-xl font-bold transition-all">
@@ -1071,6 +1089,96 @@ export default function ReportsPage() {
                                 >
                                     {manualFilterIndex !== null ? 'Actualizar Filtro' : 'Agregar Filtro al Script'}
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Modal de Reporte Dinámico por Lote */}
+            <AnimatePresence>
+                {isBatchReportModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800"
+                        >
+                            <div className="p-8 space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-xl font-black text-zinc-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-blue-600" />
+                                        Reporte por Lote
+                                    </h3>
+                                    <button 
+                                        onClick={() => setIsBatchReportModalOpen(false)} 
+                                        className="text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 p-2 rounded-xl transition-colors"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Cotización Inicial (ID)</label>
+                                        <input 
+                                            type="number" 
+                                            value={batchIdIni}
+                                            onChange={(e) => setBatchIdIni(e.target.value)}
+                                            placeholder="Ej: 1"
+                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none text-zinc-900 dark:text-white"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Cotización Final (ID)</label>
+                                        <input 
+                                            type="number" 
+                                            value={batchIdFin}
+                                            onChange={(e) => setBatchIdFin(e.target.value)}
+                                            placeholder="Ej: 10"
+                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none text-zinc-900 dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-3 pt-2">
+                                    <button 
+                                        onClick={() => {
+                                            if (!batchIdIni || !batchIdFin) {
+                                                alert("Por favor ingrese el rango completo (ID Inicial e ID Final).");
+                                                return;
+                                            }
+                                            window.open(`/dashboard/quotations/print?idIni=${batchIdIni}&idFin=${batchIdFin}`, '_blank');
+                                        }}
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white h-14 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98]"
+                                    >
+                                        <Printer className="w-5 h-5" />
+                                        Generar Impresión HTML / PDF
+                                    </button>
+
+                                    <button 
+                                        onClick={() => {
+                                            if (!batchIdIni || !batchIdFin) {
+                                                alert("Por favor ingrese el rango completo (ID Inicial e ID Final).");
+                                                return;
+                                            }
+                                            window.open(`/api/reports/cotizaciones/export-excel?idIni=${batchIdIni}&idFin=${batchIdFin}`, '_blank');
+                                        }}
+                                        className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-14 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]"
+                                    >
+                                        <FileSpreadsheet className="w-5 h-5" />
+                                        Descargar Reporte Excel
+                                    </button>
+
+                                    <button 
+                                        onClick={() => setIsBatchReportModalOpen(false)}
+                                        className="w-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 h-12 rounded-2xl font-bold hover:bg-zinc-200 dark:hover:bg-zinc-750 transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
                             </div>
                         </motion.div>
                     </div>

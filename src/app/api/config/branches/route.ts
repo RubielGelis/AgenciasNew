@@ -8,12 +8,16 @@ export async function GET() {
         const branches = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public.fnBranchListar()`)
         
         // Convert Buffer/Uint8Array to base64 string for the frontend
-        const branchesWithLogo = branches.map(b => ({
-            ...b,
-            logo: b.logo ? `data:image/png;base64,${Buffer.from(b.logo).toString('base64')}` : null,
-            template: undefined, // remove template binary from list to save payload size
-            hasTemplate: !!b.template,
-            templateConfig: b.templateConfig
+        const { getCellCustomizationConfig } = await import('@/lib/cell-customization')
+        const branchesWithLogo = await Promise.all(branches.map(async b => {
+            const physicalConfig = await getCellCustomizationConfig(b.id, null)
+            return {
+                ...b,
+                logo: b.logo ? `data:image/png;base64,${Buffer.from(b.logo).toString('base64')}` : null,
+                template: undefined, // remove template binary from list to save payload size
+                hasTemplate: !!b.template,
+                templateConfig: physicalConfig || b.templateConfig
+            }
         }))
         
         return NextResponse.json(branchesWithLogo)
@@ -69,6 +73,11 @@ export async function POST(req: NextRequest) {
 
         if (!dbId || message.startsWith('ERROR')) {
             throw new Error(message || 'Error creating branch');
+        }
+
+        if (body.templateConfig) {
+            const { syncCellCustomization } = await import('@/lib/cell-customization');
+            await syncCellCustomization(dbId, null, body.templateConfig);
         }
 
         const branch = { id: dbId, ...body };
@@ -146,6 +155,11 @@ export async function PUT(req: NextRequest) {
         const message = results[0]?.p_mensaje_resultado || '';
         if (message.startsWith('ERROR')) {
             throw new Error(message);
+        }
+
+        if (body.templateConfig) {
+            const { syncCellCustomization } = await import('@/lib/cell-customization');
+            await syncCellCustomization(dbId, null, body.templateConfig);
         }
 
         const branch = { ...body };

@@ -1100,114 +1100,215 @@ export default function SettingsPage() {
                                                     <summary className="p-4 font-bold text-xs uppercase cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800/50 flex items-center justify-between dark:text-zinc-300">
                                                         <span>Personalizar Mapeo de Celdas</span>
                                                         <span className="text-zinc-400 group-open:rotate-180 transition-transform">▼</span>
-                                                    </summary>
-                                                    
-                                                    <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-                                                        {(() => {
-                                                            const fields = [
-                                                                { key: 'idCotizacion', label: 'ID Cotización' },
-                                                                { key: 'asesor', label: 'Asesor' },
-                                                                { key: 'fecha', label: 'Fecha' },
-                                                                { key: 'clienteNombre', label: 'Cliente Nombre' },
-                                                                { key: 'clienteIdentificacion', label: 'Cliente ID' },
-                                                                { key: 'clienteDireccion', label: 'Dirección' },
-                                                                { key: 'clienteTelefono', label: 'Teléfono' },
-                                                                { key: 'centroCosto', label: 'C. Costo' },
-                                                                { key: 'solicita', label: 'Solicita' },
-                                                                { key: 'tCambio', label: 'T. Cambio' },
-                                                                { key: 'descripcionPlan', label: 'Desc Plan' },
-                                                                { key: 'fechasViaje', label: 'Fechas Viaje' },
-                                                                { key: 'hotelesServicios', label: 'Servicios' },
-                                                                { key: 'pasajeros', label: 'Pasajeros' },
-                                                                { key: 'totalAdultos', label: 'Total Adultos' },
-                                                                { key: 'totalNinos', label: 'Total Niños' },
-                                                                { key: 'logo', label: 'Celda Logo' },
-                                                                
-                                                                { key: 'proveedor1Nombre', label: 'Prov 1: Nombre' },
-                                                                { key: 'proveedor1NIT', label: 'Prov 1: NIT' },
-                                                                { key: 'proveedor1Contacto', label: 'Prov 1: Contacto' },
-                                                                { key: 'prov1TarifaNeta', label: 'Prov 1: Neta' },
-                                                                { key: 'prov1TarifaNetaPago', label: 'Prov 1: Neta Pago' },
-                                                                { key: 'prov1Impuestos', label: 'Prov 1: Impuestos' },
-                                                                { key: 'prov1ImpuestosPago', label: 'Prov 1: Impuestos Pago' },
-                                                                { key: 'prov1Adicionales', label: 'Prov 1: Adicionales' },
-                                                                { key: 'prov1AdicionalesPago', label: 'Prov 1: Adicionales Pago' },
-                                                                { key: 'prov1Comision', label: 'Prov 1: Comisión' },
-                                                                { key: 'prov1Descuento', label: 'Prov 1: Descuento' },
-                                                                { key: 'prov1Sobrecomision', label: 'Prov 1: Sobrecomisión' },
-                                                                { key: 'prov1Fee', label: 'Prov 1: Fee' },
-                                                                { key: 'prov1Total', label: 'Prov 1: Total' },
-                                                                { key: 'prov1TotalPago', label: 'Prov 1: Total Pago' },
+                                                    </summary>                                                    <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-4">
+                                                        <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                                                            <table className="w-full text-left text-xs border-collapse">
+                                                                <thead>
+                                                                    <tr className="border-b border-zinc-200 dark:border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider">
+                                                                        <th className="py-2 px-3">Campo / Descripción</th>
+                                                                        <th className="py-2 px-3">Token / Código</th>
+                                                                        <th className="py-2 px-3 w-32">Coordenada</th>
+                                                                        <th className="py-2 px-3 w-16 text-center">Acción</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                                                    {(() => {
+                                                                        const config = formData.templateConfig || {};
+                                                                        const customNames = config.__customNames || {};
+                                                                        const standardFields = [
+                                                                            { key: 'idCotizacion', label: 'ID Cotización' },
+                                                                            { key: 'asesor', label: 'Asesor' },
+                                                                            { key: 'fecha', label: 'Fecha' },
+                                                                            { key: 'clienteNombre', label: 'Cliente Nombre' },
+                                                                            { key: 'clienteIdentificacion', label: 'Cliente ID' },
+                                                                            { key: 'clienteDireccion', label: 'Dirección' },
+                                                                            { key: 'clienteTelefono', label: 'Teléfono' },
+                                                                            { key: 'centroCosto', label: 'C. Costo' },
+                                                                            { key: 'solicita', label: 'Solicita' },
+                                                                            { key: 'tCambio', label: 'T. Cambio' },
+                                                                            { key: 'descripcionPlan', label: 'Desc Plan' },
+                                                                            { key: 'fechasViaje', label: 'Fechas Viaje' },
+                                                                            { key: 'hotelesServicios', label: 'Servicios' },
+                                                                            { key: 'pasajeros', label: 'Pasajeros' },
+                                                                            { key: 'totalAdultos', label: 'Total Adultos' },
+                                                                            { key: 'totalNinos', label: 'Total Niños' },
+                                                                            { key: 'logo', label: 'Celda Logo' },
+                                                                            { key: 'proveedor1Nombre', label: 'Prov 1: Nombre' },
+                                                                            { key: 'proveedor1NIT', label: 'Prov 1: NIT' },
+                                                                            { key: 'proveedor1Contacto', label: 'Prov 1: Contacto' },
+                                                                            { key: 'prov1TarifaNeta', label: 'Prov 1: Neta' },
+                                                                            { key: 'prov1TarifaNetaPago', label: 'Prov 1: Neta Pago' },
+                                                                            { key: 'prov1Impuestos', label: 'Prov 1: Impuestos' },
+                                                                            { key: 'prov1ImpuestosPago', label: 'Prov 1: Impuestos Pago' },
+                                                                            { key: 'prov1Adicionales', label: 'Prov 1: Adicionales' },
+                                                                            { key: 'prov1AdicionalesPago', label: 'Prov 1: Adicionales Pago' },
+                                                                            { key: 'prov1Comision', label: 'Prov 1: Comisión' },
+                                                                            { key: 'prov1Descuento', label: 'Prov 1: Descuento' },
+                                                                            { key: 'prov1Sobrecomision', label: 'Prov 1: Sobrecomisión' },
+                                                                            { key: 'prov1Fee', label: 'Prov 1: Fee' },
+                                                                            { key: 'prov1Total', label: 'Prov 1: Total' },
+                                                                            { key: 'prov1TotalPago', label: 'Prov 1: Total Pago' },
+                                                                            { key: 'proveedor2Nombre', label: 'Prov 2: Nombre' },
+                                                                            { key: 'proveedor2NIT', label: 'Prov 2: NIT' },
+                                                                            { key: 'proveedor2Contacto', label: 'Prov 2: Contacto' },
+                                                                            { key: 'prov2TarifaNeta', label: 'Prov 2: Neta' },
+                                                                            { key: 'prov2TarifaNetaPago', label: 'Prov 2: Neta Pago' },
+                                                                            { key: 'prov2Impuestos', label: 'Prov 2: Impuestos' },
+                                                                            { key: 'prov2ImpuestosPago', label: 'Prov 2: Impuestos Pago' },
+                                                                            { key: 'prov2Adicionales', label: 'Prov 2: Adicionales' },
+                                                                            { key: 'prov2AdicionalesPago', label: 'Prov 2: Adicionales Pago' },
+                                                                            { key: 'prov2Comision', label: 'Prov 2: Comisión' },
+                                                                            { key: 'prov2Descuento', label: 'Prov 2: Descuento' },
+                                                                            { key: 'prov2Sobrecomision', label: 'Prov 2: Sobrecomisión' },
+                                                                            { key: 'prov2Fee', label: 'Prov 2: Fee' },
+                                                                            { key: 'prov2Total', label: 'Prov 2: Total' },
+                                                                            { key: 'prov2TotalPago', label: 'Prov 2: Total Pago' },
+                                                                            { key: 'tarifaNeta', label: 'Total: Tarifa Neta' },
+                                                                            { key: 'tarifaNetaPago', label: 'Total: Neta Pago' },
+                                                                            { key: 'impuestos', label: 'Total: Impuestos' },
+                                                                            { key: 'impuestosPago', label: 'Total: Impuestos Pago' },
+                                                                            { key: 'adicionalesServ', label: 'Total: Adicionales' },
+                                                                            { key: 'adicionalesServPago', label: 'Total: Adicionales Pago' },
+                                                                            { key: 'comision', label: 'Total: Comisión' },
+                                                                            { key: 'descuento', label: 'Total: Descuento' },
+                                                                            { key: 'sobrecomision', label: 'Total: Sobrecomisión' },
+                                                                            { key: 'fee', label: 'Total: Fee' },
+                                                                            { key: 'total', label: 'Total: Total' },
+                                                                            { key: 'totalPago', label: 'Total: Total Pago' },
+                                                                            { key: 'baseComisionable', label: 'Base Comisión' },
+                                                                            { key: 'comisionAsesor', label: 'Comisión Asesor' },
+                                                                            { key: 'baseComisionTop', label: 'Comisión Top' },
+                                                                            { key: 'observaciones', label: 'Observaciones' }
+                                                                        ];
 
-                                                                { key: 'proveedor2Nombre', label: 'Prov 2: Nombre' },
-                                                                { key: 'proveedor2NIT', label: 'Prov 2: NIT' },
-                                                                { key: 'proveedor2Contacto', label: 'Prov 2: Contacto' },
-                                                                { key: 'prov2TarifaNeta', label: 'Prov 2: Neta' },
-                                                                { key: 'prov2TarifaNetaPago', label: 'Prov 2: Neta Pago' },
-                                                                { key: 'prov2Impuestos', label: 'Prov 2: Impuestos' },
-                                                                { key: 'prov2ImpuestosPago', label: 'Prov 2: Impuestos Pago' },
-                                                                { key: 'prov2Adicionales', label: 'Prov 2: Adicionales' },
-                                                                { key: 'prov2AdicionalesPago', label: 'Prov 2: Adicionales Pago' },
-                                                                { key: 'prov2Comision', label: 'Prov 2: Comisión' },
-                                                                { key: 'prov2Descuento', label: 'Prov 2: Descuento' },
-                                                                { key: 'prov2Sobrecomision', label: 'Prov 2: Sobrecomisión' },
-                                                                { key: 'prov2Fee', label: 'Prov 2: Fee' },
-                                                                { key: 'prov2Total', label: 'Prov 2: Total' },
-                                                                { key: 'prov2TotalPago', label: 'Prov 2: Total Pago' },
+                                                                        const DEFAULT_CONFIG = {
+                                                                            asesor: "B4", fecha: "G4", clienteNombre: "B7", clienteIdentificacion: "G7",
+                                                                            clienteDireccion: "B8", clienteTelefono: "G8", centroCosto: "B9", solicita: "G9",
+                                                                            tCambio: "G11", descripcionPlan: "B12", fechasViaje: "G12", hotelesServicios: "A13",
+                                                                            pasajeros: "B14", totalAdultos: "C15", totalNinos: "G15", logo: "A1",
+                                                                            proveedor1Nombre: "B18", proveedor1NIT: "E18", proveedor1Contacto: "H18",
+                                                                            proveedor2Nombre: "B19", proveedor2NIT: "E19", proveedor2Contacto: "H19",
+                                                                            prov1TarifaNeta: "B23", prov1TarifaNetaPago: "D23", prov1Impuestos: "B24", prov1ImpuestosPago: "D24",
+                                                                            prov1Adicionales: "B25", prov1AdicionalesPago: "D25", prov1Comision: "B26", prov1Descuento: "B27",
+                                                                            prov1Sobrecomision: "B28", prov1Fee: "B29", prov1Total: "B30", prov1TotalPago: "D30",
+                                                                            prov2TarifaNeta: "G23", prov2TarifaNetaPago: "I23", prov2Impuestos: "G24", prov2ImpuestosPago: "I24",
+                                                                            prov2Adicionales: "G25", prov2AdicionalesPago: "G25", prov2Comision: "G26", prov2Descuento: "G27",
+                                                                            prov2Sobrecomision: "G28", prov2Fee: "G29", prov2Total: "G30", prov2TotalPago: "I30",
+                                                                            baseComisionable: "B35", comisionAsesor: "B36", baseComisionTop: "B37", observaciones: "B42"
+                                                                        };
 
-                                                                { key: 'tarifaNeta', label: 'Total: Tarifa Neta' },
-                                                                { key: 'tarifaNetaPago', label: 'Total: Neta Pago' },
-                                                                { key: 'impuestos', label: 'Total: Impuestos' },
-                                                                { key: 'impuestosPago', label: 'Total: Impuestos Pago' },
-                                                                { key: 'adicionalesServ', label: 'Total: Adicionales' },
-                                                                { key: 'adicionalesServPago', label: 'Total: Adicionales Pago' },
-                                                                { key: 'comision', label: 'Total: Comisión' },
-                                                                { key: 'descuento', label: 'Total: Descuento' },
-                                                                { key: 'sobrecomision', label: 'Total: Sobrecomisión' },
-                                                                { key: 'fee', label: 'Total: Fee' },
-                                                                { key: 'total', label: 'Total: Total' },
-                                                                { key: 'totalPago', label: 'Total: Total Pago' },
+                                                                        const customFields = Object.keys(customNames).map(k => ({
+                                                                            key: k,
+                                                                            label: customNames[k] || k,
+                                                                            isCustom: true
+                                                                        }));
 
-                                                                { key: 'baseComisionable', label: 'Base Comisión' },
-                                                                { key: 'comisionAsesor', label: 'Comisión Asesor' },
-                                                                { key: 'baseComisionTop', label: 'Comisión Top' },
-                                                                { key: 'observaciones', label: 'Observaciones' }
-                                                            ];
+                                                                        const allFields = [...standardFields, ...customFields] as any[];
 
-                                                            const config = formData.templateConfig || {};
-                                                            const DEFAULT_CONFIG = {
-                                                                asesor: "B4", fecha: "G4", clienteNombre: "B7", clienteIdentificacion: "G7",
-                                                                clienteDireccion: "B8", clienteTelefono: "G8", centroCosto: "B9", solicita: "G9",
-                                                                tCambio: "G11", descripcionPlan: "B12", fechasViaje: "G12", hotelesServicios: "A13",
-                                                                pasajeros: "B14", totalAdultos: "C15", totalNinos: "G15", logo: "A1",
-                                                                proveedor1Nombre: "B18", proveedor1NIT: "E18", proveedor1Contacto: "H18",
-                                                                proveedor2Nombre: "B19", proveedor2NIT: "E19", proveedor2Contacto: "H19",
-                                                                prov1TarifaNeta: "B23", prov1TarifaNetaPago: "D23", prov1Impuestos: "B24", prov1ImpuestosPago: "D24",
-                                                                prov1Adicionales: "B25", prov1AdicionalesPago: "D25", prov1Comision: "B26", prov1Descuento: "B27",
-                                                                prov1Sobrecomision: "B28", prov1Fee: "B29", prov1Total: "B30", prov1TotalPago: "D30",
-                                                                prov2TarifaNeta: "G23", prov2TarifaNetaPago: "I23", prov2Impuestos: "G24", prov2ImpuestosPago: "I24",
-                                                                prov2Adicionales: "G25", prov2AdicionalesPago: "G25", prov2Comision: "G26", prov2Descuento: "G27",
-                                                                prov2Sobrecomision: "G28", prov2Fee: "G29", prov2Total: "G30", prov2TotalPago: "I30",
-                                                                baseComisionable: "B35", comisionAsesor: "B36", baseComisionTop: "B37", observaciones: "B42"
-                                                            };
-
-                                                            return fields.map((f) => (
-                                                                <div key={f.key} className="space-y-1">
-                                                                    <label className="text-[10px] font-bold text-zinc-500 uppercase block truncate">{f.label}</label>
-                                                                    <input 
-                                                                        type="text"
-                                                                        value={config[f.key] || ''}
-                                                                        onChange={(e) => {
-                                                                            const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                                                                            const newConfig = { ...config, [f.key]: val };
-                                                                            setFormData({ ...formData, templateConfig: newConfig });
-                                                                        }}
-                                                                        placeholder={DEFAULT_CONFIG[f.key as keyof typeof DEFAULT_CONFIG]}
-                                                                        className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white uppercase"
-                                                                    />
-                                                                </div>
-                                                            ));
-                                                        })()}
+                                                                        return allFields.map((f) => (
+                                                                            <tr key={f.key} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
+                                                                                <td className="py-2 px-3 font-semibold text-zinc-700 dark:text-zinc-300">
+                                                                                    {f.isCustom ? (
+                                                                                        <input 
+                                                                                            type="text"
+                                                                                            value={f.label}
+                                                                                            onChange={(e) => {
+                                                                                                const newNames = { ...customNames, [f.key]: e.target.value };
+                                                                                                const newConfig = { ...config, __customNames: newNames };
+                                                                                                setFormData({ ...formData, templateConfig: newConfig });
+                                                                                            }}
+                                                                                            className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
+                                                                                            placeholder="Nombre del campo"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <span>{f.label}</span>
+                                                                                    )}
+                                                                                </td>
+                                                                                <td className="py-2 px-3 font-mono text-[10px] text-zinc-400">
+                                                                                    {f.isCustom ? (
+                                                                                        <input 
+                                                                                            type="text"
+                                                                                            value={f.key}
+                                                                                            onChange={(e) => {
+                                                                                                const newKey = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                                                                                                if (!newKey || newKey === '__customNames') return;
+                                                                                                
+                                                                                                const newNames = { ...customNames };
+                                                                                                const newConfig = { ...config };
+                                                                                                
+                                                                                                const val = newConfig[f.key];
+                                                                                                delete newConfig[f.key];
+                                                                                                newConfig[newKey] = val || '';
+                                                                                                
+                                                                                                const label = newNames[f.key];
+                                                                                                delete newNames[f.key];
+                                                                                                newNames[newKey] = label || f.label;
+                                                                                                
+                                                                                                newConfig.__customNames = newNames;
+                                                                                                setFormData({ ...formData, templateConfig: newConfig });
+                                                                                            }}
+                                                                                            className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
+                                                                                            placeholder="token"
+                                                                                        />
+                                                                                    ) : (
+                                                                                        <span>{f.key}</span>
+                                                                                    )}
+                                                                                </td>
+                                                                                <td className="py-2 px-3">
+                                                                                    <input 
+                                                                                        type="text"
+                                                                                        value={config[f.key] || ''}
+                                                                                        onChange={(e) => {
+                                                                                            const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                                                                            const newConfig = { ...config, [f.key]: val };
+                                                                                            setFormData({ ...formData, templateConfig: newConfig });
+                                                                                        }}
+                                                                                        placeholder={DEFAULT_CONFIG[f.key as keyof typeof DEFAULT_CONFIG] || 'A1'}
+                                                                                        className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white uppercase"
+                                                                                    />
+                                                                                </td>
+                                                                                <td className="py-2 px-3 text-center">
+                                                                                    {f.isCustom ? (
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            onClick={() => {
+                                                                                                const newNames = { ...customNames };
+                                                                                                delete newNames[f.key];
+                                                                                                const newConfig = { ...config };
+                                                                                                delete newConfig[f.key];
+                                                                                                newConfig.__customNames = newNames;
+                                                                                                setFormData({ ...formData, templateConfig: newConfig });
+                                                                                            }}
+                                                                                            className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
+                                                                                            title="Eliminar Columna"
+                                                                                        >
+                                                                                            <Trash2 className="w-4 h-4" />
+                                                                                        </button>
+                                                                                    ) : null}
+                                                                                </td>
+                                                                            </tr>
+                                                                        ));
+                                                                    })()}
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                        <div className="flex justify-end">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const config = formData.templateConfig || {};
+                                                                    const customNames = config.__customNames || {};
+                                                                    const newId = 'col_' + Date.now();
+                                                                    const newConfig = { ...config, [newId]: '' };
+                                                                    newConfig.__customNames = { ...customNames, [newId]: 'Nueva Columna' };
+                                                                    setFormData({ ...formData, templateConfig: newConfig });
+                                                                }}
+                                                                className="px-4 py-2 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl transition-all flex items-center gap-1.5"
+                                                            >
+                                                                <Plus className="w-3.5 h-3.5" />
+                                                                Agregar Columna Dinámica
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </details>
                                             </div>
@@ -1789,113 +1890,215 @@ export default function SettingsPage() {
                                                                     <span>Personalizar Mapeo de Celdas</span>
                                                                     <span className="text-zinc-400 group-open:rotate-180 transition-transform">▼</span>
                                                                 </summary>
-                                                                
-                                                                <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-                                                                    {(() => {
-                                                                        const fields = [
-                                                                            { key: 'idCotizacion', label: 'ID Cotización' },
-                                                                            { key: 'asesor', label: 'Asesor' },
-                                                                            { key: 'fecha', label: 'Fecha' },
-                                                                            { key: 'clienteNombre', label: 'Cliente Nombre' },
-                                                                            { key: 'clienteIdentificacion', label: 'Cliente ID' },
-                                                                            { key: 'clienteDireccion', label: 'Dirección' },
-                                                                            { key: 'clienteTelefono', label: 'Teléfono' },
-                                                                            { key: 'centroCosto', label: 'C. Costo' },
-                                                                            { key: 'solicita', label: 'Solicita' },
-                                                                            { key: 'tCambio', label: 'T. Cambio' },
-                                                                            { key: 'descripcionPlan', label: 'Desc Plan' },
-                                                                            { key: 'fechasViaje', label: 'Fechas Viaje' },
-                                                                            { key: 'hotelesServicios', label: 'Servicios' },
-                                                                            { key: 'pasajeros', label: 'Pasajeros' },
-                                                                            { key: 'totalAdultos', label: 'Total Adultos' },
-                                                                            { key: 'totalNinos', label: 'Total Niños' },
-                                                                            { key: 'logo', label: 'Celda Logo' },
-                                                                            
-                                                                            { key: 'proveedor1Nombre', label: 'Prov 1: Nombre' },
-                                                                            { key: 'proveedor1NIT', label: 'Prov 1: NIT' },
-                                                                            { key: 'proveedor1Contacto', label: 'Prov 1: Contacto' },
-                                                                            { key: 'prov1TarifaNeta', label: 'Prov 1: Neta' },
-                                                                            { key: 'prov1TarifaNetaPago', label: 'Prov 1: Neta Pago' },
-                                                                            { key: 'prov1Impuestos', label: 'Prov 1: Impuestos' },
-                                                                            { key: 'prov1ImpuestosPago', label: 'Prov 1: Impuestos Pago' },
-                                                                            { key: 'prov1Adicionales', label: 'Prov 1: Adicionales' },
-                                                                            { key: 'prov1AdicionalesPago', label: 'Prov 1: Adicionales Pago' },
-                                                                            { key: 'prov1Comision', label: 'Prov 1: Comisión' },
-                                                                            { key: 'prov1Descuento', label: 'Prov 1: Descuento' },
-                                                                            { key: 'prov1Sobrecomision', label: 'Prov 1: Sobrecomisión' },
-                                                                            { key: 'prov1Fee', label: 'Prov 1: Fee' },
-                                                                            { key: 'prov1Total', label: 'Prov 1: Total' },
-                                                                            { key: 'prov1TotalPago', label: 'Prov 1: Total Pago' },
+                                                                <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 space-y-4">
+                                                                    <div className="overflow-x-auto max-h-96 overflow-y-auto">
+                                                                        <table className="w-full text-left text-xs border-collapse">
+                                                                            <thead>
+                                                                                <tr className="border-b border-zinc-200 dark:border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider">
+                                                                                    <th className="py-2 px-3">Campo / Descripción</th>
+                                                                                    <th className="py-2 px-3">Token / Código</th>
+                                                                                    <th className="py-2 px-3 w-32">Coordenada</th>
+                                                                                    <th className="py-2 px-3 w-16 text-center">Acción</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                                                                {(() => {
+                                                                                    const config = formData.templateConfig || {};
+                                                                                    const customNames = config.__customNames || {};
+                                                                                    const standardFields = [
+                                                                                        { key: 'idCotizacion', label: 'ID Cotización' },
+                                                                                        { key: 'asesor', label: 'Asesor' },
+                                                                                        { key: 'fecha', label: 'Fecha' },
+                                                                                        { key: 'clienteNombre', label: 'Cliente Nombre' },
+                                                                                        { key: 'clienteIdentificacion', label: 'Cliente ID' },
+                                                                                        { key: 'clienteDireccion', label: 'Dirección' },
+                                                                                        { key: 'clienteTelefono', label: 'Teléfono' },
+                                                                                        { key: 'centroCosto', label: 'C. Costo' },
+                                                                                        { key: 'solicita', label: 'Solicita' },
+                                                                                        { key: 'tCambio', label: 'T. Cambio' },
+                                                                                        { key: 'descripcionPlan', label: 'Desc Plan' },
+                                                                                        { key: 'fechasViaje', label: 'Fechas Viaje' },
+                                                                                        { key: 'hotelesServicios', label: 'Servicios' },
+                                                                                        { key: 'pasajeros', label: 'Pasajeros' },
+                                                                                        { key: 'totalAdultos', label: 'Total Adultos' },
+                                                                                        { key: 'totalNinos', label: 'Total Niños' },
+                                                                                        { key: 'logo', label: 'Celda Logo' },
+                                                                                        { key: 'proveedor1Nombre', label: 'Prov 1: Nombre' },
+                                                                                        { key: 'proveedor1NIT', label: 'Prov 1: NIT' },
+                                                                                        { key: 'proveedor1Contacto', label: 'Prov 1: Contacto' },
+                                                                                        { key: 'prov1TarifaNeta', label: 'Prov 1: Neta' },
+                                                                                        { key: 'prov1TarifaNetaPago', label: 'Prov 1: Neta Pago' },
+                                                                                        { key: 'prov1Impuestos', label: 'Prov 1: Impuestos' },
+                                                                                        { key: 'prov1ImpuestosPago', label: 'Prov 1: Impuestos Pago' },
+                                                                                        { key: 'prov1Adicionales', label: 'Prov 1: Adicionales' },
+                                                                                        { key: 'prov1AdicionalesPago', label: 'Prov 1: Adicionales Pago' },
+                                                                                        { key: 'prov1Comision', label: 'Prov 1: Comisión' },
+                                                                                        { key: 'prov1Descuento', label: 'Prov 1: Descuento' },
+                                                                                        { key: 'prov1Sobrecomision', label: 'Prov 1: Sobrecomisión' },
+                                                                                        { key: 'prov1Fee', label: 'Prov 1: Fee' },
+                                                                                        { key: 'prov1Total', label: 'Prov 1: Total' },
+                                                                                        { key: 'prov1TotalPago', label: 'Prov 1: Total Pago' },
+                                                                                        { key: 'proveedor2Nombre', label: 'Prov 2: Nombre' },
+                                                                                        { key: 'proveedor2NIT', label: 'Prov 2: NIT' },
+                                                                                        { key: 'proveedor2Contacto', label: 'Prov 2: Contacto' },
+                                                                                        { key: 'prov2TarifaNeta', label: 'Prov 2: Tarifa Neta' },
+                                                                                        { key: 'prov2TarifaNetaPago', label: 'Prov 2: Neta Pago' },
+                                                                                        { key: 'prov2Impuestos', label: 'Prov 2: Impuestos' },
+                                                                                        { key: 'prov2ImpuestosPago', label: 'Prov 2: Impuestos Pago' },
+                                                                                        { key: 'prov2Adicionales', label: 'Prov 2: Adicionales' },
+                                                                                        { key: 'prov2AdicionalesPago', label: 'Prov 2: Adicionales Pago' },
+                                                                                        { key: 'prov2Comision', label: 'Prov 2: Comisión' },
+                                                                                        { key: 'prov2Descuento', label: 'Prov 2: Descuento' },
+                                                                                        { key: 'prov2Sobrecomision', label: 'Prov 2: Sobrecomisión' },
+                                                                                        { key: 'prov2Fee', label: 'Prov 2: Fee' },
+                                                                                        { key: 'prov2Total', label: 'Prov 2: Total' },
+                                                                                        { key: 'prov2TotalPago', label: 'Prov 2: Total Pago' },
+                                                                                        { key: 'tarifaNeta', label: 'Total: Tarifa Neta' },
+                                                                                        { key: 'tarifaNetaPago', label: 'Total: Neta Pago' },
+                                                                                        { key: 'impuestos', label: 'Total: Impuestos' },
+                                                                                        { key: 'impuestosPago', label: 'Total: Impuestos Pago' },
+                                                                                        { key: 'adicionalesServ', label: 'Total: Adicionales' },
+                                                                                        { key: 'adicionalesServPago', label: 'Total: Adicionales Pago' },
+                                                                                        { key: 'comision', label: 'Total: Comisión' },
+                                                                                        { key: 'descuento', label: 'Total: Descuento' },
+                                                                                        { key: 'sobrecomision', label: 'Total: Sobrecomisión' },
+                                                                                        { key: 'fee', label: 'Total: Fee' },
+                                                                                        { key: 'total', label: 'Total: Total' },
+                                                                                        { key: 'totalPago', label: 'Total: Total Pago' },
+                                                                                        { key: 'baseComisionable', label: 'Base Comisión' },
+                                                                                        { key: 'comisionAsesor', label: 'Comisión Asesor' },
+                                                                                        { key: 'baseComisionTop', label: 'Comisión Top' },
+                                                                                        { key: 'observaciones', label: 'Observaciones' }
+                                                                                    ];
 
-                                                                            { key: 'proveedor2Nombre', label: 'Prov 2: Nombre' },
-                                                                            { key: 'proveedor2NIT', label: 'Prov 2: NIT' },
-                                                                            { key: 'proveedor2Contacto', label: 'Prov 2: Contacto' },
-                                                                            { key: 'prov2TarifaNeta', label: 'Prov 2: Tarifa Neta' },
-                                                                            { key: 'prov2TarifaNetaPago', label: 'Prov 2: Neta Pago' },
-                                                                            { key: 'prov2Impuestos', label: 'Prov 2: Impuestos' },
-                                                                            { key: 'prov2ImpuestosPago', label: 'Prov 2: Impuestos Pago' },
-                                                                            { key: 'prov2Adicionales', label: 'Prov 2: Adicionales' },
-                                                                            { key: 'prov2AdicionalesPago', label: 'Prov 2: Adicionales Pago' },
-                                                                            { key: 'prov2Comision', label: 'Prov 2: Comisión' },
-                                                                            { key: 'prov2Descuento', label: 'Prov 2: Descuento' },
-                                                                            { key: 'prov2Sobrecomision', label: 'Prov 2: Sobrecomisión' },
-                                                                            { key: 'prov2Fee', label: 'Prov 2: Fee' },
-                                                                            { key: 'prov2Total', label: 'Prov 2: Total' },
-                                                                            { key: 'prov2TotalPago', label: 'Prov 2: Total Pago' },
+                                                                                    const DEFAULT_CONFIG = {
+                                                                                        asesor: "B4", fecha: "G4", clienteNombre: "B7", clienteIdentificacion: "G7",
+                                                                                        clienteDireccion: "B8", clienteTelefono: "G8", centroCosto: "B9", solicita: "G9",
+                                                                                        tCambio: "G11", descripcionPlan: "B12", fechasViaje: "G12", hotelesServicios: "A13",
+                                                                                        pasajeros: "B14", totalAdultos: "C15", totalNinos: "G15", logo: "A1",
+                                                                                        proveedor1Nombre: "B18", proveedor1NIT: "E18", proveedor1Contacto: "H18",
+                                                                                        proveedor2Nombre: "B19", proveedor2NIT: "E19", proveedor2Contacto: "H19",
+                                                                                        prov1TarifaNeta: "B23", prov1TarifaNetaPago: "D23", prov1Impuestos: "B24", prov1ImpuestosPago: "D24",
+                                                                                        prov1Adicionales: "B25", prov1AdicionalesPago: "D25", prov1Comision: "B26", prov1Descuento: "B27",
+                                                                                        prov1Sobrecomision: "B28", prov1Fee: "B29", prov1Total: "B30", prov1TotalPago: "D30",
+                                                                                        prov2TarifaNeta: "G23", prov2TarifaNetaPago: "I23", prov2Impuestos: "G24", prov2ImpuestosPago: "I24",
+                                                                                        prov2Adicionales: "G25", prov2AdicionalesPago: "G25", prov2Comision: "G26", prov2Descuento: "G27",
+                                                                                        prov2Sobrecomision: "G28", prov2Fee: "G29", prov2Total: "G30", prov2TotalPago: "I30",
+                                                                                        baseComisionable: "B35", comisionAsesor: "B36", baseComisionTop: "B37", observaciones: "B42"
+                                                                                    };
 
-                                                                            { key: 'tarifaNeta', label: 'Total: Tarifa Neta' },
-                                                                            { key: 'tarifaNetaPago', label: 'Total: Neta Pago' },
-                                                                            { key: 'impuestos', label: 'Total: Impuestos' },
-                                                                            { key: 'impuestosPago', label: 'Total: Impuestos Pago' },
-                                                                            { key: 'adicionalesServ', label: 'Total: Adicionales' },
-                                                                            { key: 'adicionalesServPago', label: 'Total: Adicionales Pago' },
-                                                                            { key: 'comision', label: 'Total: Comisión' },
-                                                                            { key: 'descuento', label: 'Total: Descuento' },
-                                                                            { key: 'sobrecomision', label: 'Total: Sobrecomisión' },
-                                                                            { key: 'fee', label: 'Total: Fee' },
-                                                                            { key: 'total', label: 'Total: Total' },
-                                                                            { key: 'totalPago', label: 'Total: Total Pago' },
+                                                                                    const customFields = Object.keys(customNames).map(k => ({
+                                                                                        key: k,
+                                                                                        label: customNames[k] || k,
+                                                                                        isCustom: true
+                                                                                    }));
 
-                                                                            { key: 'baseComisionable', label: 'Base Comisión' },
-                                                                            { key: 'comisionAsesor', label: 'Comisión Asesor' },
-                                                                            { key: 'baseComisionTop', label: 'Comisión Top' },
-                                                                            { key: 'observaciones', label: 'Observaciones' }
-                                                                        ];
+                                                                                    const allFields = [...standardFields, ...customFields] as any[];
 
-                                                                        const config = formData.templateConfig || {};
-                                                                        const DEFAULT_CONFIG = {
-                                                                            asesor: "B4", fecha: "G4", clienteNombre: "B7", clienteIdentificacion: "G7",
-                                                                            clienteDireccion: "B8", clienteTelefono: "G8", centroCosto: "B9", solicita: "G9",
-                                                                            tCambio: "G11", descripcionPlan: "B12", fechasViaje: "G12", hotelesServicios: "A13",
-                                                                            pasajeros: "B14", totalAdultos: "C15", totalNinos: "G15", logo: "A1",
-                                                                            proveedor1Nombre: "B18", proveedor1NIT: "E18", proveedor1Contacto: "H18",
-                                                                            proveedor2Nombre: "B19", proveedor2NIT: "E19", proveedor2Contacto: "H19",
-                                                                            prov1TarifaNeta: "B23", prov1TarifaNetaPago: "D23", prov1Impuestos: "B24", prov1ImpuestosPago: "D24",
-                                                                            prov1Adicionales: "B25", prov1AdicionalesPago: "D25", prov1Comision: "B26", prov1Descuento: "B27",
-                                                                            prov1Sobrecomision: "B28", prov1Fee: "B29", prov1Total: "B30", prov1TotalPago: "D30",
-                                                                            prov2TarifaNeta: "G23", prov2TarifaNetaPago: "I23", prov2Impuestos: "G24", prov2ImpuestosPago: "I24",
-                                                                            prov2Adicionales: "G25", prov2AdicionalesPago: "G25", prov2Comision: "G26", prov2Descuento: "G27",
-                                                                            prov2Sobrecomision: "G28", prov2Fee: "G29", prov2Total: "G30", prov2TotalPago: "I30",
-                                                                            baseComisionable: "B35", comisionAsesor: "B36", baseComisionTop: "B37", observaciones: "B42"
-                                                                        };
-
-                                                                        return fields.map((f) => (
-                                                                            <div key={f.key} className="space-y-1">
-                                                                                <label className="text-[10px] font-bold text-zinc-500 uppercase block truncate">{f.label}</label>
-                                                                                <input 
-                                                                                    type="text"
-                                                                                    value={config[f.key] || ''}
-                                                                                    onChange={(e) => {
-                                                                                        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                                                                                        const newConfig = { ...config, [f.key]: val };
-                                                                                        setFormData({ ...formData, templateConfig: newConfig });
-                                                                                    }}
-                                                                                    placeholder={DEFAULT_CONFIG[f.key as keyof typeof DEFAULT_CONFIG]}
-                                                                                    className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white uppercase"
-                                                                                />
-                                                                            </div>
-                                                                        ));
-                                                                    })()}
+                                                                                    return allFields.map((f) => (
+                                                                                        <tr key={f.key} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
+                                                                                            <td className="py-2 px-3 font-semibold text-zinc-700 dark:text-zinc-300">
+                                                                                                {f.isCustom ? (
+                                                                                                    <input 
+                                                                                                        type="text"
+                                                                                                        value={f.label}
+                                                                                                        onChange={(e) => {
+                                                                                                            const newNames = { ...customNames, [f.key]: e.target.value };
+                                                                                                            const newConfig = { ...config, __customNames: newNames };
+                                                                                                            setFormData({ ...formData, templateConfig: newConfig });
+                                                                                                        }}
+                                                                                                        className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
+                                                                                                        placeholder="Nombre del campo"
+                                                                                                    />
+                                                                                                ) : (
+                                                                                                    <span>{f.label}</span>
+                                                                                                )}
+                                                                                            </td>
+                                                                                            <td className="py-2 px-3 font-mono text-[10px] text-zinc-400">
+                                                                                                {f.isCustom ? (
+                                                                                                    <input 
+                                                                                                        type="text"
+                                                                                                        value={f.key}
+                                                                                                        onChange={(e) => {
+                                                                                                            const newKey = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                                                                                                            if (!newKey || newKey === '__customNames') return;
+                                                                                                            
+                                                                                                            const newNames = { ...customNames };
+                                                                                                            const newConfig = { ...config };
+                                                                                                            
+                                                                                                            const val = newConfig[f.key];
+                                                                                                            delete newConfig[f.key];
+                                                                                                            newConfig[newKey] = val || '';
+                                                                                                            
+                                                                                                            const label = newNames[f.key];
+                                                                                                            delete newNames[f.key];
+                                                                                                            newNames[newKey] = label || f.label;
+                                                                                                            
+                                                                                                            newConfig.__customNames = newNames;
+                                                                                                            setFormData({ ...formData, templateConfig: newConfig });
+                                                                                                        }}
+                                                                                                        className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
+                                                                                                        placeholder="token"
+                                                                                                    />
+                                                                                                ) : (
+                                                                                                    <span>{f.key}</span>
+                                                                                                )}
+                                                                                            </td>
+                                                                                            <td className="py-2 px-3">
+                                                                                                <input 
+                                                                                                    type="text"
+                                                                                                    value={config[f.key] || ''}
+                                                                                                    onChange={(e) => {
+                                                                                                        const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                                                                                        const newConfig = { ...config, [f.key]: val };
+                                                                                                        setFormData({ ...formData, templateConfig: newConfig });
+                                                                                                    }}
+                                                                                                    placeholder={DEFAULT_CONFIG[f.key as keyof typeof DEFAULT_CONFIG] || 'A1'}
+                                                                                                    className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white uppercase"
+                                                                                                />
+                                                                                            </td>
+                                                                                            <td className="py-2 px-3 text-center">
+                                                                                                {f.isCustom ? (
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        onClick={() => {
+                                                                                                            const newNames = { ...customNames };
+                                                                                                            delete newNames[f.key];
+                                                                                                            const newConfig = { ...config };
+                                                                                                            delete newConfig[f.key];
+                                                                                                            newConfig.__customNames = newNames;
+                                                                                                            setFormData({ ...formData, templateConfig: newConfig });
+                                                                                                        }}
+                                                                                                        className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
+                                                                                                        title="Eliminar Columna"
+                                                                                                    >
+                                                                                                        <Trash2 className="w-4 h-4" />
+                                                                                                    </button>
+                                                                                                ) : null}
+                                                                                            </td>
+                                                                                        </tr>
+                                                                                    ));
+                                                                                })()}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                    <div className="flex justify-end">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                const config = formData.templateConfig || {};
+                                                                                const customNames = config.__customNames || {};
+                                                                                const newId = 'col_' + Date.now();
+                                                                                const newConfig = { ...config, [newId]: '' };
+                                                                                newConfig.__customNames = { ...customNames, [newId]: 'Nueva Columna' };
+                                                                                setFormData({ ...formData, templateConfig: newConfig });
+                                                                            }}
+                                                                            className="px-4 py-2 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl transition-all flex items-center gap-1.5"
+                                                                        >
+                                                                            <Plus className="w-3.5 h-3.5" />
+                                                                            Agregar Columna Dinámica
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             </details>
                                                         </div>

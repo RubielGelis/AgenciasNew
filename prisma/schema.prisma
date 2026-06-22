@@ -79,6 +79,7 @@ model Branch {
   template       Bytes?
   templateConfig Json?
   htmlTemplate   String?
+  cellCustomizations CellCustomization[]
   implants       Implant[]
   quotations     Quotation[]
   users          User[]
@@ -92,6 +93,7 @@ model Implant {
   template       Bytes?
   templateConfig Json?
   htmlTemplate   String?
+  cellCustomizations CellCustomization[]
   branchId       Int?
   branch         Branch?     @relation(fields: [branchId], references: [id])
   quotations     Quotation[]
@@ -327,4 +329,15 @@ model Currency {
   name         String
   exchangeRate Float
   combos       Combo[]
+}
+
+model CellCustomization {
+  id        Int      @id @default(autoincrement())
+  code      String
+  name      String
+  value     String?
+  branchId  Int?
+  implantId Int?
+  branch    Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  implant   Implant? @relation(fields: [implantId], references: [id], onDelete: Cascade)
 }

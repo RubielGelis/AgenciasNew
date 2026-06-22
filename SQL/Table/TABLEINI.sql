@@ -1633,9 +1633,24 @@ BEGIN
 	ALTER TABLE IF EXISTS public."Airports" OWNER to postgres;
 	ALTER SEQUENCE public."Airports_id_seq" OWNED BY public."Airports".id;
 
-	CREATE UNIQUE INDEX IF NOT EXISTS "currency_code_key" ON public."Currency" USING btree (code ASC NULLS LAST);
-	CREATE UNIQUE INDEX IF NOT EXISTS "countries_code_key" ON public."Countries" USING btree (code ASC NULLS LAST);
-	CREATE UNIQUE INDEX IF NOT EXISTS "cities_code_key" ON public."Cities" USING btree (code ASC NULLS LAST);
-	CREATE UNIQUE INDEX IF NOT EXISTS "airports_code_key" ON public."Airports" USING btree (code ASC NULLS LAST);
+	CREATE SEQUENCE IF NOT EXISTS public."CellCustomization_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."CellCustomization_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."CellCustomization" (
+		id integer NOT NULL DEFAULT nextval('"CellCustomization_id_seq"'::regclass),
+		code VARCHAR(50) NOT NULL,
+		"name" VARCHAR(100) NOT NULL,
+		"value" VARCHAR(10),
+		"branchId" integer,
+		"implantId" integer,
+		CONSTRAINT "CellCustomization_pkey" PRIMARY KEY (id),
+		CONSTRAINT "CellCustomization_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch" (id) ON UPDATE CASCADE ON DELETE CASCADE,
+		CONSTRAINT "CellCustomization_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."CellCustomization" OWNER to postgres;
+	ALTER SEQUENCE public."CellCustomization_id_seq" OWNED BY public."CellCustomization".id;
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_branch_code_key" ON public."CellCustomization" ("branchId", "code") WHERE "branchId" IS NOT NULL;
+	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_implant_code_key" ON public."CellCustomization" ("implantId", "code") WHERE "implantId" IS NOT NULL;
 
 END	$$
