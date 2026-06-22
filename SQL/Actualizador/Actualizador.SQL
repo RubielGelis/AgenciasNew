@@ -5,8 +5,8 @@
 
 -- >>> 1. CREACIÓN DE TABLAS E ÍNDICES (TABLEINI) <<<
 
---do $$
---BEGIN
+do $$
+BEGIN
 	CREATE SEQUENCE IF NOT EXISTS public."Attachment_id_seq"
 	    INCREMENT 1
 	    START 1
@@ -256,6 +256,26 @@
 		CACHE 1;
 	
 	ALTER SEQUENCE public."User_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."GDS_id_seq"
+		INCREMENT 1
+		START 1
+		MINVALUE 1
+		MAXVALUE 2147483647
+		CACHE 1;
+	
+	ALTER SEQUENCE public."GDS_id_seq"
+	    OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Interfaces_id_seq"
+		INCREMENT 1
+		START 1
+		MINVALUE 1
+		MAXVALUE 2147483647
+		CACHE 1;
+	
+	ALTER SEQUENCE public."Interfaces_id_seq"
 	    OWNER TO postgres;	
 		
 	CREATE TABLE IF NOT EXISTS public."Role"
@@ -802,7 +822,7 @@
 	    "chargesAndTaxes" double precision NOT NULL,
 	    "totalAmount" double precision NOT NULL,
 	    "userId" integer,
-	    "state" varchar(25) DEFAULT 'Nuevo',
+	    "state" varchar(25) DEFAULT 'NUEVO',
 	    CONSTRAINT "Quotation_pkey" PRIMARY KEY (id),
 	    CONSTRAINT "Quotation_branchId_fkey" FOREIGN KEY ("branchId")
 	        REFERENCES public."Branch" (id) MATCH SIMPLE
@@ -1033,6 +1053,10 @@
 	ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
 	ALTER TABLE public."ComboProduct" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
 	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
+	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "service" text;
+	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "description" text;
+	ALTER TABLE public."Prestadora" ADD COLUMN IF NOT EXISTS "initials" text;
+	ALTER TABLE public."Prestadora" ADD COLUMN IF NOT EXISTS "nogds" text;
 	-- Tabla Currency ya incluida en la creación arriba, pero por si la BD es existente:
 	CREATE TABLE IF NOT EXISTS public."Currency"
 	(
@@ -1054,14 +1078,636 @@
 	ALTER TABLE public."Combo" ADD CONSTRAINT "Combo_currencyId_fkey"
 	    FOREIGN KEY ("currencyId") REFERENCES public."Currency"(id)
 	    ON UPDATE CASCADE ON DELETE SET NULL;
-		
+
 	-- Columna state en Quotation
 	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "state" varchar(25) DEFAULT 'Nuevo';
---END	$$ 		
 
--- >>> 2. FUNCIONES <<<
+	CREATE TABLE IF NOT EXISTS public."GDS"(
+		id integer NOT NULL DEFAULT nextval('"GDS_id_seq"'::regclass),
+		name text COLLATE pg_catalog."default" NOT NULL,
+		CONSTRAINT "GDS_pkey" PRIMARY KEY (id)
+	)	
 
--- Archivo: fnClienteListar.sql
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."GDS" OWNER to postgres;
+	
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN
+		ALTER TABLE public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id);
+	END IF;
+
+	--DROP INDEX IF EXISTS public."gds_name_key";
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "gds_name_key"
+	    ON public."GDS" USING btree
+	    (name COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."GDS_id_seq"
+	    OWNED BY public."GDS".id;	
+
+	CREATE TABLE IF NOT EXISTS public."Interfaces"(
+		id integer NOT NULL DEFAULT nextval('"Interfaces_id_seq"'::regclass),
+		code text COLLATE pg_catalog."default" NOT NULL,
+		name text COLLATE pg_catalog."default" NOT NULL,
+		inactivo boolean NOT NULL DEFAULT false,
+		bl_genera_archivoplano boolean NOT NULL DEFAULT false,
+		ds_storedprocedure_archivoplano text COLLATE pg_catalog."default",
+		bl_job boolean NOT NULL DEFAULT false,
+		ds_nameJob text COLLATE pg_catalog."default",
+		bl_facturador boolean NOT NULL DEFAULT false,
+		id_GDS integer,
+		CONSTRAINT "interfaces_pkey" PRIMARY KEY (id)
+	)
+	
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."Interfaces" OWNER to postgres;
+
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'interfaces_pkey') THEN
+		ALTER TABLE public."Interfaces" ADD CONSTRAINT "interfaces_pkey" PRIMARY KEY (id);
+	END IF;
+
+	-- DROP INDEX IF EXISTS public."interfaces_code_key";
+	
+	CREATE UNIQUE INDEX IF NOT EXISTS "interfaces_code_key"
+	    ON public."Interfaces" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."Interfaces_id_seq"
+	    OWNED BY public."Interfaces".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Master_id_seq"
+		INCREMENT 1
+		START 1
+		MINVALUE 1
+		MAXVALUE 2147483647
+		CACHE 1;
+	
+	ALTER SEQUENCE public."Master_id_seq"
+	    OWNER TO postgres;	
+
+	CREATE TABLE IF NOT EXISTS public."Master"(
+		id integer NOT NULL DEFAULT nextval('"Master_id_seq"'::regclass),
+		code text COLLATE pg_catalog."default" NOT NULL,
+		name text COLLATE pg_catalog."default" NOT NULL,
+		inactivo boolean NOT NULL DEFAULT false,
+		CONSTRAINT "master_pkey" PRIMARY KEY (id)
+	)
+
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."Master" OWNER to postgres;
+
+	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'master_pkey') THEN
+		ALTER TABLE public."Master" ADD CONSTRAINT "master_pkey" PRIMARY KEY (id);
+	END IF;
+
+	-- DROP INDEX IF EXISTS public."master_code_key";
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "master_code_key"
+	    ON public."Master" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+    
+	TABLESPACE pg_default;
+
+	ALTER SEQUENCE public."Master_id_seq"
+	    OWNED BY public."Master".id;
+
+
+	CREATE SEQUENCE IF NOT EXISTS public."EquivalencesInterfaces_id_seq"
+		INCREMENT 1
+		START 1
+		MINVALUE 1
+		MAXVALUE 2147483647
+		CACHE 1;
+	
+	ALTER SEQUENCE public."EquivalencesInterfaces_id_seq"
+	    OWNER TO postgres;	
+
+	CREATE TABLE IF NOT EXISTS public."EquivalencesInterfaces"(
+		id integer NOT NULL DEFAULT nextval('"EquivalencesInterfaces_id_seq"'::regclass),
+		id_interfaces integer NOT NULL,
+		id_master integer NOT NULL,
+		cd_maestro text COLLATE pg_catalog."default" NOT NULL,
+		cd_codigo text COLLATE pg_catalog."default" NOT NULL,
+		cd_codigoInte text COLLATE pg_catalog."default" NOT NULL,
+		dt_fecha timestamp without time zone DEFAULT now(),
+		CONSTRAINT "EquivalencesInterfaces_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "EquivalencesInterfaces_id_interfaces_fkey" FOREIGN KEY ("id_interfaces")
+	        REFERENCES public."Interfaces" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE RESTRICT,
+		CONSTRAINT "EquivalencesInterfaces_id_master_fkey" FOREIGN KEY ("id_master")
+	        REFERENCES public."Master" (id) MATCH SIMPLE
+	        ON UPDATE CASCADE
+	        ON DELETE RESTRICT	
+	)
+
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."EquivalencesInterfaces" OWNER to postgres;
+
+	ALTER SEQUENCE public."EquivalencesInterfaces_id_seq"
+		OWNED BY public."EquivalencesInterfaces".id;
+
+	CREATE TABLE IF NOT EXISTS public."Report" (
+	    id SERIAL PRIMARY KEY,
+	    name VARCHAR(255) NOT NULL,
+	    base_table VARCHAR(100), -- Puede ser NULL si es Custom SQL
+	    description TEXT,
+	    custom_sql TEXT, -- Para reportes definidos por script
+	    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+	);
+
+	CREATE TABLE IF NOT EXISTS public."ReportSorts" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    column_expr TEXT NOT NULL,
+	    direction VARCHAR(10) DEFAULT 'ASC',
+	    sort_order INTEGER DEFAULT 0
+	);
+
+	CREATE TABLE IF NOT EXISTS public."ReportJoins" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    table_name VARCHAR(100) NOT NULL,
+	    alias VARCHAR(20) NOT NULL,
+	    join_type VARCHAR(50) NOT NULL DEFAULT 'INNER JOIN',
+	    join_condition TEXT NOT NULL,
+	    sort_order INTEGER DEFAULT 0
+	);
+
+	CREATE TABLE IF NOT EXISTS public."ReportColumns" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    table_alias VARCHAR(20),
+	    column_name VARCHAR(100) NOT NULL,
+	    alias VARCHAR(150),
+	    is_calculated BOOLEAN DEFAULT false,
+	    is_visible BOOLEAN DEFAULT true,
+	    formula_expression TEXT,
+	    sort_order INTEGER DEFAULT 0
+	);
+
+	CREATE TABLE IF NOT EXISTS public."ReportFilters" (
+	    id SERIAL PRIMARY KEY,
+	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+	    table_alias VARCHAR(20),
+	    column_name VARCHAR(100) NOT NULL,
+	    filter_label VARCHAR(150),
+	    filter_type VARCHAR(50) NOT NULL, -- 'text', 'date', 'number', 'select'
+	    operator VARCHAR(20) DEFAULT '=',
+	    sort_order INTEGER DEFAULT 0
+	);
+		
+
+
+	-- SEQUENCES FOR BOOKING GDS
+	CREATE SEQUENCE IF NOT EXISTS public."BookingGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingGDS_id_seq" OWNER TO postgres;
+	
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductGDS_id_seq" OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductTaxGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductTaxGDS_id_seq" OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductPassangerGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductPassangerGDS_id_seq" OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductVariableGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductVariableGDS_id_seq" OWNER TO postgres;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductPaymentGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductPaymentGDS_id_seq" OWNER TO postgres;
+
+	-- TABLES FOR BOOKING GDS
+	CREATE TABLE IF NOT EXISTS public."BookingGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingGDS_id_seq"'::regclass),
+		code VARCHAR(25) NOT NULL,
+		type VARCHAR(25) NOT NULL,
+		"blanch" VARCHAR(25) NOT NULL,
+		"implant" VARCHAR(25) NULL,
+		"external" boolean NOT NULL DEFAULT false,
+		"gds" integer,
+		"date" timestamp without time zone DEFAULT now(),
+		"currency" text COLLATE pg_catalog."default" NOT NULL,
+	    "exchangeRate" double precision NOT NULL,
+		"tiquetPrinter" VARCHAR(25) NOT NULL,
+		"seller" VARCHAR(25) NOT NULL,
+		"client" VARCHAR(25) NOT NULL,
+		"booking" text NULL,
+		"typetransaction" VARCHAR(25),
+		"iata" VARCHAR(25),
+		"description" text,
+		"observation" text,
+		"state" VARCHAR(25),
+		CONSTRAINT "BookingGDS_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingGDS_id_seq" OWNED BY public."BookingGDS".id;
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "bookingds_code_key"
+	    ON public."BookingGDS" USING btree
+	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
+	    WITH (fillfactor=100, deduplicate_items=True)
+	TABLESPACE pg_default;	
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductGDS_id_seq"'::regclass),
+		"bookingId" integer NOT NULL,
+		code VARCHAR(25) NOT NULL,
+		type VARCHAR(25),
+		"service" text COLLATE pg_catalog."default",
+		"description" text COLLATE pg_catalog."default",
+		"prestadoracode" VARCHAR(25),
+		"prestadorainitials" VARCHAR(25),
+		"prestadoradist" VARCHAR(25),
+		"provider" VARCHAR(25),
+		"quantity" integer NOT NULL,
+	    price double precision NOT NULL,
+	    cost double precision DEFAULT 0,
+		"checkInDate" timestamp(3) without time zone,
+	    "checkOutDate" timestamp(3) without time zone,
+	    "nights" integer,
+	    "paxAdults" integer,
+	    "paxChildren" integer,
+	    "serviceType" text COLLATE pg_catalog."default",
+		"billingConcept" text COLLATE pg_catalog."default",
+	    "destination" text COLLATE pg_catalog."default",
+	    "reservationCode" text COLLATE pg_catalog."default",
+	    "sellerCom" double precision,
+	    "ticketPrinterCom" double precision,
+	    "inNationality" integer DEFAULT 1,
+		"state" VARCHAR(25) DEFAULT 'NUEVO',
+		"conjunction" integer DEFAULT 0,
+		"revised" VARCHAR(25),
+		"typeproduct" VARCHAR(25),
+		"consecutive" VARCHAR(25),
+		CONSTRAINT "BookingProductGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductGDS_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES public."BookingGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductGDS_id_seq" OWNED BY public."BookingProductGDS".id;
+
+	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "conjunction" integer DEFAULT 0;
+	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "revised" VARCHAR(25);
+	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "penalty" VARCHAR(25);
+	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "typeproduct" VARCHAR(25);
+	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "consecutive" VARCHAR(25);
+	
+	CREATE TABLE IF NOT EXISTS public."BookingProductTaxGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductTaxGDS_id_seq"'::regclass),
+		"bookingProductId" integer NOT NULL,
+		code VARCHAR(25) NOT NULL,
+		name VARCHAR(50) NOT NULL,
+		type VARCHAR(25) NOT NULL,
+		"ismain" boolean DEFAULT false,
+		"percentage" double precision NOT NULL,
+		"amount" double precision NOT NULL, 
+		CONSTRAINT "BookingProductTaxGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductTaxGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductTaxGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductTaxGDS_id_seq" OWNED BY public."BookingProductTaxGDS".id;
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductPassangerGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductPassangerGDS_id_seq"'::regclass),
+		"bookingProductId" integer NOT NULL,
+		code VARCHAR(25),
+		"firstnm" VARCHAR(30),
+		"lastnm" VARCHAR(30),
+		"prefix" VARCHAR(25),
+		"identification" VARCHAR(25),
+		"phone" VARCHAR(25),
+		"email" VARCHAR(250),
+		CONSTRAINT "BookingProductPassangerGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductPassangerGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductPassangerGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductPassangerGDS_id_seq" OWNED BY public."BookingProductPassangerGDS".id;
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductVariableGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductVariableGDS_id_seq"'::regclass),
+		"bookingProductId" integer NOT NULL,
+		code text COLLATE pg_catalog."default",
+		name text COLLATE pg_catalog."default",
+		"value" text COLLATE pg_catalog."default",
+		CONSTRAINT "BookingProductVariableGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductVariableGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductVariableGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductVariableGDS_id_seq" OWNED BY public."BookingProductVariableGDS".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductFEEGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductFEEGDS_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductFEEGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductFEEGDS_id_seq"'::regclass),
+		"bookingProductId" integer NOT NULL,
+		code text COLLATE pg_catalog."default" NOT NULL,
+		name text COLLATE pg_catalog."default" NOT NULL,
+		type text COLLATE pg_catalog."default" NOT NULL,
+		"description" text COLLATE pg_catalog."default" NOT NULL,
+		"billigconcept" text COLLATE pg_catalog."default" NOT NULL,
+		"servicetype" text COLLATE pg_catalog."default" NOT NULL,
+		"amount" double precision NOT NULL,
+		"tax" double precision NOT NULL,
+		"other" double precision NOT NULL,
+		"total" double precision NOT NULL,
+		CONSTRAINT "BookingProductFEEGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductFEEGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductFEEGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductFEEGDS_id_seq" OWNED BY public."BookingProductFEEGDS".id;
+
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductPaymentGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductPaymentGDS_id_seq"'::regclass),
+		"bookingProductId" integer NULL,
+		"bookingProductFEEId" integer NULL,
+		code VARCHAR(50) NOT NULL,
+		name VARCHAR(50) NOT NULL,
+		type VARCHAR(50) NOT NULL,
+		"typecreditcard" VARCHAR(25),
+		"numbercreditcard" VARCHAR(16),
+		"vouchercreditcard" VARCHAR(25),
+		"expiredcreditcard" VARCHAR(5),
+		"authcreditcard" VARCHAR(25),
+		"quotas" integer,
+		"bank" VARCHAR(25),
+		"square" VARCHAR(30),
+		"reference" VARCHAR(50),
+		"policy" VARCHAR(25),
+		"policyannex" VARCHAR(25),
+		"amount" double precision NOT NULL, 
+		CONSTRAINT "BookingProductPaymentGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductPaymentGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE,
+		CONSTRAINT "BookingProductPaymentGDS_bookingProductFEEId_fkey" FOREIGN KEY ("bookingProductFEEId") REFERENCES public."BookingProductFEEGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductPaymentGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductPaymentGDS_id_seq" OWNED BY public."BookingProductPaymentGDS".id;
+
+	
+	CREATE SEQUENCE IF NOT EXISTS public."BookingProductItineraryGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingProductItineraryGDS_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."BookingProductItineraryGDS" (
+		id integer NOT NULL DEFAULT nextval('"BookingProductItineraryGDS_id_seq"'::regclass),
+		"bookingProductId" integer NOT NULL,
+		"orden" integer,
+		"origin" text COLLATE pg_catalog."default" NOT NULL,
+		"destination" text COLLATE pg_catalog."default" NOT NULL,
+		"class" text COLLATE pg_catalog."default" NOT NULL,
+		"checkInDate" timestamp(3) without time zone,
+		"checkOutDate" timestamp(3) without time zone,
+		"terminal" text COLLATE pg_catalog."default" NOT NULL,
+		"prestadoraCode" text COLLATE pg_catalog."default" NOT NULL,
+		"farebasis" text COLLATE pg_catalog."default" NOT NULL,
+		"Numflight" VARCHAR(25),
+		"Typeflight" VARCHAR(1),
+		"amount" double precision NOT NULL,
+		CONSTRAINT "BookingProductItineraryGDS_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BookingProductItineraryGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingProductItineraryGDS" OWNER to postgres;
+	ALTER SEQUENCE public."BookingProductItineraryGDS_id_seq" OWNED BY public."BookingProductItineraryGDS".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BranchGDSInvoiceAuto_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BranchGDSInvoiceAuto_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."BranchGDSInvoiceAuto" (
+		id integer NOT NULL DEFAULT nextval('"BranchGDSInvoiceAuto_id_seq"'::regclass),
+		"branchId" integer NOT NULL,
+		"gdsId" integer NOT NULL,
+		"EnvoiceAuto" boolean DEFAULT false,
+		CONSTRAINT "BranchGDSInvoiceAuto_pkey" PRIMARY KEY (id),
+		CONSTRAINT "BranchGDSInvoiceAuto_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BranchGDSInvoiceAuto" OWNER to postgres;
+	ALTER SEQUENCE public."BranchGDSInvoiceAuto_id_seq" OWNED BY public."BranchGDSInvoiceAuto".id;
+
+
+	CREATE SEQUENCE IF NOT EXISTS public."Payment_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."Payment_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."Payment"
+	(
+	    id integer NOT NULL DEFAULT nextval('"Payment_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default" NOT NULL,
+	    "name" text COLLATE pg_catalog."default" NOT NULL,
+	    "inactive" boolean NOT NULL DEFAULT false,
+	    "iscash" boolean NOT NULL DEFAULT false,
+		"iscredit" boolean NOT NULL DEFAULT false,
+	    CONSTRAINT "Payment_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."Payment" OWNER to postgres;
+	CREATE UNIQUE INDEX IF NOT EXISTS "Payment_code_key" ON public."Payment" USING btree (code COLLATE pg_catalog."default" ASC NULLS LAST) WITH (fillfactor=100, deduplicate_items=True) TABLESPACE pg_default;
+	ALTER SEQUENCE public."Payment_id_seq" OWNED BY public."Payment".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."CreditCard_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."CreditCard_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."CreditCard"
+	(
+	    id integer NOT NULL DEFAULT nextval('"CreditCard_id_seq"'::regclass),
+	    code text COLLATE pg_catalog."default" NOT NULL,
+	    "name" text COLLATE pg_catalog."default" NOT NULL,
+		"type" text COLLATE pg_catalog."default" NOT NULL,
+	    "inactive" boolean NOT NULL DEFAULT false,
+	    CONSTRAINT "CreditCard_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."CreditCard" OWNER to postgres;
+	CREATE UNIQUE INDEX IF NOT EXISTS "CreditCard_code_key" ON public."CreditCard" USING btree (code COLLATE pg_catalog."default" ASC NULLS LAST) WITH (fillfactor=100, deduplicate_items=True) TABLESPACE pg_default;
+	ALTER SEQUENCE public."CreditCard_id_seq" OWNED BY public."CreditCard".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingsGDS_log_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingsGDS_log_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."BookingsGDS_log"
+	(
+	    id integer NOT NULL DEFAULT nextval('"BookingsGDS_log_id_seq"'::regclass),
+	    blanch VARCHAR(25),
+	    implant VARCHAR(25),
+	    "message" TEXT,
+	    file VARCHAR(250),
+	    codebooking VARCHAR(50),
+	    booking TEXT,
+	    error integer NOT NULL DEFAULT 0,
+	    CONSTRAINT "BookingsGDS_log_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingsGDS_log" OWNER to postgres;
+	ALTER SEQUENCE public."BookingsGDS_log_id_seq" OWNED BY public."BookingsGDS_log".id;
+	CREATE SEQUENCE IF NOT EXISTS public."BookingsGDSInvoiceAuto_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingsGDSInvoiceAuto_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."BookingsGDSInvoiceAuto"
+	(
+	    id integer NOT NULL DEFAULT nextval('"BookingsGDSInvoiceAuto_id_seq"'::regclass),
+	    "Branch" VARCHAR(25),
+	    implant VARCHAR(25),
+	    "bookingCode" VARCHAR(25),
+	    "bookingId" integer,
+	    CONSTRAINT "BookingsGDSInvoiceAuto_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingsGDSInvoiceAuto" OWNER to postgres;
+	ALTER SEQUENCE public."BookingsGDSInvoiceAuto_id_seq" OWNED BY public."BookingsGDSInvoiceAuto".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."BookingGDSInvoiceAutoLog_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."BookingGDSInvoiceAutoLog_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."BookingGDSInvoiceAutoLog"
+	(
+	    "Id" integer NOT NULL DEFAULT nextval('"BookingGDSInvoiceAutoLog_id_seq"'::regclass),
+	    "branchId" integer,
+	    "implanteId" integer,
+	    "date" TIMESTAMP,
+	    menssage text,
+	    "bookingCode" VARCHAR(25),
+	    "bookingId" integer,
+	    error boolean,
+	    file text,
+	    "userId" integer,
+	    CONSTRAINT "BookingGDSInvoiceAutoLog_pkey" PRIMARY KEY ("Id")
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."BookingGDSInvoiceAutoLog" OWNER to postgres;
+	ALTER SEQUENCE public."BookingGDSInvoiceAutoLog_id_seq" OWNED BY public."BookingGDSInvoiceAutoLog"."Id";
+
+	CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."Currency_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."Currency" (
+		id integer NOT NULL DEFAULT nextval('"Currency_id_seq"'::regclass),
+		code VARCHAR(10) NOT NULL,
+		name VARCHAR(50) NOT NULL,
+		"exchangeRate" double precision,
+		CONSTRAINT "Currency_pkey" PRIMARY KEY (id)
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."Currency" OWNER to postgres;
+	ALTER SEQUENCE public."Currency_id_seq" OWNED BY public."Currency".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Countries_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."Countries_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."Countries" (
+		id integer NOT NULL DEFAULT nextval('"Countries_id_seq"'::regclass),
+		code VARCHAR(10) NOT NULL,
+		name VARCHAR(100) NOT NULL,
+		dane VARCHAR(25),
+		region VARCHAR(50),
+		prefix VARCHAR(10),
+		"curencyId" integer,
+		CONSTRAINT "Countries_pkey" PRIMARY KEY (id),
+		CONSTRAINT "Countries_curencyId_fkey" FOREIGN KEY ("curencyId") REFERENCES public."Currency" (id) ON UPDATE CASCADE ON DELETE SET NULL
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."Countries" OWNER to postgres;
+	ALTER SEQUENCE public."Countries_id_seq" OWNED BY public."Countries".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Cities_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."Cities_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."Cities" (
+		id integer NOT NULL DEFAULT nextval('"Cities_id_seq"'::regclass),
+		code VARCHAR(10) NOT NULL,
+		name VARCHAR(100) NOT NULL,
+		"countriesId" integer NOT NULL,
+		statecode VARCHAR(25),
+		iata VARCHAR(10),
+		CONSTRAINT "Cities_pkey" PRIMARY KEY (id),
+		CONSTRAINT "Cities_countriesId_fkey" FOREIGN KEY ("countriesId") REFERENCES public."Countries" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."Cities" OWNER to postgres;
+	ALTER SEQUENCE public."Cities_id_seq" OWNED BY public."Cities".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."Airports_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."Airports_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."Airports" (
+		id integer NOT NULL DEFAULT nextval('"Airports_id_seq"'::regclass),
+		code VARCHAR(10) NOT NULL,
+		name VARCHAR(150) NOT NULL,
+		"citiesId" integer NOT NULL,
+		CONSTRAINT "Airports_pkey" PRIMARY KEY (id),
+		CONSTRAINT "Airports_citiesId_fkey" FOREIGN KEY ("citiesId") REFERENCES public."Cities" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."Airports" OWNER to postgres;
+	ALTER SEQUENCE public."Airports_id_seq" OWNED BY public."Airports".id;
+
+	CREATE SEQUENCE IF NOT EXISTS public."CellCustomization_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."CellCustomization_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."CellCustomization" (
+		id integer NOT NULL DEFAULT nextval('"CellCustomization_id_seq"'::regclass),
+		code VARCHAR(50) NOT NULL,
+		"name" VARCHAR(100) NOT NULL,
+		"value" VARCHAR(10),
+		"branchId" integer,
+		"implantId" integer,
+		CONSTRAINT "CellCustomization_pkey" PRIMARY KEY (id),
+		CONSTRAINT "CellCustomization_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch" (id) ON UPDATE CASCADE ON DELETE CASCADE,
+		CONSTRAINT "CellCustomization_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant" (id) ON UPDATE CASCADE ON DELETE CASCADE
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."CellCustomization" OWNER to postgres;
+	ALTER SEQUENCE public."CellCustomization_id_seq" OWNED BY public."CellCustomization".id;
+
+	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_branch_code_key" ON public."CellCustomization" ("branchId", "code") WHERE "branchId" IS NOT NULL;
+	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_implant_code_key" ON public."CellCustomization" ("implantId", "code") WHERE "implantId" IS NOT NULL;
+
+END	$$
+
+
+-- >>> 2. FUNCIONES (PostgreSQL) <<<
+
+CREATE OR REPLACE FUNCTION public.fnBranchListar()
+RETURNS SETOF public."Branch"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."Branch" ORDER BY name ASC;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION public.fnCellCustomizationListar(
+    p_branch_id integer,
+    p_implant_id integer
+)
+RETURNS TABLE (
+    id integer,
+    code varchar(50),
+    "name" varchar(100),
+    "value" varchar(10),
+    "branchId" integer,
+    "implantId" integer
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        cc.id,
+        cc.code::varchar(50),
+        cc."name"::varchar(100),
+        cc."value"::varchar(10),
+        cc."branchId",
+        cc."implantId"
+    FROM public."CellCustomization" cc
+    WHERE 
+        (p_branch_id IS NOT NULL AND cc."branchId" = p_branch_id AND cc."implantId" IS NULL)
+        OR
+        (p_implant_id IS NOT NULL AND cc."implantId" = p_implant_id);
+END;
+$$;
+
+
 CREATE OR REPLACE FUNCTION public.fnClienteListar()
 RETURNS SETOF public."Client"
 LANGUAGE plpgsql
@@ -1073,7 +1719,6 @@ END;
 $$;
 
 
--- Archivo: fnComboListar.sql
 CREATE OR REPLACE FUNCTION public.fnComboListar()
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
@@ -1134,7 +1779,6 @@ END;
 $$;
 
 
--- Archivo: fnCotizacionHistorial.sql
 CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial()
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
@@ -1173,7 +1817,6 @@ END;
 $$;
 
 
--- Archivo: fnCotizacionListar.sql
 CREATE OR REPLACE FUNCTION public.fnCotizacionListar()
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
@@ -1245,7 +1888,45 @@ END;
 $$;
 
 
--- Archivo: fnGetSQLServerConfig.sql
+CREATE OR REPLACE FUNCTION public."fnEquivalenceInterface"(
+	p_id_interface integer,
+	p_id_master integer,
+	p_value text
+)
+RETURNS text
+LANGUAGE 'plpgsql'
+COST 100
+VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE
+    v_equivalence TEXT;
+BEGIN
+    -- Si el valor es nulo o vacío, retornamos el mismo valor
+    IF p_value IS NULL OR p_value = '' THEN
+        RETURN p_value;
+    END IF;
+
+    -- Buscamos el equivalente en la tabla EquivalencesInterfaces
+    SELECT cd_codigo 
+    INTO v_equivalence
+    FROM public."EquivalencesInterfaces"
+    WHERE id_interfaces = p_id_interface
+      AND id_master = p_id_master
+      AND cd_codigoInte = p_value
+    LIMIT 1;
+
+    -- Si no se encuentra equivalencia, retornamos el valor original
+    IF v_equivalence IS NULL OR v_equivalence = '' THEN
+        RETURN p_value;
+    ELSE
+        RETURN v_equivalence;
+    END IF;
+END;
+$BODY$;
+
+ALTER FUNCTION public."fnEquivalenceInterface"(integer, integer, text) OWNER TO postgres;
+
+
 CREATE OR REPLACE FUNCTION "fnGetSQLServerConfig"()
 RETURNS TABLE (
     servidor TEXT,
@@ -1266,7 +1947,17 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Archivo: fnImpuestoListar.sql
+CREATE OR REPLACE FUNCTION public.fnImplantListar()
+RETURNS SETOF public."Implant"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."Implant" ORDER BY name ASC;
+END;
+$$;
+
+
 CREATE OR REPLACE FUNCTION public.fnImpuestoListar()
 RETURNS SETOF public."ChargeAndTax"
 LANGUAGE plpgsql
@@ -1278,7 +1969,68 @@ END;
 $$;
 
 
--- Archivo: fnMonedaListar.sql
+DROP FUNCTION IF EXISTS public."fnInterfacesList"();
+
+CREATE OR REPLACE FUNCTION public."fnInterfacesList"()
+RETURNS TABLE(
+    id integer,
+    code text,
+    name text,
+    inactivo boolean,
+    bl_genera_archivoplano boolean,
+    ds_storedprocedure_archivoplano text,
+    bl_job boolean,
+    ds_namejob text,
+    bl_facturador boolean,
+    id_gds integer
+) 
+LANGUAGE 'plpgsql'
+AS $BODY$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        i.id,
+        i.code,
+        i.name,
+        i.inactivo,
+        i.bl_genera_archivoplano,
+        i.ds_storedprocedure_archivoplano,
+        i.bl_job,
+        i.ds_namejob,
+        i.bl_facturador,
+        i.id_gds
+    FROM public."Interfaces" i
+    ORDER BY i.name ASC;
+END;
+$BODY$;
+
+ALTER FUNCTION public."fnInterfacesList"() OWNER TO postgres;
+
+
+CREATE OR REPLACE FUNCTION public."fnMasterList"()
+RETURNS TABLE(
+    id integer,
+    code text,
+    name text,
+    inactivo boolean
+) 
+LANGUAGE 'plpgsql'
+AS $BODY$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        m.id,
+        m.code,
+        m.name,
+        m.inactivo
+    FROM public."Master" m
+    ORDER BY m.name ASC;
+END;
+$BODY$;
+
+ALTER FUNCTION public."fnMasterList"() OWNER TO postgres;
+
+
 CREATE OR REPLACE FUNCTION public.fnMonedaListar(
     p_id INT DEFAULT NULL   -- NULL = todas las monedas, valor = una moneda específica
 )
@@ -1306,7 +2058,17 @@ END;
 $$;
 
 
--- Archivo: fnPrestadoraListar.sql
+CREATE OR REPLACE FUNCTION public.fnParameterListar()
+RETURNS SETOF public."SystemParameter"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."SystemParameter" ORDER BY name ASC;
+END;
+$$;
+
+
 CREATE OR REPLACE FUNCTION public.fnPrestadoraListar()
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
@@ -1333,7 +2095,6 @@ END;
 $$;
 
 
--- Archivo: fnProductoListar.sql
 CREATE OR REPLACE FUNCTION public.fnProductoListar()
 RETURNS SETOF public."Product"
 LANGUAGE plpgsql
@@ -1345,7 +2106,6 @@ END;
 $$;
 
 
--- Archivo: fnProveedorListar.sql
 CREATE OR REPLACE FUNCTION public.fnProveedorListar()
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
@@ -1371,9 +2131,541 @@ END;
 $$;
 
 
--- >>> 3. PROCEDIMIENTOS ALMACENADOS (SP) <<<
+DROP FUNCTION IF EXISTS public."fnReportDinamic"(INTEGER);
+DROP FUNCTION IF EXISTS public."fnReportDinamic"(INTEGER, JSON);
 
--- Archivo: spClienteActualizar.sql
+CREATE OR REPLACE FUNCTION public."fnReportDinamic"(
+    p_report_id INTEGER,
+    p_filter_values JSON DEFAULT '{}'::json
+)
+RETURNS json
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_base_table VARCHAR;
+    v_custom_sql TEXT;
+    v_sql TEXT;
+    v_select_clause TEXT;
+    v_from_clause TEXT;
+    v_where_clause TEXT := '1=1';
+    v_order_col VARCHAR;
+    v_order_dir VARCHAR;
+    v_result json;
+    v_filter RECORD;
+    v_val TEXT;
+    v_val_to TEXT;
+BEGIN
+    -- 1. Obtener la configuración del reporte
+    SELECT base_table, custom_sql INTO v_base_table, v_custom_sql
+    FROM public."Report"
+    WHERE id = p_report_id;
+
+    IF v_base_table IS NULL AND v_custom_sql IS NULL THEN
+        RAISE EXCEPTION 'Reporte no encontrado';
+    END IF;
+
+    -- 2. Construir el Origen de Datos (Custom SQL o Tabla Base)
+    IF v_custom_sql IS NOT NULL AND v_custom_sql <> '' THEN
+        -- Si hay SQL personalizado, lo usamos como fuente
+        v_from_clause := '(' || v_custom_sql || ') t1 ';
+        v_select_clause := '*';
+    ELSE
+        -- 2.1 Construir el SELECT (Columnas Visibles)
+        SELECT string_agg(
+            CASE 
+                WHEN is_calculated THEN formula_expression || ' AS "' || COALESCE(alias, 'Calculado') || '"'
+                ELSE COALESCE(table_alias || '.', '') || '"' || column_name || '"' || ' AS "' || COALESCE(alias, column_name) || '"'
+            END,
+            ', ' ORDER BY sort_order ASC
+        ) INTO v_select_clause
+        FROM public."ReportColumns"
+        WHERE report_id = p_report_id AND is_visible = true;
+
+        IF v_select_clause IS NULL THEN
+            v_select_clause := '*'; 
+        END IF;
+
+        -- 2.2 Construir el FROM y los JOINS
+        v_from_clause := 'public."' || v_base_table || '" t1 ';
+
+        SELECT v_from_clause || string_agg(
+            join_type || ' public."' || table_name || '" ' || alias || ' ON ' || join_condition,
+            ' ' ORDER BY sort_order ASC
+        ) INTO v_from_clause
+        FROM public."ReportJoins"
+        WHERE report_id = p_report_id;
+
+        IF v_from_clause IS NULL THEN
+            v_from_clause := 'public."' || v_base_table || '" t1 ';
+        END IF;
+    END IF;
+
+    -- 4. Construir el WHERE (Filtros Dinámicos con Rangos)
+    FOR v_filter IN SELECT * FROM public."ReportFilters" WHERE report_id = p_report_id LOOP
+        v_val := p_filter_values->>(COALESCE(v_filter.table_alias, 't1') || '.' || v_filter.column_name);
+        v_val_to := p_filter_values->>(COALESCE(v_filter.table_alias, 't1') || '.' || v_filter.column_name || '_to');
+        
+        DECLARE
+            v_field_expr TEXT;
+        BEGIN
+            -- Determinar la expresión del campo
+            IF v_custom_sql IS NOT NULL AND v_custom_sql <> '' THEN
+                -- En Custom SQL, si el usuario puso algo como q."date", 
+                -- debemos quitar el "q." porque afuera solo existe el alias "t1"
+                IF v_filter.column_name ~ '\.' THEN
+                    v_field_expr := 't1."' || split_part(v_filter.column_name, '.', 2) || '"';
+                    -- Limpiar comillas si el split_part las dejó
+                    v_field_expr := replace(v_field_expr, '"', ''); 
+                    -- Re-envolver con comillas de forma segura
+                    v_field_expr := 't1."' || v_field_expr || '"';
+                ELSE
+                    v_field_expr := 't1."' || v_filter.column_name || '"';
+                END IF;
+            ELSIF v_filter.column_name ~ '["\.]' THEN
+                v_field_expr := v_filter.column_name;
+            ELSE
+                v_field_expr := COALESCE(v_filter.table_alias, 't1') || '."' || v_filter.column_name || '"';
+            END IF;
+
+            IF (v_val IS NOT NULL AND v_val <> '') OR (v_val_to IS NOT NULL AND v_val_to <> '') THEN
+                IF v_filter.filter_type = 'date' THEN
+                    IF v_val IS NOT NULL AND v_val <> '' AND v_val_to IS NOT NULL AND v_val_to <> '' THEN
+                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' BETWEEN ''' || v_val || '''::date AND ''' || v_val_to || '''::date';
+                    ELSIF v_val IS NOT NULL AND v_val <> '' THEN
+                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' >= ''' || v_val || '''::date';
+                    ELSIF v_val_to IS NOT NULL AND v_val_to <> '' THEN
+                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' <= ''' || v_val_to || '''::date';
+                    END IF;
+                ELSIF v_filter.filter_type = 'number' THEN
+                    IF v_val IS NOT NULL AND v_val <> '' AND v_val_to IS NOT NULL AND v_val_to <> '' THEN
+                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' BETWEEN ' || v_val || ' AND ' || v_val_to;
+                    ELSIF v_val IS NOT NULL AND v_val <> '' THEN
+                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' >= ' || v_val;
+                    ELSIF v_val_to IS NOT NULL AND v_val_to <> '' THEN
+                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' <= ' || v_val_to;
+                    END IF;
+                ELSE -- text / like
+                    v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' ILIKE ''%' || v_val || '%''';
+                END IF;
+            END IF;
+        END;
+    END LOOP;
+
+    -- 5. Ensamblar SQL Final con Ordenamiento Múltiple
+    v_sql := 'SELECT json_agg(row_to_json(t)) FROM (SELECT ' || v_select_clause || ' FROM ' || v_from_clause || ' WHERE ' || v_where_clause;
+    
+    -- Agregar ORDER BY si está definido (Múltiple)
+    DECLARE
+        v_order_by TEXT;
+    BEGIN
+        SELECT string_agg(
+            CASE 
+                WHEN column_expr ~ '^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+$' THEN -- Formato t1.columna
+                    split_part(column_expr, '.', 1) || '."' || split_part(column_expr, '.', 2) || '"'
+                ELSE column_expr 
+            END || ' ' || direction, 
+            ', ' ORDER BY sort_order ASC
+        ) INTO v_order_by
+        FROM public."ReportSorts" WHERE report_id = p_report_id;
+        
+        IF v_order_by IS NOT NULL THEN
+            v_sql := v_sql || ' ORDER BY ' || v_order_by;
+        END IF;
+    END;
+
+    v_sql := v_sql || ') t';
+
+    -- 6. Ejecutar dinámicamente
+    EXECUTE v_sql INTO v_result;
+
+    IF v_result IS NULL THEN
+        v_result := '[]'::json;
+    END IF;
+
+    RETURN v_result;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION public."fnRptCotizacion"(
+	p_id_ini integer,
+	p_id_fin integer)
+    RETURNS TABLE(
+        "idCotizacion" integer,
+        "asesor" text,
+        "fecha" timestamp without time zone,
+        "clienteNombre" text,
+        "clienteIdentificacion" text,
+        "clienteDireccion" text,
+        "clienteTelefono" text,
+        "tCambio" double precision,
+        "descripcionPlan" text,
+        "pasajeros" text,
+        "totalAdultos" integer,
+        "totalNinos" integer,
+        "proveedorNombre" text,
+        "proveedorNIT" text,
+        "proveedorContacto" text,
+        "tarifaNeta" double precision,
+        "impuestos" double precision,
+        "adicionalesServ" double precision,
+        "comision" double precision,
+        "descuento" double precision,
+        "sobrecomision" double precision,
+        "fee" double precision,
+        "total" double precision,
+        "baseComisionable" double precision,
+        "comisionAsesor" double precision,
+        "observaciones" text,
+        "logo" bytea,
+        "fechasViaje" text,
+        "hotelesServicios" text
+    ) 
+    LANGUAGE 'plpgsql'
+    COST 100
+    VOLATILE PARALLEL UNSAFE
+    ROWS 1000
+
+AS $BODY$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        q.id AS "idCotizacion",
+        COALESCE(s.name, u.name, '')::text AS "asesor",
+        q.date AS "fecha",
+        c.name::text AS "clienteNombre",
+        c.document::text AS "clienteIdentificacion",
+        c.address::text AS "clienteDireccion",
+        c."contactInfo"::text AS "clienteTelefono",
+        q."exchangeRate"::double precision AS "tCambio",
+        ('Cotización ' || q."internalNumber")::text AS "descripcionPlan",
+        
+        -- Aggregate Passengers per Quotation
+        (
+            SELECT string_agg(p.name, ', ')
+            FROM "QuotationProductPassenger" p
+            JOIN "QuotationProduct" qp2 ON p."quotationProductId" = qp2.id
+            WHERE qp2."quotationId" = q.id
+        )::text AS "pasajeros",
+
+        -- Total Adults
+        (
+            SELECT COALESCE(SUM(qp2."paxAdults"), 0)::integer
+            FROM "QuotationProduct" qp2
+            WHERE qp2."quotationId" = q.id
+        ) AS "totalAdultos",
+
+        -- Total Ninos
+        (
+            SELECT COALESCE(SUM(qp2."paxChildren"), 0)::integer
+            FROM "QuotationProduct" qp2
+            WHERE qp2."quotationId" = q.id
+        ) AS "totalNinos",
+
+        -- Provider Information
+        prov.name::text AS "proveedorNombre",
+        prov.code::text AS "proveedorNIT",
+        prov."contactInfo"::text AS "proveedorContacto",
+        
+        -- tarifaNeta: sum of explicitAmount where isMain = true and type = 'TAX' for this provider
+        COALESCE(
+            (
+                SELECT SUM(qpt2."explicitAmount")
+                FROM "QuotationProduct" qp2
+                JOIN "QuotationProductTax" qpt2 ON qpt2."quotationProductId" = qp2.id
+                JOIN "ChargeAndTax" ct2 ON ct2.id = qpt2."chargeAndTaxId"
+                WHERE qp2."quotationId" = q.id
+                  AND qp2."providerId" = prov.id
+                  AND qpt2."isMain" = true
+                  AND ct2.type = 'CHARGE'
+            ), 0
+        )::double precision AS "tarifaNeta",
+
+        -- impuestos: sum of explicitAmount where isMain = false and type = 'TAX' for this provider
+        COALESCE(
+            (
+                SELECT SUM(qpt2."explicitAmount")
+                FROM "QuotationProduct" qp2
+                JOIN "QuotationProductTax" qpt2 ON qpt2."quotationProductId" = qp2.id
+                JOIN "ChargeAndTax" ct2 ON ct2.id = qpt2."chargeAndTaxId"
+                WHERE qp2."quotationId" = q.id
+                  AND qp2."providerId" = prov.id
+                  AND qpt2."isMain" = false
+                  AND ct2.type = 'TAX'
+            ), 0
+        )::double precision AS "impuestos",
+
+        -- adicionalesServ: sum of explicitAmount where type = 'CHARGE' for this provider
+        COALESCE(
+            (
+                SELECT SUM(qpt2."explicitAmount")
+                FROM "QuotationProduct" qp2
+                JOIN "QuotationProductTax" qpt2 ON qpt2."quotationProductId" = qp2.id
+                JOIN "ChargeAndTax" ct2 ON ct2.id = qpt2."chargeAndTaxId"
+                WHERE qp2."quotationId" = q.id
+                  AND qp2."providerId" = prov.id
+				  AND qpt2."isMain" = false
+                  AND ct2.type = 'CHARGE'
+            ), 0
+        )::double precision AS "adicionalesServ",
+
+        COALESCE(SUM(qp."sellerCommission"), 0)::double precision AS "comision",
+        0::double precision AS "descuento",
+        0::double precision AS "sobrecomision",
+        0::double precision AS "fee",
+        COALESCE(
+            (
+                SELECT SUM(qpt2."explicitAmount")
+                FROM "QuotationProduct" qp2
+                JOIN "QuotationProductTax" qpt2 ON qpt2."quotationProductId" = qp2.id
+                WHERE qp2."quotationId" = q.id
+                  AND qp2."providerId" = prov.id
+            ), 0
+        )::double precision AS "total",
+        
+        q."baseCommissionable"::double precision AS "baseComisionable",
+        q."commissionPercentage"::double precision AS "comisionAsesor",
+        q.state::text AS "observaciones",
+        COALESCE(i.logo, b.logo) AS "logo",
+
+        -- fechasViaje: MIN(checkInDate) to MAX(checkOutDate)
+        (
+            SELECT COALESCE(to_char(MIN(qp2."checkInDate"), 'DD/MM/YYYY') || ' al ' || to_char(MAX(qp2."checkOutDate"), 'DD/MM/YYYY'), '')
+            FROM "QuotationProduct" qp2
+            WHERE qp2."quotationId" = q.id
+        )::text AS "fechasViaje",
+
+        -- hotelesServicios: string_agg of Product descriptions
+        (
+            SELECT COALESCE(string_agg(DISTINCT prod.description, ', '), '')
+            FROM "QuotationProduct" qp2
+            JOIN "Product" prod ON qp2."productId" = prod.id
+            WHERE qp2."quotationId" = q.id
+        )::text AS "hotelesServicios"
+
+    FROM "Quotation" q
+    LEFT JOIN "Client" c ON q."clientId" = c.id
+    LEFT JOIN "Seller" s ON q."sellerId" = s.id
+    LEFT JOIN "User" u ON q."userId" = u.id
+    LEFT JOIN "Branch" b ON q."branchId" = b.id
+    LEFT JOIN "Implant" i ON q."implantId" = i.id
+    LEFT JOIN "QuotationProduct" qp ON qp."quotationId" = q.id
+    LEFT JOIN "Provider" prov ON qp."providerId" = prov.id
+    WHERE q.id BETWEEN p_id_ini AND p_id_fin
+    GROUP BY 
+        q.id, s.name, u.name, q.date, c.name, c.document, c.address, c."contactInfo", 
+        q."exchangeRate", q."internalNumber", prov.id, prov.name, prov.code, prov."contactInfo",
+        q."baseCommissionable", q."commissionPercentage", q.state, i.logo, b.logo
+    ORDER BY q.id;
+END;
+$BODY$;
+
+
+CREATE OR REPLACE FUNCTION public.fnSellerListar()
+RETURNS SETOF public."Seller"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."Seller" ORDER BY name ASC;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION public.fnTicketPrinterListar()
+RETURNS SETOF public."TicketPrinter"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."TicketPrinter" ORDER BY name ASC;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION public.fnUsuarioListar()
+RETURNS SETOF JSONB
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        jsonb_build_object(
+            'id', u.id,
+            'name', u.name,
+            'email', u.email,
+            'roleId', u."roleId",
+            'role', (
+                SELECT jsonb_build_object('id', r.id, 'name', r.name)
+                FROM public."Role" r
+                WHERE r.id = u."roleId"
+            ),
+            'branchId', u."branchId",
+            'branch', CASE WHEN u."branchId" IS NOT NULL THEN (
+                SELECT jsonb_build_object('id', b.id, 'name', b.name, 'code', b.code)
+                FROM public."Branch" b
+                WHERE b.id = u."branchId"
+            ) ELSE NULL END,
+            'implantId', u."implantId",
+            'implant', CASE WHEN u."implantId" IS NOT NULL THEN (
+                SELECT jsonb_build_object('id', i.id, 'name', i.name, 'code', i.code)
+                FROM public."Implant" i
+                WHERE i.id = u."implantId"
+            ) ELSE NULL END,
+            'ticketPrinterId', u."ticketPrinterId",
+            'ticketPrinter', CASE WHEN u."ticketPrinterId" IS NOT NULL THEN (
+                SELECT jsonb_build_object('id', t.id, 'name', t.name, 'code', t.code)
+                FROM public."TicketPrinter" t
+                WHERE t.id = u."ticketPrinterId"
+            ) ELSE NULL END
+        )
+    FROM public."User" u
+    ORDER BY u.name ASC;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION public.fnVariableListar()
+RETURNS SETOF public."MasterVariable"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."MasterVariable" ORDER BY name ASC;
+END;
+$$;
+
+
+-- >>> 3. STORED PROCEDURES (PostgreSQL) <<<
+
+CREATE OR REPLACE PROCEDURE public.spBranchActualizar(
+    p_id INT,
+    p_code TEXT,
+    p_name TEXT,
+    p_logo BYTEA,
+    p_template BYTEA,
+    p_template_config JSONB,
+    p_html_template TEXT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."Branch" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Sucursal con ID ' || p_id || ' no encontrada.';
+        RETURN;
+    END IF;
+
+    UPDATE public."Branch"
+    SET "code" = p_code,
+        "name" = p_name,
+        "logo" = COALESCE(p_logo, "logo"),
+        "template" = COALESCE(p_template, "template"),
+        "templateConfig" = COALESCE(p_template_config, "templateConfig"),
+        "htmlTemplate" = COALESCE(p_html_template, "htmlTemplate")
+    WHERE id = p_id;
+
+    p_mensaje_resultado := 'SUCCESS: Sucursal actualizada exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spBranchCrear(
+    p_code TEXT,
+    p_name TEXT,
+    p_logo BYTEA,
+    p_template BYTEA,
+    p_template_config JSONB,
+    p_html_template TEXT,
+    p_acting_user_id INT,
+    INOUT p_branch_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO public."Branch" ("code", "name", "logo", "template", "templateConfig", "htmlTemplate")
+    VALUES (p_code, p_name, p_logo, p_template, p_template_config, p_html_template)
+    RETURNING id INTO p_branch_id;
+
+    p_mensaje_resultado := 'SUCCESS: Sucursal creada con ID ' || p_branch_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spBranchEliminar(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."Branch" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Sucursal con ID ' || p_id || ' no encontrada.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."Branch" WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Sucursal eliminada exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spCellCustomizationDelete(
+    p_code text,
+    p_branch_id integer,
+    p_implant_id integer
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_branch_id IS NOT NULL THEN
+        DELETE FROM public."CellCustomization"
+        WHERE "code" = p_code AND "branchId" = p_branch_id AND "implantId" IS NULL;
+    ELSIF p_implant_id IS NOT NULL THEN
+        DELETE FROM public."CellCustomization"
+        WHERE "code" = p_code AND "implantId" = p_implant_id;
+    END IF;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spCellCustomizationUpsert(
+    p_code text,
+    p_name text,
+    p_value text,
+    p_branch_id integer,
+    p_implant_id integer
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_branch_id IS NOT NULL THEN
+        INSERT INTO public."CellCustomization" ("code", "name", "value", "branchId", "implantId")
+        VALUES (p_code, p_name, p_value, p_branch_id, NULL)
+        ON CONFLICT ("branchId", "code") WHERE "branchId" IS NOT NULL
+        DO UPDATE SET "name" = EXCLUDED."name", "value" = EXCLUDED."value";
+    ELSIF p_implant_id IS NOT NULL THEN
+        INSERT INTO public."CellCustomization" ("code", "name", "value", "branchId", "implantId")
+        VALUES (p_code, p_name, p_value, NULL, p_implant_id)
+        ON CONFLICT ("implantId", "code") WHERE "implantId" IS NOT NULL
+        DO UPDATE SET "name" = EXCLUDED."name", "value" = EXCLUDED."value";
+    END IF;
+END;
+$$;
+
+
 CREATE OR REPLACE PROCEDURE public.spClienteActualizar(
     p_id INT,
     p_name TEXT,
@@ -1407,7 +2699,6 @@ END;
 $$;
 
 
--- Archivo: spClienteCrear.sql
 CREATE OR REPLACE PROCEDURE public.spClienteCrear(
     p_name TEXT,
     p_document TEXT,
@@ -1437,7 +2728,6 @@ END;
 $$;
 
 
--- Archivo: spClienteEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spClienteEliminar(
     p_id INT,
     p_acting_user_id INT,
@@ -1456,7 +2746,6 @@ END;
 $$;
 
 
--- Archivo: spComboActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spComboActualizar(
     p_id INT,
     p_code TEXT,
@@ -1525,7 +2814,6 @@ AS $$
 $$;
 
 
--- Archivo: spComboCrear.sql
 CREATE OR REPLACE PROCEDURE public.spComboCrear(
     p_code TEXT,
     p_name TEXT,
@@ -1595,7 +2883,6 @@ AS $$
 $$;
 
 
--- Archivo: spComboEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spComboEliminar(
     p_id INT,
     INOUT p_mensaje_resultado TEXT
@@ -1613,7 +2900,6 @@ END;
 $$;
 
 
--- Archivo: spCotizacionActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spCotizacionActualizar(
     p_id INT,
     p_data JSONB,
@@ -1758,7 +3044,80 @@ END;
 $$;
 
 
--- Archivo: spCotizacionCrear.sql
+CREATE OR REPLACE PROCEDURE public.spCotizacionActualizarEstado(
+    p_response JSONB
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_estados_str TEXT;
+    v_item_text TEXT;
+    v_id INT;
+    v_estado TEXT;
+    v_row_json JSONB;
+BEGIN
+    /**
+     * Este procedimiento recibe la respuesta de SQL Server (spCotizacionesCrear)
+     * Parsea UNICAMENTE el nodo 'Estados' que contiene el formato 'ID:Estado|ID:Estado|'
+     */
+    
+    -- El input puede ser un array de objetos o un objeto individual
+    -- Buscamos el campo 'Estados' en cada objeto
+	
+    IF JSONB_TYPEOF(p_response) = 'array' THEN
+        FOR v_row_json IN SELECT jsonb_array_elements(p_response)
+        LOOP
+            v_estados_str := v_row_json->>'Estados';
+            
+            IF v_estados_str IS NOT NULL AND v_estados_str <> '' THEN
+                -- Iterar sobre cada par ID:Estado separado por '|'
+                FOR v_item_text IN SELECT unnest(string_to_array(btrim(v_estados_str, '|'), '|'))
+                LOOP
+                    v_item_text := trim(v_item_text);
+                    IF v_item_text LIKE '%:%' THEN
+                        BEGIN
+                            -- Split por ':'
+                            v_id := split_part(v_item_text, ':', 1)::INT;
+                            v_estado := split_part(v_item_text, ':', 2);
+                            
+                            -- Actualizar con el estado LITERAL recibido
+                            UPDATE public."Quotation"
+                            SET "state" = v_estado
+                            WHERE id = v_id;
+                        EXCEPTION WHEN OTHERS THEN
+                            -- Ignorar errores de casteo en items individuales
+                        END;
+                    END IF;
+                END LOOP;
+            END IF;
+        END LOOP;
+    ELSIF JSONB_TYPEOF(p_response) = 'object' THEN
+        v_estados_str := p_response->>'Estados';
+        IF v_estados_str IS NOT NULL AND v_estados_str <> '' THEN
+            FOR v_item_text IN SELECT unnest(string_to_array(btrim(v_estados_str, '|'), '|'))
+            LOOP
+                v_item_text := trim(v_item_text);
+                IF v_item_text LIKE '%:%' THEN
+                    BEGIN
+                        v_id := split_part(v_item_text, ':', 1)::INT;
+                        v_estado := split_part(v_item_text, ':', 2);
+                        
+                        UPDATE public."Quotation"
+                        SET "state" = v_estado
+                        WHERE id = v_id;
+                    EXCEPTION WHEN OTHERS THEN END;
+                END IF;
+            END LOOP;
+        END IF;
+    END IF;
+	--SELECT * from public."Quotation" WHERE id = 31; 
+	--UPDATE public."Quotation"
+	--SET "state" = 'Nuevo'--v_row_json::text
+	--WHERE id = 31; 
+END;
+$$;
+
+
 CREATE OR REPLACE PROCEDURE public.spCotizacionCrear(
     p_data JSONB,
     p_acting_user_id INT,
@@ -1807,7 +3166,7 @@ BEGIN
         v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
         NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
         0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
-        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'Nuevo'
+        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO'
     ) RETURNING id INTO v_quotation_id;
 
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
@@ -1915,7 +3274,6 @@ END;
 $$;
 
 
--- Archivo: spCotizacionEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spCotizacionEliminar(
     p_quotation_id INT,
     p_acting_user_id INT,
@@ -1942,7 +3300,144 @@ END;
 $$;
 
 
--- Archivo: spExportQuotation.sql
+CREATE OR REPLACE PROCEDURE public."spEquivalencesInterfacesConsultar"(
+    IN p_id_interfaces integer DEFAULT NULL,
+    IN p_id_master integer DEFAULT NULL
+)
+LANGUAGE plpgsql
+AS $BODY$
+BEGIN
+    -- This procedure returns a result set. Since it's a procedure, returning result sets
+    -- is not native in the same way as functions, but we can return a refcursor or
+    -- just use a FUNCTION instead for querying.
+    -- To align with the prompt requesting a "Consultar" SP, we can just do a select
+    -- or we change it to a FUNCTION. I'll create a FUNCTION as well to make it easy to consume.
+    -- But since prompt says "consultara spEquivalencesInterfacesConsultar", maybe it means a function or SP returning table.
+    -- PostgreSQL 11+ procedures don't return tables directly without INOUT refcursors.
+    -- I will drop this and create a FUNCTION fnEquivalencesInterfacesConsultar instead, or an SP that returns a refcursor.
+    -- Let's define it as a PROCEDURE that doesn't strictly return, but we will create the FUNCTION.
+END;
+$BODY$;
+
+-- Creating the function to easily fetch data
+CREATE OR REPLACE FUNCTION public."fnEquivalencesInterfacesConsultar"(
+    p_id_interfaces integer DEFAULT NULL,
+    p_id_master integer DEFAULT NULL
+)
+RETURNS TABLE (
+    id integer,
+    id_interfaces integer,
+    id_master integer,
+    cd_maestro text,
+    cd_codigo text,
+    cd_codigoInte text,
+    dt_fecha timestamp without time zone,
+    interface_name text,
+    master_name text
+)
+LANGUAGE plpgsql
+AS $BODY$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        e.id,
+        e.id_interfaces,
+        e.id_master,
+        e.cd_maestro,
+        e.cd_codigo,
+        e.cd_codigoInte,
+        e.dt_fecha,
+        i.name AS interface_name,
+        m.name AS master_name
+    FROM public."EquivalencesInterfaces" e
+    JOIN public."Interfaces" i ON e.id_interfaces = i.id
+    JOIN public."Master" m ON e.id_master = m.id
+    WHERE (p_id_interfaces IS NULL OR e.id_interfaces = p_id_interfaces)
+      AND (p_id_master IS NULL OR e.id_master = p_id_master)
+    ORDER BY e.dt_fecha DESC;
+END;
+$BODY$;
+
+
+CREATE OR REPLACE PROCEDURE public."spEquivalencesInterfacesCrear"(
+    IN p_id_interfaces integer,
+    IN p_id_master integer,
+    IN p_cd_maestro text,
+    IN p_cd_codigo text,
+    IN p_cd_codigoInte text,
+    IN p_user_id integer,
+    INOUT p_new_id integer DEFAULT NULL
+)
+LANGUAGE plpgsql
+AS $BODY$
+DECLARE
+    v_log_id INT;
+BEGIN
+    INSERT INTO public."EquivalencesInterfaces" (
+        id_interfaces, 
+        id_master, 
+        cd_maestro, 
+        cd_codigo, 
+        cd_codigoInte
+    ) VALUES (
+        p_id_interfaces,
+        p_id_master,
+        p_cd_maestro,
+        p_cd_codigo,
+        p_cd_codigoInte
+    ) RETURNING id INTO p_new_id;
+
+    -- Registrar en SystemLog
+    CALL public."spLogRegistrar"(
+        p_user_id,
+        'EQUIVALENCES_INTERFACES',
+        'CREATE',
+        'Creación de equivalencia de interface con ID: ' || p_new_id,
+        jsonb_build_object(
+            'id_interfaces', p_id_interfaces,
+            'id_master', p_id_master,
+            'cd_maestro', p_cd_maestro,
+            'cd_codigo', p_cd_codigo,
+            'cd_codigoInte', p_cd_codigoInte
+        ),
+        v_log_id
+    );
+END;
+$BODY$;
+
+
+CREATE OR REPLACE PROCEDURE public."spEquivalencesInterfacesEliminar"(
+    IN p_id integer,
+    IN p_user_id integer,
+    INOUT p_success boolean DEFAULT false
+)
+LANGUAGE plpgsql
+AS $BODY$
+DECLARE
+    v_log_id INT;
+BEGIN
+    DELETE FROM public."EquivalencesInterfaces"
+    WHERE id = p_id;
+
+    IF FOUND THEN
+        p_success := true;
+        
+        -- Registrar en SystemLog
+        CALL public."spLogRegistrar"(
+            p_user_id,
+            'EQUIVALENCES_INTERFACES',
+            'DELETE',
+            'Eliminación de equivalencia de interface con ID: ' || p_id,
+            jsonb_build_object('id', p_id),
+            v_log_id
+        );
+    ELSE
+        p_success := false;
+    END IF;
+END;
+$BODY$;
+
+
 CREATE OR REPLACE PROCEDURE public.spExportQuotation(
     Quotation_id TEXT,
 	User_id INT,
@@ -2234,6 +3729,16 @@ BEGIN
 		ds_cargonm varchar(50) NULL
 	) ON COMMIT DROP;
 
+	CREATE TEMP TABLE IF NOT EXISTS CotizacionServicios_TipoProv(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		cd_Cotizacion varchar(25),
+		cd_CotizacionServicios varchar(25),
+		cd_TipoProveedores varchar(25),
+		ds_TipoProveedores varchar(60),
+		cd_proveedores varchar(25),
+		ds_proveedores varchar(250)
+	) ON COMMIT DROP;
+
     -- 4. Poblar Tablas Temporales (POBLANDO TODAS LAS COLUMNAS CON NOMBRES EXPLÍCITOS)
     
     INSERT INTO Cotizacion (
@@ -2352,8 +3857,8 @@ BEGIN
     )
     SELECT 
         COALESCE(pr."type", '') as cd_TiposConceptFac, 
-        COALESCE(pr."code", '') as cd_ConceptoFacturacion, 
-        COALESCE(qp."serviceType", '') as cd_TiposServicio, 
+        COALESCE(pr."billingConcept", pr."code", '') as cd_ConceptoFacturacion, 
+        COALESCE(pr."serviceType", qp."serviceType", '') as cd_TiposServicio, 
         q.cd_consecutivo as cd_Cotizacion,
         '' as cd_fac_factura, 
         '' as cd_fac_remision, 
@@ -2391,7 +3896,7 @@ BEGIN
         qt.currency as cd_monedaprov,
         '' as ds_InfoAdicional, 
         '' as cd_carrental, 
-        '' as cd_hoteles, 
+        COALESCE(pre."code",'') as cd_hoteles, 
         B'0' as bl_anulado, 
         '' as cd_tiquete,
         '' as cd_fuente_anul, 
@@ -2482,6 +3987,7 @@ BEGIN
     JOIN public."Product" pr ON qp."productId" = pr.id
     JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
     LEFT JOIN public."Provider" prov ON qp."providerId" = prov."id"
+	LEFT JOIN public."Prestadora" pre ON pre."id" = qp."prestadoraId"
 	LEFT JOIN LATERAL ( SELECT  pp.*,
 		        				regexp_split_to_array(TRIM(pp.name), '\s+') AS arr
 		    			FROM public."QuotationProductPassenger" pp 
@@ -2635,9 +4141,29 @@ BEGIN
 		0 AS am_credito,
 		COALESCE(ct."name",'Tarifa') AS ds_cargonm
 	FROM public."QuotationProduct" qp
+	JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
 	LEFT JOIN public."ChargeAndTax" ct ON ct.id = qp."mainTaxId"
 	LEFT JOIN public."QuotationProductTax" tp ON tp."quotationProductId" = qp."id" and tp."chargeAndTaxId" = qp."mainTaxId";
 
+	INSERT INTO CotizacionServicios_TipoProv(
+		cd_Cotizacion,
+		cd_CotizacionServicios,
+		cd_TipoProveedores,
+		ds_TipoProveedores,
+		cd_proveedores,
+		ds_proveedores
+	)
+	SELECT 
+		'Q' || LPAD(qp."quotationId"::text, 7, '0') as cd_Cotizacion, 
+		'Q' || LPAD(qp."id"::text, 7, '0') as cd_CotizacionServicios,
+		'HTL' as cd_TipoProveedores,
+		'HOTEL' as ds_TipoProveedores,
+		COALESCE(pre."code",'') as cd_proveedores,
+		COALESCE(pre."name",'') as ds_proveedores
+	FROM public."QuotationProduct" qp
+	JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
+	LEFT JOIN public."Prestadora" pre ON pre."id" = qp."prestadoraId";
+	
     -- 5. Generar XML
     SELECT xmlroot(
         xmlelement(name "Cotizaciones",
@@ -2780,6 +4306,22 @@ BEGIN
                                     )				
 									FROM Fac_Servicios_TiposFacturacionHoteles TF
 									WHERE TF.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
+								),
+								(
+									SELECT xmlagg(
+                                        xmlelement(name "CotizacionServicios_TipoProv",
+                                            xmlforest(
+												PRE.cd_Cotizacion as cd_Cotizacion,
+												PRE.cd_CotizacionServicios as cd_CotizacionServicios,
+												PRE.cd_TipoProveedores as cd_TipoProveedores,
+												PRE.ds_TipoProveedores as ds_TipoProveedores,
+												PRE.cd_proveedores as cd_proveedores,
+												PRE.ds_proveedores as ds_proveedores
+											)
+                                        )
+                                    )				
+									FROM CotizacionServicios_TipoProv PRE
+									WHERE PRE.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales			
 								)
                             )
                         )
@@ -2813,7 +4355,93 @@ EXCEPTION
 END;
 $$;
 
--- Archivo: spImportQuotation.sql
+CREATE OR REPLACE PROCEDURE public.spImplantActualizar(
+    p_id INT,
+    p_code TEXT,
+    p_name TEXT,
+    p_logo BYTEA,
+    p_template BYTEA,
+    p_template_config JSONB,
+    p_html_template TEXT,
+    p_branch_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."Implant" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Implant con ID ' || p_id || ' no encontrado.';
+        RETURN;
+    END IF;
+
+    UPDATE public."Implant"
+    SET "code" = p_code,
+        "name" = p_name,
+        "logo" = COALESCE(p_logo, "logo"),
+        "template" = COALESCE(p_template, "template"),
+        "templateConfig" = COALESCE(p_template_config, "templateConfig"),
+        "htmlTemplate" = COALESCE(p_html_template, "htmlTemplate"),
+        "branchId" = p_branch_id
+    WHERE id = p_id;
+
+    p_mensaje_resultado := 'SUCCESS: Implant actualizado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spImplantCrear(
+    p_code TEXT,
+    p_name TEXT,
+    p_logo BYTEA,
+    p_template BYTEA,
+    p_template_config JSONB,
+    p_html_template TEXT,
+    p_branch_id INT,
+    p_acting_user_id INT,
+    INOUT p_implant_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO public."Implant" ("code", "name", "logo", "template", "templateConfig", "htmlTemplate", "branchId")
+    VALUES (p_code, p_name, p_logo, p_template, p_template_config, p_html_template, p_branch_id)
+    RETURNING id INTO p_implant_id;
+
+    p_mensaje_resultado := 'SUCCESS: Implant creado con ID ' || p_implant_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spImplantEliminar(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."Implant" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Implant con ID ' || p_id || ' no encontrado.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."Implant" WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Implant eliminado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
 CREATE OR REPLACE PROCEDURE public."spImportQuotation"(
     IN p_text_data TEXT,
     IN p_user_id INT,
@@ -3215,7 +4843,6 @@ $$;
 
 
 
--- Archivo: spImpuestoActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spImpuestoActualizar(
     p_id INT,
     p_code TEXT,
@@ -3247,7 +4874,6 @@ END;
 $$;
 
 
--- Archivo: spImpuestoCrear.sql
 CREATE OR REPLACE PROCEDURE public.spImpuestoCrear(
     p_code TEXT,
     p_name TEXT,
@@ -3274,7 +4900,6 @@ END;
 $$;
 
 
--- Archivo: spImpuestoEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spImpuestoEliminar(
     p_id INT,
     p_acting_user_id INT,
@@ -3292,7 +4917,6 @@ END;
 $$;
 
 
--- Archivo: spLogListar.sql
 -- sploglistar.sql
 -- RUTA: c:\Proyectos\AgenciasNew\SQL\SP\spLogListar.sql
 
@@ -3336,7 +4960,6 @@ END;
 $$;
 
 
--- Archivo: spLogRegistrar.sql
 CREATE OR REPLACE PROCEDURE public."spLogRegistrar"(
     p_user_id INT, 
     p_module TEXT, 
@@ -3356,7 +4979,6 @@ BEGIN
 END;
 $$;
 
--- Archivo: spMaestroImportar.sql
 CREATE OR REPLACE PROCEDURE public.spMaestroImportar(
     p_tipo TEXT,
     p_text_data TEXT, -- Delimited text (Rows by \n, Cols by ^)
@@ -3554,7 +5176,6 @@ END;
 $$;
 
 
--- Archivo: spMonedaActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spMonedaActualizar(
     p_id            INT,
     p_code          TEXT,
@@ -3592,7 +5213,6 @@ END;
 $$;
 
 
--- Archivo: spMonedaCrear.sql
 CREATE OR REPLACE PROCEDURE public.spMonedaCrear(
     p_code         TEXT,
     p_name         TEXT,
@@ -3621,7 +5241,6 @@ END;
 $$;
 
 
--- Archivo: spMonedaEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spMonedaEliminar(
     p_id              INT,
     p_acting_user_id  INT,
@@ -3645,7 +5264,6 @@ END;
 $$;
 
 
--- Archivo: spMonedaListar.sql
 CREATE OR REPLACE PROCEDURE public.spMonedaListar(
     p_id                  INT,       -- NULL = traer todas, valor = traer una específica
     INOUT p_mensaje_resultado TEXT
@@ -3676,7 +5294,81 @@ END;
 $$;
 
 
--- Archivo: spPrestadoraActualizar.sql
+CREATE OR REPLACE PROCEDURE public.spParameterActualizar(
+    p_id INT,
+    p_code TEXT,
+    p_name TEXT,
+    p_value TEXT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."SystemParameter" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Parámetro con ID ' || p_id || ' no encontrado.';
+        RETURN;
+    END IF;
+
+    UPDATE public."SystemParameter"
+    SET "code" = p_code,
+        "name" = p_name,
+        "value" = p_value
+    WHERE id = p_id;
+
+    p_mensaje_resultado := 'SUCCESS: Parámetro actualizado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spParameterCrear(
+    p_code TEXT,
+    p_name TEXT,
+    p_value TEXT,
+    p_acting_user_id INT,
+    INOUT p_parameter_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO public."SystemParameter" ("code", "name", "value")
+    VALUES (p_code, p_name, p_value)
+    RETURNING id INTO p_parameter_id;
+
+    p_mensaje_resultado := 'SUCCESS: Parámetro creado con ID ' || p_parameter_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spParameterEliminar(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."SystemParameter" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Parámetro con ID ' || p_id || ' no encontrado.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."SystemParameter" WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Parámetro eliminado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
 CREATE OR REPLACE PROCEDURE public.spPrestadoraActualizar(
     p_id INT,
     p_code TEXT,
@@ -3708,7 +5400,6 @@ END;
 $$;
 
 
--- Archivo: spPrestadoraCrear.sql
 CREATE OR REPLACE PROCEDURE public.spPrestadoraCrear(
     p_code TEXT,
     p_name TEXT,
@@ -3735,7 +5426,6 @@ END;
 $$;
 
 
--- Archivo: spPrestadoraEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spPrestadoraEliminar(
     p_id INT,
     p_acting_user_id INT,
@@ -3753,7 +5443,6 @@ END;
 $$;
 
 
--- Archivo: spProductoActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spProductoActualizar(
     p_id INT,
     p_code TEXT,
@@ -3792,7 +5481,6 @@ END;
 $$;
 
 
--- Archivo: spProductoCrear.sql
 CREATE OR REPLACE PROCEDURE public.spProductoCrear(
     p_code TEXT,
     p_type TEXT,
@@ -3820,7 +5508,6 @@ END;
 $$;
 
 
--- Archivo: spProductoEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spProductoEliminar(
     p_id INT,
     p_acting_user_id INT,
@@ -3838,7 +5525,6 @@ END;
 $$;
 
 
--- Archivo: spProveedorActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spProveedorActualizar(
     p_id INT,
     p_code TEXT,
@@ -3866,7 +5552,6 @@ END;
 $$;
 
 
--- Archivo: spProveedorCrear.sql
 CREATE OR REPLACE PROCEDURE public.spProveedorCrear(
     p_code TEXT,
     p_name TEXT,
@@ -3891,7 +5576,6 @@ END;
 $$;
 
 
--- Archivo: spProveedorEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spProveedorEliminar(
     p_id INT,
     p_acting_user_id INT,
@@ -3908,74 +5592,236 @@ EXCEPTION
 END;
 $$;
 
--- Archivo: spCotizacionActualizarEstado.sql
-CREATE OR REPLACE PROCEDURE public.spCotizacionActualizarEstado(
-    p_response JSONB
+
+CREATE OR REPLACE PROCEDURE public.spSellerActualizar(
+    p_id INT,
+    p_code TEXT,
+    p_name TEXT,
+    p_email TEXT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
 )
 LANGUAGE plpgsql
 AS $$
-DECLARE
-    v_estados_str TEXT;
-    v_item_text TEXT;
-    v_id INT;
-    v_estado TEXT;
-    v_row_json JSONB;
 BEGIN
-    /**
-     * Este procedimiento recibe la respuesta de SQL Server (spCotizacionesCrear)
-     * Parsea UNICAMENTE el nodo 'Estados' que contiene el formato 'ID:Estado|ID:Estado|'
-     */
-    
-    -- El input puede ser un array de objetos o un objeto individual
-    -- Buscamos el campo 'Estados' en cada objeto
-    IF JSONB_TYPEOF(p_response) = 'array' THEN
-        FOR v_row_json IN SELECT jsonb_array_elements(p_response)
-        LOOP
-            v_estados_str := v_row_json->>'Estados';
-            
-            IF v_estados_str IS NOT NULL AND v_estados_str <> '' THEN
-                -- Iterar sobre cada par ID:Estado separado por '|'
-                FOR v_item_text IN SELECT unnest(string_to_array(btrim(v_estados_str, '|'), '|'))
-                LOOP
-                    v_item_text := trim(v_item_text);
-                    IF v_item_text LIKE '%:%' THEN
-                        BEGIN
-                            -- Split por ':'
-                            v_id := split_part(v_item_text, ':', 1)::INT;
-                            v_estado := split_part(v_item_text, ':', 2);
-                            
-                            -- Actualizar con el estado LITERAL recibido
-                            UPDATE public."Quotation"
-                            SET "state" = v_estado
-                            WHERE id = v_id;
-                        EXCEPTION WHEN OTHERS THEN
-                            -- Ignorar errores de casteo en items individuales
-                        END;
-                    END IF;
-                END LOOP;
-            END IF;
-        END LOOP;
-    ELSIF JSONB_TYPEOF(p_response) = 'object' THEN
-        v_estados_str := p_response->>'Estados';
-        IF v_estados_str IS NOT NULL AND v_estados_str <> '' THEN
-            FOR v_item_text IN SELECT unnest(string_to_array(btrim(v_estados_str, '|'), '|'))
-            LOOP
-                v_item_text := trim(v_item_text);
-                IF v_item_text LIKE '%:%' THEN
-                    BEGIN
-                        v_id := split_part(v_item_text, ':', 1)::INT;
-                        v_estado := split_part(v_item_text, ':', 2);
-                        
-                        UPDATE public."Quotation"
-                        SET "state" = v_estado
-                        WHERE id = v_id;
-                    EXCEPTION WHEN OTHERS THEN END;
-                END IF;
-            END LOOP;
-        END IF;
+    IF NOT EXISTS (SELECT 1 FROM public."Seller" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Vendedor con ID ' || p_id || ' no encontrado.';
+        RETURN;
     END IF;
+
+    UPDATE public."Seller"
+    SET "code" = p_code,
+        "name" = p_name,
+        "email" = p_email
+    WHERE id = p_id;
+
+    p_mensaje_resultado := 'SUCCESS: Vendedor actualizado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
+
+
+CREATE OR REPLACE PROCEDURE public.spSellerCrear(
+    p_code TEXT,
+    p_name TEXT,
+    p_email TEXT,
+    p_acting_user_id INT,
+    INOUT p_seller_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO public."Seller" ("code", "name", "email")
+    VALUES (p_code, p_name, p_email)
+    RETURNING id INTO p_seller_id;
+
+    p_mensaje_resultado := 'SUCCESS: Vendedor creado con ID ' || p_seller_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spSellerEliminar(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."Seller" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Vendedor con ID ' || p_id || ' no encontrado.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."Seller" WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Vendedor eliminado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spTicketPrinterActualizar(
+    p_id INT,
+    p_code TEXT,
+    p_name TEXT,
+    p_email TEXT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."TicketPrinter" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Tiqueteador con ID ' || p_id || ' no encontrado.';
+        RETURN;
+    END IF;
+
+    UPDATE public."TicketPrinter"
+    SET "code" = p_code,
+        "name" = p_name,
+        "email" = p_email
+    WHERE id = p_id;
+
+    p_mensaje_resultado := 'SUCCESS: Tiqueteador actualizado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spTicketPrinterCrear(
+    p_code TEXT,
+    p_name TEXT,
+    p_email TEXT,
+    p_acting_user_id INT,
+    INOUT p_printer_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO public."TicketPrinter" ("code", "name", "email")
+    VALUES (p_code, p_name, p_email)
+    RETURNING id INTO p_printer_id;
+
+    p_mensaje_resultado := 'SUCCESS: Tiqueteador creado con ID ' || p_printer_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spTicketPrinterEliminar(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."TicketPrinter" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Tiqueteador con ID ' || p_id || ' no encontrado.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."TicketPrinter" WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Tiqueteador eliminado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spUsuarioActualizar(
+    p_user_id INT,
+    p_name TEXT,
+    p_email TEXT,
+    p_password_hash TEXT, -- NULL significa que no se actualiza la contraseña
+    p_role_id INT,
+    p_branch_id INT,
+    p_implant_id INT,
+    p_ticket_printer_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Validar si el usuario existe
+    IF NOT EXISTS (SELECT 1 FROM public."User" WHERE id = p_user_id) THEN
+        p_mensaje_resultado := 'ERROR: Usuario con ID ' || p_user_id || ' no encontrado.';
+        RETURN;
+    END IF;
+
+    -- Validar si el email ya existe en otro usuario
+    IF EXISTS (SELECT 1 FROM public."User" WHERE email = p_email AND id != p_user_id) THEN
+        p_mensaje_resultado := 'ERROR: El email ' || p_email || ' ya está registrado por otro usuario.';
+        RETURN;
+    END IF;
+
+    -- Actualizar el usuario
+    UPDATE public."User"
+    SET 
+        "name" = COALESCE(p_name, "name"),
+        "email" = COALESCE(p_email, "email"),
+        "passwordHash" = COALESCE(p_password_hash, "passwordHash"),
+        "roleId" = COALESCE(p_role_id, "roleId"),
+        "branchId" = p_branch_id,
+        "implantId" = p_implant_id,
+        "ticketPrinterId" = p_ticket_printer_id
+    WHERE id = p_user_id;
+
+    p_mensaje_resultado := 'SUCCESS: Usuario actualizado exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE FUNCTION public.spUsuarioConsultar(
+    p_id INT DEFAULT NULL,
+    p_email TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+    id INT,
+    "name" TEXT,
+    "email" TEXT,
+    "roleId" INT,
+    "branchId" INT,
+    "implantId" INT,
+    "ticketPrinterId" INT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        u.id,
+        u.name AS "name",
+        u.email AS "email",
+        u."roleId" AS "roleId",
+        u."branchId" AS "branchId",
+        u."implantId" AS "implantId",
+        u."ticketPrinterId" AS "ticketPrinterId"
+    FROM public."User" u
+    WHERE (p_id IS NULL OR u.id = p_id)
+      AND (p_email IS NULL OR u.email = p_email)
+    ORDER BY u.id ASC;
+END;
+$$;
+
 
 CREATE OR REPLACE PROCEDURE public.spUsuarioCrear(
     p_name TEXT,
@@ -4025,83 +5871,6 @@ EXCEPTION
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.spUsuarioConsultar(
-    p_id INT DEFAULT NULL,
-    p_email TEXT DEFAULT NULL
-)
-RETURNS TABLE (
-    id INT,
-    "name" TEXT,
-    "email" TEXT,
-    "roleId" INT,
-    "branchId" INT,
-    "implantId" INT,
-    "ticketPrinterId" INT
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        u.id,
-        u.name AS "name",
-        u.email AS "email",
-        u."roleId" AS "roleId",
-        u."branchId" AS "branchId",
-        u."implantId" AS "implantId",
-        u."ticketPrinterId" AS "ticketPrinterId"
-    FROM public."User" u
-    WHERE (p_id IS NULL OR u.id = p_id)
-      AND (p_email IS NULL OR u.email = p_email)
-    ORDER BY u.id ASC;
-END;
-$$;
-
-CREATE OR REPLACE PROCEDURE public.spUsuarioActualizar(
-    p_user_id INT,
-    p_name TEXT,
-    p_email TEXT,
-    p_password_hash TEXT, -- NULL significa que no se actualiza la contraseña
-    p_role_id INT,
-    p_branch_id INT,
-    p_implant_id INT,
-    p_ticket_printer_id INT,
-    p_acting_user_id INT,
-    INOUT p_mensaje_resultado TEXT
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    -- Validar si el usuario existe
-    IF NOT EXISTS (SELECT 1 FROM public."User" WHERE id = p_user_id) THEN
-        p_mensaje_resultado := 'ERROR: Usuario con ID ' || p_user_id || ' no encontrado.';
-        RETURN;
-    END IF;
-
-    -- Validar si el email ya existe en otro usuario
-    IF EXISTS (SELECT 1 FROM public."User" WHERE email = p_email AND id != p_user_id) THEN
-        p_mensaje_resultado := 'ERROR: El email ' || p_email || ' ya está registrado por otro usuario.';
-        RETURN;
-    END IF;
-
-    -- Actualizar el usuario
-    UPDATE public."User"
-    SET 
-        "name" = COALESCE(p_name, "name"),
-        "email" = COALESCE(p_email, "email"),
-        "passwordHash" = COALESCE(p_password_hash, "passwordHash"),
-        "roleId" = COALESCE(p_role_id, "roleId"),
-        "branchId" = p_branch_id,
-        "implantId" = p_implant_id,
-        "ticketPrinterId" = p_ticket_printer_id
-    WHERE id = p_user_id;
-
-    p_mensaje_resultado := 'SUCCESS: Usuario actualizado exitosamente.';
-EXCEPTION
-    WHEN OTHERS THEN
-        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
-END;
-$$;
 
 CREATE OR REPLACE PROCEDURE public.spUsuarioEliminar(
     p_user_id INT,
@@ -4126,259 +5895,76 @@ EXCEPTION
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.fnUsuarioListar()
-RETURNS SETOF JSONB
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        jsonb_build_object(
-            'id', u.id,
-            'name', u.name,
-            'email', u.email,
-            'roleId', u."roleId",
-            'role', (
-                SELECT jsonb_build_object('id', r.id, 'name', r.name)
-                FROM public."Role" r
-                WHERE r.id = u."roleId"
-            ),
-            'branchId', u."branchId",
-            'branch', CASE WHEN u."branchId" IS NOT NULL THEN (
-                SELECT jsonb_build_object('id', b.id, 'name', b.name, 'code', b.code)
-                FROM public."Branch" b
-                WHERE b.id = u."branchId"
-            ) ELSE NULL END,
-            'implantId', u."implantId",
-            'implant', CASE WHEN u."implantId" IS NOT NULL THEN (
-                SELECT jsonb_build_object('id', i.id, 'name', i.name, 'code', i.code)
-                FROM public."Implant" i
-                WHERE i.id = u."implantId"
-            ) ELSE NULL END,
-            'ticketPrinterId', u."ticketPrinterId",
-            'ticketPrinter', CASE WHEN u."ticketPrinterId" IS NOT NULL THEN (
-                SELECT jsonb_build_object('id', t.id, 'name', t.name, 'code', t.code)
-                FROM public."TicketPrinter" t
-                WHERE t.id = u."ticketPrinterId"
-            ) ELSE NULL END
-        )
-    FROM public."User" u
-    ORDER BY u.name ASC;
-END;
-$$;
 
--- >>> MÓDULO DE REPORTES DINÁMICOS <<<
-
-CREATE TABLE IF NOT EXISTS public."Report" (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    base_table VARCHAR(100),
-    description TEXT,
-    custom_sql TEXT,
-    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Asegurar columna custom_sql si ya existe la tabla
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='Report' AND column_name='custom_sql') THEN
-        ALTER TABLE public."Report" ADD COLUMN custom_sql TEXT;
-    END IF;
-END $$;
-
-CREATE TABLE IF NOT EXISTS public."ReportSorts" (
-    id SERIAL PRIMARY KEY,
-    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-    column_expr TEXT NOT NULL,
-    direction VARCHAR(10) DEFAULT 'ASC',
-    sort_order INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS public."ReportJoins" (
-    id SERIAL PRIMARY KEY,
-    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-    table_name VARCHAR(100) NOT NULL,
-    alias VARCHAR(20) NOT NULL,
-    join_type VARCHAR(50) NOT NULL DEFAULT 'INNER JOIN',
-    join_condition TEXT NOT NULL,
-    sort_order INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS public."ReportColumns" (
-    id SERIAL PRIMARY KEY,
-    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-    table_alias VARCHAR(20),
-    column_name VARCHAR(100) NOT NULL,
-    alias VARCHAR(150),
-    is_calculated BOOLEAN DEFAULT false,
-    is_visible BOOLEAN DEFAULT true,
-    formula_expression TEXT,
-    sort_order INTEGER DEFAULT 0
-);
-
-CREATE TABLE IF NOT EXISTS public."ReportFilters" (
-    id SERIAL PRIMARY KEY,
-    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-    table_alias VARCHAR(20),
-    column_name VARCHAR(100) NOT NULL,
-    filter_label VARCHAR(150),
-    filter_type VARCHAR(50) NOT NULL,
-    operator VARCHAR(20) DEFAULT '=',
-    sort_order INTEGER DEFAULT 0
-);
-
--- FUNCIÓN MOTOR DE REPORTES
-DROP FUNCTION IF EXISTS public."fnReportDinamic"(INTEGER);
-DROP FUNCTION IF EXISTS public."fnReportDinamic"(INTEGER, JSON);
-
-CREATE OR REPLACE FUNCTION public."fnReportDinamic"(
-    p_report_id INTEGER,
-    p_filter_values JSON DEFAULT '{}'::json
+CREATE OR REPLACE PROCEDURE public.spVariableActualizar(
+    p_id INT,
+    p_code TEXT,
+    p_name TEXT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
 )
-RETURNS json
 LANGUAGE plpgsql
 AS $$
-DECLARE
-    v_base_table VARCHAR;
-    v_custom_sql TEXT;
-    v_sql TEXT;
-    v_select_clause TEXT;
-    v_from_clause TEXT;
-    v_where_clause TEXT := '1=1';
-    v_order_col VARCHAR;
-    v_order_dir VARCHAR;
-    v_result json;
-    v_filter RECORD;
-    v_val TEXT;
-    v_val_to TEXT;
 BEGIN
-    -- 1. Obtener la configuración del reporte
-    SELECT base_table, custom_sql INTO v_base_table, v_custom_sql
-    FROM public."Report"
-    WHERE id = p_report_id;
-
-    IF v_base_table IS NULL AND v_custom_sql IS NULL THEN
-        RAISE EXCEPTION 'Reporte no encontrado';
+    IF NOT EXISTS (SELECT 1 FROM public."MasterVariable" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Variable con ID ' || p_id || ' no encontrada.';
+        RETURN;
     END IF;
 
-    -- 2. Construir el Origen de Datos (Custom SQL o Tabla Base)
-    IF v_custom_sql IS NOT NULL AND v_custom_sql <> '' THEN
-        -- Si hay SQL personalizado, lo usamos como fuente
-        v_from_clause := '(' || v_custom_sql || ') t1 ';
-        v_select_clause := '*';
-    ELSE
-        -- 2.1 Construir el SELECT (Columnas Visibles)
-        SELECT string_agg(
-            CASE 
-                WHEN is_calculated THEN formula_expression || ' AS "' || COALESCE(alias, 'Calculado') || '"'
-                ELSE COALESCE(table_alias || '.', '') || '"' || column_name || '"' || ' AS "' || COALESCE(alias, column_name) || '"'
-            END,
-            ', ' ORDER BY sort_order ASC
-        ) INTO v_select_clause
-        FROM public."ReportColumns"
-        WHERE report_id = p_report_id AND is_visible = true;
+    UPDATE public."MasterVariable"
+    SET "code" = p_code,
+        "name" = p_name
+    WHERE id = p_id;
 
-        IF v_select_clause IS NULL THEN
-            v_select_clause := '*'; 
-        END IF;
-
-        -- 2.2 Construir el FROM y los JOINS
-        v_from_clause := 'public."' || v_base_table || '" t1 ';
-
-        SELECT v_from_clause || string_agg(
-            join_type || ' public."' || table_name || '" ' || alias || ' ON ' || join_condition,
-            ' ' ORDER BY sort_order ASC
-        ) INTO v_from_clause
-        FROM public."ReportJoins"
-        WHERE report_id = p_report_id;
-
-        IF v_from_clause IS NULL THEN
-            v_from_clause := 'public."' || v_base_table || '" t1 ';
-        END IF;
-    END IF;
-
-    -- 4. Construir el WHERE (Filtros Dinámicos con Rangos)
-    FOR v_filter IN SELECT * FROM public."ReportFilters" WHERE report_id = p_report_id LOOP
-        v_val := p_filter_values->>(COALESCE(v_filter.table_alias, 't1') || '.' || v_filter.column_name);
-        v_val_to := p_filter_values->>(COALESCE(v_filter.table_alias, 't1') || '.' || v_filter.column_name || '_to');
-        
-        DECLARE
-            v_field_expr TEXT;
-        BEGIN
-            -- Determinar la expresión del campo
-            IF v_custom_sql IS NOT NULL AND v_custom_sql <> '' THEN
-                -- En Custom SQL, si el usuario puso algo como q."date", 
-                -- debemos quitar el "q." porque afuera solo existe el alias "t1"
-                IF v_filter.column_name ~ '\.' THEN
-                    v_field_expr := 't1."' || split_part(v_filter.column_name, '.', 2) || '"';
-                    -- Limpiar comillas si el split_part las dejó
-                    v_field_expr := replace(v_field_expr, '"', ''); 
-                    -- Re-envolver con comillas de forma segura
-                    v_field_expr := 't1."' || v_field_expr || '"';
-                ELSE
-                    v_field_expr := 't1."' || v_filter.column_name || '"';
-                END IF;
-            ELSIF v_filter.column_name ~ '["\.]' THEN
-                v_field_expr := v_filter.column_name;
-            ELSE
-                v_field_expr := COALESCE(v_filter.table_alias, 't1') || '."' || v_filter.column_name || '"';
-            END IF;
-
-            IF (v_val IS NOT NULL AND v_val <> '') OR (v_val_to IS NOT NULL AND v_val_to <> '') THEN
-                IF v_filter.filter_type = 'date' THEN
-                    IF v_val IS NOT NULL AND v_val <> '' AND v_val_to IS NOT NULL AND v_val_to <> '' THEN
-                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' BETWEEN ''' || v_val || '''::date AND ''' || v_val_to || '''::date';
-                    ELSIF v_val IS NOT NULL AND v_val <> '' THEN
-                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' >= ''' || v_val || '''::date';
-                    ELSIF v_val_to IS NOT NULL AND v_val_to <> '' THEN
-                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' <= ''' || v_val_to || '''::date';
-                    END IF;
-                ELSIF v_filter.filter_type = 'number' THEN
-                    IF v_val IS NOT NULL AND v_val <> '' AND v_val_to IS NOT NULL AND v_val_to <> '' THEN
-                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' BETWEEN ' || v_val || ' AND ' || v_val_to;
-                    ELSIF v_val IS NOT NULL AND v_val <> '' THEN
-                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' >= ' || v_val;
-                    ELSIF v_val_to IS NOT NULL AND v_val_to <> '' THEN
-                        v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' <= ' || v_val_to;
-                    END IF;
-                ELSE -- text / like
-                    v_where_clause := v_where_clause || ' AND ' || v_field_expr || ' ILIKE ''%' || v_val || '%''';
-                END IF;
-            END IF;
-        END;
-    END LOOP;
-
-    -- 5. Ensamblar SQL Final con Ordenamiento Múltiple
-    v_sql := 'SELECT json_agg(row_to_json(t)) FROM (SELECT ' || v_select_clause || ' FROM ' || v_from_clause || ' WHERE ' || v_where_clause;
-    
-    -- Agregar ORDER BY si está definido (Múltiple)
-    DECLARE
-        v_order_by TEXT;
-    BEGIN
-        SELECT string_agg(
-            CASE 
-                WHEN column_expr ~ '^[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+$' THEN -- Formato t1.columna
-                    split_part(column_expr, '.', 1) || '."' || split_part(column_expr, '.', 2) || '"'
-                ELSE column_expr 
-            END || ' ' || direction, 
-            ', ' ORDER BY sort_order ASC
-        ) INTO v_order_by
-        FROM public."ReportSorts" WHERE report_id = p_report_id;
-        
-        IF v_order_by IS NOT NULL THEN
-            v_sql := v_sql || ' ORDER BY ' || v_order_by;
-        END IF;
-    END;
-
-    v_sql := v_sql || ') t';
-
-    -- 6. Ejecutar dinámicamente
-    EXECUTE v_sql INTO v_result;
-
-    IF v_result IS NULL THEN
-        v_result := '[]'::json;
-    END IF;
-
-    RETURN v_result;
+    p_mensaje_resultado := 'SUCCESS: Variable actualizada exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
+
+
+CREATE OR REPLACE PROCEDURE public.spVariableCrear(
+    p_code TEXT,
+    p_name TEXT,
+    p_acting_user_id INT,
+    INOUT p_variable_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO public."MasterVariable" ("code", "name")
+    VALUES (p_code, p_name)
+    RETURNING id INTO p_variable_id;
+
+    p_mensaje_resultado := 'SUCCESS: Variable creada con ID ' || p_variable_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+CREATE OR REPLACE PROCEDURE public.spVariableEliminar(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."MasterVariable" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Variable con ID ' || p_id || ' no encontrada.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."MasterVariable" WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Variable eliminada exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
