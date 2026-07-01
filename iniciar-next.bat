@@ -24,6 +24,26 @@ IF %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
+echo Sincronizando base de datos con Prisma (db pull)...
+call npx prisma db pull
+
+IF %ERRORLEVEL% NEQ 0 (
+ echo Error sincronizando base de datos
+ pause
+ exit
+)
+
+echo.
+echo Generando cliente Prisma (generate)...
+call npx prisma generate
+
+IF %ERRORLEVEL% NEQ 0 (
+ echo Error generando cliente Prisma
+ pause
+ exit
+)
+
+echo.
 echo Compilando proyecto...
 call npm run build
 

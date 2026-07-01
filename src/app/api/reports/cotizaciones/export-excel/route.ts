@@ -3,6 +3,8 @@ import prisma from '@/lib/prisma'
 import ExcelJS from 'exceljs'
 import path from 'path'
 import * as XLSX from 'xlsx'
+import fs from 'fs'
+import { generateHtmlTemplate } from '@/lib/excel-to-html'
 
 interface ProviderInfo {
     nombre: string;
@@ -107,32 +109,56 @@ function copySheet(
     srcWorkbook: ExcelJS.Workbook, 
     destWorkbook: ExcelJS.Workbook
 ) {
-    destSheet.views = srcSheet.views;
+    if (srcSheet.views) {
+        destSheet.views = JSON.parse(JSON.stringify(srcSheet.views));
+    }
     if (srcSheet.pageSetup) {
-        destSheet.pageSetup = srcSheet.pageSetup;
+        destSheet.pageSetup = JSON.parse(JSON.stringify(srcSheet.pageSetup));
     }
 
     if (srcSheet.columns) {
-        destSheet.columns = srcSheet.columns.map(col => ({
-            header: col.header,
-            key: col.key,
-            width: col.width,
-            style: col.style
-        }));
+        destSheet.columns = srcSheet.columns.map(col => {
+            const colStyle = col.style ? JSON.parse(JSON.stringify(col.style)) : undefined;
+            return {
+                header: col.header,
+                key: col.key,
+                width: col.width,
+                style: colStyle
+            };
+        });
     }
 
     const merges = (srcSheet.model as any).merges || [];
     merges.forEach((m: string) => {
-        destSheet.mergeCells(m);
+        try {
+            destSheet.mergeCells(m);
+        } catch (mergeErr) {
+            console.error("Error merging cell in copySheet:", mergeErr);
+        }
     });
 
     srcSheet.eachRow({ includeEmpty: true }, (row, rowNum) => {
         const destRow = destSheet.getRow(rowNum);
         destRow.height = row.height;
+        if ((row as any).style) {
+            (destRow as any).style = JSON.parse(JSON.stringify((row as any).style));
+        }
+
         row.eachCell({ includeEmpty: true }, (cell, colNum) => {
             const destCell = destRow.getCell(colNum);
             destCell.value = cell.value;
-            destCell.style = cell.style;
+            
+            const style: any = {};
+            if (cell.font) style.font = JSON.parse(JSON.stringify(cell.font));
+            if (cell.fill) style.fill = JSON.parse(JSON.stringify(cell.fill));
+            if (cell.border) style.border = JSON.parse(JSON.stringify(cell.border));
+            if (cell.alignment) style.alignment = JSON.parse(JSON.stringify(cell.alignment));
+            if (cell.numFmt) style.numFmt = cell.numFmt;
+            if (cell.protection) style.protection = JSON.parse(JSON.stringify(cell.protection));
+            
+            if (Object.keys(style).length > 0) {
+                destCell.style = style;
+            }
         });
     });
 
@@ -147,7 +173,20 @@ function copySheet(
                         buffer: imageObj.buffer,
                         extension: imageObj.extension,
                     });
-                    destSheet.addImage(newImageId, img.range);
+                    
+                    // Safety clone of image range to avoid circular reference / sheet mismatch corruption
+                    const range = img.range as any;
+                    const rangeOption: any = {
+                        tl: { col: range.tl.col, row: range.tl.row },
+                        editAs: range.editAs
+                    };
+                    if (range.br) {
+                        rangeOption.br = { col: range.br.col, row: range.br.row };
+                    } else if (range.ext) {
+                        rangeOption.ext = { width: range.ext.width, height: range.ext.height };
+                    }
+
+                    destSheet.addImage(newImageId, rangeOption);
                 }
             } catch (imgErr) {
                 console.error("Error copying image in copySheet:", imgErr);
@@ -606,7 +645,6 @@ export async function GET(req: Request) {
                     const templateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
                     if (templateBuffer) {
                         try {
-                            const { generateHtmlTemplate } = await import('@/lib/excel-to-html');
                             htmlTemplate = await generateHtmlTemplate(Buffer.from(templateBuffer), config);
                             
                             // Cache it in database
@@ -630,9 +668,7 @@ export async function GET(req: Request) {
                 // Fallback to default template if still missing
                 if (!htmlTemplate) {
                     try {
-                        const { generateHtmlTemplate } = await import('@/lib/excel-to-html');
                         const defaultTemplatePath = path.join(process.cwd(), 'templates', 'default_template.xlsx');
-                        const fs = await import('fs');
                         const defaultBuffer = fs.readFileSync(defaultTemplatePath);
                         htmlTemplate = await generateHtmlTemplate(defaultBuffer, config);
                     } catch (err) {

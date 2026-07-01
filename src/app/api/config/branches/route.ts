@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { getCellCustomizationConfig, syncCellCustomization } from '@/lib/cell-customization'
+import { generateHtmlTemplate } from '@/lib/excel-to-html'
+import { logSystemEvent } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +11,6 @@ export async function GET() {
         const branches = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public.fnBranchListar()`)
         
         // Convert Buffer/Uint8Array to base64 string for the frontend
-        const { getCellCustomizationConfig } = await import('@/lib/cell-customization')
         const branchesWithLogo = await Promise.all(branches.map(async b => {
             const physicalConfig = await getCellCustomizationConfig(b.id, null)
             return {
@@ -48,10 +50,10 @@ export async function POST(req: NextRequest) {
         let htmlTemplate = null;
         if (templateBuffer) {
             try {
-                const { generateHtmlTemplate } = await import('@/lib/excel-to-html');
                 htmlTemplate = await generateHtmlTemplate(templateBuffer, body.templateConfig, logoBuffer);
-            } catch (htmlErr) {
+            } catch (htmlErr: any) {
                 console.error("Error generating HTML template during branch creation:", htmlErr);
+                throw new Error("Error generating HTML template: " + (htmlErr.message || String(htmlErr)));
             }
         }
 
@@ -76,15 +78,12 @@ export async function POST(req: NextRequest) {
         }
 
         if (body.templateConfig) {
-            const { syncCellCustomization } = await import('@/lib/cell-customization');
             await syncCellCustomization(dbId, null, body.templateConfig);
         }
 
         const branch = { id: dbId, ...body };
 
-        import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'MASTER_DATA', description: `Sucursal ${branch.name} creada (SP).`, metadata: branch });
-        });
+        logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'MASTER_DATA', description: `Sucursal ${branch.name} creada (SP).`, metadata: branch });
 
         return NextResponse.json(branch)
     } catch (error: any) {
@@ -132,10 +131,10 @@ export async function PUT(req: NextRequest) {
         let htmlTemplate = null;
         if (finalTemplateBuffer) {
             try {
-                const { generateHtmlTemplate } = await import('@/lib/excel-to-html');
                 htmlTemplate = await generateHtmlTemplate(finalTemplateBuffer, body.templateConfig, finalLogoBuffer);
-            } catch (htmlErr) {
+            } catch (htmlErr: any) {
                 console.error("Error generating/updating HTML template during branch update:", htmlErr);
+                throw new Error("Error generating HTML template: " + (htmlErr.message || String(htmlErr)));
             }
         }
 
@@ -158,15 +157,12 @@ export async function PUT(req: NextRequest) {
         }
 
         if (body.templateConfig) {
-            const { syncCellCustomization } = await import('@/lib/cell-customization');
             await syncCellCustomization(dbId, null, body.templateConfig);
         }
 
         const branch = { ...body };
 
-        import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'MASTER_DATA', description: `Sucursal ${branch.name} actualizada (SP).`, metadata: branch });
-        });
+        logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'MASTER_DATA', description: `Sucursal ${branch.name} actualizada (SP).`, metadata: branch });
 
         return NextResponse.json(branch)
     } catch (error: any) {
@@ -195,9 +191,7 @@ export async function DELETE(req: NextRequest) {
             throw new Error(message);
         }
 
-        import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'DELETE', module: 'MASTER_DATA', description: `Sucursal con ID ${id} eliminada (SP).` });
-        });
+        logSystemEvent({ userId: actingUserId, action: 'DELETE', module: 'MASTER_DATA', description: `Sucursal con ID ${id} eliminada (SP).` });
 
         return NextResponse.json({ message: 'Branch deleted successfully' })
     } catch (error: any) {

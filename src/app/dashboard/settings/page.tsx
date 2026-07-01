@@ -30,7 +30,7 @@ import {
 import { cn } from '@/lib/utils'
 import { SearchSelect } from '@/components/SearchSelect'
 
-type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias';
+type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
@@ -58,6 +58,12 @@ export default function SettingsPage() {
     const [combos, setCombos] = useState<any[]>([])
     const [currencies, setCurrencies] = useState<any[]>([])
     const [equivalences, setEquivalences] = useState<any[]>([])
+    const [creditCards, setCreditCards] = useState<any[]>([])
+    const [payments, setPayments] = useState<any[]>([])
+    const [countries, setCountries] = useState<any[]>([])
+    const [cities, setCities] = useState<any[]>([])
+    const [airports, setAirports] = useState<any[]>([])
+    const [ticketTypes, setTicketTypes] = useState<any[]>([])
     const [interfacesList, setInterfacesList] = useState<any[]>([])
     const [masterList, setMasterList] = useState<any[]>([])
     const [dynamicMasterOptions, setDynamicMasterOptions] = useState<any[]>([])
@@ -77,7 +83,7 @@ export default function SettingsPage() {
     const fetchData = async () => {
         setLoading(true)
         try {
-            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts, resVariables, resParams, resCombos, resCurrencies, resEquivalences, resInterfaces, resMasters] = await Promise.all([
+            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts, resVariables, resParams, resCombos, resCurrencies, resEquivalences, resInterfaces, resMasters, resCreditCards, resPayments, resCountries, resCities, resAirports, resTicketTypes] = await Promise.all([
                 fetch('/api/config/users').then(res => res.json()),
                 fetch('/api/config/roles').then(res => res.json()),
                 fetch('/api/config/branches').then(res => res.json()),
@@ -97,6 +103,12 @@ export default function SettingsPage() {
                 fetch('/api/config/equivalences').then(res => res.json()),
                 fetch('/api/config/interfaces').then(res => res.json()),
                 fetch('/api/config/masters').then(res => res.json())
+              ,fetch('/api/config/credit-cards').then(res => res.json())
+              ,fetch('/api/config/payments').then(res => res.json())
+              ,fetch('/api/config/countries').then(res => res.json())
+              ,fetch('/api/config/cities').then(res => res.json())
+              ,fetch('/api/config/airports').then(res => res.json())
+              ,fetch('/api/config/ticket-types').then(res => res.json())
             ])
             setUsers(Array.isArray(u) ? u : [])
             setRoles(Array.isArray(r) ? r : [])
@@ -117,6 +129,12 @@ export default function SettingsPage() {
             setEquivalences(Array.isArray(resEquivalences) ? resEquivalences : [])
             setInterfacesList(Array.isArray(resInterfaces) ? resInterfaces : [])
             setMasterList(Array.isArray(resMasters) ? resMasters : [])
+            setCreditCards(Array.isArray(resCreditCards) ? resCreditCards : [])
+            setPayments(Array.isArray(resPayments) ? resPayments : [])
+            setCountries(Array.isArray(resCountries) ? resCountries : [])
+            setCities(Array.isArray(resCities) ? resCities : [])
+            setAirports(Array.isArray(resAirports) ? resAirports : [])
+            setTicketTypes(Array.isArray(resTicketTypes) ? resTicketTypes : [])
         } finally {
             setLoading(false)
         }
@@ -192,6 +210,18 @@ export default function SettingsPage() {
                 setFormData({ code: '', name: '', cupos: 0, currencyId: '', products: [] })
             } else if (activeTab === 'equivalencias') {
                 setFormData({ id_interfaces: '', id_master: '', cd_maestro: '', cd_codigo: '', cd_codigoInte: '' })
+            } else if (activeTab === 'tarjetas-credito') {
+                setFormData({ code: '', name: '', type: 'CC', inactive: false })
+            } else if (activeTab === 'formas-pago') {
+                setFormData({ code: '', name: '', iscash: false, iscredit: false, inactive: false })
+            } else if (activeTab === 'paises') {
+                setFormData({ code: '', name: '', dane: '', region: '', prefix: '', curencyId: '' })
+            } else if (activeTab === 'ciudades') {
+                setFormData({ code: '', name: '', countriesId: '', statecode: '', iata: '' })
+            } else if (activeTab === 'aeropuertos') {
+                setFormData({ code: '', name: '', citiesId: '' })
+            } else if (activeTab === 'tipos-tiquetes') {
+                setFormData({ code: '', name: '', description: '', isActive: true })
             } else {
                 setFormData({ code: '', name: '' })
             }
@@ -216,6 +246,12 @@ export default function SettingsPage() {
                                                 activeTab === 'parametros' ? '/api/config/parameters' :
                                                     activeTab === 'monedas' ? '/api/config/currencies' :
                                                         activeTab === 'equivalencias' ? '/api/config/equivalences' :
+                                                                        activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
+                                                                            activeTab === 'formas-pago' ? '/api/config/payments' :
+                                                                                activeTab === 'paises' ? '/api/config/countries' :
+                                                                                    activeTab === 'ciudades' ? '/api/config/cities' :
+                                                                                        activeTab === 'aeropuertos' ? '/api/config/airports' :
+                                                                                            activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
                                                             activeTab === 'combos' ? (formData.id ? `/api/combos/${formData.id}` : '/api/combos') :
                                                                 '/api/config/implants'
 
@@ -309,6 +345,12 @@ export default function SettingsPage() {
                                                 activeTab === 'parametros' ? '/api/config/parameters' :
                                                     activeTab === 'monedas' ? '/api/config/currencies' :
                                                         activeTab === 'equivalencias' ? '/api/config/equivalences' :
+                                                                        activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
+                                                                            activeTab === 'formas-pago' ? '/api/config/payments' :
+                                                                                activeTab === 'paises' ? '/api/config/countries' :
+                                                                                    activeTab === 'ciudades' ? '/api/config/cities' :
+                                                                                        activeTab === 'aeropuertos' ? '/api/config/airports' :
+                                                                                            activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
                                                             activeTab === 'combos' ? `/api/combos/${id}` :
                                                                 '/api/config/implants'
 
@@ -411,7 +453,7 @@ export default function SettingsPage() {
                                 className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                             >
                                 <Plus className="w-5 h-5" />
-                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'monedas' ? 'Nueva Moneda' : activeTab === 'combos' ? 'Nuevo Combo' : activeTab === 'equivalencias' ? 'Nueva Equivalencia' : 'Nuevo Implant'}
+                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'monedas' ? 'Nueva Moneda' : activeTab === 'combos' ? 'Nuevo Combo' : activeTab === 'equivalencias' ? 'Nueva Equivalencia' : activeTab === 'tarjetas-credito' ? 'Nueva Tarjeta' : activeTab === 'formas-pago' ? 'Nueva Forma de Pago' : activeTab === 'paises' ? 'Nuevo País' : activeTab === 'ciudades' ? 'Nueva Ciudad' : activeTab === 'aeropuertos' ? 'Nuevo Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Nuevo Tipo de Tiquete' : 'Nuevo Implant'}
                             </motion.button>
                         </>
                     )}
@@ -436,6 +478,13 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'monedas'} onClick={() => setActiveTab('monedas')} icon={<DollarSign className="w-4 h-4" />} label="Monedas" />
                 <TabButton active={activeTab === 'equivalencias'} onClick={() => setActiveTab('equivalencias')} icon={<Tags className="w-4 h-4" />} label="Equivalencias" />
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
+                <TabButton active={activeTab === 'tarjetas-credito'} onClick={() => setActiveTab('tarjetas-credito')} icon={<Tags className="w-4 h-4" />} label="Tarjetas de Crédito" />
+                <TabButton active={activeTab === 'formas-pago'} onClick={() => setActiveTab('formas-pago')} icon={<Tags className="w-4 h-4" />} label="Formas de Pago" />
+                <TabButton active={activeTab === 'paises'} onClick={() => setActiveTab('paises')} icon={<Tags className="w-4 h-4" />} label="Países" />
+                <TabButton active={activeTab === 'ciudades'} onClick={() => setActiveTab('ciudades')} icon={<Tags className="w-4 h-4" />} label="Ciudades" />
+                <TabButton active={activeTab === 'aeropuertos'} onClick={() => setActiveTab('aeropuertos')} icon={<Tags className="w-4 h-4" />} label="Aeropuertos" />
+                <TabButton active={activeTab === 'tipos-tiquetes'} onClick={() => setActiveTab('tipos-tiquetes')} icon={<Tags className="w-4 h-4" />} label="Tipos Tiquete" />
+                <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
                 <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<TerminalSquare className="w-4 h-4" />} label="Logs del Sistema" />
             </div>
 
@@ -445,7 +494,7 @@ export default function SettingsPage() {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
                     <input
                         type="text"
-                        placeholder={`Buscar en ${activeTab === 'usuarios' ? 'Usuarios' : activeTab === 'sucursales' ? 'Sucursales' : activeTab === 'impuestos' ? 'Cargos e Impuestos' : activeTab === 'vendedores' ? 'Vendedores' : activeTab === 'tiqueteadores' ? 'Tiqueteadores' : activeTab === 'prestadoras' ? 'Prestadoras' : activeTab === 'clientes' ? 'Clientes' : activeTab === 'proveedores' ? 'Proveedores' : activeTab === 'productos' ? 'Productos' : activeTab === 'variables' ? 'Variables' : activeTab === 'parametros' ? 'Parámetros' : activeTab === 'monedas' ? 'Monedas' : activeTab === 'combos' ? 'Combos' : activeTab === 'logs' ? 'Logs' : 'Implants'}...`}
+                        placeholder={`Buscar en ${activeTab === 'usuarios' ? 'Usuarios' : activeTab === 'sucursales' ? 'Sucursales' : activeTab === 'impuestos' ? 'Cargos e Impuestos' : activeTab === 'vendedores' ? 'Vendedores' : activeTab === 'tiqueteadores' ? 'Tiqueteadores' : activeTab === 'prestadoras' ? 'Prestadoras' : activeTab === 'clientes' ? 'Clientes' : activeTab === 'proveedores' ? 'Proveedores' : activeTab === 'productos' ? 'Productos' : activeTab === 'variables' ? 'Variables' : activeTab === 'parametros' ? 'Parámetros' : activeTab === 'monedas' ? 'Monedas' : activeTab === 'combos' ? 'Combos' : activeTab === 'logs' ? 'Logs' : activeTab === 'tarjetas-credito' ? 'Tarjetas' : activeTab === 'formas-pago' ? 'Formas de Pago' : activeTab === 'paises' ? 'Países' : activeTab === 'ciudades' ? 'Ciudades' : activeTab === 'aeropuertos' ? 'Aeropuertos' : activeTab === 'tipos-tiquetes' ? 'Tipos de Tiquete' : 'Implants'}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full h-14 pl-14 pr-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-zinc-900 dark:text-white"
@@ -549,6 +598,42 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Maestro</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código Maestro</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código Equiv.</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'tarjetas-credito' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'formas-pago' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'paises' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'ciudades' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'aeropuertos' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'tipos-tiquetes' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : (
@@ -781,7 +866,7 @@ export default function SettingsPage() {
                                     </tr>
                                 ))}
 
-                                {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : []) || [])
+                                {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : activeTab === 'tarjetas-credito' ? creditCards : activeTab === 'formas-pago' ? payments : activeTab === 'paises' ? countries : activeTab === 'ciudades' ? cities : activeTab === 'aeropuertos' ? airports : activeTab === 'tipos-tiquetes' ? ticketTypes : []) || [])
                                 .filter((item: any) => 
                                     item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                                     item.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -882,7 +967,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'monedas' ? 'Moneda' : activeTab === 'combos' ? 'Combo' : activeTab === 'equivalencias' ? 'Equivalencia' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'monedas' ? 'Moneda' : activeTab === 'combos' ? 'Combo' : activeTab === 'equivalencias' ? 'Equivalencia' : activeTab === 'tarjetas-credito' ? 'Tarjeta' : activeTab === 'formas-pago' ? 'Forma de Pago' : activeTab === 'paises' ? 'País' : activeTab === 'ciudades' ? 'Ciudad' : activeTab === 'aeropuertos' ? 'Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Tipo de Tiquete' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -1353,6 +1438,26 @@ export default function SettingsPage() {
                                                     <Input label="Concepto de Facturación" value={formData.billingConcept || ''} onChange={(v: string) => setFormData({ ...formData, billingConcept: v })} placeholder="Opcional" />
                                                     <Input label="Clasificación Servicio" value={formData.serviceType || ''} onChange={(v: string) => setFormData({ ...formData, serviceType: v })} placeholder="Opcional" />
                                                 </div>
+                                                {formData.type === 'Boleto' && (
+                                                    <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-6 space-y-4">
+                                                        <h4 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Itinerario y Tiquete</h4>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Tipo de Tiquete</label>
+                                                                <SearchSelect
+                                                                    options={ticketTypes}
+                                                                    value={formData.ticketTypeId?.toString() || ''}
+                                                                    onChange={(val) => setFormData({ ...formData, ticketTypeId: val })}
+                                                                    labelKey="name"
+                                                                    placeholder="Seleccionar Tipo"
+                                                                />
+                                                            </div>
+                                                            <Input label="Itinerario de Vuelo" value={formData.flightItinerary || ''} onChange={(v: string) => setFormData({ ...formData, flightItinerary: v })} placeholder="Ej. BOG/CTG" />
+                                                            <Input label="Itinerario de Clases" value={formData.classItinerary || ''} onChange={(v: string) => setFormData({ ...formData, classItinerary: v })} placeholder="Ej. C/C" />
+                                                            <Input label="Itinerario de Aerolínea" value={formData.airlineItinerary || ''} onChange={(v: string) => setFormData({ ...formData, airlineItinerary: v })} placeholder="Ej. AV/AV" />
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </>
                                         ) : activeTab === 'monedas' ? (
                                             <>
@@ -1809,6 +1914,37 @@ export default function SettingsPage() {
                                                 );
                                             })()}
                                             <Input label="Código Equivalente" value={formData.cd_codigo || ''} onChange={(v: string) => setFormData({ ...formData, cd_codigo: v })} required placeholder="Ej. BOG" />
+                                        </>
+                                    ) : activeTab === 'tarjetas-credito' ? (
+                                        <>
+                                            <Input label="Código (Único)" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. VISA" />
+                                            <Input label="Nombre de la Tarjeta" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Visa" />
+                                        </>
+                                    ) : activeTab === 'formas-pago' ? (
+                                        <>
+                                            <Input label="Código (Único)" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. EF" />
+                                            <Input label="Nombre de Forma de Pago" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Efectivo" />
+                                        </>
+                                    ) : activeTab === 'paises' ? (
+                                        <>
+                                            <Input label="Código (Único)" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. CO" />
+                                            <Input label="Nombre del País" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Colombia" />
+                                        </>
+                                    ) : activeTab === 'ciudades' ? (
+                                        <>
+                                            <Input label="Código (Único)" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. BOG" />
+                                            <Input label="Nombre de la Ciudad" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Bogotá" />
+                                        </>
+                                    ) : activeTab === 'aeropuertos' ? (
+                                        <>
+                                            <Input label="Código (Único)" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. BOG" />
+                                            <Input label="Nombre del Aeropuerto" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. El Dorado" />
+                                        </>
+                                    ) : activeTab === 'tipos-tiquetes' ? (
+                                        <>
+                                            <Input label="Código" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. INTERNACIONAL" />
+                                            <Input label="Nombre" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Tiquete Internacional" />
+                                            <Input label="Descripción" value={formData.description || ''} onChange={(v: string) => setFormData({ ...formData, description: v })} placeholder="Descripción opcional" />
                                         </>
                                     ) : (
                                         <>

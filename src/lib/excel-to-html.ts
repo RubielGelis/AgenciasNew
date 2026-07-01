@@ -93,7 +93,7 @@ export async function generateHtmlTemplate(
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(finalBuffer as any);
     
-    const sheet = workbook.getWorksheet(1);
+    const sheet = workbook.worksheets[0];
     if (!sheet) {
         throw new Error("No worksheet found in template");
     }

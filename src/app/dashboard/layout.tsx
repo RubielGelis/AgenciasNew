@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Users, FileText, ShoppingCart, Settings, LogOut, Search, PlusCircle, PieChart } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, ShoppingCart, Settings, LogOut, Search, PlusCircle, PieChart, Receipt, Shield } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 
@@ -17,10 +17,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const navItems = [
         { icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard', href: '/dashboard', active: pathname === '/dashboard' },
         { icon: <FileText className="w-5 h-5" />, label: 'Cotizaciones', href: '/dashboard/quotations/history', active: pathname.includes('/dashboard/quotations') },
-        { icon: <PieChart className="w-5 h-5" />, label: 'Reportes', href: '/dashboard/reports', active: pathname === '/dashboard/reports' },
-
-        { icon: <Settings className="w-5 h-5" />, label: 'Configuración', href: '/dashboard/settings', active: pathname === '/dashboard/settings' },
-    ]
+        { icon: <Receipt className="w-5 h-5" />, label: 'Facturación', href: '/dashboard/invoices/history', active: pathname.includes('/dashboard/invoices') },
+        { icon: <Settings className="w-5 h-5" />, label: 'Maestros', href: '/dashboard/settings', active: pathname.includes('/dashboard/settings') },
+        { icon: <PieChart className="w-5 h-5" />, label: 'Reportes', href: '/dashboard/reports', active: pathname.includes('/dashboard/reports') }
+    ];
 
     if (pathname === '/dashboard/quotations/print') {
         return (

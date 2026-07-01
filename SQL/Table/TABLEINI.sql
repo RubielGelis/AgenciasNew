@@ -1,4 +1,4 @@
-do $$
+DO $$ 
 BEGIN
 	CREATE SEQUENCE IF NOT EXISTS public."Attachment_id_seq"
 	    INCREMENT 1
@@ -1085,9 +1085,7 @@ BEGIN
 	
 	ALTER TABLE IF EXISTS public."GDS" OWNER to postgres;
 	
-	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN
-		ALTER TABLE public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id);
-	END IF;
+	
 
 	--DROP INDEX IF EXISTS public."gds_name_key";
 
@@ -1119,9 +1117,7 @@ BEGIN
 	
 	ALTER TABLE IF EXISTS public."Interfaces" OWNER to postgres;
 
-	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'interfaces_pkey') THEN
-		ALTER TABLE public."Interfaces" ADD CONSTRAINT "interfaces_pkey" PRIMARY KEY (id);
-	END IF;
+	
 
 	-- DROP INDEX IF EXISTS public."interfaces_code_key";
 	
@@ -1157,9 +1153,7 @@ BEGIN
 	
 	ALTER TABLE IF EXISTS public."Master" OWNER to postgres;
 
-	IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'master_pkey') THEN
-		ALTER TABLE public."Master" ADD CONSTRAINT "master_pkey" PRIMARY KEY (id);
-	END IF;
+	
 
 	-- DROP INDEX IF EXISTS public."master_code_key";
 
@@ -1653,4 +1647,201 @@ BEGIN
 	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_branch_code_key" ON public."CellCustomization" ("branchId", "code") WHERE "branchId" IS NOT NULL;
 	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_implant_code_key" ON public."CellCustomization" ("implantId", "code") WHERE "implantId" IS NOT NULL;
 
-END	$$
+	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "logo" bytea;
+	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "template" bytea;
+	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "templateConfig" jsonb;
+	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "htmlTemplate" text;
+
+	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "logo" bytea;
+	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "template" bytea;
+	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "templateConfig" jsonb;
+	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "htmlTemplate" text;
+END $$;
+
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN 
+        ALTER TABLE public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id); 
+    END IF; 
+END $$;
+
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'interfaces_pkey') THEN 
+        ALTER TABLE public."Interfaces" ADD CONSTRAINT "interfaces_pkey" PRIMARY KEY (id); 
+    END IF; 
+END $$;
+
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'master_pkey') THEN 
+        ALTER TABLE public."Master" ADD CONSTRAINT "master_pkey" PRIMARY KEY (id); 
+    END IF; 
+END $$;
+-- Script para la tabla maestra TicketType
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'TicketType') THEN
+        CREATE TABLE public."TicketType" (
+            "id" SERIAL PRIMARY KEY,
+            "code" VARCHAR(50) UNIQUE NOT NULL,
+            "name" VARCHAR(255) NOT NULL,
+            "description" TEXT,
+            "isActive" BOOLEAN DEFAULT true
+        );
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Invoices') THEN
+        CREATE TABLE public."Invoices" (
+            "id" SERIAL PRIMARY KEY,
+            "internalNumber" VARCHAR(255) UNIQUE NOT NULL,
+            "date" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "clientId" INT NOT NULL,
+            "currency" VARCHAR(50) NOT NULL,
+            "exchangeRate" FLOAT NOT NULL,
+            "branchId" INT NOT NULL,
+            "implantId" INT,
+            "sellerId" INT,
+            "ticketPrinterId" INT,
+            "baseCommissionable" FLOAT NOT NULL,
+            "commissionPercentage" FLOAT NOT NULL,
+            "chargesAndTaxes" FLOAT NOT NULL,
+            "totalAmount" FLOAT NOT NULL,
+            "userId" INT,
+            "state" VARCHAR(25) DEFAULT 'NUEVO'
+        );
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProduct') THEN
+        CREATE TABLE public."InvoicesProduct" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceId" INT NOT NULL,
+            "productId" INT NOT NULL,
+            "quantity" INT NOT NULL,
+            "price" FLOAT NOT NULL,
+            "cost" FLOAT DEFAULT 0,
+            "providerId" INT,
+            "prestadoraId" INT,
+            "checkInDate" TIMESTAMP,
+            "checkOutDate" TIMESTAMP,
+            "nights" INT,
+            "paxAdults" INT,
+            "paxChildren" INT,
+            "serviceType" VARCHAR(255),
+            "destination" VARCHAR(255),
+            "reservationCode" VARCHAR(255),
+            "sellerCommission" FLOAT,
+            "ticketPrinterCommission" FLOAT,
+            "comboId" INT,
+            "mainTaxId" INT,
+            "inNationality" INT DEFAULT 1,
+            
+            -- Nuevos campos solicitados
+            "servicios" TEXT,
+            "descripcion" TEXT,
+            "itinerary" TEXT,
+            "class" VARCHAR(100),
+            "ticketTypeId" INT
+        );
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductCombo') THEN
+        CREATE TABLE public."InvoicesProductCombo" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceId" INT NOT NULL,
+            "comboId" INT NOT NULL
+        );
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax') THEN
+        CREATE TABLE public."InvoicesProductTax" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceProductId" INT NOT NULL,
+            "chargeAndTaxId" INT NOT NULL,
+            "valueSnapshot" FLOAT NOT NULL,
+            "valueTypeSnapshot" VARCHAR(50) NOT NULL,
+            "explicitAmount" FLOAT,
+            "isMain" BOOLEAN DEFAULT false
+        );
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger') THEN
+        CREATE TABLE public."InvoicesProductPasenger" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceProductId" INT NOT NULL,
+            "name" VARCHAR(255) NOT NULL,
+            "document" VARCHAR(255) NOT NULL
+        );
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable') THEN
+        CREATE TABLE public."InvoicesProductVariable" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceProductId" INT NOT NULL,
+            "masterVariableId" INT NOT NULL,
+            "value" VARCHAR(255) NOT NULL
+        );
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment') THEN
+        CREATE TABLE public."InvoicesProductPayment" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceProductId" INT NOT NULL,
+            "amount" FLOAT NOT NULL,
+            "paymentMethod" VARCHAR(100),
+            "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            "reference" VARCHAR(255)
+        );
+    END IF;
+END $$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'servicios') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "servicios" TEXT;
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'descripcion') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "descripcion" TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'airline') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "airline" VARCHAR(100);
+    END IF;
+END $$;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary') THEN
+        CREATE TABLE public."InvoicesProductItinerary" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceProductId" INT NOT NULL,
+            "orden" INT,
+            "origin" VARCHAR(255) NOT NULL,
+            "destination" VARCHAR(255) NOT NULL,
+            "class" VARCHAR(255),
+            "checkInDate" TIMESTAMP,
+            "checkOutDate" TIMESTAMP,
+            "terminal" VARCHAR(255),
+            "prestadoraCode" VARCHAR(255),
+            "farebasis" VARCHAR(255),
+            "Numflight" VARCHAR(25),
+            "Typeflight" VARCHAR(1),
+            "amount" FLOAT,
+            CONSTRAINT "InvoicesProductItinerary_invoiceProductId_fkey" FOREIGN KEY ("invoiceProductId") REFERENCES public."InvoicesProduct" (id) ON UPDATE CASCADE ON DELETE CASCADE
+        );
+    END IF;
+END $$;

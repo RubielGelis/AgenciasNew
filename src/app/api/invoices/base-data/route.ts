@@ -1,0 +1,83 @@
+import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
+
+export async function GET(req: NextRequest) {
+    try {
+        const userIdHeader = req.headers.get('X-User-Id')
+        const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
+
+        // Defensive check for models
+        const requiredModels = ['client', 'provider', 'prestadora', 'branch', 'implant', 'product', 'chargeAndTax', 'seller', 'ticketPrinter', 'masterVariable', 'user', 'combo', 'currency']
+        const availableModels = Object.keys(prisma).filter(k => k[0] !== '$' && k[0] !== '_');
+        
+        for (const model of requiredModels) {
+            if (!(prisma as any)[model]) {
+                console.warn(`Prisma model "${model}" is undefined in base-data API! Available: ${availableModels.join(', ')}`)
+                // We'll continue but this model will return empty array below
+            }
+        }
+
+        const [clients, providers, prestadoras, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies, creditCards, payments, ticketTypes] = await Promise.all([
+            (prisma as any).client?.findMany({ select: { id: true, name: true, document: true } }) || Promise.resolve([]),
+            (prisma as any).provider?.findMany({ include: { prestadoras: true } }) || Promise.resolve([]),
+            (prisma as any).prestadora?.findMany() || Promise.resolve([]),
+            (prisma as any).branch?.findMany() || Promise.resolve([]),
+            (prisma as any).implant?.findMany({ select: { id: true, name: true, branchId: true } }) || Promise.resolve([]),
+            (prisma as any).product?.findMany() || Promise.resolve([]),
+            (prisma as any).chargeAndTax?.findMany() || Promise.resolve([]),
+            (prisma as any).seller?.findMany() || Promise.resolve([]),
+            (prisma as any).ticketPrinter?.findMany() || Promise.resolve([]),
+            (prisma as any).masterVariable?.findMany() || Promise.resolve([]),
+            actingUserId ? (prisma as any).user?.findUnique({ where: { id: actingUserId } }) : Promise.resolve(null),
+            (prisma as any).combo?.findMany({
+                include: {
+                    products: {
+                        include: {
+                            appliedTaxes: {
+                                include: { chargeAndTax: true }
+                            },
+                            product: true
+                        }
+                    }
+                },
+                orderBy: { createdAt: 'desc' }
+            }),
+            (prisma as any).currency?.findMany() || Promise.resolve([]),
+            (prisma as any).creditCard?.findMany({ where: { inactive: false } }) || Promise.resolve([]),
+            (prisma as any).payment?.findMany({ where: { inactive: false } }) || Promise.resolve([]),
+            (prisma as any).ticketType?.findMany({ where: { isActive: true } }) || Promise.resolve([])
+        ])
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const validCombos = (combos || []).map((combo: any) => ({
+            ...combo,
+            products: combo.products.filter((p: any) => !p.checkOutDate || new Date(p.checkOutDate) >= today)
+        })).filter((combo: any) => combo.products.length > 0 && (combo.cupos === undefined || combo.cupos === null || combo.cupos > 0));
+
+        return NextResponse.json({
+            clients,
+            providers,
+            prestadoras,
+            branches,
+            implants,
+            products,
+            taxes,
+            sellers,
+            ticketPrinters,
+            variables,
+            currentUser,
+            combos: validCombos,
+            currencies,
+            creditCards,
+            payments,
+            ticketTypes
+        })
+    } catch (error: any) {
+        console.error('Data fetch error:', error)
+        return NextResponse.json({ message: 'Error fetching base data', detail: error?.message || String(error) }, { status: 500 })
+    }
+}

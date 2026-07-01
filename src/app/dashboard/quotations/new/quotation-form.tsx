@@ -33,6 +33,7 @@ interface QuotationFormData {
         destination: string;
         serviceType: string;
         reservationCode: string;
+        descripcion?: string;
         passengers: { name: string, document: string }[];
         sellerCommission: number;
         ticketPrinterCommission: number;
@@ -353,6 +354,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     destination: p.destination || '',
                                     serviceType: p.serviceType || '',
                                     reservationCode: p.reservationCode || '',
+                                    descripcion: p.descripcion || '',
                                     passengers: Array.isArray(p.passengers) ? p.passengers : [],
                                     sellerCommission: p.sellerCommission || 0,
                                     ticketPrinterCommission: p.ticketPrinterCommission || 0,
@@ -391,7 +393,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             items: [...formData.items, {
                 productId: '', quantity: 1, price: 0, cost: 0,
                 providerId: '', prestadoraId: '', checkIn: '', checkOut: '',
-                paxAdults: 1, paxChildren: 0, destination: '', serviceType: '', reservationCode: '', passengers: [{ name: '', document: '' }],
+                paxAdults: 1, paxChildren: 0, destination: '', serviceType: '', reservationCode: '', descripcion: '', passengers: [{ name: '', document: '' }],
                 sellerCommission: 0, ticketPrinterCommission: 0,
                 appliedTaxes: [],
                 variables: [],
@@ -443,6 +445,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 destination: '',
                 serviceType: '',
                 reservationCode: '',
+                descripcion: '',
                 passengers: [],
                 sellerCommission: 0,
                 ticketPrinterCommission: 0,
@@ -937,6 +940,10 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-zinc-400">Reservación</label>
                                                     <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={item.reservationCode} onChange={(e) => updateItem(index, 'reservationCode', e.target.value)} />
+                                                </div>
+                                                <div className="space-y-1 md:col-span-2">
+                                                    <label className="text-[10px] uppercase font-bold text-blue-500">Descripción Manual</label>
+                                                    <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-blue-200 dark:border-blue-800 outline-none text-xs" value={item.descripcion || ''} onChange={(e) => updateItem(index, 'descripcion', e.target.value)} placeholder="Descripción manual del producto..." />
                                                 </div>
                                             </div>
 

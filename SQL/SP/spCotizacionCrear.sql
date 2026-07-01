@@ -77,21 +77,24 @@ BEGIN
                       "checkIn" TEXT, "checkOut" TEXT, "nights" INT, "mainTaxId" TEXT,
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
-                      "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "inNationality" INT
+                      "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "inNationality" INT,
+                      "servicios" TEXT, "descripcion" TEXT
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
             "quotationId", "productId", "quantity", "price", "cost", "providerId", "prestadoraId",
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
-            "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality"
+            "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
+            "servicios", "descripcion"
         ) VALUES (
             v_quotation_id, v_item."productId", v_item.quantity, v_item.price, v_item.cost, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
             CASE WHEN v_item."checkOut" IS NOT NULL AND v_item."checkOut" <> '' THEN v_item."checkOut"::TIMESTAMP ELSE NULL END,
             v_item.nights, v_item."paxAdults", v_item."paxChildren",
             v_item."serviceType", v_item."destination", v_item."reservationCode", v_item."sellerCommission",
-            v_item."ticketPrinterCommission", NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1)
+            v_item."ticketPrinterCommission", NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
+            v_item."servicios", v_item."descripcion"
         ) RETURNING id INTO v_quotation_product_id;
 
         IF v_item.passengers IS NOT NULL THEN

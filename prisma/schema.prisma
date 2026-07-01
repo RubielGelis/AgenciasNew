@@ -1,12 +1,14 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
+  provider        = "prisma-client-js"
+  output          = "../node_modules/.prisma/client"
+  previewFeatures = ["partialIndexes"]
 }
 
 generator erd {
-  provider = "prisma-erd-generator"
-  output   = "./ERD.svg"
-  theme    = "neutral"
+  provider        = "prisma-erd-generator"
+  output          = "./ERD.svg"
+  previewFeatures = ["partialIndexes"]
+  theme           = "neutral"
 }
 
 datasource db {
@@ -53,51 +55,55 @@ model Provider {
   name              String
   contactInfo       String?
   commissionConfig  Json?
+  comboProducts     ComboProduct[]
   prestadoras       Prestadora[]
   quotationProducts QuotationProduct[]
-  comboProducts     ComboProduct[]
 }
 
 model Prestadora {
   id                Int                @id @default(autoincrement())
   name              String
-  type              String?
   location          String?
   category          String?
   providerId        Int?
-  code              String?            @unique
-  provider          Provider?          @relation(fields: [providerId], references: [id])
-  quotationProducts QuotationProduct[]
+  code              String?            @unique(map: "Hotel_code_key")
+  type              String?
+  initials          String?
+  nogds             String?
   comboProducts     ComboProduct[]
+  provider          Provider?          @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  quotationProducts QuotationProduct[]
 }
 
 model Branch {
-  id             Int         @id @default(autoincrement())
-  code           String      @unique
-  name           String
-  logo           Bytes?
-  template       Bytes?
-  templateConfig Json?
-  htmlTemplate   String?
-  cellCustomizations CellCustomization[]
-  implants       Implant[]
-  quotations     Quotation[]
-  users          User[]
+  id                   Int                    @id @default(autoincrement())
+  code                 String                 @unique
+  name                 String
+  logo                 Bytes?
+  template             Bytes?
+  templateConfig       Json?
+  htmlTemplate         String?
+  BranchGDSInvoiceAuto BranchGDSInvoiceAuto[]
+  cellCustomizations   CellCustomization[]
+  implants             Implant[]
+  quotations           Quotation[]
+  users                User[]
 }
 
 model Implant {
-  id             Int         @id @default(autoincrement())
-  code           String      @unique
-  name           String
-  logo           Bytes?
-  template       Bytes?
-  templateConfig Json?
-  htmlTemplate   String?
+  id                 Int                 @id @default(autoincrement())
+  code               String              @unique
+  name               String
+  branchId           Int?
+  logo               Bytes?
+  template           Bytes?
+  templateConfig     Json?
+  htmlTemplate       String?
+  Logo               Bytes?
   cellCustomizations CellCustomization[]
-  branchId       Int?
-  branch         Branch?     @relation(fields: [branchId], references: [id])
-  quotations     Quotation[]
-  users          User[]
+  branch             Branch?             @relation(fields: [branchId], references: [id])
+  quotations         Quotation[]
+  users              User[]
 }
 
 model Seller {
@@ -122,12 +128,17 @@ model Product {
   type              String
   description       String
   basePrice         Float
-  cost              Float?             @default(0)
   billingConcept    String?
   serviceType       String?
   code              String?            @unique
-  quotationProducts QuotationProduct[]
+  cost              Float?             @default(0)
+  airlineItinerary  String?
+  classItinerary    String?
+  flightItinerary   String?
+  ticketTypeId      Int?
   comboProducts     ComboProduct[]
+  ticketType        TicketType?        @relation(fields: [ticketTypeId], references: [id])
+  quotationProducts QuotationProduct[]
 }
 
 model Quotation {
@@ -154,16 +165,16 @@ model Quotation {
   seller               Seller?            @relation(fields: [sellerId], references: [id])
   ticketPrinter        TicketPrinter?     @relation(fields: [ticketPrinterId], references: [id])
   user                 User?              @relation(fields: [userId], references: [id])
-  products             QuotationProduct[]
   combos               QuotationCombo[]
+  products             QuotationProduct[]
 }
 
 model QuotationCombo {
   id          Int       @id @default(autoincrement())
   quotationId Int
   comboId     Int
-  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
   combo       Combo     @relation(fields: [comboId], references: [id])
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 }
 
 model Attachment {
@@ -183,7 +194,6 @@ model QuotationProduct {
   productId               Int
   quantity                Int
   price                   Float
-  cost                    Float?                      @default(0)
   providerId              Int?
   prestadoraId            Int?
   checkInDate             DateTime?
@@ -196,6 +206,14 @@ model QuotationProduct {
   reservationCode         String?
   sellerCommission        Float?
   ticketPrinterCommission Float?
+  comboId                 Int?
+  mainTaxId               Int?
+  inNationality           Int                         @default(1)
+  cost                    Float?                      @default(0)
+  service                 String?
+  description             String?
+  servicios               String?
+  descripcion             String?
   prestadora              Prestadora?                 @relation(fields: [prestadoraId], references: [id])
   product                 Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
   provider                Provider?                   @relation(fields: [providerId], references: [id])
@@ -203,9 +221,6 @@ model QuotationProduct {
   passengers              QuotationProductPassenger[]
   appliedTaxes            QuotationProductTax[]
   variables               QuotationProductVariable[]
-  comboId                 Int?
-  mainTaxId               Int?
-  inNationality           Int                         @default(1)
 }
 
 model QuotationProductPassenger {
@@ -220,14 +235,14 @@ model QuotationProductPassenger {
 
 model ChargeAndTax {
   id         Int                   @id @default(autoincrement())
-  code       String?               @unique
   name       String
   type       String
   valueType  String
   value      Float
   isEditable Boolean               @default(true)
-  appliedTo  QuotationProductTax[]
+  code       String?               @unique
   comboTaxes ComboProductTax[]
+  appliedTo  QuotationProductTax[]
 }
 
 model QuotationProductTax {
@@ -277,39 +292,38 @@ model SystemParameter {
 }
 
 model Combo {
-  id             Int              @id @default(autoincrement())
-  code           String           @unique
-  name           String
-  cupos          Int              @default(0)
-  currencyId     Int?
-  currency       Currency?        @relation(fields: [currencyId], references: [id])
-  products       ComboProduct[]
+  id              Int              @id @default(autoincrement())
+  code            String           @unique
+  name            String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  currencyId      Int?
+  cupos           Int              @default(0)
+  currency        Currency?        @relation(fields: [currencyId], references: [id])
+  products        ComboProduct[]
   quotationCombos QuotationCombo[]
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
 }
 
 model ComboProduct {
-  id           Int               @id @default(autoincrement())
-  comboId      Int
-  productId    Int
-  quantity     Int               @default(1)
-  price        Float
-  cost         Float?            @default(0)
-  providerId   Int?
-  prestadoraId Int?
-  checkInDate  DateTime?
-  checkOutDate DateTime?
-  paxAdults    Int?
-  paxChildren  Int?
-  mainTaxId    Int?
+  id            Int               @id @default(autoincrement())
+  comboId       Int
+  productId     Int
+  price         Float
+  checkInDate   DateTime?
+  checkOutDate  DateTime?
+  prestadoraId  Int?
+  mainTaxId     Int?
+  paxAdults     Int?
+  paxChildren   Int?
+  providerId    Int?
   inNationality Int               @default(1)
-  
-  combo        Combo             @relation(fields: [comboId], references: [id], onDelete: Cascade)
-  product      Product           @relation(fields: [productId], references: [id])
-  provider     Provider?         @relation(fields: [providerId], references: [id])
-  prestadora   Prestadora?       @relation(fields: [prestadoraId], references: [id])
-  appliedTaxes ComboProductTax[]
+  quantity      Int               @default(1)
+  cost          Float?            @default(0)
+  combo         Combo             @relation(fields: [comboId], references: [id], onDelete: Cascade)
+  prestadora    Prestadora?       @relation(fields: [prestadoraId], references: [id])
+  product       Product           @relation(fields: [productId], references: [id])
+  provider      Provider?         @relation(fields: [providerId], references: [id])
+  appliedTaxes  ComboProductTax[]
 }
 
 model ComboProductTax {
@@ -318,26 +332,501 @@ model ComboProductTax {
   chargeAndTaxId Int
   amount         Float
   isMain         Boolean      @default(false)
-  
-  comboProduct   ComboProduct @relation(fields: [comboProductId], references: [id], onDelete: Cascade)
   chargeAndTax   ChargeAndTax @relation(fields: [chargeAndTaxId], references: [id])
+  comboProduct   ComboProduct @relation(fields: [comboProductId], references: [id], onDelete: Cascade)
 }
 
 model Currency {
-  id           Int      @id @default(autoincrement())
-  code         String   @unique
+  id           Int         @id @default(autoincrement())
+  code         String      @unique
   name         String
   exchangeRate Float
   combos       Combo[]
+  Countries    Countries[]
 }
 
 model CellCustomization {
   id        Int      @id @default(autoincrement())
-  code      String
-  name      String
-  value     String?
+  code      String   @db.VarChar(50)
+  name      String   @db.VarChar(100)
+  value     String?  @db.VarChar(10)
   branchId  Int?
   implantId Int?
   branch    Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
   implant   Implant? @relation(fields: [implantId], references: [id], onDelete: Cascade)
+
+  @@unique([branchId, code], map: "CellCustomization_branch_code_key", where: raw("(\"branchId\" IS NOT NULL)"))
+  @@unique([implantId, code], map: "CellCustomization_implant_code_key", where: raw("(\"implantId\" IS NOT NULL)"))
+}
+
+model Invoices {
+  id                   Int      @id @default(autoincrement())
+  internalNumber       String   @unique @db.VarChar(255)
+  date                 DateTime @default(now()) @db.Timestamp(6)
+  clientId             Int
+  currency             String   @db.VarChar(50)
+  exchangeRate         Float
+  branchId             Int
+  implantId            Int?
+  sellerId             Int?
+  ticketPrinterId      Int?
+  baseCommissionable   Float
+  commissionPercentage Float
+  chargesAndTaxes      Float
+  totalAmount          Float
+  userId               Int?
+  state                String?  @default("NUEVO") @db.VarChar(25)
+}
+
+model InvoicesProduct {
+  id                      Int                        @id @default(autoincrement())
+  invoiceId               Int
+  productId               Int
+  quantity                Int
+  price                   Float
+  cost                    Float?                     @default(0)
+  providerId              Int?
+  prestadoraId            Int?
+  checkInDate             DateTime?                  @db.Timestamp(6)
+  checkOutDate            DateTime?                  @db.Timestamp(6)
+  nights                  Int?
+  paxAdults               Int?
+  paxChildren             Int?
+  serviceType             String?                    @db.VarChar(255)
+  destination             String?                    @db.VarChar(255)
+  reservationCode         String?                    @db.VarChar(255)
+  sellerCommission        Float?
+  ticketPrinterCommission Float?
+  comboId                 Int?
+  mainTaxId               Int?
+  inNationality           Int?                       @default(1)
+  servicios               String?
+  descripcion             String?
+  itinerary               String?
+  class                   String?                    @db.VarChar(100)
+  ticketTypeId            Int?
+  airline                 String?                    @db.VarChar(100)
+  itineraries             InvoicesProductItinerary[]
+}
+
+model InvoicesProductItinerary {
+  id               Int             @id @default(autoincrement())
+  invoiceProductId Int
+  orden            Int?
+  origin           String
+  destination      String
+  class            String?
+  checkInDate      DateTime?
+  checkOutDate     DateTime?
+  terminal         String?
+  prestadoraCode   String?
+  farebasis        String?
+  Numflight        String?         @db.VarChar(25)
+  Typeflight       String?         @db.VarChar(1)
+  amount           Float?
+  InvoicesProduct  InvoicesProduct @relation(fields: [invoiceProductId], references: [id], onDelete: Cascade)
+}
+
+model InvoicesProductCombo {
+  id        Int @id @default(autoincrement())
+  invoiceId Int
+  comboId   Int
+}
+
+model InvoicesProductTax {
+  id                Int      @id @default(autoincrement())
+  invoiceProductId  Int
+  chargeAndTaxId    Int
+  valueSnapshot     Float
+  valueTypeSnapshot String   @db.VarChar(50)
+  explicitAmount    Float?
+  isMain            Boolean? @default(false)
+}
+
+model InvoicesProductPasenger {
+  id               Int    @id @default(autoincrement())
+  invoiceProductId Int
+  name             String @db.VarChar(255)
+  document         String @db.VarChar(255)
+}
+
+model InvoicesProductVariable {
+  id               Int    @id @default(autoincrement())
+  invoiceProductId Int
+  masterVariableId Int
+  value            String @db.VarChar(255)
+}
+
+model InvoicesProductPayment {
+  id                Int       @id @default(autoincrement())
+  invoiceProductId  Int
+  amount            Float
+  paymentMethod     String?   @db.VarChar(100)
+  date              DateTime? @default(now()) @db.Timestamp(6)
+  reference         String?   @db.VarChar(255)
+  creditCardId      Int?
+  cardNumber        String?   @db.VarChar(20)
+  authorizationCode String?   @db.VarChar(50)
+  voucher           String?   @db.VarChar(50)
+  expirationDate    String?   @db.VarChar(10)
+}
+
+model TicketType {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique @db.VarChar(50)
+  name        String    @db.VarChar(255)
+  description String?
+  isActive    Boolean?  @default(true)
+  products    Product[]
+}
+
+model Airports {
+  id       Int    @id @default(autoincrement())
+  code     String @unique(map: "airports_code_key") @db.VarChar(10)
+  name     String @db.VarChar(150)
+  citiesId Int
+  Cities   Cities @relation(fields: [citiesId], references: [id], onDelete: Cascade)
+}
+
+model BookingGDS {
+  id                Int                 @id @default(autoincrement())
+  code              String              @unique(map: "bookingds_code_key") @db.VarChar(25)
+  type              String              @db.VarChar(25)
+  blanch            String              @db.VarChar(25)
+  implant           String?             @db.VarChar(25)
+  external          Boolean             @default(false)
+  gds               Int?
+  date              DateTime?           @default(now()) @db.Timestamp(6)
+  currency          String
+  exchangeRate      Float
+  tiquetPrinter     String              @db.VarChar(25)
+  seller            String              @db.VarChar(25)
+  client            String              @db.VarChar(25)
+  booking           String?
+  typetransaction   String?             @db.VarChar(25)
+  iata              String?             @db.VarChar(25)
+  description       String?
+  observation       String?
+  state             String?             @db.VarChar(25)
+  BookingProductGDS BookingProductGDS[]
+}
+
+model BookingGDSInvoiceAutoLog {
+  Id          Int       @id @default(autoincrement())
+  branchId    Int?
+  implanteId  Int?
+  date        DateTime? @db.Timestamp(6)
+  menssage    String?
+  bookingCode String?   @db.VarChar(25)
+  bookingId   Int?
+  error       Boolean?
+  file        String?
+  userId      Int?
+}
+
+model BookingProductFEEGDS {
+  id                       Int                        @id @default(autoincrement())
+  bookingProductId         Int
+  code                     String
+  name                     String
+  type                     String
+  description              String
+  billigconcept            String
+  servicetype              String
+  amount                   Float
+  tax                      Float
+  other                    Float
+  total                    Float
+  BookingProductGDS        BookingProductGDS          @relation(fields: [bookingProductId], references: [id], onDelete: Cascade)
+  BookingProductPaymentGDS BookingProductPaymentGDS[]
+}
+
+model BookingProductGDS {
+  id                         Int                          @id @default(autoincrement())
+  bookingId                  Int
+  code                       String                       @db.VarChar(25)
+  type                       String?                      @db.VarChar(25)
+  service                    String?
+  description                String?
+  prestadoracode             String?                      @db.VarChar(25)
+  prestadorainitials         String?                      @db.VarChar(25)
+  prestadoradist             String?                      @db.VarChar(25)
+  provider                   String?                      @db.VarChar(25)
+  quantity                   Int
+  price                      Float
+  cost                       Float?                       @default(0)
+  checkInDate                DateTime?
+  checkOutDate               DateTime?
+  nights                     Int?
+  paxAdults                  Int?
+  paxChildren                Int?
+  serviceType                String?
+  billingConcept             String?
+  destination                String?
+  reservationCode            String?
+  sellerCom                  Float?
+  ticketPrinterCom           Float?
+  inNationality              Int?                         @default(1)
+  state                      String?                      @default("NUEVO") @db.VarChar(25)
+  conjunction                Int?                         @default(0)
+  revised                    String?                      @db.VarChar(25)
+  typeproduct                String?                      @db.VarChar(25)
+  penalty                    String?                      @db.VarChar(25)
+  consecutive                String?                      @db.VarChar(25)
+  BookingProductFEEGDS       BookingProductFEEGDS[]
+  BookingGDS                 BookingGDS                   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  BookingProductItineraryGDS BookingProductItineraryGDS[]
+  BookingProductPassangerGDS BookingProductPassangerGDS[]
+  BookingProductPaymentGDS   BookingProductPaymentGDS[]
+  BookingProductTaxGDS       BookingProductTaxGDS[]
+  BookingProductVariableGDS  BookingProductVariableGDS[]
+}
+
+model BookingProductItineraryGDS {
+  id                Int               @id @default(autoincrement())
+  bookingProductId  Int
+  orden             Int?
+  origin            String
+  destination       String
+  class             String
+  checkInDate       DateTime?
+  checkOutDate      DateTime?
+  terminal          String
+  prestadoraCode    String
+  farebasis         String
+  Numflight         String?           @db.VarChar(25)
+  Typeflight        String?           @db.VarChar(1)
+  amount            Float
+  BookingProductGDS BookingProductGDS @relation(fields: [bookingProductId], references: [id], onDelete: Cascade)
+}
+
+model BookingProductPassangerGDS {
+  id                Int               @id @default(autoincrement())
+  bookingProductId  Int
+  code              String?           @db.VarChar(25)
+  firstnm           String?           @db.VarChar(30)
+  lastnm            String?           @db.VarChar(30)
+  prefix            String?           @db.VarChar(25)
+  identification    String?           @db.VarChar(25)
+  phone             String?           @db.VarChar(25)
+  email             String?           @db.VarChar(250)
+  BookingProductGDS BookingProductGDS @relation(fields: [bookingProductId], references: [id], onDelete: Cascade)
+}
+
+model BookingProductPaymentGDS {
+  id                   Int                   @id @default(autoincrement())
+  bookingProductId     Int?
+  bookingProductFEEId  Int?
+  code                 String                @db.VarChar(50)
+  name                 String                @db.VarChar(50)
+  type                 String                @db.VarChar(50)
+  typecreditcard       String?               @db.VarChar(25)
+  numbercreditcard     String?               @db.VarChar(16)
+  vouchercreditcard    String?               @db.VarChar(25)
+  expiredcreditcard    String?               @db.VarChar(5)
+  authcreditcard       String?               @db.VarChar(25)
+  quotas               Int?
+  bank                 String?               @db.VarChar(25)
+  square               String?               @db.VarChar(30)
+  reference            String?               @db.VarChar(50)
+  policy               String?               @db.VarChar(25)
+  policyannex          String?               @db.VarChar(25)
+  amount               Float
+  BookingProductFEEGDS BookingProductFEEGDS? @relation(fields: [bookingProductFEEId], references: [id], onDelete: Cascade)
+  BookingProductGDS    BookingProductGDS?    @relation(fields: [bookingProductId], references: [id], onDelete: Cascade)
+}
+
+model BookingProductTaxGDS {
+  id                Int               @id @default(autoincrement())
+  bookingProductId  Int
+  code              String            @db.VarChar(25)
+  name              String            @db.VarChar(50)
+  type              String            @db.VarChar(25)
+  ismain            Boolean?          @default(false)
+  percentage        Float
+  amount            Float
+  BookingProductGDS BookingProductGDS @relation(fields: [bookingProductId], references: [id], onDelete: Cascade)
+}
+
+model BookingProductVariableGDS {
+  id                Int               @id @default(autoincrement())
+  bookingProductId  Int
+  code              String?
+  name              String?
+  value             String?
+  BookingProductGDS BookingProductGDS @relation(fields: [bookingProductId], references: [id], onDelete: Cascade)
+}
+
+model BookingsGDSInvoiceAuto {
+  id          Int     @id @default(autoincrement())
+  Branch      String? @db.VarChar(25)
+  implant     String? @db.VarChar(25)
+  bookingCode String? @db.VarChar(25)
+  bookingId   Int?
+}
+
+model BookingsGDS_log {
+  id          Int     @id @default(autoincrement())
+  blanch      String? @db.VarChar(25)
+  implant     String? @db.VarChar(25)
+  message     String?
+  file        String? @db.VarChar(250)
+  codebooking String? @db.VarChar(50)
+  booking     String?
+  error       Int     @default(0)
+}
+
+model BranchGDSInvoiceAuto {
+  id          Int      @id @default(autoincrement())
+  branchId    Int
+  gdsId       Int
+  EnvoiceAuto Boolean? @default(false)
+  Branch      Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+}
+
+model Cities {
+  id          Int        @id @default(autoincrement())
+  code        String     @unique(map: "cities_code_key") @db.VarChar(10)
+  name        String     @db.VarChar(100)
+  countriesId Int
+  statecode   String?    @db.VarChar(25)
+  iata        String?    @db.VarChar(10)
+  Airports    Airports[]
+  Countries   Countries  @relation(fields: [countriesId], references: [id], onDelete: Cascade)
+}
+
+model Countries {
+  id        Int       @id @default(autoincrement())
+  code      String    @unique(map: "countries_code_key") @db.VarChar(10)
+  name      String    @db.VarChar(100)
+  dane      String?   @db.VarChar(25)
+  region    String?   @db.VarChar(50)
+  prefix    String?   @db.VarChar(10)
+  curencyId Int?
+  Cities    Cities[]
+  Currency  Currency? @relation(fields: [curencyId], references: [id])
+}
+
+model CreditCard {
+  id       Int     @id @default(autoincrement())
+  code     String  @unique
+  name     String
+  type     String
+  inactive Boolean @default(false)
+}
+
+model EquivalencesInterfaces {
+  id            Int       @id @default(autoincrement())
+  id_interfaces Int
+  id_master     Int
+  cd_maestro    String
+  cd_codigo     String
+  cd_codigointe String
+  dt_fecha      DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model EquivalenciasInterfaces_Log {
+  id              Int       @id @default(autoincrement())
+  Id_Interfaces   Int?
+  cd_maestro      String?   @db.VarChar(50)
+  cd_codigo       String?   @db.VarChar(50)
+  cd_codigoInte   String?   @db.VarChar(50)
+  cd_operacion    String?   @db.VarChar(50)
+  ds_xmlpeticion  String?
+  ds_xmlrespuesta String?
+  ds_xmlorg       String?
+  ds_Logpeticion  String?
+  fecha_creacion  DateTime? @default(now()) @db.Timestamp(6)
+}
+
+model GDS {
+  id   Int    @id @default(autoincrement())
+  name String @unique(map: "gds_name_key")
+}
+
+model Interfaces {
+  id                              Int     @id(map: "interfaces_pkey") @default(autoincrement())
+  code                            String  @unique(map: "interfaces_code_key")
+  name                            String
+  inactivo                        Boolean @default(false)
+  bl_genera_archivoplano          Boolean @default(false)
+  ds_storedprocedure_archivoplano String?
+  bl_job                          Boolean @default(false)
+  ds_namejob                      String?
+  bl_facturador                   Boolean @default(false)
+  id_gds                          Int?
+}
+
+model Master {
+  id       Int     @id(map: "master_pkey") @default(autoincrement())
+  code     String  @unique(map: "master_code_key")
+  name     String
+  inactivo Boolean @default(false)
+}
+
+model Payment {
+  id       Int     @id @default(autoincrement())
+  code     String  @unique
+  name     String
+  inactive Boolean @default(false)
+  iscash   Boolean @default(false)
+  iscredit Boolean @default(false)
+}
+
+model Report {
+  id            Int             @id @default(autoincrement())
+  name          String          @db.VarChar(255)
+  base_table    String          @db.VarChar(100)
+  description   String?
+  created_at    DateTime?       @default(now()) @db.Timestamp(6)
+  custom_sql    String?
+  ReportColumns ReportColumns[]
+  ReportFilters ReportFilters[]
+  ReportJoins   ReportJoins[]
+  ReportSorts   ReportSorts[]
+}
+
+model ReportColumns {
+  id                 Int      @id @default(autoincrement())
+  report_id          Int
+  table_alias        String?  @db.VarChar(20)
+  column_name        String   @db.VarChar(100)
+  alias              String?  @db.VarChar(150)
+  is_calculated      Boolean? @default(false)
+  formula_expression String?
+  sort_order         Int?     @default(0)
+  is_visible         Boolean? @default(true)
+  Report             Report   @relation(fields: [report_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model ReportFilters {
+  id           Int     @id @default(autoincrement())
+  report_id    Int
+  table_alias  String? @db.VarChar(20)
+  column_name  String  @db.VarChar(100)
+  filter_label String? @db.VarChar(150)
+  filter_type  String  @db.VarChar(50)
+  operator     String? @default("=") @db.VarChar(20)
+  sort_order   Int?    @default(0)
+  Report       Report  @relation(fields: [report_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model ReportJoins {
+  id             Int    @id @default(autoincrement())
+  report_id      Int
+  table_name     String @db.VarChar(100)
+  alias          String @db.VarChar(20)
+  join_type      String @default("INNER JOIN") @db.VarChar(50)
+  join_condition String
+  sort_order     Int?   @default(0)
+  Report         Report @relation(fields: [report_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model ReportSorts {
+  id          Int     @id @default(autoincrement())
+  report_id   Int
+  column_expr String
+  direction   String? @default("ASC") @db.VarChar(10)
+  sort_order  Int?    @default(0)
+  Report      Report  @relation(fields: [report_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

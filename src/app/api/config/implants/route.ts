@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { getCellCustomizationConfig, syncCellCustomization } from '@/lib/cell-customization'
+import { generateHtmlTemplate } from '@/lib/excel-to-html'
+import { logSystemEvent } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +15,6 @@ export async function GET() {
              LEFT JOIN public."Branch" b ON i."branchId" = b.id`
         )
         
-        const { getCellCustomizationConfig } = await import('@/lib/cell-customization')
         const implantsWithLogo = await Promise.all(implants.map(async i => {
             const physicalConfig = await getCellCustomizationConfig(null, i.id)
             return {
@@ -55,10 +57,10 @@ export async function POST(req: NextRequest) {
         let htmlTemplate = null;
         if (templateBuffer) {
             try {
-                const { generateHtmlTemplate } = await import('@/lib/excel-to-html');
                 htmlTemplate = await generateHtmlTemplate(templateBuffer, body.templateConfig, logoBuffer);
-            } catch (htmlErr) {
+            } catch (htmlErr: any) {
                 console.error("Error generating HTML template during implant creation:", htmlErr);
+                throw new Error("Error generating HTML template: " + (htmlErr.message || String(htmlErr)));
             }
         }
 
@@ -84,15 +86,12 @@ export async function POST(req: NextRequest) {
         }
 
         if (body.templateConfig) {
-            const { syncCellCustomization } = await import('@/lib/cell-customization');
             await syncCellCustomization(null, dbId, body.templateConfig);
         }
 
         const implant = { id: dbId, ...body };
 
-        import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'MASTER_DATA', description: `Implant ${implant.name} creado (SP).`, metadata: implant });
-        });
+        logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'MASTER_DATA', description: `Implant ${implant.name} creado (SP).`, metadata: implant });
 
         return NextResponse.json(implant)
     } catch (error: any) {
@@ -140,10 +139,10 @@ export async function PUT(req: NextRequest) {
         let htmlTemplate = null;
         if (finalTemplateBuffer) {
             try {
-                const { generateHtmlTemplate } = await import('@/lib/excel-to-html');
                 htmlTemplate = await generateHtmlTemplate(finalTemplateBuffer, body.templateConfig, finalLogoBuffer);
-            } catch (htmlErr) {
+            } catch (htmlErr: any) {
                 console.error("Error generating/updating HTML template during implant update:", htmlErr);
+                throw new Error("Error generating HTML template: " + (htmlErr.message || String(htmlErr)));
             }
         }
 
@@ -167,15 +166,12 @@ export async function PUT(req: NextRequest) {
         }
 
         if (body.templateConfig) {
-            const { syncCellCustomization } = await import('@/lib/cell-customization');
             await syncCellCustomization(null, dbId, body.templateConfig);
         }
 
         const implant = { ...body };
 
-        import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'MASTER_DATA', description: `Implant ${implant.name} actualizado (SP).`, metadata: implant });
-        });
+        logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'MASTER_DATA', description: `Implant ${implant.name} actualizado (SP).`, metadata: implant });
 
         return NextResponse.json(implant)
     } catch (error: any) {
@@ -204,9 +200,7 @@ export async function DELETE(req: NextRequest) {
             throw new Error(message);
         }
 
-        import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({ userId: actingUserId, action: 'DELETE', module: 'MASTER_DATA', description: `Implant con ID ${id} eliminado (SP).` });
-        });
+        logSystemEvent({ userId: actingUserId, action: 'DELETE', module: 'MASTER_DATA', description: `Implant con ID ${id} eliminado (SP).` });
 
         return NextResponse.json({ message: 'Implant deleted successfully' })
     } catch (error: any) {
