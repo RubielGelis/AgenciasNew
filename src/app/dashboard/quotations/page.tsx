@@ -14,6 +14,7 @@ export default function QuotationsListPage() {
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
     const [idIni, setIdIni] = useState('')
     const [idFin, setIdFin] = useState('')
+    const [exportType, setExportType] = useState<'QUOTATION' | 'INVOICE'>('QUOTATION')
     const router = useRouter()
 
     useEffect(() => {
@@ -67,7 +68,8 @@ export default function QuotationsListPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     ids: [q.id], // Enviamos como arreglo para consistencia
-                    userId: loggedUser.id
+                    userId: loggedUser.id,
+                    exportType: exportType // Enviamos el tipo de exportación (QUOTATION o INVOICE)
                 })
             });
 
@@ -145,6 +147,14 @@ export default function QuotationsListPage() {
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
+                <select
+                    value={exportType}
+                    onChange={(e) => setExportType(e.target.value as 'QUOTATION' | 'INVOICE')}
+                    className="h-12 bg-zinc-50 dark:bg-zinc-800 rounded-2xl border-none outline-none px-4 text-sm font-bold text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                >
+                    <option value="QUOTATION">Exportar como Cotización</option>
+                    <option value="INVOICE">Exportar como Factura</option>
+                </select>
                 <button className="h-12 px-6 flex items-center gap-2 border border-zinc-200 dark:border-zinc-700 rounded-2xl text-zinc-600 dark:text-zinc-400 font-bold hover:bg-zinc-50 transition-all">
                     <Filter className="w-4 h-4" /> Filtros
                 </button>

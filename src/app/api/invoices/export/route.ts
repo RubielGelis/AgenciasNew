@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
         // 1. Obtener XML desde Postgres
         const result = await prisma.$queryRawUnsafe<any[]>(
-            `CALL spExportInvoice($1, $2, $3)`,
+            `CALL spExportEnvoices($1, $2, $3)`,
             idsStr,
             userId ? Number(userId) : 0,
             '' 
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
         let xmlStr = (row?.mensaje_resultado || row?.p_mensaje_resultado || (row && typeof row === 'object' ? Object.values(row)[0] : '')) as string;
         
         if (!xmlStr || typeof xmlStr !== 'string') {
-            await registerLog(userId, 'QUOTATION', 'EXPORT_ERROR', 'No se generó XML desde Postgres', { ids: idsStr });
+            await registerLog(userId, 'INVOICE', 'EXPORT_ERROR', 'No se generó XML desde Postgres', { ids: idsStr });
             return NextResponse.json({ message: 'Error en generación de XML Postgres' }, { status: 500 })
         }
 
@@ -61,20 +61,20 @@ export async function POST(req: NextRequest) {
                     await prisma.$executeRawUnsafe(
                         `CALL public.spFacturaActualizarEstado($1::JSONB)`,
                         JSON.stringify(spResult)
-                    );
+                     );
                 } catch (spPgError) {
                     console.error('[EXPORT_API] Error al actualizar estado en Postgres:', spPgError);
                 }
             }
 
-            await registerLog(userId, 'QUOTATION', success ? 'EXPORT_SUCCESS' : 'EXPORT_SP_ERROR', 
+            await registerLog(userId, 'INVOICE', success ? 'EXPORT_SUCCESS' : 'EXPORT_SP_ERROR', 
                 `ID ${idsStr}: ${sqlServerMsg}`, { spResult, xml: xmlStr });
 
         } catch (sqlError: any) {
             console.error('[EXPORT_API] Error SQL Server:', sqlError.message);
             success = false;
             sqlServerMsg = sqlError.message;
-            await registerLog(userId, 'QUOTATION', 'EXPORT_SQL_ERROR', `ID ${idsStr}: ${sqlServerMsg}`, { error: sqlError.message, xml: xmlStr });
+            await registerLog(userId, 'INVOICE', 'EXPORT_SQL_ERROR', `ID ${idsStr}: ${sqlServerMsg}`, { error: sqlError.message, xml: xmlStr });
         }
 
         // 3. Respuesta JSON para el Dashboard
@@ -90,3 +90,4 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ message: 'Error fatal en servidor', details: error.message }, { status: 500 })
     }
 }
+

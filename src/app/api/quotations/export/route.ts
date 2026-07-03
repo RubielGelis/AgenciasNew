@@ -5,17 +5,19 @@ import { registerLog } from '@/lib/logger'
 
 export async function POST(req: NextRequest) {
     try {
-        const { ids, userId } = await req.json()
+        const { ids, userId, exportType = 'QUOTATION' } = await req.json()
 
         if (!ids || (Array.isArray(ids) && ids.length === 0)) {
             return NextResponse.json({ message: 'No quotation IDs provided' }, { status: 400 })
         }
 
         const idsStr = Array.isArray(ids) ? ids.join(',') : ids.toString();
+        const pgProcedure = exportType === 'INVOICE' ? 'spExportEnvoices' : 'spExportQuotation';
+        const mssqlProcedure = exportType === 'INVOICE' ? 'spFacturasCrear' : 'spCotizacionesCrear';
 
         // 1. Obtener XML desde Postgres
         const result = await prisma.$queryRawUnsafe<any[]>(
-            `CALL spExportQuotation($1, $2, $3)`,
+            `CALL public."${pgProcedure}"($1, $2, $3)`,
             idsStr,
             userId ? Number(userId) : 0,
             '' 
@@ -25,7 +27,7 @@ export async function POST(req: NextRequest) {
         let xmlStr = (row?.mensaje_resultado || row?.p_mensaje_resultado || (row && typeof row === 'object' ? Object.values(row)[0] : '')) as string;
         
         if (!xmlStr || typeof xmlStr !== 'string') {
-            await registerLog(userId, 'QUOTATION', 'EXPORT_ERROR', 'No se generó XML desde Postgres', { ids: idsStr });
+            await registerLog(userId, exportType, 'EXPORT_ERROR', 'No se generó XML desde Postgres', { ids: idsStr });
             return NextResponse.json({ message: 'Error en generación de XML Postgres' }, { status: 500 })
         }
 
@@ -35,9 +37,9 @@ export async function POST(req: NextRequest) {
         let spResult: any[] = [];
 
         try {
-            console.log(`[EXPORT_API] Iniciando carga en SQL Server para ID: ${idsStr}`);
+            console.log(`[EXPORT_API] Iniciando carga en SQL Server para ID: ${idsStr} como ${exportType}`);
             
-            const sqlResult = await executeSQLServerProcedure('spCotizacionesCrear', {
+            const sqlResult = await executeSQLServerProcedure(mssqlProcedure, {
                 xml: xmlStr
             });
 
@@ -67,14 +69,14 @@ export async function POST(req: NextRequest) {
                 }
             }
 
-            await registerLog(userId, 'QUOTATION', success ? 'EXPORT_SUCCESS' : 'EXPORT_SP_ERROR', 
+            await registerLog(userId, exportType, success ? 'EXPORT_SUCCESS' : 'EXPORT_SP_ERROR', 
                 `ID ${idsStr}: ${sqlServerMsg}`, { spResult, xml: xmlStr });
 
         } catch (sqlError: any) {
             console.error('[EXPORT_API] Error SQL Server:', sqlError.message);
             success = false;
             sqlServerMsg = sqlError.message;
-            await registerLog(userId, 'QUOTATION', 'EXPORT_SQL_ERROR', `ID ${idsStr}: ${sqlServerMsg}`, { error: sqlError.message, xml: xmlStr });
+            await registerLog(userId, exportType, 'EXPORT_SQL_ERROR', `ID ${idsStr}: ${sqlServerMsg}`, { error: sqlError.message, xml: xmlStr });
         }
 
         // 3. Respuesta JSON para el Dashboard
