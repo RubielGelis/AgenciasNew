@@ -4996,7 +4996,7 @@ LANGUAGE plpgsql
 AS $$
 /*
     AUTOR: Rubiel Gelis Guzman / Antigravity
-    DESCRIPCIÓN: Generación de XML para exportación de Facturas (Invoices).
+    DESCRIPCIÓN: Generación de XML para exportación de Facturas (Invoices). Restructurado según especificaciones del usuario.
 */
 DECLARE
     v_xml TEXT;
@@ -5022,316 +5022,221 @@ BEGIN
         RETURN;
     END IF;
 
-    -- 3. Crear Tablas Temporales (ESQUEMA COMPLETO)
+    -- 3. Crear Tablas Temporales
     CREATE TEMP TABLE IF NOT EXISTS Facturacion (
 		id INTEGER GENERATED ALWAYS AS IDENTITY,
-		cd_fuente VARCHAR(2) ,
-		cd_serie VARCHAR(2) ,
-		cd_consecutivo VARCHAR(50) ,
-		Tipo VARCHAR(25) ,
-		Servicio VARCHAR(123) ,
-		Descrip VARCHAR(78) ,
-		id_item INTEGER,
+		cd_fuente VARCHAR(2),
+		cd_serie VARCHAR(2),
+		cd_consecutivo VARCHAR(8),
+		cd_usuario INTEGER,  
+		cd_sucursal VARCHAR(3), 
+		cd_implante VARCHAR(3), 
+		dt_fechacont TIMESTAMP,
+		dt_vence TIMESTAMP,
+		cd_tercero_codigo VARCHAR(25),
+		ds_tercero_nombre VARCHAR(250),
+		cd_cliente_codigo VARCHAR(25), 
+		ds_cliente_nombre VARCHAR(250),
+		ds_cliente_dir VARCHAR(250),
+		ds_cliente_ciudad VARCHAR(40),
+		ds_cliente_tel VARCHAR(50),
+		ds_cliente_dirdesp VARCHAR(250),
+		ds_cliente_email VARCHAR(60),
+		ds_cliente_contacto VARCHAR(40),
+		ds_cliente_contacto_email VARCHAR(60),
+		id_monedas_iata INTEGER,
+		cd_vendedor CHAR(3),
+		id_tiqueteador INTEGER,
+		bn_anexo BYTEA,
+		Tcambio DECIMAL,
+		am_tcambiousd DECIMAL,
+		id_tipoventa INTEGER,
+		ds_num_resolucion VARCHAR(20), 
+		in_num_inicial NUMERIC(18,0), 
+		in_num_final NUMERIC(18,0), 
+		ds_numeracion_autorizada VARCHAR(50),
+		dt_fecha_resolucion TIMESTAMP,	
+		CodigoArchivoFisico VARCHAR(25),
+		ds_Observacion VARCHAR(8000),
+		ds_Campo_libre1 varchar(500),
+		ds_Campo_libre2 varchar(500),
+		cd_fuente_Reemplaza CHAR(2),
+		cd_serie_Reemplaza CHAR(2),
+		cd_consecutivo_Reemplaza CHAR(8),		
+		ds_Actividad_Economica VARCHAR(10),
+		ds_Tarifa_ICA VARCHAR(15),	
+		SqlStmt TEXT,
+		AnticiposSqlStmt TEXT,
+		TotalFactura DECIMAL,
+		TotalCupoCreditoCliente DECIMAL,
+		bl_BloqueoCupoCredito BIT(1),
+		bl_generadaauto BIT(1),
+		ds_CotizacionesId Varchar(500),
+		Id_Cierre INTEGER,
+		cd_TipoFact CHAR(2),
+		id_fac_remisionRelacionada INTEGER,
+		id_fac_facturaRelacionada INTEGER,
+		ds_DescripcionFac VARCHAR(500),
+		bl_nocont BIT(1),
+		ProductosSqlStmt TEXT,
+		cd_CF_TipoComprobante VARCHAR(15),
+		id_Licitacion INTEGER,
+		ValorFactura DECIMAL,
+		id_Especialista INTEGER,
+		id_tiqueteador_Facturador INTEGER,
+		id_TipoFormaPagoProveedor INTEGER,
+		id_MedioReservacion INTEGER,
+		bl_refacturacion BIT(1),
+		bl_comisiona BIT(1),
+		cd_fuente_factura VARCHAR(2),
+		cd_serie_factura VARCHAR(2),
+		cd_consecutivo_factura VARCHAR(8),
+		id_NotasAerolinea INTEGER,
+		bl_interface INTEGER,
+		id_evento INTEGER,
+		bl_NoEnviarFacElectronica BIT(1),
+		bl_FacturaComision BIT(1),
+		bl_DescontarComisionCxP BIT(1),
+		ds_num_resolucion_Adicional VARCHAR(20),
+		id_fac_facturaRefacturacion VARCHAR(8000),
+		bl_refacturacion_contabilizar_saldos BIT(1),
+		ZML_VariablesXML TEXT,
+		bl_FormatoResumidoFactElectro BIT(1),
+		bl_ExigeAdjuntoFactElectro BIT(1),
+		bl_omitir_Validar_IVA_facturacion BIT(1),
+		ds_Respuesta TEXT,
+        id_item INTEGER
+    ) ON COMMIT DROP;
+
+    CREATE TEMP TABLE IF NOT EXISTS Item (
+		id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+		tipo_item VARCHAR(10),
+		id_factura INTEGER,
 		in_tipoitem INTEGER,
-		iden_gds INTEGER,
-		ds_fecha TIMESTAMP,
-		cd_tiqueteador VARCHAR(6) ,
-		cd_vendedor VARCHAR(3) ,
-		cd_cliente VARCHAR(10) ,
-		am_highfare DECIMAL,
-		am_lowfare DECIMAL,
-		am_fare DECIMAL,
-		ds_reasoncode VARCHAR(2) ,
-		ds_cliname VARCHAR(250) ,
-		ds_clidir VARCHAR(250) ,
-		ds_clicity VARCHAR(50) ,
-		ds_cliid VARCHAR(10) ,
-		ds_itinerario VARCHAR(250) ,
-		ds_clases VARCHAR(61) ,
+		id_referencia_origen INTEGER,             
+		cd_tiquete VARCHAR(50),
+		ds_descrip VARCHAR(500),
 		in_nacionalidad INTEGER,
-		id_air INTEGER,
-		ds_pax_number INTEGER,
-		ds_pax_firstnm VARCHAR(30) ,
-		ds_pax_lastnm VARCHAR(30) ,
-		ds_pax_prefix VARCHAR(3) ,
-		ds_tkt_number VARCHAR(10) ,
-		ds_tkt_prefix VARCHAR(3) ,
-		ds_aero_code VARCHAR(3) ,
-		ds_moneda VARCHAR(3) ,
+		cd_cencosto VARCHAR(50),
+		cd_auxiliar VARCHAR(50),
+		cd_item VARCHAR(50),
 		am_tarifa DECIMAL,
 		am_iva DECIMAL,
 		am_tua DECIMAL,
 		am_comb DECIMAL,
 		am_vat DECIMAL,
-		ds_cc_code VARCHAR(2) ,
-		ds_cc_number VARCHAR(25) ,
-		am_tao DECIMAL,
-		am_ivatao DECIMAL,
-		am_cap DECIMAL,
-		am_ivacap DECIMAL,
-		ds_cc_code2 VARCHAR(2) ,
-		ds_cc_number2 VARCHAR(16) ,
-		am_fp1 DECIMAL,
-		am_fp2 DECIMAL,
-		cd_tktrevisado VARCHAR(14) ,
-		am_TarifaContado DECIMAL,
-		am_IvaContado DECIMAL,
-		am_OtrosContado DECIMAL,
-		am_TarifaCredito DECIMAL,
-		am_IvaCredito DECIMAL,
-		am_OtrosCredito DECIMAL,
 		am_Comision DECIMAL,
-		cd_clitipodoc VARCHAR(100) ,
-		cd_clitipotercero VARCHAR(1) ,
-		ds_clirazoncial VARCHAR(250) ,
-		ds_cliname2 VARCHAR(60) ,
-		ds_clilastname VARCHAR(60) ,
-		ds_clilastname2 VARCHAR(60) ,
-		cd_clipais VARCHAR(25) ,
-		ds_clitel VARCHAR(25) ,
-		cd_TipoTransaccion VARCHAR(1) ,
-		Fecha_Salida TIMESTAMP,
-		Fecha_Llegada TIMESTAMP,
-		Id_Srv INTEGER,
-		cd_conceptofacturacion INTEGER,
-		cd_tiposervicio INTEGER,
-		cd_proveedores VARCHAR(25) ,
-		ds_proveedores VARCHAR(250) ,
-		id_car INTEGER,
-		dt_entrega TIMESTAMP,
-		in_cars INTEGER,
-		cd_carcode VARCHAR(25) ,
-		cd_conf_car VARCHAR(25) ,
-		cd_citysalida VARCHAR(25) ,
-		dt_retorno TIMESTAMP,
-		cd_cartype VARCHAR(25) ,
-		cd_currency VARCHAR(10) ,
-		am_tarifacar DECIMAL,
-		cd_bookingsource VARCHAR(25) ,
-		cd_ratecode VARCHAR(25) ,
-		id_htl INTEGER,
-		dt_checkin TIMESTAMP,
-		in_guests INTEGER,
-		cd_confirmation VARCHAR(25) ,
-		cd_city VARCHAR(25) ,
-		cd_htlchain VARCHAR(25) ,
-		dt_checkout TIMESTAMP,
-		in_noches INTEGER,
-		ds_htlname VARCHAR(250) ,
-		in_habs INTEGER,
-		cd_bed VARCHAR(25) ,
-		cd_ratecode_htl VARCHAR(25) ,
-		cd_htlcur VARCHAR(10) ,
-		am_htltarifa DECIMAL,
-		cd_agcur VARCHAR(10) ,
-		am_agtarifa MONEY,
-		ds_dir1 VARCHAR(250) ,
-		ds_tel VARCHAR(25) ,
-		ds_fax VARCHAR(25) ,
-		cd_centrocosto VARCHAR(50) ,
+		ds_paxname VARCHAR(30),
+		ds_paxape VARCHAR(30),
+		ds_paxprefix CHAR(3),
+		cd_tourcode VARCHAR(25),
 		NumTktConj INTEGER,
-		Respuesta VARCHAR(1) ,
-		ds_solicita VARCHAR(200) ,
-		cd_pax_CC VARCHAR(20) ,
-		ds_lapsoviaje VARCHAR(50) ,
-		ds_archivo VARCHAR(250) ,
-		ds_Observaciones VARCHAR(8000) ,
-		ds_ClienteEmail VARCHAR(100) ,
-		cd_sucursal VARCHAR(5) ,
-		cd_implante VARCHAR(5) ,
-		bl_ClienteActualizar BIT(1) DEFAULT B'0',
-		bl_NotificacionMPD BIT(1) DEFAULT B'0',
-		cd_FormaPagoTAO VARCHAR(3) ,
-		cd_TarjetaCreditoTAO VARCHAR(4) ,
-		cd_NumeroTarjetaTAO VARCHAR(25) ,
-		cd_VencimientoTarjetaTAO CHAR(6) ,
-		cd_NumeroPolizaTAO VARCHAR(50) ,
-		cd_AnexoPolizaTAO VARCHAR(50) ,
-		am_PorDesFormaPagoTA NUMERIC(8,4),
-		cd_Penalidad VARCHAR(14) ,
-		ds_cc_vence VARCHAR(5) ,
-		ds_cc_vence2 VARCHAR(5) ,
-		ds_cc_autorizacion VARCHAR(25) ,
-		ds_cc_autorizacion2 VARCHAR(25) ,
-		ds_cc_voucher VARCHAR(25) ,
-		ds_cc_voucher2 VARCHAR(10) ,
-		ds_AutorizacionTarjetaTAO VARCHAR(25) ,
-		ds_VoucherTarjetaTAO VARCHAR(25) ,
-		am_fptao DECIMAL,
-		in_cc_cuotas INTEGER,
-		in_cc_cuotas2 INTEGER,
-		in_cuotasTarjetaTAO INTEGER,
-		cd_TipoTarifaTAO VARCHAR(25) ,
-		cd_TipoTiquete VARCHAR(3) ,
-		am_TasaCambio DECIMAL,
-		cd_tiqueteador_facturador VARCHAR(3) ,
-		bl_ahorro BIT(1) DEFAULT B'0',
-		in_CantidadTarifaTAO INTEGER,
-		in_CantidadSegmentoTAO INTEGER,
-		cd_tourcode VARCHAR(25) ,
-		ds_contrato VARCHAR(25) ,
-		cd_PasaportePax VARCHAR(25) ,
-		ds_itinerarioaerolinea VARCHAR(128) ,
-		ds_tkt_prefixIata VARCHAR(3) ,
-		ds_Evento VARCHAR(250) ,
-		cd_iata VARCHAR(25) ,
-		ds_aero_codeIata CHAR(3) ,
-		ReservaFactura VARCHAR(100) ,
-		cd_Ahorro VARCHAR(3) ,
-		cd_Categoria VARCHAR(50) ,
-		Id_FormasPagoAirPlus INTEGER,
-		cd_FormasPagoAirPlus VARCHAR(3) ,
-		ds_FormasPagoAirPlus VARCHAR(100) ,
-		cd_TarjetasCreditoAirPlus VARCHAR(4) ,
-		ds_numerotarjetaAirPlus VARCHAR(25) ,
+		cd_TipoTiquete CHAR(3),
+		id_air INTEGER,
+		ds_itinerario VARCHAR(250),
+		ds_itinerarioaerolinea VARCHAR(128),
+		ds_clases VARCHAR(61),
+		ds_Observaciones VARCHAR(8000),
+		am_highfare DECIMAL,
+		am_lowfare DECIMAL,
+		ds_solicita VARCHAR(200),
+		ds_lapsoviaje VARCHAR(50),
+		cd_tktrevisado VARCHAR(14),
+		cd_PasaportePax VARCHAR(25),
+		cd_pax_CC VARCHAR(20),
 		am_PorFacParcial DECIMAL,
-		am_PorFacParcial_Utilizar DECIMAL,
 		in_cantpax INTEGER,
 		Id_Precompra INTEGER,
-		id_sucursal INTEGER,
-		bl_cotizacion BIT(1) DEFAULT B'0',
-		cd_htl VARCHAR(50) ,
+		cd_FormaPagoTAO VARCHAR(3),
+		cd_TarjetaCreditoTAO VARCHAR(4),
+		cd_NumeroTarjetaTAO VARCHAR(25),
+		cd_VencimientoTarjetaTAO CHAR(6),
+		cd_NumeroPolizaTAO VARCHAR(50),
+		cd_AnexoPolizaTAO VARCHAR(50),
+		ds_AutorizacionTarjetaTAO VARCHAR(25),
+		in_cuotasTarjetaTAO INTEGER,
 		id_FormasPago INTEGER,
 		id_TarjetasCredito INTEGER,
-		id_formapago_cliente INTEGER,
-		cd_formapago_cliente VARCHAR(3) ,
-		ds_formapago_cliente VARCHAR(100) ,
-		cd_fp_OtrosItems VARCHAR(3) ,
-		cd_auxiliar VARCHAR(50) ,
-		cd_tipoventa VARCHAR(10) ,
-		am_iva2 DECIMAL,
-		cd_licitacion INTEGER,
-		ds_descripcion VARCHAR(500) ,
-		id_tipoproveedor INTEGER,
-		cd_tipoproveedor VARCHAR(10) ,
-		ds_tipoproveedor VARCHAR(100) ,
-		cd_Consecutivo_variablesadicionales VARCHAR(50) ,
-		cd_item VARCHAR(50) 
+		am_fp1 DECIMAL,
+		ds_cc_code VARCHAR(2),
+		ds_cc_number VARCHAR(25),
+		ds_cc_vence VARCHAR(5),
+		ds_cc_autorizacion VARCHAR(25),
+		ds_cc_voucher VARCHAR(25),
+		in_cc_cuotas INTEGER,
+		am_fp2 DECIMAL,
+		ds_cc_code2 VARCHAR(2),
+		ds_cc_number2 VARCHAR(25),
+		ds_cc_vence2 VARCHAR(5),
+		ds_cc_autorizacion2 VARCHAR(25),
+		ds_cc_voucher2 VARCHAR(25),
+		in_cc_cuotas2 INTEGER,
+		id_monedas_iata INTEGER,
+		Tcambio DECIMAL,
+		id_sucursal INTEGER,
+		id_implante INTEGER,
+		bl_ahorro BIT(1),
+		cd_TipoTiqueteGDS VARCHAR(3),
+		id_TiposDocumento INTEGER,
+		id_entdist INTEGER,
+		id_entvend INTEGER,
+		cd_destino VARCHAR(3),
+		dt_fechaexped TIMESTAMP,
+		id_tiqueteadores INTEGER,
+		id_gds INTEGER,
+		iden_gds INTEGER,
+		am_comisionPNR DECIMAL,
+		ds_records VARCHAR(62),
+		bl_NoCalcComision BIT(1),
+		bl_NoCalcIvaComision BIT(1),
+		am_basecomisionable DECIMAL,
+		am_porcomision DECIMAL,
+		id_tiposconceptfac INTEGER,
+		id_conceptofacturacion INTEGER,
+		id_tiposservicio INTEGER,
+		cd_proveedores VARCHAR(25),
+		ds_servicio VARCHAR(250),
+		am_valorprov DECIMAL,
+		id_monedaprov INTEGER,
+		dt_llegada TIMESTAMP,
+		dt_salida TIMESTAMP,
+		am_pordescuento NUMERIC(8,4),
+		am_basedescuento DECIMAL,
+		Fecha_Salida TIMESTAMP,
+		Fecha_Llegada TIMESTAMP,
+		ColId VARCHAR(25),
+		cd_Consecutivo_depende VARCHAR(50),
+		CodigoReserva VARCHAR(50),
+		cd_Consecutivo_variablesadicionales VARCHAR(50),
+		am_valor_total DECIMAL,
+		ds_proveedores VARCHAR(250),
+		id_FormasPagoAirPlus INTEGER,
+		cd_FormasPagoAirPlus VARCHAR(3),
+		ds_FormasPagoAirPlus VARCHAR(100),
+		id_TarjetasCreditoAirPlus INTEGER,
+		cd_TarjetasCreditoAirPlus VARCHAR(4),
+		ds_numerotarjetaAirPlus VARCHAR(25),
+		id_reserva INTEGER,
+		OrdenGrabacion INTEGER
     ) ON COMMIT DROP;
 
-	CREATE TEMP TABLE IF NOT EXISTS CotizacionServicios(
+	CREATE TEMP TABLE IF NOT EXISTS itinerarios(
 		id INT GENERATED ALWAYS AS IDENTITY,
-		cd_TiposConceptFac VARCHAR(25),
-		cd_ConceptoFacturacion VARCHAR(25),
-		cd_TiposServicio VARCHAR(25) ,
-		cd_Cotizacion VARCHAR(25) ,
-		cd_fac_factura VARCHAR(25) ,
-		cd_fac_remision VARCHAR(25) ,
-		cd_proveedores VARCHAR(25) ,
-		ds_tiposervnm VARCHAR(50) ,
-		cd_prov_hotel CHAR(10) ,
-		cd_prov_car CHAR(10) ,
-		cd_prov_air CHAR(10) ,
-		ds_destino VARCHAR(30) ,
-		ds_servicio VARCHAR(250) ,
-		ds_descrip VARCHAR(4000) ,
-		ds_paxname VARCHAR(20) ,
-		ds_paxape VARCHAR(20) ,
-		cd_paxtype CHAR(25) ,
-		in_nacionalidad INT ,
-		cd_voucher VARCHAR(20) ,
-		in_cantpax INT ,
-		dt_llegada TIMESTAMP ,
-		dt_salida TIMESTAMP ,
-		cd_cencosto VARCHAR(16) ,
-		cd_auxiliar VARCHAR(16) ,
-		cd_item VARCHAR(16) ,
-		am_valorprov DECIMAL ,
-		cd_monedaprov VARCHAR(25) ,
-		ds_InfoAdicional VARCHAR(8000) ,
-		cd_carrental VARCHAR(25) ,
-		cd_hoteles VARCHAR(25) ,
-		bl_anulado BIT(1) DEFAULT B'0' ,
-		cd_tiquete CHAR(11) ,
-		cd_fuente_anul CHAR(2) ,
-		cd_serie_anul CHAR(2) ,
-		cd_consecutivo_anul CHAR(8) ,
-		cd_usuario_anul VARCHAR(25),
-		cd_sucursal_anul VARCHAR(25) ,
-		cd_implante_anul VARCHAR(25) ,
-		am_basecomisionable DECIMAL ,
-		am_porcomision NUMERIC(8, 4) ,
-		cd_voucherPrefijo VARCHAR(25) ,
-		bl_notdomicilionacional BIT(1) DEFAULT B'0' ,
-		Valor_Comision DECIMAL ,
-		Valor_Recaudo DECIMAL ,
-		dias_recaudo INT ,
-		ds_paxClasificacion CHAR(7) ,
-		cd_tipoplan VARCHAR(25) ,
-		cd_acomodacion VARCHAR(25) ,
-		in_dias INT ,
-		in_noches INT ,
-		ds_records VARCHAR(25) ,
-		cd_GrConcepto VARCHAR(25) ,
-		in_diasSrv INT ,
-		in_nochesSrv INT ,
-		cd_Especialista VARCHAR(25),
-		am_porcentaje_descuento NUMERIC(8, 4) ,
-		am_valor_descuento DECIMAL ,
-		ds_motivo_descuento VARCHAR(1000) ,
-		cd_cargosdesc_descuento VARCHAR(25) ,
-		in_NumeroOpcion INT ,
-		dt_FechaSalidaSrv TIMESTAMP ,
-		dt_FechaLlegadaSrv TIMESTAMP ,
-		cd_localizador VARCHAR(25) ,
-		cd_voucherpax VARCHAR(25) ,
-		am_basecomisionableprov DECIMAL ,
-		am_porcomisionprov NUMERIC(8, 4) ,
-		cd_NumeFac VARCHAR(15) ,
-		dt_VenceFac TIMESTAMP ,
-		cd_AcomodacionSrv VARCHAR(25) ,
-		cd_TipoPlanSrv VARCHAR(25) ,
-		in_habitaciones INT ,
-		in_habitacionesSrv INT ,
-		cd_Consecutivo_VARiablesAdicionales VARCHAR(8) ,
-		cd_confirmacion VARCHAR(25) ,
-		ds_confirmadopor VARCHAR(250) ,
-		cd_paxidentificacion VARCHAR(25) ,
-		bl_politicaCancelacion BIT(1) DEFAULT B'0' ,
-		dt_politicaCancelacion TIMESTAMP ,
-		cd_tipoHabitacionacion VARCHAR(25) ,
-		cd_fac_facturaComision VARCHAR(25) ,
-		cd_fac_remisionComision VARCHAR(25) ,
-		cd_TarjetaAsistencia VARCHAR(25) ,
-		cd_Regiones VARCHAR(25) ,
-		Iden_GDS INT ,
-		id_sys_entidades INT ,
-		ds_TipoAuto VARCHAR(50) ,
-		ds_Origen VARCHAR(30) ,
-		ds_DirOrigen VARCHAR(250) ,
-		ds_DirDestino VARCHAR(250) ,
-		ds_TipoTarifa VARCHAR(50) ,
-		am_ValorUSD DECIMAL ,
-		ds_NoVuelo VARCHAR(25) ,
-		ds_Vehiculo VARCHAR(250) ,
-		ds_Placa VARCHAR(25) ,
-		ds_CategoriaVehiculo VARCHAR(250) ,
-		ds_NombreConductor VARCHAR(50) ,
-		ds_telefono VARCHAR(25) ,
-		ds_IdiomaConductor VARCHAR(25) ,
-		cd_MonedaSrv VARCHAR(25) ,
-		cd_TipoServicio VARCHAR(25) ,
-		cd_Aerolinea VARCHAR(25) ,
-		in_EdadPax INT ,
-		am_PorFacParcial NUMERIC(8, 4) ,
-		ds_GDS VARCHAR(25) ,
-		dt_fechaficheroBBVA TIMESTAMP ,
-		bl_tiquete BIT(1) DEFAULT B'0' ,
-		am_basedescuento DECIMAL ,
-		am_pordescuento NUMERIC(18, 4) ,
-		cd_CotizacionServicios_Depende VARCHAR(25),
-        orig_id_ref INT,
-		orig_id_quotationref INT,
-		mainTaxId INT
+		id_factura VARCHAR(25),
+		id_item VARCHAR(25),
+		id_tipoitem VARCHAR(25),
+		ds_itinerario VARCHAR(250),
+		ds_itinerarioaerolinea VARCHAR(128)
 	) ON COMMIT DROP;
 
-	CREATE TEMP TABLE IF NOT EXISTS CotizacionServicios_PaxAdicional(
+	CREATE TEMP TABLE IF NOT EXISTS Pasajeros(
 		id INT GENERATED ALWAYS AS IDENTITY,
-		cd_Cotizacion VARCHAR(25),
-		cd_CotizacionServicios VARCHAR(25),
+		id_factura VARCHAR(25),
+		id_item VARCHAR(25),
+		id_tipoitem VARCHAR(25),
 		ds_paxape VARCHAR(30),
 		ds_paxname VARCHAR(30),
-		ds_paxprefix CHAR(25),
+		ds_paxprefix CHAR(3),
 		ds_paxClasificacion CHAR(25),
 		cd_voucherpax VARCHAR(25),
 		cd_paxidentificacion VARCHAR(25),
@@ -5339,489 +5244,320 @@ BEGIN
 		cd_tiquete CHAR(50)
 	) ON COMMIT DROP;
 
-	CREATE TEMP TABLE IF NOT EXISTS CotizacionServicios_VariableAdicional(
+	CREATE TEMP TABLE IF NOT EXISTS CargosImpuestos(
+		id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+		id_factura VARCHAR(25),
+		id_item VARCHAR(25),
+		id_tipoitem VARCHAR(25),
+		cd_codigo VARCHAR(20),
+		ds_nombre VARCHAR(100),
+		cd_tipo CHAR(1),
+		am_porcentaje NUMERIC(8,4),
+		am_valor DECIMAL,
+		am_contado DECIMAL,
+		am_credito DECIMAL,
+		id_carg INTEGER,
+		id_imp INTEGER,
+		bl_iva BIT(1),
+		in_orden INTEGER
+	) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS Formaspago(
+		id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+		id_factura VARCHAR(25),
+		id_item VARCHAR(25),
+		id_tipoitem VARCHAR(25),
+		id_formaspago INTEGER,
+		cd_codigo VARCHAR(10),
+		ds_nombre VARCHAR(50),
+		id_tarjetascredito INTEGER,
+		cd_tipotarjeta VARCHAR(10),
+		ds_numerotarjeta VARCHAR(50),
+		ds_vouchertarjeta VARCHAR(50),
+		ds_expiraciontarjeta VARCHAR(10),
+		ds_autorizaciontarjeta VARCHAR(50),
+		in_cuotas INTEGER,
+		cd_banco VARCHAR(50),
+		ds_cheque VARCHAR(50),
+		ds_plaza VARCHAR(50),
+		ds_referencia VARCHAR(50),
+		ds_Poliza VARCHAR(50),
+		ds_PolizaAnexo VARCHAR(50),
+		am_valor DECIMAL
+	) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS Variables(
 		id INT GENERATED ALWAYS AS IDENTITY,
-		cd_Cotizacion VARCHAR(25),
-		cd_CotizacionServicios VARCHAR(25),
+		id_factura VARCHAR(25),
+		id_item VARCHAR(25),
+		id_tipoitem VARCHAR(25),
 		ds_maestro VARCHAR(25), 
 		ds_VariableAdicional VARCHAR(25),
 		ds_valor VARCHAR(500),
 		cd_codigo CHAR(25)
 	) ON COMMIT DROP;
 
-	CREATE TEMP TABLE IF NOT EXISTS CotizacionCargos(
-		id INT GENERATED ALWAYS AS IDENTITY,
-		cd_CotizacionServicios VARCHAR(25) ,
-		cd_CotizacionCargos VARCHAR(25),
-		cd_cargosdesc VARCHAR(25) ,
-		ds_cargonm VARCHAR(50) ,
-		bl_noshow BIT(1) DEFAULT B'0' ,
-		am_contado DECIMAL ,
-		am_credito DECIMAL ,
-		am_valor DECIMAL GENERATED ALWAYS AS (am_contado + am_credito) STORED,
-		am_contado_ME DECIMAL ,
-		am_credito_ME DECIMAL ,
-		am_valor_ME DECIMAL GENERATED ALWAYS AS (am_contado_ME + am_credito_ME) STORED,
-        orig_id_ref INT,
-		cd_Cotizacion VARCHAR(25) 
-	) ON COMMIT DROP;
-
-	CREATE TEMP TABLE IF NOT EXISTS CotizacionImpuestos(
-		id INT GENERATED ALWAYS AS IDENTITY,
-		cd_CotizacionCargos VARCHAR(25),
-		cd_CotizacionImpuestos VARCHAR(25),
-		cd_ImpRet VARCHAR(25),
-		ds_Impas VARCHAR(50),
-		cd_impcta VARCHAR(16),
-		am_porcentaje DECIMAL,
-		bl_contabilizar BIT(1) DEFAULT B'0' ,
-		am_contado DECIMAL,
-		am_credito DECIMAL,
-		am_valor DECIMAL GENERATED ALWAYS AS (am_contado + am_credito) STORED,
-		am_contado_ME DECIMAL,
-		am_credito_ME DECIMAL,
-		am_valor_ME DECIMAL GENERATED ALWAYS AS (am_contado_ME + am_credito_ME) STORED,
-		cd_CotizacionServicios VARCHAR(25),
-		cd_Cotizacion VARCHAR(25)
-	) ON COMMIT DROP;
-
-	CREATE TEMP TABLE IF NOT EXISTS Fac_Servicios_TiposFacturacionHoteles(
-		id INT GENERATED ALWAYS AS IDENTITY,
-		cd_Cotizacion varchar(25),
-		cd_CotizacionServicios varchar(25),
-		cd_TiposFacturacionHoteles varchar(25),
-		cd_cargosdesc varchar(25),
-		in_cantidad INT,
-		am_contado DECIMAL,
-		am_credito DECIMAL,
-		am_valor DECIMAL GENERATED ALWAYS AS (am_contado + am_credito) STORED,
-		ds_cargonm varchar(50) NULL
-	) ON COMMIT DROP;
-
-	CREATE TEMP TABLE IF NOT EXISTS CotizacionServicios_TipoProv(
-		id INT GENERATED ALWAYS AS IDENTITY,
-		cd_Cotizacion varchar(25),
-		cd_CotizacionServicios varchar(25),
-		cd_TipoProveedores varchar(25),
-		ds_TipoProveedores varchar(60),
-		cd_proveedores varchar(25),
-		ds_proveedores varchar(250)
-	) ON COMMIT DROP;
-
-    -- 4. Poblar Tablas Temporales
+    -- 4. Poblar Tabla Facturacion
     INSERT INTO Facturacion (
-        cd_fuente, cd_serie, cd_consecutivo, Tipo, Servicio, Descrip, id_item, in_tipoitem, iden_gds, ds_fecha,
-        cd_tiqueteador, cd_vendedor, cd_cliente, am_highfare, am_lowfare, am_fare, ds_reasoncode, ds_cliname,
-        ds_clidir, ds_clicity, ds_cliid, ds_itinerario, ds_clases, in_nacionalidad, id_air, ds_pax_number,
-        ds_pax_firstnm, ds_pax_lastnm, ds_pax_prefix, ds_tkt_number, ds_tkt_prefix, ds_aero_code, ds_moneda,
-        am_tarifa, am_iva, am_tua, am_comb, am_vat, ds_cc_code, ds_cc_number, am_tao, am_ivatao, am_cap,
-        am_ivacap, ds_cc_code2, ds_cc_number2, am_fp1, am_fp2, cd_tktrevisado, am_TarifaContado, am_IvaContado,
-        am_OtrosContado, am_TarifaCredito, am_IvaCredito, am_OtrosCredito, am_Comision, cd_clitipodoc,
-        cd_clitipotercero, ds_clirazoncial, ds_cliname2, ds_clilastname, ds_clilastname2, cd_clipais, ds_clitel,
-        cd_TipoTransaccion, Fecha_Salida, Fecha_Llegada, Id_Srv, cd_conceptofacturacion, cd_tiposervicio,
-        cd_proveedores, ds_proveedores, id_car, dt_entrega, in_cars, cd_carcode, cd_conf_car, cd_citysalida,
-        dt_retorno, cd_cartype, cd_currency, am_tarifacar, cd_bookingsource, cd_ratecode, id_htl, dt_checkin,
-        in_guests, cd_confirmation, cd_city, cd_htlchain, dt_checkout, in_noches, ds_htlname, in_habs,
-        cd_bed, cd_ratecode_htl, cd_htlcur, am_htltarifa, cd_agcur, am_agtarifa, ds_dir1, ds_tel, ds_fax,
-        cd_centrocosto, NumTktConj, Respuesta, ds_solicita, cd_pax_CC, ds_lapsoviaje, ds_archivo,
-        ds_Observaciones, ds_ClienteEmail, cd_sucursal, cd_implante, bl_ClienteActualizar, bl_NotificacionMPD,
-        cd_FormaPagoTAO, cd_TarjetaCreditoTAO, cd_NumeroTarjetaTAO, cd_VencimientoTarjetaTAO, cd_NumeroPolizaTAO,
-        cd_AnexoPolizaTAO, am_PorDesFormaPagoTA, cd_Penalidad, ds_cc_vence, ds_cc_vence2, ds_cc_autorizacion,
-        ds_cc_autorizacion2, ds_cc_voucher, ds_cc_voucher2, ds_AutorizacionTarjetaTAO, ds_VoucherTarjetaTAO,
-        am_fptao, in_cc_cuotas, in_cc_cuotas2, in_cuotasTarjetaTAO, cd_TipoTarifaTAO, cd_TipoTiquete,
-        am_TasaCambio, cd_tiqueteador_facturador, bl_ahorro, in_CantidadTarifaTAO, in_CantidadSegmentoTAO,
-        cd_tourcode, ds_contrato, cd_PasaportePax, ds_itinerarioaerolinea, ds_tkt_prefixIata, ds_Evento,
-        cd_iata, ds_aero_codeIata, ReservaFactura, cd_Ahorro, cd_Categoria, Id_FormasPagoAirPlus,
-        cd_FormasPagoAirPlus, ds_FormasPagoAirPlus, cd_TarjetasCreditoAirPlus, ds_numerotarjetaAirPlus,
-        am_PorFacParcial, am_PorFacParcial_Utilizar, in_cantpax, Id_Precompra, id_sucursal, bl_cotizacion,
-        cd_htl, id_FormasPago, id_TarjetasCredito, id_formapago_cliente, cd_formapago_cliente, ds_formapago_cliente,
-        cd_fp_OtrosItems, cd_auxiliar, cd_tipoventa, am_iva2, cd_licitacion, ds_descripcion, id_tipoproveedor,
-        cd_tipoproveedor, ds_tipoproveedor, cd_Consecutivo_variablesadicionales, cd_item
+		cd_fuente, cd_serie, cd_consecutivo, cd_usuario, cd_sucursal, cd_implante, 
+		dt_fechacont, dt_vence, cd_tercero_codigo, ds_tercero_nombre, cd_cliente_codigo, 
+		ds_cliente_nombre, ds_cliente_dir, ds_cliente_ciudad, ds_cliente_tel, ds_cliente_dirdesp, 
+		ds_cliente_email, ds_cliente_contacto, ds_cliente_contacto_email, id_monedas_iata, 
+		cd_vendedor, id_tiqueteador, bn_anexo, Tcambio, am_tcambiousd, id_tipoventa, 
+		ds_num_resolucion, in_num_inicial, in_num_final, ds_numeracion_autorizada, 
+		dt_fecha_resolucion, CodigoArchivoFisico, ds_Observacion, ds_Campo_libre1, 
+		ds_Campo_libre2, cd_fuente_Reemplaza, cd_serie_Reemplaza, cd_consecutivo_Reemplaza, 
+		ds_Actividad_Economica, ds_Tarifa_ICA, SqlStmt, AnticiposSqlStmt, TotalFactura, 
+		TotalCupoCreditoCliente, bl_BloqueoCupoCredito, bl_generadaauto, ds_CotizacionesId, 
+		Id_Cierre, cd_TipoFact, id_fac_remisionRelacionada, id_fac_facturaRelacionada, 
+		ds_DescripcionFac, bl_nocont, ProductosSqlStmt, cd_CF_TipoComprobante, id_Licitacion, 
+		ValorFactura, id_Especialista, id_tiqueteador_Facturador, id_TipoFormaPagoProveedor, 
+		id_MedioReservacion, bl_refacturacion, bl_comisiona, cd_fuente_factura, cd_serie_factura, 
+		cd_consecutivo_factura, id_NotasAerolinea, bl_interface, id_evento, bl_NoEnviarFacElectronica, 
+		bl_FacturaComision, bl_DescontarComisionCxP, ds_num_resolucion_Adicional, 
+		id_fac_facturaRefacturacion, bl_refacturacion_contabilizar_saldos, ZML_VariablesXML, 
+		bl_FormatoResumidoFactElectro, bl_ExigeAdjuntoFactElectro, bl_omitir_Validar_IVA_facturacion, 
+		ds_Respuesta, id_item
     )
     SELECT 
-        '' as cd_fuente, 
-		'' as cd_serie,
-		'I' || LPAD(e.id::text, 7, '0') as cd_consecutivo,
+        '' AS cd_fuente,
+        '' AS cd_serie,
+        SUBSTRING('I' || LPAD(e.id::text, 7, '0'), 1, 8) AS cd_consecutivo,
+        User_id AS cd_usuario,
+        SUBSTRING(COALESCE(b.code, ''), 1, 3) AS cd_sucursal,
+        SUBSTRING(COALESCE(i.code, ''), 1, 3) AS cd_implante,
+        e.date AS dt_fechacont,
+        e.date AS dt_vence,
+        SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_tercero_codigo,
+        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_tercero_nombre,
+        SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_cliente_codigo,
+        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_cliente_nombre,
+        SUBSTRING(COALESCE(c.address, ''), 1, 250) AS ds_cliente_dir,
+        '' AS ds_cliente_ciudad,
+        '' AS ds_cliente_tel,
+        '' AS ds_cliente_dirdesp,
+        SUBSTRING(COALESCE(u.email, ''), 1, 60) AS ds_cliente_email,
+        '' AS ds_cliente_contacto,
+        '' AS ds_cliente_contacto_email,
+        NULL AS id_monedas_iata,
+        SUBSTRING(COALESCE(s.code, ''), 1, 3)::char(3) AS cd_vendedor,
+        NULL AS id_tiqueteador,
+        NULL::bytea AS bn_anexo,
+        COALESCE(e."exchangeRate", 1.0) AS Tcambio,
+        1.0 AS am_tcambiousd,
+        NULL AS id_tipoventa,
+        '' AS ds_num_resolucion,
+        0 AS in_num_inicial,
+        0 AS in_num_final,
+        '' AS ds_numeracion_autorizada,
+        NULL AS dt_fecha_resolucion,
+        '' AS CodigoArchivoFisico,
+        '' AS ds_Observacion,
+        '' AS ds_Campo_libre1,
+        '' AS ds_Campo_libre2,
+        '' AS cd_fuente_Reemplaza,
+        '' AS cd_serie_Reemplaza,
+        '' AS cd_consecutivo_Reemplaza,
+        '' AS ds_Actividad_Economica,
+        '' AS ds_Tarifa_ICA,
+        '' AS SqlStmt,
+        NULL AS AnticiposSqlStmt,
+        COALESCE(e."totalAmount", 0) AS TotalFactura,
+        0 AS TotalCupoCreditoCliente,
+        B'0' AS bl_BloqueoCupoCredito,
+        B'0' AS bl_generadaauto,
+        NULL AS ds_CotizacionesId,
+        NULL AS Id_Cierre,
+        NULL AS cd_TipoFact,
+        NULL AS id_fac_remisionRelacionada,
+        NULL AS id_fac_facturaRelacionada,
+        NULL AS ds_DescripcionFac,
+        B'0' AS bl_nocont,
+        NULL AS ProductosSqlStmt,
+        NULL AS cd_CF_TipoComprobante,
+        NULL AS id_Licitacion,
+        COALESCE(e."totalAmount", 0) AS ValorFactura,
+        NULL AS id_Especialista,
+        NULL AS id_tiqueteador_Facturador,
+        NULL AS id_TipoFormaPagoProveedor,
+        NULL AS id_MedioReservacion,
+        B'0' AS bl_refacturacion,
+        B'0' AS bl_comisiona,
+        NULL AS cd_fuente_factura,
+        NULL AS cd_serie_factura,
+        NULL AS cd_consecutivo_factura,
+        NULL AS id_NotasAerolinea,
+        0 AS bl_interface,
+        NULL AS id_evento,
+        B'0' AS bl_NoEnviarFacElectronica,
+        B'0' AS bl_FacturaComision,
+        B'0' AS bl_DescontarComisionCxP,
+        '' AS ds_num_resolucion_Adicional,
+        NULL AS id_fac_facturaRefacturacion,
+        B'0' AS bl_refacturacion_contabilizar_saldos,
+        NULL AS ZML_VariablesXML,
+        B'0' AS bl_FormatoResumidoFactElectro,
+        B'0' AS bl_ExigeAdjuntoFactElectro,
+        B'0' AS bl_omitir_Validar_IVA_facturacion,
+        NULL AS ds_Respuesta,
+        e.id AS id_item
+    FROM public."Invoices" e
+    JOIN public."Client" c ON e."clientId" = c.id
+    JOIN public."Branch" b ON e."branchId" = b.id
+    LEFT JOIN public."Implant" i ON e."implantId" = i.id
+    LEFT JOIN public."Seller" s ON e."sellerId" = s.id
+    LEFT JOIN public."User" u ON e."userId" = u.id
+    WHERE e.id = ANY(string_to_array(Envoices_id, ',')::int[]);
+
+    -- 5. Poblar Tabla Item
+    INSERT INTO Item (
+		tipo_item, id_factura, in_tipoitem, id_referencia_origen, cd_tiquete, 
+		ds_descrip, in_nacionalidad, cd_cencosto, cd_auxiliar, cd_item, 
+		am_tarifa, am_iva, am_tua, am_comb, am_vat, am_Comision, 
+		ds_paxname, ds_paxape, ds_paxprefix, cd_tourcode, NumTktConj, 
+		cd_TipoTiquete, id_air, ds_itinerario, ds_itinerarioaerolinea, 
+		ds_clases, ds_Observaciones, am_highfare, am_lowfare, ds_solicita, 
+		ds_lapsoviaje, cd_tktrevisado, cd_PasaportePax, cd_pax_CC, 
+		am_PorFacParcial, in_cantpax, Id_Precompra, cd_FormaPagoTAO, 
+		cd_TarjetaCreditoTAO, cd_NumeroTarjetaTAO, cd_VencimientoTarjetaTAO, 
+		cd_NumeroPolizaTAO, cd_AnexoPolizaTAO, ds_AutorizacionTarjetaTAO, 
+		in_cuotasTarjetaTAO, id_FormasPago, id_TarjetasCredito, am_fp1, 
+		ds_cc_code, ds_cc_number, ds_cc_vence, ds_cc_autorizacion, 
+		ds_cc_voucher, in_cc_cuotas, am_fp2, ds_cc_code2, ds_cc_number2, 
+		ds_cc_vence2, ds_cc_autorizacion2, ds_cc_voucher2, in_cc_cuotas2, 
+		id_monedas_iata, Tcambio, id_sucursal, id_implante, bl_ahorro, 
+		cd_TipoTiqueteGDS, id_TiposDocumento, id_entdist, id_entvend, 
+		cd_destino, dt_fechaexped, id_tiqueteadores, id_gds, iden_gds, 
+		am_comisionPNR, ds_records, bl_NoCalcComision, bl_NoCalcIvaComision, 
+		am_basecomisionable, am_porcomision, id_tiposconceptfac, 
+		id_conceptofacturacion, id_tiposservicio, cd_proveedores, 
+		ds_servicio, am_valorprov, id_monedaprov, dt_llegada, dt_salida, 
+		am_pordescuento, am_basedescuento, Fecha_Salida, Fecha_Llegada, 
+		ColId, cd_Consecutivo_depende, CodigoReserva, 
+		cd_Consecutivo_variablesadicionales, am_valor_total, ds_proveedores, 
+		id_FormasPagoAirPlus, cd_FormasPagoAirPlus, ds_FormasPagoAirPlus, 
+		id_TarjetasCreditoAirPlus, cd_TarjetasCreditoAirPlus, 
+		ds_numerotarjetaAirPlus, id_reserva, OrdenGrabacion
+    )
+    SELECT 
 		CASE WHEN p.type='Tiquete' THEN 'Aire' 
 			 WHEN p.type='ALOJAMIENTO' THEN 'Hotel' 
 			 WHEN p.type='ALQUILER' THEN 'Auto'
 			 WHEN p.type='TAO' THEN 'TAO'
 			 ELSE 'SRV'
-		END AS Tipo,
-		ep."servicios" AS Servicio,
-		ep."descripcion" AS Descrip,
-		e.id AS id_item,
+		END AS tipo_item,
+        f.id_item AS id_factura,
 		CASE WHEN p.type='Tiquete' THEN 1 
 			 WHEN p.type='ALOJAMIENTO' THEN 3
 			 WHEN p.type='ALQUILER' THEN 3
 			 WHEN p.type='TAO' THEN 2
 			 ELSE 3
 		END AS in_tipoitem,
-		1 AS iden_gds,
-		e.date AS ds_fecha,
-		COALESCE(t."code",'') AS cd_tiqueteador,
-		COALESCE(s."code",'') AS cd_vendedor,
-		COALESCE(c.document, '') AS cd_cliente,
-		0 AS am_highfare,
-		0 AS am_lowfare,
-		0 AS am_fare,
-		'' AS ds_reasoncode,
-		COALESCE(c."name", '') AS ds_cliname,
-		COALESCE(c."address", '') AS ds_clidir,
-		'' AS ds_clicity,
-		COALESCE(c.document, '') AS ds_cliid,
-		COALESCE(ep.itinerary, '') AS ds_itinerario,
-		COALESCE(ep.class, '') AS ds_clases,
-		COALESCE(ep."inNationality", 1) AS in_nacionalidad,
-		CASE WHEN p.type='Tiquete' THEN ep.id ELSE NULL END AS id_air,
-		COALESCE(cardinality(arr),1) AS ds_pax_number,
-		CASE 
-	        WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN ''
-	        WHEN TRIM(epp.name) NOT LIKE '% %' THEN TRIM(epp.name)
-	        ELSE COALESCE(arr[1], '')
-	    END AS ds_pax_firstnm,
-		CASE 
-	        WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN ''
-	        WHEN TRIM(epp.name) NOT LIKE '% %' THEN ''
-	        ELSE COALESCE(arr[2], '')
-	    END AS ds_pax_lastnm,
-		CASE 
-	        WHEN TRIM(epp.name) LIKE '% %' THEN COALESCE(arr[3], '')
-	        ELSE ''
-	    END AS ds_pax_prefix,
-		CASE WHEN p.type='Tiquete' THEN p.code ELSE '' END AS ds_tkt_number,
-		'' AS ds_tkt_prefix,
-		COALESCE(ep.airline, '') AS ds_aero_code,
-		COALESCE(e.currency,'COP') AS ds_moneda,
-		
-		-- am_tarifa (sum isMain = true)
-		COALESCE((SELECT SUM("explicitAmount") FROM public."InvoicesProductTax" ipt WHERE ipt."invoiceProductId" = ep.id AND ipt."isMain" = true), 0) AS am_tarifa,
-		-- am_iva (code = 'IVA')
-		COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'IVA'), 0) AS am_iva,
-		-- am_tua (code = 'TUA')
-		COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'TUA'), 0) AS am_tua,
-		-- am_comb (code = 'CMB')
-		COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'CMB'), 0) AS am_comb,
-		0 AS am_vat,
-		
-		-- ds_cc_code
+        ep.id AS id_referencia_origen,
+        CASE WHEN p.type='Tiquete' THEN p.code ELSE '' END AS cd_tiquete,
+        SUBSTRING(COALESCE(ep.descripcion, ''), 1, 500) AS ds_descrip,
+        COALESCE(ep."inNationality", 1) AS in_nacionalidad,
+        '' AS cd_cencosto,
+        '' AS cd_auxiliar,
+        'I' || LPAD(ep.id::text, 7, '0') AS cd_item,
+        COALESCE((SELECT SUM("explicitAmount") FROM public."InvoicesProductTax" ipt WHERE ipt."invoiceProductId" = ep.id AND ipt."isMain" = true), 0) AS am_tarifa,
+        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'IVA'), 0) AS am_iva,
+        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'TUA'), 0) AS am_tua,
+        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'CMB'), 0) AS am_comb,
+        0 AS am_vat,
+        COALESCE(ep."sellerCommission", 0) AS am_Comision,
+		CASE WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN '' WHEN TRIM(epp.name) NOT LIKE '% %' THEN TRIM(epp.name) ELSE COALESCE(arr[1], '') END AS ds_paxname,
+		CASE WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN '' WHEN TRIM(epp.name) NOT LIKE '% %' THEN '' ELSE COALESCE(arr[2], '') END AS ds_paxape,
+		CASE WHEN TRIM(epp.name) LIKE '% %' THEN SUBSTRING(COALESCE(arr[3], ''), 1, 3)::char(3) ELSE ''::char(3) END AS ds_paxprefix,
+        '' AS cd_tourcode,
+        NULL AS NumTktConj,
+        ''::char(3) AS cd_TipoTiquete,
+        CASE WHEN p.type='Tiquete' THEN ep.id ELSE NULL END AS id_air,
+        SUBSTRING(COALESCE(ep.itinerary, ''), 1, 250) AS ds_itinerario,
+        SUBSTRING(COALESCE(ep.itinerary, ''), 1, 128) AS ds_itinerarioaerolinea,
+        SUBSTRING(COALESCE(ep.class, ''), 1, 61) AS ds_clases,
+        '' AS ds_Observaciones,
+        0 AS am_highfare,
+        0 AS am_lowfare,
+        '' AS ds_solicita,
+        '' AS ds_lapsoviaje,
+        '' AS cd_tktrevisado,
+        '' AS cd_PasaportePax,
+        '' AS cd_pax_CC,
+        0 AS am_PorFacParcial,
+        COALESCE(cardinality(arr), 1) AS in_cantpax,
+        NULL AS Id_Precompra,
+        '' AS cd_FormaPagoTAO,
+        '' AS cd_TarjetaCreditoTAO,
+        '' AS cd_NumeroTarjetaTAO,
+        '' AS cd_VencimientoTarjetaTAO,
+        '' AS cd_NumeroPolizaTAO,
+        '' AS cd_AnexoPolizaTAO,
+        '' AS ds_AutorizacionTarjetaTAO,
+        NULL AS in_cuotasTarjetaTAO,
+        NULL AS id_FormasPago,
+        NULL AS id_TarjetasCredito,
+        0 AS am_fp1,
 		COALESCE((SELECT cc.code FROM public."InvoicesProductPayment" ipp JOIN public."CreditCard" cc ON cc.id = ipp."creditCardId" WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_code,
-		-- ds_cc_number
 		COALESCE((SELECT ipp."cardNumber" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_number,
-		0 AS am_tao,
-		0 AS am_ivatao,
-		0 AS am_cap,
-		0 AS am_ivacap,
-		'' AS ds_cc_code2,
-		'' AS ds_cc_number2,
-		0 AS am_fp1,
-		0 AS am_fp2,
-		'' AS cd_tktrevisado,
-		
-		-- am_TarifaContado / am_TarifaCredito (based on payment method 'CREDITO')
-		CASE WHEN NOT EXISTS (SELECT 1 FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'CREDITO') THEN COALESCE((SELECT SUM("explicitAmount") FROM public."InvoicesProductTax" ipt WHERE ipt."invoiceProductId" = ep.id AND ipt."isMain" = true), 0) ELSE 0 END AS am_TarifaContado,
-		CASE WHEN NOT EXISTS (SELECT 1 FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'CREDITO') THEN COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'IVA'), 0) ELSE 0 END AS am_IvaContado,
-		CASE WHEN NOT EXISTS (SELECT 1 FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'CREDITO') THEN COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ipt."isMain" = false AND ct.code NOT IN ('IVA', 'CMB', 'TUA')), 0) ELSE 0 END AS am_OtrosContado,
-		CASE WHEN EXISTS (SELECT 1 FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'CREDITO') THEN COALESCE((SELECT SUM("explicitAmount") FROM public."InvoicesProductTax" ipt WHERE ipt."invoiceProductId" = ep.id AND ipt."isMain" = true), 0) ELSE 0 END AS am_TarifaCredito,
-		CASE WHEN EXISTS (SELECT 1 FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'CREDITO') THEN COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'IVA'), 0) ELSE 0 END AS am_IvaCredito,
-		CASE WHEN EXISTS (SELECT 1 FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'CREDITO') THEN COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ipt."isMain" = false AND ct.code NOT IN ('IVA', 'CMB', 'TUA')), 0) ELSE 0 END AS am_OtrosCredito,
-		
-		COALESCE(ep."sellerCommission", 0) AS am_Comision,
-		'' AS cd_clitipodoc,
-		'' AS cd_clitipotercero,
-		'' AS ds_clirazoncial,
-		'' AS ds_cliname2,
-		'' AS ds_clilastname,
-		'' AS ds_clilastname2,
-		'' AS cd_clipais,
-		'' AS ds_clitel,
-		'' AS cd_TipoTransaccion,
-		NULL AS Fecha_Salida,
-		NULL AS Fecha_Llegada,
-		NULL AS Id_Srv,
-		NULL AS cd_conceptofacturacion,
-		NULL AS cd_tiposervicio,
-		'' AS cd_proveedores,
-		'' AS ds_proveedores,
-		NULL AS id_car,
-		NULL AS dt_entrega,
-		NULL AS in_cars,
-		'' AS cd_carcode,
-		'' AS cd_conf_car,
-		'' AS cd_citysalida,
-		NULL AS dt_retorno,
-		'' AS cd_cartype,
-		'' AS cd_currency,
-		0 AS am_tarifacar,
-		'' AS cd_bookingsource,
-		'' AS cd_ratecode,
-		NULL AS id_htl,
-		NULL AS dt_checkin,
-		NULL AS in_guests,
-		'' AS cd_confirmation,
-		'' AS cd_city,
-		'' AS cd_htlchain,
-		NULL AS dt_checkout,
-		NULL AS in_noches,
-		'' AS ds_htlname,
-		NULL AS in_habs,
-		'' AS cd_bed,
-		'' AS cd_ratecode_htl,
-		'' AS cd_htlcur,
-		0 AS am_htltarifa,
-		'' AS cd_agcur,
-		0 AS am_agtarifa,
-		'' AS ds_dir1,
-		'' AS ds_tel,
-		'' AS ds_fax,
-		'' AS cd_centrocosto,
-		NULL AS NumTktConj,
-		'' AS Respuesta,
-		'' AS ds_solicita,
-		'' AS cd_pax_CC,
-		'' AS ds_lapsoviaje,
-		'' AS ds_archivo,
-		'' AS ds_Observaciones,
-		COALESCE(u.email, '') AS ds_ClienteEmail,
-		COALESCE(b.code, '') AS cd_sucursal,
-		COALESCE(i.code, '') AS cd_implante,
-		B'0' AS bl_ClienteActualizar,
-		B'0' AS bl_NotificacionMPD,
-		'' AS cd_FormaPagoTAO,
-		'' AS cd_TarjetaCreditoTAO,
-		'' AS cd_NumeroTarjetaTAO,
-		'' AS cd_VencimientoTarjetaTAO,
-		'' AS cd_NumeroPolizaTAO,
-		'' AS cd_AnexoPolizaTAO,
-		0 AS am_PorDesFormaPagoTA,
-		'' AS cd_Penalidad,
 		COALESCE((SELECT ipp."expirationDate" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_vence,
-		'' AS ds_cc_vence2,
 		COALESCE((SELECT ipp."authorizationCode" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_autorizacion,
-		'' AS ds_cc_autorizacion2,
 		COALESCE((SELECT ipp."voucher" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_voucher,
-		'' AS ds_cc_voucher2,
-		'' AS ds_AutorizacionTarjetaTAO,
-		'' AS ds_VoucherTarjetaTAO,
-		0 AS am_fptao,
-		NULL AS in_cc_cuotas,
-		NULL AS in_cc_cuotas2,
-		NULL AS in_cuotasTarjetaTAO,
-		'' AS cd_TipoTarifaTAO,
-		'' AS cd_TipoTiquete,
-		COALESCE(e."exchangeRate", 1.0) AS am_TasaCambio,
-		'' AS cd_tiqueteador_facturador,
-		B'0' AS bl_ahorro,
-		NULL AS in_CantidadTarifaTAO,
-		NULL AS in_CantidadSegmentoTAO,
-		'' AS cd_tourcode,
-		'' AS ds_contrato,
-		'' AS cd_PasaportePax,
-		COALESCE(ep.itinerary, '') AS ds_itinerarioaerolinea,
-		'' AS ds_tkt_prefixIata,
-		'' AS ds_Evento,
-		'' AS cd_iata,
-		'' AS ds_aero_codeIata,
-		'' AS ReservaFactura,
-		'' AS cd_Ahorro,
-		'' AS cd_Categoria,
-		NULL AS Id_FormasPagoAirPlus,
-		'' AS cd_FormasPagoAirPlus,
-		'' AS ds_FormasPagoAirPlus,
-		'' AS cd_TarjetasCreditoAirPlus,
-		'' AS ds_numerotarjetaAirPlus,
-		0 AS am_PorFacParcial,
-		0 AS am_PorFacParcial_Utilizar,
-		COALESCE(cardinality(arr), 1) AS in_cantpax,
-		NULL AS Id_Precompra,
-		e."branchId" AS id_sucursal,
-		B'0' AS bl_cotizacion,
-		'' AS cd_htl,
-		NULL AS id_FormasPago,
-		NULL AS id_TarjetasCredito,
-		NULL AS id_formapago_cliente,
-		'' AS cd_formapago_cliente,
-		'' AS ds_formapago_cliente,
-		'' AS cd_fp_OtrosItems,
-		'' AS cd_auxiliar,
-		'' AS cd_tipoventa,
-		0 AS am_iva2,
-		NULL AS cd_licitacion,
-		ep.descripcion AS ds_descripcion,
-		NULL AS id_tipoproveedor,
-		'' AS cd_tipoproveedor,
-		'' AS ds_tipoproveedor,
-		'I' || LPAD(ep."id"::text, 7, '0') AS cd_Consecutivo_variablesadicionales,
-		'I' || LPAD(ep."id"::text, 7, '0') AS cd_item
-    FROM public."Invoices" e
-	JOIN public."InvoicesProduct" ep ON ep."invoiceId" = e.id
-	JOIN public."Product" p ON p.id = ep."productId"
-    JOIN public."Client" c ON e."clientId" = c.id
-    JOIN public."Branch" b ON e."branchId" = b.id
-    LEFT JOIN public."Implant" i ON e."implantId" = i.id
-    LEFT JOIN public."Seller" s ON e."sellerId" = s.id
-    LEFT JOIN public."TicketPrinter" t ON e."ticketPrinterId" = t.id
-    LEFT JOIN public."User" u ON e."userId" = u.id
-	LEFT JOIN LATERAL ( SELECT  pp.*,
-		        				regexp_split_to_array(TRIM(pp.name), 's+') AS arr
-		    			FROM public."InvoicesProductPasenger" pp 
-						WHERE pp."invoiceProductId" = ep.id
-    					ORDER BY pp.id
-    					LIMIT 1) epp ON true
-    WHERE e.id = ANY(string_to_array(Envoices_id, ',')::int[]);
-
-    -- 5. Poblar Tablas de Relación (CotizacionServicios y subtablas)
-    INSERT INTO CotizacionServicios (
-        cd_TiposConceptFac, cd_ConceptoFacturacion, cd_TiposServicio, cd_Cotizacion,
-        cd_fac_factura, cd_fac_remision, cd_proveedores, ds_tiposervnm, cd_prov_hotel,
-        cd_prov_car, cd_prov_air, ds_destino, ds_servicio, ds_descrip, ds_paxname,
-        ds_paxape, cd_paxtype, in_nacionalidad, cd_voucher, in_cantpax, dt_llegada,
-        dt_salida, cd_cencosto, cd_auxiliar, cd_item, am_valorprov, cd_monedaprov,
-        ds_InfoAdicional, cd_carrental, cd_hoteles, bl_anulado, cd_tiquete,
-        cd_fuente_anul, cd_serie_anul, cd_consecutivo_anul, cd_usuario_anul,
-        cd_sucursal_anul, cd_implante_anul, am_basecomisionable, am_porcomision,
-        cd_voucherPrefijo, bl_notdomicilionacional, Valor_Comision, Valor_Recaudo,
-        dias_recaudo, ds_paxClasificacion, cd_tipoplan, cd_acomodacion, in_dias,
-        in_noches, ds_records, cd_GrConcepto, in_diasSrv, in_nochesSrv, cd_Especialista,
-        am_porcentaje_descuento, am_valor_descuento, ds_motivo_descuento,
-        cd_cargosdesc_descuento, in_NumeroOpcion, dt_FechaSalidaSrv, dt_FechaLlegadaSrv,
-        cd_localizador, cd_voucherpax, am_basecomisionableprov, am_porcomisionprov,
-        cd_NumeFac, dt_VenceFac, cd_AcomodacionSrv, cd_TipoPlanSrv, in_habitaciones,
-        in_habitacionesSrv, cd_Consecutivo_VARiablesAdicionales, cd_confirmacion,
-        ds_confirmadopor, cd_paxidentificacion, bl_politicaCancelacion,
-        dt_politicaCancelacion, cd_tipoHabitacionacion, cd_fac_facturaComision,
-        cd_fac_remisionComision, cd_TarjetaAsistencia, cd_Regiones, Iden_GDS, id_sys_entidades,
-        ds_TipoAuto, ds_Origen, ds_DirOrigen, ds_DirDestino, ds_TipoTarifa, am_ValorUSD,
-        ds_NoVuelo, ds_Vehiculo, ds_Placa, ds_CategoriaVehiculo, ds_NombreConductor,
-        ds_telefono, ds_IdiomaConductor, cd_MonedaSrv, cd_TipoServicio, cd_Aerolinea,
-        in_EdadPax, am_PorFacParcial, ds_GDS, dt_fechaficheroBBVA, bl_tiquete,
-        am_basedescuento, am_pordescuento, cd_CotizacionServicios_Depende, 
-		orig_id_ref, orig_id_quotationref, mainTaxId
-    )
-    SELECT 
-        COALESCE(pr."type", '') as cd_TiposConceptFac, 
-        COALESCE(pr."billingConcept", pr."code", '') as cd_ConceptoFacturacion, 
-        COALESCE(pr."serviceType", ep."serviceType", '') as cd_TiposServicio, 
-        f.cd_consecutivo as cd_Cotizacion,
-        '' as cd_fac_factura, 
-        '' as cd_fac_remision, 
-        COALESCE(prov.code, prov.name, '') as cd_proveedores, 
-        COALESCE(ep."serviceType", '') as ds_tiposervnm, 
-        '' as cd_prov_hotel,
-        '' as cd_prov_car, 
-        '' as cd_prov_air, 
-        COALESCE(ep.destination, '') as ds_destino, 
-        COALESCE(pr.description, '') as ds_servicio, 
-        COALESCE(pr.description, '') as ds_descrip, 
-		CASE 
-	        WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN ''
-	        WHEN TRIM(epp.name) NOT LIKE '% %' THEN TRIM(epp.name)
-	        ELSE COALESCE(arr[1], '')
-	    END AS ds_paxname,
-	    CASE 
-	        WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN ''
-	        WHEN TRIM(epp.name) NOT LIKE '% %' THEN ''
-	        ELSE COALESCE(arr[2], '')
-	    END AS ds_paxape,
-        CASE 
-	        WHEN TRIM(epp.name) LIKE '% %' THEN COALESCE(arr[3], '')
-	        ELSE ''
-	    END as cd_paxtype, 
-        COALESCE(ep."inNationality", 1) as in_nacionalidad, 
-        '' as cd_voucher, 
-        ep.quantity as in_cantpax, 
-        COALESCE(ep."checkInDate", f.ds_fecha) as dt_llegada,
-        COALESCE(ep."checkOutDate", f.ds_fecha) as dt_salida, 
-        '' as cd_cencosto, 
-        '' as cd_auxiliar, 
-        '' as cd_item, 
-        ep.price as am_valorprov, 
-        e.currency as cd_monedaprov,
-        '' as ds_InfoAdicional, 
-        '' as cd_carrental, 
-        COALESCE(pre."code",'') as cd_hoteles, 
-        B'0' as bl_anulado, 
-        '' as cd_tiquete,
-        '' as cd_fuente_anul, 
-        '' as cd_serie_anul, 
-        '' as cd_consecutivo_anul, 
-        '' as cd_usuario_anul,
-        '' as cd_sucursal_anul, 
-        '' as cd_implante_anul, 
-        0 as am_basecomisionable, 
-        0 as am_porcomision,
-        '' as cd_voucherPrefijo, 
-        B'0' as bl_notdomicilionacional, 
-        0 as Valor_Comision, 
-        0 as Valor_Recaudo,
-        0 as dias_recaudo, 
-        '' as ds_paxClasificacion, 
-        '' as cd_tipoplan, 
-        '' as cd_acomodacion, 
-        0 as in_dias,
-        0 as in_noches, 
-        '' as ds_records, 
-        '' as cd_GrConcepto, 
-        0 as in_diasSrv, 
-        0 as in_nochesSrv, 
-        '' as cd_Especialista,
-        0 as am_porcentaje_descuento, 
-        0 as am_valor_descuento, 
-        '' as ds_motivo_descuento,
-        '' as cd_cargosdesc_descuento, 
-        0 as in_NumeroOpcion, 
-        f.ds_fecha as dt_FechaSalidaSrv, 
-        f.ds_fecha as dt_FechaLlegadaSrv,
-        '' as cd_localizador, 
-        '' as cd_voucherpax, 
-        0 as am_basecomisionableprov, 
-        0 as am_porcomisionprov,
-        '' as cd_NumeFac, 
-        f.ds_fecha as dt_VenceFac, 
-        '' as cd_AcomodacionSrv, 
-        '' as cd_TipoPlanSrv, 
-        0 as in_habitaciones,
-        0 as in_habitacionesSrv, 
-        'Q' || LPAD(ep."id"::text, 7, '0') as cd_Consecutivo_VARiablesAdicionales, 
-        '' as cd_confirmacion,
-        '' as ds_confirmadopor, 
-        COALESCE(epp.document,'') as cd_paxidentificacion, 
-        B'0' as bl_politicaCancelacion,
-        f.ds_fecha as dt_politicaCancelacion, 
-        '' as cd_tipoHabitacionacion, 
-        '' as cd_fac_facturaComision,
-        '' as cd_fac_remisionComision, 
-        '' as cd_TarjetaAsistencia, 
-        '' as cd_Regiones, 
-        0 as Iden_GDS, 
-        0 as id_sys_entidades,
-        '' as ds_TipoAuto, 
-        '' as ds_Origen, 
-        '' as ds_DirOrigen, 
-        '' as ds_DirDestino, 
-        '' as ds_TipoTarifa, 
-        0 as am_ValorUSD,
-        '' as ds_NoVuelo, 
-        '' as ds_Vehiculo, 
-        '' as ds_Placa, 
-        '' as ds_CategoriaVehiculo, 
-        '' as ds_NombreConductor,
-        '' as ds_telefono, 
-        '' as ds_IdiomaConductor, 
-        e.currency as cd_MonedaSrv, 
-        '' as cd_TipoServicio, 
-        '' as cd_Aerolinea,
-        0 as in_EdadPax, 
-        0 as am_PorFacParcial, 
-        '' as ds_GDS, 
-        f.ds_fecha as dt_fechaficheroBBVA, 
-        B'0' as bl_tiquete,
-        0 as am_basedescuento, 
-        0 as am_pordescuento, 
-        '' as cd_CotizacionServicios_Depende, 
-        ep.id as orig_id_ref,
-        f.id as orig_id_quotationref,
-        ep."mainTaxId" as mainTaxId
+        NULL AS in_cc_cuotas,
+        0 AS am_fp2,
+        '' AS ds_cc_code2,
+        '' AS ds_cc_number2,
+        '' AS ds_cc_vence2,
+        '' AS ds_cc_autorizacion2,
+        '' AS ds_cc_voucher2,
+        NULL AS in_cc_cuotas2,
+        NULL AS id_monedas_iata,
+        COALESCE(e."exchangeRate", 1.0) AS Tcambio,
+        e."branchId" AS id_sucursal,
+        e."implantId" AS id_implante,
+        B'0' AS bl_ahorro,
+        '' AS cd_TipoTiqueteGDS,
+        NULL AS id_TiposDocumento,
+        NULL AS id_entdist,
+        NULL AS id_entvend,
+        SUBSTRING(COALESCE(ep.destination, ''), 1, 3) AS cd_destino,
+        e.date AS dt_fechaexped,
+        NULL AS id_tiqueteadores,
+        NULL AS id_gds,
+        1 AS iden_gds,
+        0 AS am_comisionPNR,
+        '' AS ds_records,
+        B'0' AS bl_NoCalcComision,
+        B'0' AS bl_NoCalcIvaComision,
+        0 AS am_basecomisionable,
+        0 AS am_porcomision,
+        NULL AS id_tiposconceptfac,
+        NULL AS id_conceptofacturacion,
+        NULL AS id_tiposservicio,
+        SUBSTRING(COALESCE(prov.code, prov.name, ''), 1, 25) AS cd_proveedores,
+        SUBSTRING(COALESCE(pr.description, ''), 1, 250) AS ds_servicio,
+        ep.price AS am_valorprov,
+        NULL AS id_monedaprov,
+        COALESCE(ep."checkInDate", e.date) AS dt_llegada,
+        COALESCE(ep."checkOutDate", e.date) AS dt_salida,
+        0 AS am_pordescuento,
+        0 AS am_basedescuento,
+        COALESCE(ep."checkInDate", e.date) AS Fecha_Salida,
+        COALESCE(ep."checkOutDate", e.date) AS Fecha_Llegada,
+        '' AS ColId,
+        '' AS cd_Consecutivo_depende,
+        SUBSTRING(COALESCE(ep."reservationCode", ''), 1, 50) AS CodigoReserva,
+        'I' || LPAD(ep.id::text, 7, '0') AS cd_Consecutivo_variablesadicionales,
+        (ep.price * ep.quantity) AS am_valor_total,
+        SUBSTRING(COALESCE(prov.name, prov.code, ''), 1, 250) AS ds_proveedores,
+        NULL AS id_FormasPagoAirPlus,
+        '' AS cd_FormasPagoAirPlus,
+        '' AS ds_FormasPagoAirPlus,
+        NULL AS id_TarjetasCreditoAirPlus,
+        '' AS cd_TarjetasCreditoAirPlus,
+        '' AS ds_numerotarjetaAirPlus,
+        NULL AS id_reserva,
+        NULL AS OrdenGrabacion
     FROM public."InvoicesProduct" ep
 	JOIN public."Invoices" e ON ep."invoiceId" = e.id
     JOIN public."Product" pr ON ep."productId" = pr.id
@@ -5835,450 +5571,250 @@ BEGIN
     					ORDER BY pp.id
     					LIMIT 1) epp ON true;
 
-	INSERT INTO CotizacionServicios_PaxAdicional (
-		cd_Cotizacion, cd_CotizacionServicios, ds_paxape, ds_paxname, ds_paxprefix,
-		ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion, in_edad, cd_tiquete
-	)
-	SELECT 
-	    cs.cd_Cotizacion, 
-	    cs.cd_Consecutivo_VARiablesAdicionales AS cd_CotizacionServicios, 
-	    CASE 
-	        WHEN p.name IS NULL OR TRIM(p.name) = '' THEN ''
-	        WHEN TRIM(p.name) NOT LIKE '% %' THEN ''
-	        ELSE COALESCE(arr[2], '')
-	    END AS ds_paxape,
-	    CASE 
-	        WHEN p.name IS NULL OR TRIM(p.name) = '' THEN ''
-	        WHEN TRIM(p.name) NOT LIKE '% %' THEN TRIM(p.name)
-	        ELSE COALESCE(arr[1], '')
-	    END AS ds_paxname,
-	    CASE 
-	        WHEN TRIM(p.name) LIKE '% %' THEN COALESCE(arr[3], '')
-	        ELSE ''
-	    END AS ds_paxprefix,
-	    CASE 
-	        WHEN TRIM(p.name) LIKE '% %' THEN COALESCE(arr[4], '')
-	        ELSE ''
-	    END AS ds_paxClasificacion,
-	    CASE 
-	        WHEN TRIM(p.name) LIKE '% %' THEN COALESCE(arr[5], '')
-	        ELSE ''
-	    END AS cd_voucherpax,
-	    p.document AS cd_paxidentificacion, 
-	    0 AS in_edad, 
-	    '' AS cd_tiquete
-		FROM (
-		    SELECT 
-		        p.*,
-		        regexp_split_to_array(TRIM(p.name), 's+') AS arr,
-		        ROW_NUMBER() OVER (
-		            PARTITION BY p."invoiceProductId"
-		            ORDER BY p.id
-		        ) AS rn
-		    FROM public."InvoicesProductPasenger" p
-		) p
-		JOIN CotizacionServicios cs 
-		    ON p."invoiceProductId" = cs.orig_id_ref
-		WHERE p.rn > 1;
+    -- 6. Poblar Tabla itinerarios
+    INSERT INTO itinerarios (
+        id_factura, id_item, id_tipoitem, ds_itinerario, ds_itinerarioaerolinea
+    )
+    SELECT 
+        f.cd_consecutivo AS id_factura,
+        itm.cd_item AS id_item,
+        itm.tipo_item AS id_tipoitem,
+        ep.itinerary AS ds_itinerario,
+        ep.itinerary AS ds_itinerarioaerolinea
+    FROM public."InvoicesProduct" ep
+    JOIN Item itm ON ep.id = itm.id_referencia_origen
+    JOIN Facturacion f ON ep."invoiceId" = f.id_item
+    WHERE ep.itinerary IS NOT NULL AND ep.itinerary <> '';
 
-	INSERT INTO CotizacionServicios_VariableAdicional (
-        cd_Cotizacion, cd_CotizacionServicios, ds_maestro, ds_VariableAdicional, ds_valor, cd_codigo
-	)
-	SELECT 
-        cs.cd_Cotizacion,
-        cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios, 
-        'CotizacionServicios' as ds_maestro, 
-        COALESCE(mv.name, '') as ds_VariableAdicional, 
-        COALESCE(v.value, '') as ds_valor, 
-        COALESCE(mv.code, '') as cd_codigo
+    -- 7. Poblar Tabla Pasajeros
+    INSERT INTO Pasajeros (
+        id_factura, id_item, id_tipoitem, ds_paxape, ds_paxname, ds_paxprefix,
+        ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion, in_edad, cd_tiquete
+    )
+    SELECT 
+        f.cd_consecutivo AS id_factura,
+        itm.cd_item AS id_item,
+        itm.tipo_item AS id_tipoitem,
+	    CASE WHEN p.name IS NULL OR TRIM(p.name) = '' THEN '' WHEN TRIM(p.name) NOT LIKE '% %' THEN '' ELSE COALESCE(arr[2], '') END AS ds_paxape,
+	    CASE WHEN p.name IS NULL OR TRIM(p.name) = '' THEN '' WHEN TRIM(p.name) NOT LIKE '% %' THEN TRIM(p.name) ELSE COALESCE(arr[1], '') END AS ds_paxname,
+	    CASE WHEN TRIM(p.name) LIKE '% %' THEN SUBSTRING(COALESCE(arr[3], ''), 1, 3)::char(3) ELSE ''::char(3) END AS ds_paxprefix,
+        '' AS ds_paxClasificacion,
+        '' AS cd_voucherpax,
+        p.document AS cd_paxidentificacion, 
+        0 AS in_edad, 
+        '' AS cd_tiquete
+	FROM (
+	    SELECT 
+	        p.*,
+	        regexp_split_to_array(TRIM(p.name), 's+') AS arr,
+	        ROW_NUMBER() OVER (
+	            PARTITION BY p."invoiceProductId"
+	            ORDER BY p.id
+	        ) AS rn
+	    FROM public."InvoicesProductPasenger" p
+	) p
+    JOIN Item itm ON p."invoiceProductId" = itm.id_referencia_origen
+    JOIN Facturacion f ON itm.id_factura = f.id_item
+    WHERE p.rn > 1;
+
+    -- 8. Poblar Tabla CargosImpuestos
+    INSERT INTO CargosImpuestos (
+        id_factura, id_item, id_tipoitem, cd_codigo, ds_nombre, cd_tipo,
+        am_porcentaje, am_valor, am_contado, am_credito, id_carg, id_imp, bl_iva, in_orden
+    )
+    SELECT 
+        f.cd_consecutivo AS id_factura,
+        itm.cd_item AS id_item,
+        itm.tipo_item AS id_tipoitem,
+        COALESCE(ct.code, 'TAR') AS cd_codigo,
+        COALESCE(ct.name, 'Tarifa') AS ds_nombre,
+        CASE WHEN t."isMain" = true THEN 'C' ELSE 'I' END AS cd_tipo,
+        COALESCE(ct.value, 0) AS am_porcentaje,
+        t."explicitAmount" AS am_valor,
+        t."explicitAmount" AS am_contado,
+        0 AS am_credito,
+        ct.id AS id_carg,
+        ct.id AS id_imp,
+        CASE WHEN ct.code = 'IVA' THEN B'1' ELSE B'0' END AS bl_iva,
+        1 AS in_orden
+    FROM public."InvoicesProductTax" t
+    JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
+    JOIN Item itm ON t."invoiceProductId" = itm.id_referencia_origen
+    JOIN Facturacion f ON itm.id_factura = f.id_item;
+
+    -- 9. Poblar Tabla Formaspago
+    INSERT INTO Formaspago (
+        id_factura, id_item, id_tipoitem, id_formaspago, cd_codigo, ds_nombre,
+        id_tarjetascredito, cd_tipotarjeta, ds_numerotarjeta, ds_vouchertarjeta,
+        ds_expiraciontarjeta, ds_autorizaciontarjeta, in_cuotas, cd_banco,
+        ds_cheque, ds_plaza, ds_referencia, ds_Poliza, ds_PolizaAnexo, am_valor
+    )
+    SELECT 
+        f.cd_consecutivo AS id_factura,
+        itm.cd_item AS id_item,
+        itm.tipo_item AS id_tipoitem,
+        ipp.id AS id_formaspago,
+        ipp."paymentMethod" AS cd_codigo,
+        ipp."paymentMethod" AS ds_nombre,
+        ipp."creditCardId" AS id_tarjetascredito,
+        COALESCE(cc.code, '') AS cd_tipotarjeta,
+        COALESCE(ipp."cardNumber", '') AS ds_numerotarjeta,
+        COALESCE(ipp.voucher, '') AS ds_vouchertarjeta,
+        COALESCE(ipp."expirationDate", '') AS ds_expiraciontarjeta,
+        COALESCE(ipp."authorizationCode", '') AS ds_autorizaciontarjeta,
+        NULL AS in_cuotas,
+        '' AS cd_banco,
+        '' AS ds_cheque,
+        '' AS ds_plaza,
+        COALESCE(ipp.reference, '') AS ds_referencia,
+        '' AS ds_Poliza,
+        '' AS ds_PolizaAnexo,
+        ipp.amount AS am_valor
+    FROM public."InvoicesProductPayment" ipp
+    JOIN Item itm ON ipp."invoiceProductId" = itm.id_referencia_origen
+    JOIN Facturacion f ON itm.id_factura = f.id_item
+    LEFT JOIN public."CreditCard" cc ON ipp."creditCardId" = cc.id;
+
+    -- 10. Poblar Tabla Variables
+    INSERT INTO Variables (
+        id_factura, id_item, id_tipoitem, ds_maestro, ds_VariableAdicional, ds_valor, cd_codigo
+    )
+    SELECT 
+        f.cd_consecutivo AS id_factura,
+        itm.cd_item AS id_item,
+        itm.tipo_item AS id_tipoitem,
+        'Item' AS ds_maestro,
+        COALESCE(mv.name, '') AS ds_VariableAdicional,
+        COALESCE(v.value, '') AS ds_valor,
+        COALESCE(mv.code, '') AS cd_codigo
     FROM public."InvoicesProductVariable" v
     JOIN public."MasterVariable" mv ON v."masterVariableId" = mv.id
-    JOIN CotizacionServicios cs ON v."invoiceProductId" = cs.orig_id_ref;
+    JOIN Item itm ON v."invoiceProductId" = itm.id_referencia_origen
+    JOIN Facturacion f ON itm.id_factura = f.id_item;
 
-	INSERT INTO CotizacionCargos (
-        cd_CotizacionServicios, cd_CotizacionCargos, cd_cargosdesc, ds_cargonm, bl_noshow, am_contado,
-        am_credito, am_valor, am_contado_ME, am_credito_ME, am_valor_ME, orig_id_ref, cd_Cotizacion
-	)
-	SELECT 
-        cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios,
-        t.id::text as cd_CotizacionCargos,
-        COALESCE(ct.code, 'TAR') as cd_cargosdesc,
-        COALESCE(ct.name, 'Tarifa') as ds_cargonm,
-        B'0' as bl_noshow,
-        t."explicitAmount" as am_contado,
-        0 as am_credito,
-        t."explicitAmount" as am_valor,
-        0 as am_contado_ME,
-        0 as am_credito_ME,
-        0 as am_valor_ME,
-        t.id as orig_id_ref,
-        cs.cd_Cotizacion
-    FROM public."InvoicesProductTax" t
-    JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
-    JOIN CotizacionServicios cs ON t."invoiceProductId" = cs.orig_id_ref
-    WHERE t."isMain" = true;
-
-	INSERT INTO CotizacionImpuestos (
-		cd_CotizacionServicios, cd_Cotizacion, cd_CotizacionCargos, cd_CotizacionImpuestos,
-		cd_ImpRet, ds_Impas, cd_impcta, am_porcentaje, bl_contabilizar, am_contado,
-		am_credito, am_valor, am_contado_ME, am_credito_ME, am_valor_ME
-	)
-	SELECT 
-		cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios, 
-		cs.cd_Cotizacion,
-		cc.cd_CotizacionCargos,
-		t.id::text as cd_CotizacionImpuestos,
-		COALESCE(ct.code, 'IVA') as cd_ImpRet,
-		COALESCE(ct.name, 'IVA') as ds_Impas,
-		'' as cd_impcta,
-		COALESCE(ct.value, 19) as am_porcentaje,
-		B'0' as bl_contabilizar,
-		t."explicitAmount" as am_contado,
-		0 as am_credito,
-		t."explicitAmount" as am_valor,
-		0 as am_contado_ME,
-		0 as am_credito_ME,
-		0 as am_valor_ME
-    FROM public."InvoicesProductTax" t
-    JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
-    JOIN CotizacionServicios cs ON t."invoiceProductId" = cs.orig_id_ref
-    LEFT JOIN CotizacionCargos cc ON cc.cd_CotizacionServicios = cs.cd_Consecutivo_VARiablesAdicionales
-    WHERE t."isMain" = false;
-
-	INSERT INTO Fac_Servicios_TiposFacturacionHoteles (
-		cd_Cotizacion, cd_CotizacionServicios, cd_TiposFacturacionHoteles, cd_cargosdesc,
-		in_cantidad, am_contado, am_credito, ds_cargonm
-	)
-	SELECT 
-		cs.cd_Cotizacion,
-		cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios,
-		'NCH' as cd_TiposFacturacionHoteles,
-		'TAR' as cd_cargosdesc,
-		COALESCE(ep."quantity", 0) as in_cantidad,
-		COALESCE(t."explicitAmount", 0) as am_contado,
-		0 as am_credito,
-		COALESCE(ct.name, 'Tarifa') as ds_cargonm
-	FROM public."InvoicesProduct" ep
-	JOIN CotizacionServicios cs ON ep.id = cs.orig_id_ref
-	LEFT JOIN public."ChargeAndTax" ct ON ct.id = ep."mainTaxId"
-	LEFT JOIN public."InvoicesProductTax" t ON t."invoiceProductId" = ep.id AND t."chargeAndTaxId" = ep."mainTaxId";
-
-	INSERT INTO CotizacionServicios_TipoProv(
-		cd_Cotizacion,
-		cd_CotizacionServicios,
-		cd_TipoProveedores,
-		ds_TipoProveedores,
-		cd_proveedores,
-		ds_proveedores
-	)
-	SELECT 
-		cs.cd_Cotizacion, 
-		cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios,
-		'HTL' as cd_TipoProveedores,
-		'HOTEL' as ds_TipoProveedores,
-		COALESCE(pre.code, '') as cd_proveedores,
-		COALESCE(pre.name, '') as ds_proveedores
-	FROM public."InvoicesProduct" ep
-	JOIN CotizacionServicios cs ON ep.id = cs.orig_id_ref
-	LEFT JOIN public."Prestadora" pre ON pre.id = ep."prestadoraId";
-
-    -- 5. Generar XML
+    -- 11. Generar XML
     SELECT xmlroot(
         xmlelement(name "Facturaciones",
             xmlagg(
                 xmlelement(name "Facturacion",
                     xmlforest(
-                        f.id,
-				        f.cd_fuente, 
-						f.cd_serie,
-						f.cd_consecutivo,
-						f.Tipo,
-						f.Servicio,
-						f.Descrip,
-						f.id_item,
-						f.in_tipoitem,
-						f.iden_gds,
-						f.ds_fecha,
-						f.cd_tiqueteador,
-						f.cd_vendedor,
-						f.cd_cliente,
-						f.am_highfare,
-						f.am_lowfare,
-						f.am_fare,
-						f.ds_reasoncode,
-						f.ds_cliname,
-						f.ds_clidir,
-						f.ds_clicity,
-						f.ds_cliid,
-						f.ds_itinerario,
-						f.ds_clases,
-						f.in_nacionalidad,
-						f.id_air,
-						f.ds_pax_number,
-						f.ds_pax_firstnm,
-						f.ds_pax_lastnm,
-						f.ds_pax_prefix,
-						f.ds_tkt_number,
-						f.ds_tkt_prefix,
-						f.ds_aero_code,
-						f.ds_moneda,
-						f.am_tarifa,
-						f.am_iva,
-						f.am_tua,
-						f.am_comb,
-						f.am_vat,
-						f.ds_cc_code,
-						f.ds_cc_number,
-						f.am_tao,
-						f.am_ivatao,
-						f.am_cap,
-						f.am_ivacap,
-						f.ds_cc_code2,
-						f.ds_cc_number2,
-						f.am_fp1,
-						f.am_fp2,
-						f.cd_tktrevisado,
-						f.am_TarifaContado,
-						f.am_IvaContado,
-						f.am_OtrosContado,
-						f.am_TarifaCredito,
-						f.am_IvaCredito,
-						f.am_OtrosCredito,
-						f.am_Comision,
-						f.cd_clitipodoc,
-						f.cd_clitipotercero,
-						f.ds_clirazoncial,
-						f.ds_cliname2,
-						f.ds_clilastname,
-						f.ds_clilastname2,
-						f.cd_clipais,
-						f.ds_clitel,
-						f.cd_TipoTransaccion,
-						f.Fecha_Salida,
-						f.Fecha_Llegada,
-						f.Id_Srv,
-						f.cd_conceptofacturacion,
-						f.cd_tiposervicio,
-						f.cd_proveedores,
-						f.ds_proveedores,
-						f.id_car,
-						f.dt_entrega,
-						f.in_cars,
-						f.cd_carcode,
-						f.cd_conf_car,
-						f.cd_citysalida,
-						f.dt_retorno,
-						f.cd_cartype,
-						f.cd_currency,
-						f.am_tarifacar,
-						f.cd_bookingsource,
-						f.cd_ratecode,
-						f.id_htl,
-						f.dt_checkin,
-						f.in_guests,
-						f.cd_confirmation,
-						f.cd_city,
-						f.cd_htlchain,
-						f.dt_checkout,
-						f.in_noches,
-						f.ds_htlname,
-						f.in_habs,
-						f.cd_bed,
-						f.cd_ratecode_htl,
-						f.cd_htlcur,
-						f.am_htltarifa,
-						f.cd_agcur,
-						f.am_agtarifa,
-						f.ds_dir1,
-						f.ds_tel,
-						f.ds_fax,
-						f.cd_centrocosto,
-						f.NumTktConj,
-						f.Respuesta,
-						f.ds_solicita,
-						f.cd_pax_CC,
-						f.ds_lapsoviaje,
-						f.ds_archivo,
-						f.ds_Observaciones,
-						f.ds_ClienteEmail,
-						f.cd_sucursal,
-						f.cd_implante, 
-						f.bl_ClienteActualizar,
-						f.bl_NotificacionMPD,
-						f.cd_FormaPagoTAO,
-						f.cd_TarjetaCreditoTAO, 
-						f.cd_NumeroTarjetaTAO, 
-						f.cd_VencimientoTarjetaTAO, 
-						f.cd_NumeroPolizaTAO,
-						f.cd_AnexoPolizaTAO,
-						f.am_PorDesFormaPagoTA, 
-						f.cd_Penalidad, 
-						f.ds_cc_vence, 
-						f.ds_cc_vence2,
-						f.ds_cc_autorizacion,
-						f.ds_cc_autorizacion2,
-						f.ds_cc_voucher,
-						f.ds_cc_voucher2,
-						f.ds_AutorizacionTarjetaTAO,
-						f.ds_VoucherTarjetaTAO,
-						f.am_fptao,
-						f.in_cc_cuotas,
-						f.in_cc_cuotas2,
-						f.in_cuotasTarjetaTAO,
-						f.cd_TipoTarifaTAO,
-						f.cd_TipoTiquete,
-						f.am_TasaCambio,
-						f.cd_tiqueteador_facturador,
-						f.bl_ahorro,
-						f.in_CantidadTarifaTAO,
-						f.in_CantidadSegmentoTAO,
-						f.cd_tourcode,
-						f.ds_contrato,
-						f.cd_PasaportePax,
-						f.ds_itinerarioaerolinea,
-						f.ds_tkt_prefixIata,
-						f.ds_Evento,
-						f.cd_iata,
-						f.ds_aero_codeIata,
-						f.ReservaFactura,
-						f.cd_Ahorro,
-						f.cd_Categoria,
-						f.Id_FormasPagoAirPlus,
-						f.cd_FormasPagoAirPlus,
-						f.ds_FormasPagoAirPlus,
-						f.cd_TarjetasCreditoAirPlus,
-						f.ds_numerotarjetaAirPlus,
-						f.am_PorFacParcial,
-						f.am_PorFacParcial_Utilizar,
-						f.in_cantpax,
-						f.Id_Precompra,
-						f.id_sucursal,
-						f.bl_cotizacion,
-						f.cd_htl,
-						f.id_FormasPago,
-						f.id_TarjetasCredito,
-						f.id_formapago_cliente,
-						f.cd_formapago_cliente,
-						f.ds_formapago_cliente,
-						f.cd_fp_OtrosItems,
-						f.cd_auxiliar,
-						f.cd_tipoventa,
-						f.am_iva2,
-						f.cd_licitacion,
-						f.ds_descripcion,
-						f.id_tipoproveedor,
-						f.cd_tipoproveedor,
-						f.ds_tipoproveedor,
-						f.cd_Consecutivo_variablesadicionales,
-						f.cd_item
+                        f.cd_fuente, f.cd_serie, f.cd_consecutivo, f.cd_usuario, f.cd_sucursal, f.cd_implante, 
+						f.dt_fechacont, f.dt_vence, f.cd_tercero_codigo, f.ds_tercero_nombre, f.cd_cliente_codigo, 
+						f.ds_cliente_nombre, f.ds_cliente_dir, f.ds_cliente_ciudad, f.ds_cliente_tel, f.ds_cliente_dirdesp, 
+						f.ds_cliente_email, f.ds_cliente_contacto, f.ds_cliente_contacto_email, f.id_monedas_iata, 
+						f.cd_vendedor, f.id_tiqueteador, f.bn_anexo, f.Tcambio, f.am_tcambiousd, f.id_tipoventa, 
+						f.ds_num_resolucion, f.in_num_inicial, f.in_num_final, f.ds_numeracion_autorizada, 
+						f.dt_fecha_resolucion, f.CodigoArchivoFisico, f.ds_Observacion, f.ds_Campo_libre1, 
+						f.ds_Campo_libre2, f.cd_fuente_Reemplaza, f.cd_serie_Reemplaza, f.cd_consecutivo_Reemplaza, 
+						f.ds_Actividad_Economica, f.ds_Tarifa_ICA, f.SqlStmt, f.AnticiposSqlStmt, f.TotalFactura, 
+						f.TotalCupoCreditoCliente, f.bl_BloqueoCupoCredito, f.bl_generadaauto, f.ds_CotizacionesId, 
+						f.Id_Cierre, f.cd_TipoFact, f.id_fac_remisionRelacionada, f.id_fac_facturaRelacionada, 
+						f.ds_DescripcionFac, f.bl_nocont, f.ProductosSqlStmt, f.cd_CF_TipoComprobante, f.id_Licitacion, 
+						f.ValorFactura, f.id_Especialista, f.id_tiqueteador_Facturador, f.id_TipoFormaPagoProveedor, 
+						f.id_MedioReservacion, f.bl_refacturacion, f.bl_comisiona, f.cd_fuente_factura, f.cd_serie_factura, 
+						f.cd_consecutivo_factura, f.id_NotasAerolinea, f.bl_interface, f.id_evento, f.bl_NoEnviarFacElectronica, 
+						f.bl_FacturaComision, f.bl_DescontarComisionCxP, f.ds_num_resolucion_Adicional, 
+						f.id_fac_facturaRefacturacion, f.bl_refacturacion_contabilizar_saldos, f.ZML_VariablesXML, 
+						f.bl_FormatoResumidoFactElectro, f.bl_ExigeAdjuntoFactElectro, f.bl_omitir_Validar_IVA_facturacion, 
+						f.ds_Respuesta
                     ),
                     (
                         SELECT xmlagg(
-                            xmlelement(name "CotizacionServicios",
+                            xmlelement(name "Item",
                                 xmlforest(
-                                    s.cd_TiposConceptFac, s.cd_ConceptoFacturacion, s.cd_TiposServicio, s.cd_Cotizacion,
-                                    s.cd_fac_factura, s.cd_fac_remision, s.cd_proveedores, s.ds_tiposervnm, s.cd_prov_hotel,
-                                    s.cd_prov_car, s.cd_prov_air, s.ds_destino, s.ds_servicio, s.ds_descrip, s.ds_paxname,
-                                    s.ds_paxape, s.cd_paxtype, s.in_nacionalidad, s.cd_voucher, s.in_cantpax, s.dt_llegada,
-                                    s.dt_salida, s.cd_cencosto, s.cd_auxiliar, s.cd_item, s.am_valorprov, s.cd_monedaprov,
-                                    s.ds_InfoAdicional, s.cd_carrental, s.cd_htles, s.bl_anulado, s.cd_tiquete,
-                                    s.cd_fuente_anul, s.cd_serie_anul, s.cd_consecutivo_anul, s.cd_usuario_anul,
-                                    s.cd_sucursal_anul, s.cd_implante_anul, s.am_basecomisionable, s.am_porcomision,
-                                    s.cd_voucherPrefijo, s.bl_notdomicilionacional, s.Valor_Comision, s.Valor_Recaudo,
-                                    s.dias_recaudo, s.ds_paxClasificacion, s.cd_tipoplan, s.cd_acomodacion, s.in_dias,
-                                    s.in_noches, s.ds_records, s.cd_GrConcepto, s.in_diasSrv, s.in_nochesSrv, s.cd_Especialista,
-                                    s.am_porcentaje_descuento, s.am_valor_descuento, s.ds_motivo_descuento,
-                                    s.cd_cargosdesc_descuento, s.in_NumeroOpcion, s.dt_FechaSalidaSrv, s.dt_FechaLlegadaSrv,
-                                    s.cd_localizador, s.cd_voucherpax, s.am_basecomisionableprov, s.am_porcomisionprov,
-                                    s.cd_NumeFac, s.dt_VenceFac, s.cd_AcomodacionSrv, s.cd_TipoPlanSrv, s.in_habitaciones,
-                                    s.in_habitacionesSrv, s.cd_Consecutivo_VARiablesAdicionales, s.cd_confirmacion,
-                                    s.ds_confirmadopor, s.cd_paxidentificacion, s.bl_politicaCancelacion,
-                                    s.dt_politicaCancelacion, s.cd_tipoHabitacionacion, s.cd_fac_facturaComision,
-                                    s.cd_fac_remisionComision, s.cd_TarjetaAsistencia, s.cd_Regiones, s.Iden_GDS, s.id_sys_entidades,
-                                    s.ds_TipoAuto, s.ds_Origen, s.ds_DirOrigen, s.ds_DirDestino, s.ds_TipoTarifa, s.am_ValorUSD,
-                                    s.ds_NoVuelo, s.ds_Vehiculo, s.ds_Placa, s.ds_CategoriaVehiculo, s.ds_NombreConductor,
-                                    s.ds_telefono, s.ds_IdiomaConductor, s.cd_MonedaSrv, s.cd_TipoServicio, s.cd_Aerolinea,
-                                    s.in_EdadPax, s.am_PorFacParcial, s.ds_GDS, s.dt_fechaficheroBBVA, s.bl_tiquete,
-                                    s.am_basedescuento, s.am_pordescuento, s.cd_CotizacionServicios_Depende
+									s.tipo_item, s.id_factura, s.in_tipoitem, s.id_referencia_origen, s.cd_tiquete, 
+									s.ds_descrip, s.in_nacionalidad, s.cd_cencosto, s.cd_auxiliar, s.cd_item, 
+									s.am_tarifa, s.am_iva, s.am_tua, s.am_comb, s.am_vat, s.am_Comision, 
+									s.ds_paxname, s.ds_paxape, s.ds_paxprefix, s.cd_tourcode, s.NumTktConj, 
+									s.cd_TipoTiquete, s.id_air, s.ds_itinerario, s.ds_itinerarioaerolinea, 
+									s.ds_clases, s.ds_Observaciones, s.am_highfare, s.am_lowfare, s.ds_solicita, 
+									s.ds_lapsoviaje, s.cd_tktrevisado, s.cd_PasaportePax, s.cd_pax_CC, 
+									s.am_PorFacParcial, s.in_cantpax, s.Id_Precompra, s.cd_FormaPagoTAO, 
+									s.cd_TarjetaCreditoTAO, s.cd_NumeroTarjetaTAO, s.cd_VencimientoTarjetaTAO, 
+									s.cd_NumeroPolizaTAO, s.cd_AnexoPolizaTAO, s.ds_AutorizacionTarjetaTAO, 
+									s.in_cuotasTarjetaTAO, s.id_FormasPago, s.id_TarjetasCredito, s.am_fp1, 
+									s.ds_cc_code, s.ds_cc_number, s.ds_cc_vence, s.ds_cc_autorizacion, 
+									s.ds_cc_voucher, s.in_cc_cuotas, s.am_fp2, s.ds_cc_code2, s.ds_cc_number2, 
+									s.ds_cc_vence2, s.ds_cc_autorizacion2, s.ds_cc_voucher2, s.in_cc_cuotas2, 
+									s.id_monedas_iata, s.Tcambio, s.id_sucursal, s.id_implante, s.bl_ahorro, 
+									s.cd_TipoTiqueteGDS, s.id_TiposDocumento, s.id_entdist, s.id_entvend, 
+									s.cd_destino, s.dt_fechaexped, s.id_tiqueteadores, s.id_gds, s.iden_gds, 
+									s.am_comisionPNR, s.ds_records, s.bl_NoCalcComision, s.bl_NoCalcIvaComision, 
+									s.am_basecomisionable, s.am_porcomision, s.id_tiposconceptfac, 
+									s.id_conceptofacturacion, s.id_tiposservicio, s.cd_proveedores, 
+									s.ds_servicio, s.am_valorprov, s.id_monedaprov, s.dt_llegada, s.dt_salida, 
+									s.am_pordescuento, s.am_basedescuento, s.Fecha_Salida, s.Fecha_Llegada, 
+									s.ColId, s.cd_Consecutivo_depende, s.CodigoReserva, 
+									s.cd_Consecutivo_variablesadicionales, s.am_valor_total, s.ds_proveedores, 
+									s.id_FormasPagoAirPlus, s.cd_FormasPagoAirPlus, s.ds_FormasPagoAirPlus, 
+									s.id_TarjetasCreditoAirPlus, s.cd_TarjetasCreditoAirPlus, 
+									s.ds_numerotarjetaAirPlus, s.id_reserva, s.OrdenGrabacion
                                 ),
                                 (
                                     SELECT xmlagg(
-                                        xmlelement(name "CotizacionServicios_PaxAdicional",
+                                        xmlelement(name "itinerarios",
                                             xmlforest(
-                                                p.cd_Cotizacion, p.cd_CotizacionServicios, p.ds_paxape, p.ds_paxname, p.ds_paxprefix,
+                                                iti.id_factura, iti.id_item, iti.id_tipoitem, iti.ds_itinerario, iti.ds_itinerarioaerolinea
+                                            )
+                                        )
+                                    )
+                                    FROM itinerarios iti
+                                    WHERE iti.id_item = s.cd_item
+                                ),
+                                (
+                                    SELECT xmlagg(
+                                        xmlelement(name "Pasajeros",
+                                            xmlforest(
+                                                p.id_factura, p.id_item, p.id_tipoitem, p.ds_paxape, p.ds_paxname, p.ds_paxprefix,
                                                 p.ds_paxClasificacion, p.cd_voucherpax, p.cd_paxidentificacion, p.in_edad, p.cd_tiquete
                                             )
                                         )
                                     )
-                                    FROM CotizacionServicios_PaxAdicional p
-                                    WHERE p.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
+                                    FROM Pasajeros p
+                                    WHERE p.id_item = s.cd_item
                                 ),
                                 (
                                     SELECT xmlagg(
-                                        xmlelement(name "CotizacionServicios_VariableAdicional",
+                                        xmlelement(name "CargosImpuestos",
                                             xmlforest(
-                                                v.cd_Cotizacion, v.cd_CotizacionServicios, v.ds_maestro, v.ds_VariableAdicional, v.ds_valor, v.cd_codigo
+                                                ci.id_factura, ci.id_item, ci.id_tipoitem, ci.cd_codigo, ci.ds_nombre, ci.cd_tipo,
+                                                ci.am_porcentaje, ci.am_valor, ci.am_contado, ci.am_credito, ci.id_carg, ci.id_imp,
+                                                ci.bl_iva, ci.in_orden
                                             )
                                         )
                                     )
-                                    FROM CotizacionServicios_VariableAdicional v
-                                    WHERE v.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
+                                    FROM CargosImpuestos ci
+                                    WHERE ci.id_item = s.cd_item
                                 ),
                                 (
                                     SELECT xmlagg(
-                                        xmlelement(name "CotizacionCargos",
+                                        xmlelement(name "Formaspago",
                                             xmlforest(
-                                                cr.cd_CotizacionServicios, cr.cd_CotizacionCargos, cr.cd_cargosdesc, cr.ds_cargonm,
-                                                cr.bl_noshow, cr.am_contado, cr.am_credito, cr.am_valor, cr.am_contado_ME,
-                                                cr.am_credito_ME, cr.am_valor_ME, cr.cd_Cotizacion
-                                            ),
-                                            (
-                                                SELECT xmlagg(
-                                                    xmlelement(name "CotizacionImpuestos",
-                                                        xmlforest(
-                                                            imp.cd_CotizacionServicios, imp.cd_CotizacionCargos, imp.cd_ImpRet,
-                                                            imp.ds_Impas, imp.cd_impcta, imp.am_porcentaje, imp.bl_contabilizar,
-                                                            imp.am_contado, imp.am_credito, imp.am_valor, imp.am_contado_ME,
-                                                            imp.am_credito_ME, imp.am_valor_ME, imp.cd_CotizacionImpuestos, imp.cd_Cotizacion
-                                                        )
-                                                    )
-                                                )
-                                                FROM CotizacionImpuestos imp
-                                                WHERE imp.cd_CotizacionCargos = cr.cd_CotizacionCargos
+                                                fp.id_factura, fp.id_item, fp.id_tipoitem, fp.id_formaspago, fp.cd_codigo, fp.ds_nombre,
+                                                fp.id_tarjetascredito, fp.cd_tipotarjeta, fp.ds_numerotarjeta, fp.ds_vouchertarjeta,
+                                                fp.ds_expiraciontarjeta, fp.ds_autorizaciontarjeta, fp.in_cuotas, fp.cd_banco,
+                                                fp.ds_cheque, fp.ds_plaza, fp.ds_referencia, fp.ds_Poliza, fp.ds_PolizaAnexo, fp.am_valor
                                             )
                                         )
                                     )
-                                    FROM CotizacionCargos cr
-                                    WHERE cr.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
+                                    FROM Formaspago fp
+                                    WHERE fp.id_item = s.cd_item
                                 ),
                                 (
                                     SELECT xmlagg(
-                                        xmlelement(name "Fac_Servicios_TiposFacturacionHoteles",
+                                        xmlelement(name "Variables",
                                             xmlforest(
-                                                TF.cd_Cotizacion, TF.cd_CotizacionServicios, TF.cd_TiposFacturacionHoteles,
-                                                TF.cd_cargosdesc, TF.in_cantidad, TF.am_contado, TF.am_credito, TF.am_valor, TF.ds_cargonm
+                                                v.id_factura, v.id_item, v.id_tipoitem, v.ds_maestro, v.ds_VariableAdicional, v.ds_valor, v.cd_codigo
                                             )
                                         )
                                     )
-                                    FROM Fac_Servicios_TiposFacturacionHoteles TF
-                                    WHERE TF.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
-                                ),
-                                (
-                                    SELECT xmlagg(
-                                        xmlelement(name "CotizacionServicios_TipoProv",
-                                            xmlforest(
-                                                PRE.cd_Cotizacion, PRE.cd_CotizacionServicios, PRE.cd_TipoProveedores,
-                                                PRE.ds_TipoProveedores, PRE.cd_proveedores, PRE.ds_proveedores
-                                            )
-                                        )
-                                    )
-                                    FROM CotizacionServicios_TipoProv PRE
-                                    WHERE PRE.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales			
+                                    FROM Variables v
+                                    WHERE v.id_item = s.cd_item
                                 )
                             )
                         )
-                        FROM CotizacionServicios s
-                        WHERE s.cd_Cotizacion = f.cd_consecutivo
+                        FROM Item s
+                        WHERE s.id_factura = f.id_item
                     )
                 )
             )
