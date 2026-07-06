@@ -24,6 +24,18 @@ interface ItemPaymentModalProps {
     paymentsList?: any[];
 }
 
+const formatDateForInput = (dateStr: any) => {
+    if (!dateStr) return '';
+    if (typeof dateStr === 'string') {
+        return dateStr.split('T')[0];
+    }
+    try {
+        return new Date(dateStr).toISOString().split('T')[0];
+    } catch (e) {
+        return '';
+    }
+};
+
 export default function ItemPaymentModal({ isOpen, onClose, productName, itemTotal, payments, onUpdatePayments, creditCards, paymentsList = [] }: ItemPaymentModalProps) {
     const [localPayments, setLocalPayments] = useState<Payment[]>(payments || []);
 
@@ -127,7 +139,7 @@ export default function ItemPaymentModal({ isOpen, onClose, productName, itemTot
                                     </div>
                                     <div className="space-y-1 flex-[1.5]">
                                         <label className="text-[10px] uppercase font-bold text-zinc-500">Fecha</label>
-                                        <input type="date" className="w-full h-9 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none text-xs" value={payment.date} onChange={(e) => updatePayment(idx, 'date', e.target.value)} />
+                                        <input type="date" className="w-full h-9 bg-zinc-50 dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none text-xs" value={formatDateForInput(payment.date)} onChange={(e) => updatePayment(idx, 'date', e.target.value)} />
                                     </div>
                                     <div className="space-y-1 flex-[2]">
                                         <label className="text-[10px] uppercase font-bold text-zinc-500">Referencia</label>

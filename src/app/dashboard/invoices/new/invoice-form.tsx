@@ -168,6 +168,7 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
             const endpoint = invoiceId ? `/api/invoices/${invoiceId}` : '/api/invoices';
             const method = invoiceId ? 'PUT' : 'POST';
             const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
+            console.log("PAYLOAD BEING SENT TO SERVER:", JSON.stringify(payload, null, 2));
 
             const res = await fetch(endpoint, {
                 method,
