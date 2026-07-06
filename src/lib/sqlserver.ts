@@ -86,6 +86,7 @@ export async function getSQLServerConnection() {
 export async function executeSQLServerProcedure(spName: string, params: any) {
     let pool;
     try {
+        console.log(`[SQL_SERVER_EXEC] Procedimiento: ${spName} | Parámetros:`, JSON.stringify(params));
         pool = await getSQLServerConnection();
         const request = pool.request();
 

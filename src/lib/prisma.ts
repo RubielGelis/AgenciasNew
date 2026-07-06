@@ -9,7 +9,20 @@ const prismaClientSingleton = () => {
     const pool = new Pool({ connectionString })
     const adapter = new PrismaPg(pool)
 
-    const prisma = new PrismaClient({ adapter })
+    const prisma = new PrismaClient({
+        adapter,
+        log: [
+            { emit: 'event', level: 'query' },
+            { emit: 'stdout', level: 'error' },
+            { emit: 'stdout', level: 'info' },
+            { emit: 'stdout', level: 'warn' }
+        ]
+    })
+ 
+    // Escuchar eventos de consultas e imprimirlos en la consola
+    ;(prisma as any).$on('query', (e: any) => {
+        console.log(`[PRISMA_SQL] Consulta: ${e.query} | Params: ${e.params} | Duración: ${e.duration}ms`);
+    })
     
     // Debug: check if fields exists
     try {
