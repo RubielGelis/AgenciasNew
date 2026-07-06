@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
+        console.log("POST INVOICE BODY:", JSON.stringify(body, null, 2));
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 

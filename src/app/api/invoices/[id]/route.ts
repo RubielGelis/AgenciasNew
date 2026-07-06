@@ -79,6 +79,7 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
         if (isNaN(id)) return NextResponse.json({ message: 'ID inválido' }, { status: 400 })
 
         const body = await request.json()
+        console.log("PUT INVOICE BODY:", JSON.stringify(body, null, 2));
         const userIdHeader = request.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 

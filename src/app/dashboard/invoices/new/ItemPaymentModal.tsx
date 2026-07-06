@@ -27,6 +27,12 @@ interface ItemPaymentModalProps {
 export default function ItemPaymentModal({ isOpen, onClose, productName, itemTotal, payments, onUpdatePayments, creditCards, paymentsList = [] }: ItemPaymentModalProps) {
     const [localPayments, setLocalPayments] = useState<Payment[]>(payments || []);
 
+    React.useEffect(() => {
+        if (isOpen) {
+            setLocalPayments(payments || []);
+        }
+    }, [isOpen, payments]);
+
     if (!isOpen) return null;
 
     const totalPaid = localPayments.reduce((acc, p) => acc + p.amount, 0);
