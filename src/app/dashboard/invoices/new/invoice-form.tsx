@@ -60,6 +60,9 @@ interface InvoiceFormData {
     }[];
     selectedCombos?: { id: number, name: string }[];
     state: string;
+    fuente?: string;
+    serie?: string;
+    consecutivo?: string;
 }
 
 export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
@@ -76,7 +79,10 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
         chargesAndTaxes: 0,
         items: [],
         selectedCombos: [],
-        state: 'Nuevo'
+        state: 'Nuevo',
+        fuente: '',
+        serie: '',
+        consecutivo: ''
     })
     const [saving, setSaving] = useState(false)
     const [isGlobalPaymentOpen, setIsGlobalPaymentOpen] = useState(false)
@@ -378,6 +384,9 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                             commissionPercentage: qData.commissionPercentage || 0,
                             chargesAndTaxes: qData.chargesAndTaxes || 0,
                             state: qData.state || 'Nuevo',
+                            fuente: qData.fuente || '',
+                            serie: qData.serie || '',
+                            consecutivo: qData.consecutivo || '',
                             items: (qData.products || []).map((p: any) => {
                                 const safeAppliedTaxes = Array.isArray(p.appliedTaxes) ? p.appliedTaxes : [];
                                 const safeVariables = Array.isArray(p.variables) ? p.variables : [];
@@ -732,6 +741,39 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                                     <option value="Nuevo">NUEVO</option>
                                     <option value="ENVIADO">ENVIADO</option>
                                 </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-zinc-500">Fuente</label>
+                                <input
+                                    type="text"
+                                    maxLength={25}
+                                    value={formData.fuente || ''}
+                                    onChange={(e) => setFormData({ ...formData, fuente: e.target.value })}
+                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Ej: FAC"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-zinc-500">Serie</label>
+                                <input
+                                    type="text"
+                                    maxLength={25}
+                                    value={formData.serie || ''}
+                                    onChange={(e) => setFormData({ ...formData, serie: e.target.value })}
+                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Ej: A"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold text-zinc-500">Consecutivo</label>
+                                <input
+                                    type="text"
+                                    maxLength={25}
+                                    value={formData.consecutivo || ''}
+                                    onChange={(e) => setFormData({ ...formData, consecutivo: e.target.value })}
+                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Ej: 0000123"
+                                />
                             </div>
                         </div>
                     </div>

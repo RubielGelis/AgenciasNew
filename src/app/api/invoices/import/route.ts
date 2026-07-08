@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
     const userIdHeader = req.headers.get('X-User-Id');
-    const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1;
+    const actingUserId: number = userIdHeader ? parseInt(userIdHeader, 10) : 1;
 
     try {
         const rows = await req.json()
@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
                 row.Comision_Global_Pct || '',
                 row.Cargos_A_Factura || '',
                 row.Producto_Codigo || '',
-                '', // Proveedor_Nombre
+                row.Proveedor_Nombre || '',
                 row.Proveedor_Codigo || '',
-                row.Prestadora_Codigo || row.Hotel_Codigo || row.Hotel_id || '', // Soporte para alias de columna
+                row.Prestadora_Codigo || row.Hotel_Codigo || row.Hotel_id || '',
                 row.Impuestos_Nombres_Y_Valores || '',
                 row.Variables_Codigos_Y_Valores || '',
                 row.Pasajeros || '',
@@ -48,7 +48,19 @@ export async function POST(req: NextRequest) {
                 row.Comision_Tiqueteador_Producto || '',
                 row.Combo_Codigos || '',
                 row.Nacionalidad || '1',
-                row.Cargo_Principal || ''
+                row.Cargo_Principal || '',
+                row.Costo || '',
+                row.Servicios || '',
+                row.Descripcion || '',
+                row.Itinerario || '',
+                row.Clase || '',
+                row.Aerolinea || '',
+                row.Tipo_Tiquete_Codigo || '',
+                row.Pagos || '',
+                row.Itinerarios || '',
+                row.Fuente || '',
+                row.Serie || '',
+                row.Consecutivo || ''
             ];
             // Limpieza profunda: evitar que caracteres especiales rompan el formato caret (^)
             return cols.map(c => (c !== undefined && c !== null ? c.toString().replace(/\^/g, ' ') : '')).join('^');
@@ -57,7 +69,7 @@ export async function POST(req: NextRequest) {
         // 2. Ejecutar el Stored Procedure enviando el TEXTO
         // Usamos $queryRaw para llamar al SP y capturar el parámetro INOUT
         const result: any[] = await prisma.$queryRawUnsafe(
-            `CALL public."spImportInvoice"($1::TEXT, $2::INT, $3::TEXT)`,
+            `CALL public."spImportInvoices"($1::TEXT, $2::INT, $3::TEXT)`,
             textData,
             actingUserId,
             null // Valor inicial para el INOUT
@@ -91,7 +103,7 @@ export async function POST(req: NextRequest) {
         let autoExportResult = null;
         if (createdIds.length > 0) {
             const autoExportParam = await prisma.systemParameter.findUnique({
-                where: { code: 'EnviarFacturasAutoSQLserver' }
+                where: { code: 'EnviarFacturacionAutoSQLserver' }
             });
 
             if (autoExportParam?.value === '1') {
@@ -100,7 +112,7 @@ export async function POST(req: NextRequest) {
                     
                     // Obtener XML desde Postgres
                     const exportResult = await prisma.$queryRawUnsafe<any[]>(
-                        `CALL spexportinvoice($1::TEXT, $2::INT, $3::TEXT)`,
+                        `CALL spExportInvoices($1::TEXT, $2::INT, $3::TEXT)`,
                         createdIdsStr,
                         actingUserId,
                         ''
@@ -110,10 +122,28 @@ export async function POST(req: NextRequest) {
                     const xmlStr = (row?.mensaje_resultado || row?.p_mensaje_resultado || (row && typeof row === 'object' ? Object.values(row)[0] : '')) as string;
 
                     if (xmlStr && typeof xmlStr === 'string' && !xmlStr.startsWith('ERROR')) {
-                        const sqlResult = await executeSQLServerProcedure('spFacturasCrear', { xml: xmlStr });
+                        const sqlResult = await executeSQLServerProcedure('spFacturacionesCrear', { xml: xmlStr });
                         
+                        let spResult: any[] = [];
+                        if (Array.isArray(sqlResult)) {
+                            spResult = sqlResult;
+                        } else if (sqlResult && typeof sqlResult === 'object') {
+                            spResult = [sqlResult];
+                        }
+
+                        if (spResult.length > 0) {
+                            try {
+                                await prisma.$executeRawUnsafe(
+                                    `CALL public."spFacturaActualizarEstado"($1::JSONB)`,
+                                    JSON.stringify(spResult)
+                                );
+                            } catch (spPgError) {
+                                console.error('[AUTO_EXPORT] Error al actualizar estado en Postgres:', spPgError);
+                            }
+                        }
+
                         autoExportResult = { success: true, message: 'Exportado automáticamente a SQL Server', sqlResult };
-                        await registerLog(actingUserId, 'QUOTATION', 'AUTO_EXPORT_SUCCESS', `ID(s) ${createdIdsStr}: Exportación automática exitosa`, { sqlResult });
+                        await registerLog(actingUserId, 'INVOICE', 'AUTO_EXPORT_SUCCESS', `ID(s) ${createdIdsStr}: Exportación automática exitosa`, { sqlResult });
                     } else {
                         autoExportResult = { success: false, message: 'No se generó XML válido para exportación automática' };
                         await registerLog(actingUserId, 'QUOTATION', 'AUTO_EXPORT_ERROR', `ID(s) ${createdIdsStr}: Error en generación de XML`, { xml: xmlStr });

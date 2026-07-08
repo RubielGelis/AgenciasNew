@@ -38,12 +38,13 @@ BEGIN
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
         "branchId", "implantId", "sellerId", "ticketPrinterId", 
         "baseCommissionable", "commissionPercentage", "chargesAndTaxes", 
-        "totalAmount", "userId", "state"
+        "totalAmount", "userId", "state", "fuente", "serie", "consecutivo"
     ) VALUES (
         v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
         NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
         0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
-        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO'
+        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO',
+        NULLIF(p_data->>'fuente', ''), NULLIF(p_data->>'serie', ''), NULLIF(p_data->>'consecutivo', '')
     ) RETURNING id INTO v_invoice_id;
 
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)

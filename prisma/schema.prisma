@@ -376,6 +376,9 @@ model Invoices {
   totalAmount          Float
   userId               Int?
   state                String?  @default("NUEVO") @db.VarChar(25)
+  consecutivo          String?  @db.VarChar(25)
+  fuente               String?  @db.VarChar(25)
+  serie                String?  @db.VarChar(25)
 }
 
 model InvoicesProduct {

@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
         // 1. Obtener XML desde Postgres
         const result = await prisma.$queryRawUnsafe<any[]>(
-            `CALL spExportEnvoices($1, $2, $3)`,
+            `CALL spExportInvoices($1, $2, $3)`,
             idsStr,
             userId ? Number(userId) : 0,
             '' 
@@ -37,29 +37,48 @@ export async function POST(req: NextRequest) {
         try {
             console.log(`[EXPORT_API] Iniciando carga en SQL Server para ID: ${idsStr}`);
             
-            const sqlResult = await executeSQLServerProcedure('spFacturasCrear', {
+            const sqlResult = await executeSQLServerProcedure('spFacturacionesCrear', {
                 xml: xmlStr
             });
 
             // El SP devuelve un recordset con el estado de cada factura procesada
             if (Array.isArray(sqlResult)) {
                 spResult = sqlResult;
+                const hasFailure = spResult.some(item => !(item.success === 1 || item.success === true || item.success === '1' || item.success === 1));
+                if (hasFailure) {
+                    success = false;
+                    sqlServerMsg = 'Algunas facturas fallaron al procesarse en SQL Server';
+                }
             } else if (sqlResult && typeof sqlResult === 'object') {
                 spResult = [sqlResult];
+                const item = spResult[0];
+                const itemSuccess = item.success === 1 || item.success === true || item.success === '1';
+                if (!itemSuccess) {
+                    success = false;
+                    sqlServerMsg = item.message || 'Error al procesar en SQL Server';
+                }
             }
 
-            // Si el SP devolvió una fila con campo "Respuesta" es un error de validación
-            if (spResult.length > 0 && spResult[0]?.Respuesta) {
-                success = false;
-                sqlServerMsg = spResult[0].Respuesta;
+            // Registrar log detallado por cada factura en Postgres
+            for (const item of spResult) {
+                const invId = item.invoiceId || 0;
+                const itemSuccess = item.success === 1 || item.success === true || item.success === '1';
+                const itemMsg = item.message || '';
+                await registerLog(
+                    userId ? Number(userId) : null,
+                    'INVOICE_EXPORT_DETAIL',
+                    itemSuccess ? 'EXPORT_SUCCESS' : 'EXPORT_FAILED',
+                    `Factura ID ${invId}: ${itemMsg}`,
+                    item
+                );
             }
 
             // 4. Actualizar Estado en Postgres (Nueva instrucción de usuario)
-            if (success && spResult.length > 0) {
+            if (spResult.length > 0) {
                 console.log(`[EXPORT_API] Actualizando estados en Postgres para: ${idsStr}`);
                 try {
                     await prisma.$executeRawUnsafe(
-                        `CALL public.spFacturaActualizarEstado($1::JSONB)`,
+                        `CALL public."spFacturaActualizarEstado"($1::JSONB)`,
                         JSON.stringify(spResult)
                      );
                 } catch (spPgError) {

@@ -22,7 +22,6 @@ export default function QuotationsHistoryPage() {
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedIds, setSelectedIds] = useState<number[]>([])
-    const [exportType, setExportType] = useState<'QUOTATION' | 'INVOICE'>('QUOTATION')
 
     const fetchQuotations = async () => {
         try {
@@ -73,7 +72,7 @@ export default function QuotationsHistoryPage() {
                 body: JSON.stringify({
                     ids: selectedIds, // Enviamos como arreglo
                     userId: user.id || 1,
-                    exportType: exportType // Enviamos el tipo de exportación (QUOTATION o INVOICE)
+                    exportType: 'QUOTATION'
                 })
             });
 
@@ -149,14 +148,6 @@ export default function QuotationsHistoryPage() {
                         />
                     </div>
                     <div className="flex items-center gap-2">
-                        <select
-                            value={exportType}
-                            onChange={(e) => setExportType(e.target.value as 'QUOTATION' | 'INVOICE')}
-                            className="h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 text-sm font-bold text-zinc-700 dark:text-zinc-300 focus:ring-2 focus:ring-blue-500 shadow-sm outline-none cursor-pointer"
-                        >
-                            <option value="QUOTATION">Exportar como Cotización</option>
-                            <option value="INVOICE">Exportar como Factura</option>
-                        </select>
                         <motion.button
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}

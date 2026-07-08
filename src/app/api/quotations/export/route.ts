@@ -12,8 +12,8 @@ export async function POST(req: NextRequest) {
         }
 
         const idsStr = Array.isArray(ids) ? ids.join(',') : ids.toString();
-        const pgProcedure = exportType === 'INVOICE' ? 'spExportEnvoices' : 'spExportQuotation';
-        const mssqlProcedure = exportType === 'INVOICE' ? 'spFacturasCrear' : 'spCotizacionesCrear';
+        const pgProcedure = exportType === 'INVOICE' ? 'spExportInvoices' : 'spExportQuotation';
+        const mssqlProcedure = exportType === 'INVOICE' ? 'spFacturacionesCrear' : 'spCotizacionesCrear';
 
         // 1. Obtener XML desde Postgres
         const result = await prisma.$queryRawUnsafe<any[]>(

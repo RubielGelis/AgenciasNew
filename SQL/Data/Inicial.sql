@@ -69,7 +69,8 @@ VALUES
     ('ClaveSQLServer',                   'Contraseña SQL Server',                        '111985*'),
     ('BaseSQLServer',                    'Base de Datos SQL Server',                     'Agencias'),
     ('PuertoSQLServer',                  'Puerto SQL Server',                            ''),
-    ('EnviarCotizacionesAutoSQLserver',  'Envío automático a SQL Server (1: Sí, 0: No)', '1'),
+    ('EnviarCotizacionesAutoSQLserver',  'Envío automático de cotizaciones a SQL Server (1: Sí, 0: No)', '1'),
+	('EnviarFacturacionAutoSQLserver',   'Envío automático a Facturacion SQL Server (1: Sí, 0: No)', '1'),
 	('Pais',                    		 'Pais',                     					 'Colombia')
 ON CONFLICT (code) DO UPDATE
     SET name  = EXCLUDED.name,
@@ -220,7 +221,7 @@ INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('BIF', 'Franc
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('THB', 'Baht Thailandes', 1.0) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('VEF', 'Bolivar', 1.0) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('MWK', 'Kwacha malauiano', 1.0) ON CONFLICT (code) DO NOTHING;
-INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('ANG', 'Florin antillano neerlandes', 1.0) ON CONFLICT (code) DO NOTHING;
+INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('ANG'SustemParameter, 'Florin antillano neerlandes', 1.0) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('CHF', 'FRANCO FRANCES', 1.0) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('CZK', 'Koruna', 1.0) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('DOP', 'Peso dominicano', 1.0) ON CONFLICT (code) DO NOTHING;

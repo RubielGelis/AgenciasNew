@@ -47,7 +47,10 @@ BEGIN
         "chargesAndTaxes" = NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
         "totalAmount" = NULLIF(p_data->>'totalAmount', '')::FLOAT,
         "state" = COALESCE(p_data->>'state', 'Nuevo'),
-        "date" = CURRENT_TIMESTAMP
+        "date" = CURRENT_TIMESTAMP,
+        "fuente" = NULLIF(p_data->>'fuente', ''),
+        "serie" = NULLIF(p_data->>'serie', ''),
+        "consecutivo" = NULLIF(p_data->>'consecutivo', '')
     WHERE id = p_id;
 
     DELETE FROM public."InvoicesProductCombo" WHERE "invoiceId" = p_id;

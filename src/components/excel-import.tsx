@@ -10,6 +10,7 @@ export default function ExcelImport() {
     const fileInputRef = useRef<HTMLInputElement>(null)
     const [importing, setImporting] = useState(false)
     const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+    const [importType, setImportType] = useState<'QUOTATION' | 'INVOICE'>('QUOTATION')
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -30,7 +31,8 @@ export default function ExcelImport() {
                 console.log('Excel Data:', data)
 
                 const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
-                const res = await fetch('/api/quotations/import', {
+                const apiUrl = importType === 'QUOTATION' ? '/api/quotations/import' : '/api/invoices/import';
+                const res = await fetch(apiUrl, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -41,14 +43,11 @@ export default function ExcelImport() {
 
                 if (res.ok) {
                     const result = await res.json();
-                    // Usar directamente el detalle desre el SP si está disponible, o construir uno amigable
-                    const successMsg = result.detail || `Se importaron ${result.importedCount} cotizaciones exitosamente.`;
-                    
+                    const successMsg = result.detail || `Se importaron ${result.importedCount || 0} registros exitosamente.`;
                     setStatus({ type: 'success', message: successMsg })
                     if (fileInputRef.current) fileInputRef.current.value = ''
                 } else {
                     const error = await res.json();
-                    // Mostrar el detalle del error que viene del SP o de la API
                     const errorMsg = error.detail || error.message || 'Error al procesar el archivo Excel.';
                     setStatus({ type: 'error', message: errorMsg })
                 }
@@ -62,89 +61,222 @@ export default function ExcelImport() {
     }
 
     const downloadTemplate = () => {
-        const templateData = [
-            {
-                Grupo_Cotizacion: '1',
-                Cliente_Documento: '12345678',
-                Sucursal_Codigo: 'BOG01',
-                Implant_Codigo: 'IMP01',
-                Vendedor_Codigo: 'VEN-001',
-                Tiqueteador_Codigo: 'TIQ-001',
-                Moneda: 'USD',
-                Tasa_Cambio: 4000,
-                Comision_Global_Pct: 10,
-                Cargos_A_Cotizacion: 0,
-                Producto_Codigo: 'AL-DES',
-                Proveedor_Codigo: 'GHL',
-                Prestadora_Codigo: 'GHL-BOG',
-                Impuestos_Nombres_Y_Valores: 'IVA:95.50|FEE:10.00',
-                Variables_Codigos_Y_Valores: 'TKT-VUELO:784561|PNR-RESERVA:XYZZ12',
-                Pasajeros: 'Juan Perez:12345678|Maria Garcia:87654321',
-                Precio_Unitario: 15.0,
-                Cantidad: 2,
-                CheckIn: '2026-12-01',
-                CheckOut: '2026-12-10',
-                Pax_Adultos: 2,
-                Pax_Ninos: 0,
-                Destino: 'BOG',
-                Tipo_Servicio: 'ALIMENTACION',
-                Reserva: 'RES123',
-                Comision_Vendedor_Producto: 0,
-                Comision_Tiqueteador_Producto: 0,
-                Combo_Codigos: 'COM-001|COM-002',
-                Cargo_Principal: ''
-            },
-            {
-                Grupo_Cotizacion: '1',
-                Cliente_Documento: '12345678',
-                Sucursal_Codigo: 'BOG01',
-                Implant_Codigo: 'IMP01',
-                Vendedor_Codigo: 'VEN-001',
-                Tiqueteador_Codigo: 'TIQ-001',
-                Moneda: 'USD',
-                Tasa_Cambio: 4000,
-                Comision_Global_Pct: 10,
-                Cargos_A_Cotizacion: 0,
-                Producto_Codigo: 'TR-AERO',
-                Proveedor_Codigo: 'DEC',
-                Prestadora_Codigo: 'DEC-BARU',
-                Impuestos_Nombres_Y_Valores: '',
-                Variables_Codigos_Y_Valores: '',
-                Pasajeros: '',
-                Precio_Unitario: 25.0,
-                Cantidad: 1,
-                CheckIn: '',
-                CheckOut: '',
-                Pax_Adultos: 2,
-                Pax_Ninos: 0,
-                Destino: 'CTG',
-                Tipo_Servicio: 'TRANSPORTE',
-                Reserva: 'XXL123',
-                Comision_Vendedor_Producto: 5,
-                Comision_Tiqueteador_Producto: 2,
-                Combo_Codigos: '',
-                Cargo_Principal: 'IVA-19'
-            }
-        ]
+        let templateData: any[] = [];
+        let filename = 'plantilla_cotizacion.xlsx';
+
+        if (importType === 'QUOTATION') {
+            templateData = [
+                {
+                    Grupo_Cotizacion: '1',
+                    Cliente_Documento: '12345678',
+                    Sucursal_Codigo: 'BOG01',
+                    Implant_Codigo: 'IMP01',
+                    Vendedor_Codigo: 'VEN-001',
+                    Tiqueteador_Codigo: 'TIQ-001',
+                    Moneda: 'USD',
+                    Tasa_Cambio: 4000,
+                    Comision_Global_Pct: 10,
+                    Cargos_A_Cotizacion: 0,
+                    Producto_Codigo: 'AL-DES',
+                    Proveedor_Codigo: 'GHL',
+                    Prestadora_Codigo: 'GHL-BOG',
+                    Impuestos_Nombres_Y_Valores: 'IVA:95.50|FEE:10.00',
+                    Variables_Codigos_Y_Valores: 'TKT-VUELO:784561|PNR-RESERVA:XYZZ12',
+                    Pasajeros: 'Juan Perez:12345678|Maria Garcia:87654321',
+                    Precio_Unitario: 15.0,
+                    Cantidad: 2,
+                    CheckIn: '2026-12-01',
+                    CheckOut: '2026-12-10',
+                    Pax_Adultos: 2,
+                    Pax_Ninos: 0,
+                    Destino: 'BOG',
+                    Tipo_Servicio: 'ALIMENTACION',
+                    Reserva: 'RES123',
+                    Comision_Vendedor_Producto: 0,
+                    Comision_Tiqueteador_Producto: 0,
+                    Combo_Codigos: 'COM-001|COM-002',
+                    Cargo_Principal: ''
+                },
+                {
+                    Grupo_Cotizacion: '1',
+                    Cliente_Documento: '12345678',
+                    Sucursal_Codigo: 'BOG01',
+                    Implant_Codigo: 'IMP01',
+                    Vendedor_Codigo: 'VEN-001',
+                    Tiqueteador_Codigo: 'TIQ-001',
+                    Moneda: 'USD',
+                    Tasa_Cambio: 4000,
+                    Comision_Global_Pct: 10,
+                    Cargos_A_Cotizacion: 0,
+                    Producto_Codigo: 'TR-AERO',
+                    Proveedor_Codigo: 'DEC',
+                    Prestadora_Codigo: 'DEC-BARU',
+                    Impuestos_Nombres_Y_Valores: '',
+                    Variables_Codigos_Y_Valores: '',
+                    Pasajeros: '',
+                    Precio_Unitario: 25.0,
+                    Cantidad: 1,
+                    CheckIn: '',
+                    CheckOut: '',
+                    Pax_Adultos: 2,
+                    Pax_Ninos: 0,
+                    Destino: 'CTG',
+                    Tipo_Servicio: 'TRANSPORTE',
+                    Reserva: 'XXL123',
+                    Comision_Vendedor_Producto: 5,
+                    Comision_Tiqueteador_Producto: 2,
+                    Combo_Codigos: '',
+                    Cargo_Principal: 'IVA-19'
+                }
+            ];
+            filename = 'plantilla_cotizacion.xlsx';
+        } else {
+            templateData = [
+                {
+                    Grupo_Factura: '1',
+                    Cliente_Documento: '12345678',
+                    Sucursal_Codigo: 'BOG01',
+                    Implant_Codigo: 'IMP01',
+                    Vendedor_Codigo: 'VEN-001',
+                    Tiqueteador_Codigo: 'TIQ-001',
+                    Moneda: 'USD',
+                    Tasa_Cambio: 4000,
+                    Comision_Global_Pct: 10,
+                    Cargos_A_Factura: 0,
+                    Producto_Codigo: 'AL-DES',
+                    Proveedor_Nombre: 'Hotel GHL',
+                    Proveedor_Codigo: 'GHL',
+                    Prestadora_Codigo: 'GHL-BOG',
+                    Impuestos_Nombres_Y_Valores: 'IVA-19:19000|FEE:5000',
+                    Variables_Codigos_Y_Valores: 'PNR-RESERVA:XYZZ12',
+                    Pasajeros: 'Juan Perez:12345678|Maria Garcia:87654321',
+                    Precio_Unitario: 100000.0,
+                    Cantidad: 2,
+                    CheckIn: '2026-12-01',
+                    CheckOut: '2026-12-10',
+                    Pax_Adultos: 2,
+                    Pax_Ninos: 0,
+                    Destino: 'BOG',
+                    Tipo_Servicio: 'ALIMENTACION',
+                    Reserva: 'RES123',
+                    Comision_Vendedor_Producto: 5.0,
+                    Comision_Tiqueteador_Producto: 2.0,
+                    Combo_Codigos: '',
+                    Nacionalidad: 1,
+                    Cargo_Principal: 'IVA-19',
+                    Costo: 80000.0,
+                    Servicios: 'Desayuno incluido',
+                    Descripcion: 'Habitación doble estándar',
+                    Itinerario: '',
+                    Clase: '',
+                    Aerolinea: '',
+                    Tipo_Tiquete_Codigo: '',
+                    Pagos: '100000:Efectivo:REF-123|100000:Tarjeta:REF-456:2026-12-01:1:1234:AUTH123:VOUCH456:2028-12',
+                    Itinerarios: '',
+                    Fuente: 'FAC',
+                    Serie: 'A',
+                    Consecutivo: '000123'
+                },
+                {
+                    Grupo_Factura: '2',
+                    Cliente_Documento: '87654321',
+                    Sucursal_Codigo: 'BOG01',
+                    Implant_Codigo: 'IMP01',
+                    Vendedor_Codigo: 'VEN-002',
+                    Tiqueteador_Codigo: 'TIQ-002',
+                    Moneda: 'COP',
+                    Tasa_Cambio: 1,
+                    Comision_Global_Pct: 0,
+                    Cargos_A_Factura: 15000,
+                    Producto_Codigo: 'TKT-AIR',
+                    Proveedor_Nombre: 'Avianca',
+                    Proveedor_Codigo: 'AV',
+                    Prestadora_Codigo: 'AV-BOG',
+                    Impuestos_Nombres_Y_Valores: 'IVA-19:57000',
+                    Variables_Codigos_Y_Valores: 'TKT-N:000123456',
+                    Pasajeros: 'Carlos Gomez:10987654',
+                    Precio_Unitario: 300000.0,
+                    Cantidad: 1,
+                    CheckIn: '2026-10-15',
+                    CheckOut: '2026-10-15',
+                    Pax_Adultos: 1,
+                    Pax_Ninos: 0,
+                    Destino: 'CTG',
+                    Tipo_Servicio: 'Tiquete',
+                    Reserva: 'AVPNR7',
+                    Comision_Vendedor_Producto: 0,
+                    Comision_Tiqueteador_Producto: 0,
+                    Combo_Codigos: '',
+                    Nacionalidad: 1,
+                    Cargo_Principal: 'IVA-19',
+                    Costo: 250000.0,
+                    Servicios: 'Equipaje de mano',
+                    Descripcion: 'Vuelo directo de ida',
+                    Itinerario: 'BOG-CTG',
+                    Clase: 'Económica',
+                    Aerolinea: 'Avianca',
+                    Tipo_Tiquete_Codigo: 'TKT-NAC',
+                    Pagos: '357000:Efectivo:REF-789',
+                    Itinerarios: 'BOG:CTG:Económica:2026-10-15:2026-10-15:1|CTG:BOG:Económica:2026-10-20:2026-10-20:2',
+                    Fuente: 'FAC',
+                    Serie: 'A',
+                    Consecutivo: '000124'
+                }
+            ];
+            filename = 'plantilla_factura.xlsx';
+        }
+
         const ws = XLSX.utils.json_to_sheet(templateData)
         const wb = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(wb, ws, 'Template')
-        XLSX.writeFile(wb, 'plantilla_cotizacion.xlsx')
+        XLSX.writeFile(wb, filename)
     }
 
     return (
         <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-8 rounded-3xl shadow-sm space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h3 className="text-xl font-bold dark:text-white">Importación Masiva</h3>
-                    <p className="text-zinc-500 text-sm">Carga cotizaciones desde un archivo Excel (.xlsx)</p>
+                    <h3 className="text-xl font-bold dark:text-white text-zinc-900">Importación Masiva</h3>
+                    <p className="text-zinc-500 text-sm">
+                        Carga {importType === 'QUOTATION' ? 'cotizaciones' : 'facturas'} desde un archivo Excel (.xlsx)
+                    </p>
                 </div>
-                <button
-                    onClick={downloadTemplate}
-                    className="flex items-center gap-2 text-blue-600 font-bold hover:underline text-sm"
-                >
-                    <FileDown className="w-4 h-4" /> Descargar Plantilla
-                </button>
+                
+                <div className="flex items-center gap-6">
+                    <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+                        <button
+                            type="button"
+                            onClick={() => { setImportType('QUOTATION'); setStatus(null); }}
+                            className={cn(
+                                "px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                                importType === 'QUOTATION'
+                                    ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
+                                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                            )}
+                        >
+                            Cotizaciones
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setImportType('INVOICE'); setStatus(null); }}
+                            className={cn(
+                                "px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                                importType === 'INVOICE'
+                                    ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm"
+                                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                            )}
+                        >
+                            Facturaciones
+                        </button>
+                    </div>
+
+                    <button
+                        onClick={downloadTemplate}
+                        className="flex items-center gap-2 text-blue-600 font-bold hover:underline text-sm cursor-pointer"
+                    >
+                        <FileDown className="w-4 h-4" /> Descargar Plantilla
+                    </button>
+                </div>
             </div>
 
             <div
@@ -183,7 +315,7 @@ export default function ExcelImport() {
                     )}
                 >
                     {status.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                    <span className="font-medium">{status.message}</span>
+                    <span className="font-medium text-sm">{status.message}</span>
                 </motion.div>
             )}
         </div>

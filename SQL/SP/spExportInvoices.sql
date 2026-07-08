@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE public.spExportEnvoices(
+CREATE OR REPLACE PROCEDURE public.spExportInvoices(
     Envoices_id TEXT,
 	User_id INT,
 	INOUT mensaje_resultado TEXT
@@ -57,7 +57,7 @@ BEGIN
 		ds_cliente_contacto_email VARCHAR(60),
 		id_monedas_iata INTEGER,
 		cd_vendedor CHAR(3),
-		id_tiqueteador INTEGER,
+		id_tiqueteador VARCHAR(25),
 		bn_anexo BYTEA,
 		Tcambio DECIMAL,
 		am_tcambiousd DECIMAL,
@@ -331,9 +331,9 @@ BEGIN
 		ds_Respuesta, id_item
     )
     SELECT 
-        '' AS cd_fuente,
-        '' AS cd_serie,
-        SUBSTRING('I' || LPAD(e.id::text, 7, '0'), 1, 8) AS cd_consecutivo,
+        SUBSTRING(COALESCE(e.fuente, ''), 1, 2) AS cd_fuente,
+        SUBSTRING(COALESCE(e.serie, ''), 1, 2) AS cd_serie,
+        SUBSTRING(COALESCE(e.consecutivo, 'I' || LPAD(e.id::text, 7, '0')), 1, 8) AS cd_consecutivo,
         User_id AS cd_usuario,
         SUBSTRING(COALESCE(b.code, ''), 1, 3) AS cd_sucursal,
         SUBSTRING(COALESCE(i.code, ''), 1, 3) AS cd_implante,
@@ -352,7 +352,7 @@ BEGIN
         '' AS ds_cliente_contacto_email,
         NULL AS id_monedas_iata,
         SUBSTRING(COALESCE(s.code, ''), 1, 3)::char(3) AS cd_vendedor,
-        NULL AS id_tiqueteador,
+        SUBSTRING(COALESCE(tp.code, ''), 1, 25) AS id_tiqueteador,
         NULL::bytea AS bn_anexo,
         COALESCE(e."exchangeRate", 1.0) AS Tcambio,
         1.0 AS am_tcambiousd,
@@ -418,6 +418,7 @@ BEGIN
     LEFT JOIN public."Implant" i ON e."implantId" = i.id
     LEFT JOIN public."Seller" s ON e."sellerId" = s.id
     LEFT JOIN public."User" u ON e."userId" = u.id
+    LEFT JOIN public."TicketPrinter" tp ON e."ticketPrinterId" = tp.id
     WHERE e.id = ANY(string_to_array(Envoices_id, ',')::int[]);
 
     -- 5. Poblar Tabla Item
@@ -451,21 +452,21 @@ BEGIN
 		ds_numerotarjetaAirPlus, id_reserva, OrdenGrabacion
     )
     SELECT 
-		CASE WHEN p.type='Tiquete' THEN 'Aire' 
-			 WHEN p.type='ALOJAMIENTO' THEN 'Hotel' 
-			 WHEN p.type='ALQUILER' THEN 'Auto'
-			 WHEN p.type='TAO' THEN 'TAO'
+		CASE WHEN pr.type='Tiquete' THEN 'Aire' 
+			 WHEN pr.type='ALOJAMIENTO' THEN 'Hotel' 
+			 WHEN pr.type='ALQUILER' THEN 'Auto'
+			 WHEN pr.type='TAO' THEN 'TAO'
 			 ELSE 'SRV'
 		END AS tipo_item,
         f.id_item AS id_factura,
-		CASE WHEN p.type='Tiquete' THEN 1 
-			 WHEN p.type='ALOJAMIENTO' THEN 3
-			 WHEN p.type='ALQUILER' THEN 3
-			 WHEN p.type='TAO' THEN 2
+		CASE WHEN pr.type='Tiquete' THEN 1 
+			 WHEN pr.type='ALOJAMIENTO' THEN 3
+			 WHEN pr.type='ALQUILER' THEN 3
+			 WHEN pr.type='TAO' THEN 2
 			 ELSE 3
 		END AS in_tipoitem,
         ep.id AS id_referencia_origen,
-        CASE WHEN p.type='Tiquete' THEN p.code ELSE '' END AS cd_tiquete,
+        CASE WHEN pr.type='Tiquete' THEN pr.code ELSE '' END AS cd_tiquete,
         SUBSTRING(COALESCE(ep.descripcion, ''), 1, 500) AS ds_descrip,
         COALESCE(ep."inNationality", 1) AS in_nacionalidad,
         '' AS cd_cencosto,
@@ -483,7 +484,7 @@ BEGIN
         '' AS cd_tourcode,
         NULL AS NumTktConj,
         ''::char(3) AS cd_TipoTiquete,
-        CASE WHEN p.type='Tiquete' THEN ep.id ELSE NULL END AS id_air,
+        CASE WHEN pr.type='Tiquete' THEN ep.id ELSE NULL END AS id_air,
         SUBSTRING(COALESCE(ep.itinerary, ''), 1, 250) AS ds_itinerario,
         SUBSTRING(COALESCE(ep.itinerary, ''), 1, 128) AS ds_itinerarioaerolinea,
         SUBSTRING(COALESCE(ep.class, ''), 1, 61) AS ds_clases,

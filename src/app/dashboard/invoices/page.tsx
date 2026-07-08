@@ -2,21 +2,24 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Search, Plus, Filter, FileText, Download, Trash2, Eye, Edit2, MoreVertical, Printer, FileCode } from 'lucide-react'
+import { Search, Plus, Filter, FileText, Download, Trash2, Eye, Edit2, MoreVertical, Printer, FileCode, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { generateInvoicePDF } from '@/lib/pdf-utils'
+import ExcelImportInvoices from '@/components/excel-import-invoices'
 
 export default function InvoicesListPage() {
     const [invoices, setInvoices] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
+    const [isImportOpen, setIsImportOpen] = useState(false)
     const [idIni, setIdIni] = useState('')
     const [idFin, setIdFin] = useState('')
     const router = useRouter()
 
-    useEffect(() => {
+    const loadInvoices = () => {
+        setLoading(true)
         fetch('/api/invoices/list')
             .then(res => res.json())
             .then(data => {
@@ -33,6 +36,10 @@ export default function InvoicesListPage() {
                 console.error(err)
                 setLoading(false)
             })
+    }
+
+    useEffect(() => {
+        loadInvoices()
     }, [])
 
     const handleDownloadPdf = (q: any) => {
@@ -115,6 +122,15 @@ export default function InvoicesListPage() {
                     <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
+                        onClick={() => setIsImportOpen(!isImportOpen)}
+                        className="px-6 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl flex items-center gap-3 shadow-sm font-bold transition-all hover:bg-zinc-50"
+                    >
+                        <Upload className="w-5 h-5" />
+                        Importar Excel
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                         onClick={() => setIsPrintModalOpen(true)}
                         className="px-6 h-14 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-2xl flex items-center gap-3 shadow-sm font-bold transition-all hover:bg-zinc-50"
                     >
@@ -132,6 +148,19 @@ export default function InvoicesListPage() {
                     </motion.button>
                 </div>
             </header>
+
+            <AnimatePresence>
+                {isImportOpen && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden mb-8"
+                    >
+                        <ExcelImportInvoices onImportSuccess={loadInvoices} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* Filters & Search */}
             <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-3xl border border-zinc-200 dark:border-zinc-800 mb-8 flex items-center gap-4">
