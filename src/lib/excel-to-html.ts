@@ -249,7 +249,12 @@ export async function generateHtmlTemplate(
             }
 
             const cell = row.getCell(c);
-            const cellImage = images.find(img => img && Math.floor(img.range.tl.row) === r - 1 && Math.floor(img.range.tl.col) === c - 1);
+            const logoCell = config?.logo || 'A1';
+            const logoColName = logoCell.match(/[A-Z]+/)?.[0] || 'A';
+            const logoRowNum = parseInt(logoCell.match(/\d+/)?.[0] || '1');
+            const logoColNum = colNameToIndex(logoColName) + 1;
+            const isLogoCell = (r === logoRowNum && c === logoColNum);
+            const cellImage = isLogoCell ? null : images.find(img => img && Math.floor(img.range.tl.row) === r - 1 && Math.floor(img.range.tl.col) === c - 1);
 
             const styles: string[] = [];
             if (cell.font?.name) styles.push(`font-family: ${cell.font.name}`);

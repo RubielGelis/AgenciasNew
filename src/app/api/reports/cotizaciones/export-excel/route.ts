@@ -488,6 +488,19 @@ export async function GET(req: Request) {
             // Clone template sheet layout & styles
             copySheet(srcSheet, destSheet, tempWorkbook, outWorkbook);
 
+            // Clear configuration JSON or metadata from cell A1 and the logo cell
+            const a1Cell = destSheet.getCell('A1');
+            const a1Val = a1Cell.value;
+            if (a1Val && typeof a1Val === 'string' && a1Val.trim().startsWith('{')) {
+                a1Cell.value = '';
+            }
+            const logoCellKey = config.logo || 'A1';
+            const logoCell = destSheet.getCell(logoCellKey);
+            const logoVal = logoCell.value;
+            if (logoVal && typeof logoVal === 'string' && (logoVal.trim().startsWith('{') || logoVal.includes('logo'))) {
+                logoCell.value = '';
+            }
+
             // Populate cells based on config mapping
             const setVal = (cellKey: string, value: any) => {
                 if (cellKey) {
@@ -590,7 +603,7 @@ export async function GET(req: Request) {
                         'adicionalesServ', 'adicionalesServPago', 'comision', 'descuento', 'sobrecomision', 'fee',
                         'total', 'totalPago'
                     ];
-                    if (!standardKeys.includes(key) && !key.startsWith('prov') && !key.startsWith('proveedor')) {
+                    if (!standardKeys.includes(key) && !key.startsWith('prov') && !key.startsWith('proveedor') && key !== 'logo') {
                         const qVal = (q as any)[key];
                         if (qVal !== undefined && qVal !== null) {
                             setVal(cellKey, qVal);
@@ -598,6 +611,12 @@ export async function GET(req: Request) {
                     }
                 }
             });
+
+            // Forcefully clear cell A1 and the designated logo cell to remove any copied JSON or buffer strings
+            destSheet.getCell('A1').value = null;
+            if (config.logo) {
+                destSheet.getCell(config.logo).value = null;
+            }
 
             // Inject logo if present
             if (q.logo) {
@@ -631,8 +650,8 @@ export async function GET(req: Request) {
             for (const q of groupedList) {
                 const dbInfo = qDbMap.get(q.idCotizacion);
                 
-                // Get the htmlTemplate from database (implant or branch)
-                let htmlTemplate = dbInfo?.implant?.htmlTemplate || dbInfo?.branch?.htmlTemplate;
+                // Force regeneration to apply the new dynamic logo layout and bypass the database cache
+                let htmlTemplate = null;
                 const templateConfigRaw = dbInfo?.implant?.templateConfig || dbInfo?.branch?.templateConfig;
                 
                 let config = DEFAULT_CONFIG;
@@ -705,6 +724,7 @@ export async function GET(req: Request) {
                 const totalTotal = q.providers.reduce((sum, p) => sum + p.total, 0);
 
                 const replacements: { [key: string]: string } = {
+                    logo: q.logo ? `<img src="data:image/png;base64,${Buffer.from(q.logo as any).toString('base64')}" alt="Logo" style="max-height: 48px; max-width: 120px; object-fit: contain; display: block; margin: auto;" />` : '',
                     asesor: q.asesor || '',
                     fecha: formatDate(q.fecha),
                     clienteNombre: q.clienteNombre || '',
