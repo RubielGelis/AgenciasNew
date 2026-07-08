@@ -44,18 +44,23 @@ export async function POST(req: NextRequest) {
             // El SP devuelve un recordset con el estado de cada factura procesada
             if (Array.isArray(sqlResult)) {
                 spResult = sqlResult;
-                const hasFailure = spResult.some(item => !(item.success === 1 || item.success === true || item.success === '1' || item.success === 1));
+                const hasFailure = spResult.some(item => !(item.success === 1 || item.success === true || item.success === '1'));
                 if (hasFailure) {
                     success = false;
-                    sqlServerMsg = 'Algunas facturas fallaron al procesarse en SQL Server';
+                }
+                const messages = spResult.map(item => item.message).filter(Boolean);
+                sqlServerMsg = messages.join(' | ');
+                if (!sqlServerMsg) {
+                    sqlServerMsg = hasFailure ? 'Algunas facturas fallaron al procesarse' : 'Exportación completada exitosamente';
                 }
             } else if (sqlResult && typeof sqlResult === 'object') {
                 spResult = [sqlResult];
                 const item = spResult[0];
                 const itemSuccess = item.success === 1 || item.success === true || item.success === '1';
+                sqlServerMsg = item.message || '';
                 if (!itemSuccess) {
                     success = false;
-                    sqlServerMsg = item.message || 'Error al procesar en SQL Server';
+                    if (!sqlServerMsg) sqlServerMsg = 'Error al procesar en SQL Server';
                 }
             }
 
@@ -99,7 +104,7 @@ export async function POST(req: NextRequest) {
         // 3. Respuesta JSON para el Dashboard
         return NextResponse.json({ 
             success: success,
-            message: success ? 'Exportación completada exitosamente' : sqlServerMsg,
+            message: sqlServerMsg || (success ? 'Exportación completada exitosamente' : 'Error en la exportación'),
             spResult: spResult,   // ← resultado del SP (Estado por factura)
             xml: xmlStr
         });
