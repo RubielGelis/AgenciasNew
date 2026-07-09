@@ -497,6 +497,29 @@ BEGIN
 			ds_referencia VARCHAR(50) COLLATE DATABASE_DEFAULT, ds_Poliza VARCHAR(50) COLLATE DATABASE_DEFAULT, ds_PolizaAnexo VARCHAR(50) COLLATE DATABASE_DEFAULT, am_valor MONEY
 		);
 
+		CREATE TABLE #Pasajeros (
+			id_facturacion INT, id_item INT, in_tipoitem INT,
+			ds_paxape VARCHAR(50) COLLATE DATABASE_DEFAULT, ds_paxname VARCHAR(50) COLLATE DATABASE_DEFAULT,
+			ds_paxprefix VARCHAR(10) COLLATE DATABASE_DEFAULT, ds_paxClasificacion VARCHAR(10) COLLATE DATABASE_DEFAULT,
+			cd_voucherpax VARCHAR(50) COLLATE DATABASE_DEFAULT, cd_paxidentificacion VARCHAR(50) COLLATE DATABASE_DEFAULT,
+			in_edad INT, cd_tiquete VARCHAR(50) COLLATE DATABASE_DEFAULT
+		);
+
+		CREATE TABLE #Itinerarios (
+			id_facturacion INT, id_item INT, in_tipoitem INT, in_orden INT,
+			ds_origen VARCHAR(25) COLLATE DATABASE_DEFAULT, ds_destino VARCHAR(25) COLLATE DATABASE_DEFAULT,
+			ds_clase VARCHAR(25) COLLATE DATABASE_DEFAULT, dt_llegada SMALLDATETIME, dt_salida SMALLDATETIME,
+			ds_terminal VARCHAR(25) COLLATE DATABASE_DEFAULT, cd_aerolinea VARCHAR(25) COLLATE DATABASE_DEFAULT,
+			cd_farebasis VARCHAR(25) COLLATE DATABASE_DEFAULT, ds_numerovuelo VARCHAR(25) COLLATE DATABASE_DEFAULT,
+			ds_tipovuelo VARCHAR(25) COLLATE DATABASE_DEFAULT, am_valor MONEY, am_co2 MONEY
+		);
+
+		CREATE TABLE #VariablesAdicionales (
+			id_facturacion INT, id_item INT, in_tipoitem INT,
+			ds_maestro VARCHAR(25) COLLATE DATABASE_DEFAULT, ds_VariableAdicional VARCHAR(25) COLLATE DATABASE_DEFAULT,
+			ds_valor VARCHAR(500) COLLATE DATABASE_DEFAULT, cd_codigo VARCHAR(25) COLLATE DATABASE_DEFAULT
+		);
+
 		CREATE TABLE #GenerarConceptosAuto (
 			id_ConceptoFacturacion INT,
 			cd_ConceptoFacturacion VARCHAR(50) COLLATE DATABASE_DEFAULT,
@@ -918,196 +941,190 @@ BEGIN
 			cd_Consecutivo_variablesadicionales,
 			cd_item
 
-		)	
-        SELECT 
-			cd_fuente = F.Facturacion.value('cd_fuente[1]','VARCHAR(2)'), 
-			cd_serie = F.Facturacion.value('cd_serie[1]','VARCHAR(2)'),
-			cd_consecutivo = F.Facturacion.value('cd_consecutivo[1]','VARCHAR(8)'),
-			Tipo = F.Facturacion.value('tipo[1]','VARCHAR(25)'),
-			Servicio=ISNULL(F.Facturacion.value('servicio[1]','VARCHAR(123)'),''),
-			Descrip=ISNULL(F.Facturacion.value('descrip[1]','VARCHAR(78)'),''),
-			id=F.Facturacion.value('id[1]','INT'),
-			id_item=F.Facturacion.value('id_item[1]','INT'),
-			in_tipoitem=F.Facturacion.value('in_tipoitem[1]','INT'),
-			iden_gds=F.Facturacion.value('iden_gds[1]','INT'),
-			ds_fecha=ISNULL(F.Facturacion.value('dt_fecha[1]','SMALLDATETIME'),'19000101'),
-			cd_tiqueteador=ISNULL(F.Facturacion.value('id_tiqueteador[1]','VARCHAR(25)'),''),
-			cd_vendedor=ISNULL(F.Facturacion.value('cd_vendedor[1]','VARCHAR(25)'),''),
-			cd_cliente=ISNULL(F.Facturacion.value('cd_cliente[1]','VARCHAR(25)'),''),
-			am_highfare=ISNULL(F.Facturacion.value('am_highfare[1]','INT'),0),
-			am_lowfare=ISNULL(F.Facturacion.value('am_lowfare[1]','INT'),0),
-			am_fare=ISNULL(F.Facturacion.value('am_fare[1]','INT'),0),
-			ds_reasoncode=ISNULL(F.Facturacion.value('am_fare[1]','INT'),''),
-			ds_cliname=ISNULL(F.Facturacion.value('ds_cliname[1]','VARCHAR(250)'),''),
-			ds_clidir=ISNULL(F.Facturacion.value('ds_clidir[1]','VARCHAR(250)'),''),
-			ds_clicity=ISNULL(F.Facturacion.value('ds_clicity[1]','VARCHAR(50)'),''),
-			ds_cliid=ISNULL(F.Facturacion.value('ds_cliid[1]','VARCHAR(10)'),''),
-			ds_itinerario=ISNULL(F.Facturacion.value('ds_itinerario[1]','VARCHAR(250)'),''),
-			ds_clases=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			in_nacionalidad=ISNULL(F.Facturacion.value('in_nacionalidad[1]','INT'),0),
-			id_air=F.Facturacion.value('id_air[1]','INT'),
-			ds_pax_number=ISNULL(F.Facturacion.value('ds_pax_number[1]','VARCHAR(25)'),''),
-			ds_pax_firstnm=ISNULL(F.Facturacion.value('ds_pax_firstnm[1]','VARCHAR(50)'),''),
-			ds_pax_lastnm=ISNULL(F.Facturacion.value('ds_pax_lastnm[1]','VARCHAR(50)'),''),
-			ds_pax_prefix=ISNULL(F.Facturacion.value('ds_pax_prefix[1]','VARCHAR(5)'),''),
-			ds_tkt_number=ISNULL(F.Facturacion.value('ds_tkt_number[1]','VARCHAR(11)'),''),
-			ds_tkt_prefix=ISNULL(F.Facturacion.value('ds_tkt_prefix[1]','VARCHAR(5)'),''),
-			ds_aero_code=ISNULL(F.Facturacion.value('ds_aero_code[1]','VARCHAR(5)'),''),
-			ds_moneda=ISNULL(F.Facturacion.value('ds_moneda[1]','VARCHAR(25)'),'COP'),
-			am_tarifa=ISNULL(F.Facturacion.value('am_tarifa[1]','MONEY'),0),
-			am_iva=0,
-			am_tua=0,
-			am_comb=0,
-			am_vat=0,
-			ds_cc_code=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_cc_number=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			am_tao=0,
-			am_ivatao=0,
+		)	        SELECT 
+			cd_fuente = F.Item.value('../cd_fuente[1]','VARCHAR(2)'), 
+			cd_serie = F.Item.value('../cd_serie[1]','VARCHAR(2)'),
+			cd_consecutivo = F.Item.value('../cd_consecutivo[1]','VARCHAR(8)'),
+			Tipo = F.Item.value('tipo_item[1]','VARCHAR(25)'),
+			Servicio=ISNULL(F.Item.value('ds_servicio[1]','VARCHAR(123)'),''),
+			Descrip=ISNULL(F.Item.value('ds_descrip[1]','VARCHAR(78)'),''),
+			id=F.Item.value('id_referencia_origen[1]','INT'),
+			id_item=F.Item.value('id_item[1]','INT'),
+			in_tipoitem=F.Item.value('in_tipoitem[1]','INT'),
+			iden_gds=F.Item.value('iden_gds[1]','INT'),
+			ds_fecha=ISNULL(F.Item.value('dt_fechaexped[1]','SMALLDATETIME'),'19000101'),
+			cd_tiqueteador=ISNULL(F.Item.value('../id_tiqueteador[1]','VARCHAR(25)'),''),
+			cd_vendedor=ISNULL(F.Item.value('../cd_vendedor[1]','VARCHAR(25)'),''),
+			cd_cliente=ISNULL(F.Item.value('../cd_cliente_codigo[1]','VARCHAR(25)'),''),
+			am_highfare=ISNULL(F.Item.value('am_highfare[1]','INT'),0),
+			am_lowfare=ISNULL(F.Item.value('am_lowfare[1]','INT'),0),
+			am_fare=ISNULL(F.Item.value('am_tarifa[1]','INT'),0),
+			ds_reasoncode=ISNULL(F.Item.value('../ds_reasoncode[1]','CHAR(2)'),''),
+			ds_cliname=ISNULL(F.Item.value('../ds_cliente_nombre[1]','VARCHAR(250)'),''),
+			ds_clidir=ISNULL(F.Item.value('../ds_cliente_dir[1]','VARCHAR(250)'),''),
+			ds_clicity=ISNULL(F.Item.value('../ds_cliente_ciudad[1]','VARCHAR(50)'),''),
+			ds_cliid=ISNULL(F.Item.value('../cd_cliente_codigo[1]','VARCHAR(10)'),''),
+			ds_itinerario=ISNULL(F.Item.value('ds_itinerario[1]','VARCHAR(250)'),''),
+			ds_clases=ISNULL(F.Item.value('ds_clases[1]','VARCHAR(61)'),''),
+			in_nacionalidad=ISNULL(F.Item.value('in_nacionalidad[1]','INT'),0),
+			id_air=F.Item.value('id_air[1]','INT'),
+			ds_pax_number=ISNULL(F.Item.value('in_cantpax[1]','INT'),0),
+			ds_pax_firstnm=ISNULL(F.Item.value('ds_paxname[1]','VARCHAR(50)'),''),
+			ds_pax_lastnm=ISNULL(F.Item.value('ds_paxape[1]','VARCHAR(50)'),''),
+			ds_pax_prefix=ISNULL(F.Item.value('ds_paxprefix[1]','VARCHAR(5)'),''),
+			ds_tkt_number=ISNULL(F.Item.value('cd_tiquete[1]','VARCHAR(11)'),''),
+			ds_tkt_prefix=ISNULL(F.Item.value('ds_tkt_prefixIata[1]','VARCHAR(5)'),''),
+			ds_aero_code=ISNULL(F.Item.value('ds_aero_codeIata[1]','VARCHAR(5)'),''),
+			ds_moneda=ISNULL(F.Item.value('../cd_monedas_iata[1]','VARCHAR(25)'),'COP'),
+			am_tarifa=ISNULL(F.Item.value('am_tarifa[1]','MONEY'),0),
+			am_iva=ISNULL(F.Item.value('am_iva[1]','MONEY'),0),
+			am_tua=ISNULL(F.Item.value('am_tua[1]','MONEY'),0),
+			am_comb=ISNULL(F.Item.value('am_comb[1]','MONEY'),0),
+			am_vat=ISNULL(F.Item.value('am_vat[1]','MONEY'),0),
+			ds_cc_code=ISNULL(F.Item.value('ds_cc_code[1]','VARCHAR(61)'),''),
+			ds_cc_number=ISNULL(F.Item.value('ds_cc_number[1]','VARCHAR(61)'),''),
+			am_tao=ISNULL(F.Item.value('am_tarifa[1]','MONEY'),0),
+			am_ivatao=ISNULL(F.Item.value('am_iva[1]','MONEY'),0),
 			am_cap=0,
 			am_ivacap=0,
-			ds_cc_code2=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_cc_number2=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			am_fp1=0,
-			am_fp2=0,
-			cd_tktrevisado=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
+			ds_cc_code2=ISNULL(F.Item.value('ds_cc_code2[1]','VARCHAR(61)'),''),
+			ds_cc_number2=ISNULL(F.Item.value('ds_cc_number2[1]','VARCHAR(61)'),''),
+			am_fp1=ISNULL(F.Item.value('am_fp1[1]','MONEY'),0),
+			am_fp2=ISNULL(F.Item.value('am_fp2[1]','MONEY'),0),
+			cd_tktrevisado=ISNULL(F.Item.value('cd_tktrevisado[1]','VARCHAR(61)'),''),
 			am_TarifaContado=0,
 			am_IvaContado=0,
 			am_OtrosContado=0,
 			am_TarifaCredito=0,
 			am_IvaCredito=0,
 			am_OtrosCredito=0,
-			am_Comision=0,
-			cd_clitipodoc=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_clitipotercero=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_clirazoncial=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_cliname2=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_clilastname=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_clilastname2=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_clipais=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_clitel=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_TipoTransaccion=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			Fecha_Salida=GETDATE(),
-			Fecha_Llegada=GETDATE(),
+			am_Comision=ISNULL(F.Item.value('am_Comision[1]','MONEY'),0),
+			cd_clitipodoc=ISNULL(F.Item.value('../cd_clitipodoc[1]','VARCHAR(61)'),''),
+			cd_clitipotercero=ISNULL(F.Item.value('../cd_clitipotercero[1]','VARCHAR(61)'),''),
+			ds_clirazoncial=ISNULL(F.Item.value('../ds_clirazoncial[1]','VARCHAR(61)'),''),
+			ds_cliname2=ISNULL(F.Item.value('../ds_cliname2[1]','VARCHAR(61)'),''),
+			ds_clilastname=ISNULL(F.Item.value('../ds_clilastname[1]','VARCHAR(61)'),''),
+			ds_clilastname2=ISNULL(F.Item.value('../ds_clilastname2[1]','VARCHAR(61)'),''),
+			cd_clipais=ISNULL(F.Item.value('../cd_clipais[1]','VARCHAR(61)'),''),
+			ds_clitel=ISNULL(F.Item.value('../ds_cliente_tel[1]','VARCHAR(61)'),''),
+			cd_TipoTransaccion=ISNULL(F.Item.value('../cd_TipoTransaccion[1]','VARCHAR(61)'),''),
+			Fecha_Salida=ISNULL(F.Item.value('Fecha_Salida[1]','SMALLDATETIME'),GETDATE()),
+			Fecha_Llegada=ISNULL(F.Item.value('Fecha_Llegada[1]','SMALLDATETIME'),GETDATE()),
 			Id_Srv=NULL,
-			cd_conceptofacturacion=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_tiposervicio=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_proveedores=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_proveedores=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
+			cd_conceptofacturacion=ISNULL(F.Item.value('cd_conceptofacturacion[1]','VARCHAR(61)'),''),
+			cd_tiposervicio=ISNULL(F.Item.value('cd_tiposservicio[1]','VARCHAR(61)'),''),
+			cd_proveedores=ISNULL(F.Item.value('cd_proveedores[1]','VARCHAR(61)'),''),
+			ds_proveedores=ISNULL(F.Item.value('ds_proveedores[1]','VARCHAR(61)'),''),
 			id_car=NULL,
 			dt_entrega=GETDATE(),
 			in_cars=0,
-			cd_carcode=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_conf_car=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_citysalida=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			dt_retorno=GETDATE(),
-			cd_cartype=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_currency='COP',
-			am_tarifacar=0,
-			cd_bookingsource=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_ratecode=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
+			cd_carcode=ISNULL(F.Item.value('cd_carcode[1]','VARCHAR(61)'),''),
+			cd_conf_car=ISNULL(F.Item.value('cd_conf_car[1]','VARCHAR(61)'),''),
+			cd_citysalida=ISNULL(F.Item.value('cd_citysalida[1]','VARCHAR(61)'),''),
+			dt_retorno=F.Item.value('dt_retorno[1]','SMALLDATETIME'),
+			cd_cartype=ISNULL(F.Item.value('cd_cartype[1]','VARCHAR(61)'),''),
+			cd_currency=ISNULL(F.Item.value('cd_currency[1]','VARCHAR(3)'),'COP'),
+			am_tarifacar=ISNULL(F.Item.value('am_tarifacar[1]','MONEY'),0),
+			cd_bookingsource=ISNULL(F.Item.value('cd_bookingsource[1]','VARCHAR(61)'),''),
+			cd_ratecode=ISNULL(F.Item.value('cd_ratecode[1]','VARCHAR(61)'),''),
 			id_htl=NULL,
-			dt_checkin=GETDATE(),
-			in_guests=0,
-			cd_confirmation=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_city=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_htlchain=GETDATE(),
-			dt_checkout=GETDATE(),
-			in_noches=0,
-			ds_htlname=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			in_habs=0,
-			cd_bed=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_ratecode_htl=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_htlcur=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			am_htltarifa=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_agcur=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			am_agtarifa=0,
-			ds_dir1=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_tel=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_fax=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_centrocosto=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			NumTktConj=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			Respuesta=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_solicita=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_pax_CC=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_lapsoviaje=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_archivo=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_Observaciones=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_ClienteEmail=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_sucursal=ISNULL(F.Facturacion.value('cd_sucursal[1]','VARCHAR(25)'),'OFP'),
-			cd_implante=ISNULL(F.Facturacion.value('cd_implante[1]','VARCHAR(25)'),''), 
+			dt_checkin=F.Item.value('dt_checkin[1]','SMALLDATETIME'),
+			in_guests=ISNULL(F.Item.value('in_guests[1]','INT'),0),
+			cd_confirmation=ISNULL(F.Item.value('cd_confirmation[1]','VARCHAR(61)'),''),
+			cd_city=ISNULL(F.Item.value('cd_city[1]','VARCHAR(61)'),''),
+			cd_htlchain=ISNULL(F.Item.value('cd_htlchain[1]','VARCHAR(61)'),''),
+			dt_checkout=F.Item.value('dt_checkout[1]','SMALLDATETIME'),
+			in_noches=ISNULL(F.Item.value('in_noches[1]','INT'),0),
+			ds_htlname=ISNULL(F.Item.value('ds_htlname[1]','VARCHAR(61)'),''),
+			in_habs=ISNULL(F.Item.value('in_habs[1]','INT'),0),
+			cd_bed=ISNULL(F.Item.value('cd_bed[1]','VARCHAR(61)'),''),
+			cd_ratecode_htl=ISNULL(F.Item.value('cd_ratecode_htl[1]','VARCHAR(61)'),''),
+			cd_htlcur=ISNULL(F.Item.value('cd_htlcur[1]','VARCHAR(61)'),''),
+			am_htltarifa=ISNULL(F.Item.value('am_htltarifa[1]','MONEY'),0),
+			cd_agcur=ISNULL(F.Item.value('cd_agcur[1]','VARCHAR(61)'),''),
+			am_agtarifa=ISNULL(F.Item.value('am_agtarifa[1]','MONEY'),0),
+			ds_dir1=ISNULL(F.Item.value('ds_dir1[1]','VARCHAR(61)'),''),
+			ds_tel=ISNULL(F.Item.value('ds_tel[1]','VARCHAR(61)'),''),
+			ds_fax=ISNULL(F.Item.value('ds_fax[1]','VARCHAR(61)'),''),
+			cd_centrocosto=ISNULL(F.Item.value('cd_centrocosto[1]','VARCHAR(61)'),''),
+			NumTktConj=ISNULL(F.Item.value('NumTktConj[1]','VARCHAR(61)'),''),
+			Respuesta=NULL,
+			ds_solicita=ISNULL(F.Item.value('ds_solicita[1]','VARCHAR(61)'),''),
+			cd_pax_CC=ISNULL(F.Item.value('cd_pax_CC[1]','VARCHAR(61)'),''),
+			ds_lapsoviaje=ISNULL(F.Item.value('ds_lapsoviaje[1]','VARCHAR(61)'),''),
+			ds_archivo=ISNULL(F.Item.value('../ds_archivo[1]','VARCHAR(61)'),''),
+			ds_Observaciones=ISNULL(F.Item.value('ds_Observaciones[1]','VARCHAR(8000)'),''),
+			ds_ClienteEmail=ISNULL(F.Item.value('../ds_cliente_email[1]','VARCHAR(61)'),''),
+			cd_sucursal=ISNULL(F.Item.value('../cd_sucursal[1]','VARCHAR(25)'),'OFP'),
+			cd_implante=ISNULL(F.Item.value('../cd_implante[1]','VARCHAR(25)'),''), 
 			bl_ClienteActualizar=0,
 			bl_NotificacionMPD=0,
-			cd_FormaPagoTAO=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_TarjetaCreditoTAO=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''), 
-			cd_NumeroTarjetaTAO=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''), 
-			cd_VencimientoTarjetaTAO='__/__', 
-			cd_NumeroPolizaTAO=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_AnexoPolizaTAO=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
+			cd_FormaPagoTAO=ISNULL(F.Item.value('cd_FormaPagoTAO[1]','VARCHAR(61)'),''),
+			cd_TarjetaCreditoTAO=ISNULL(F.Item.value('cd_TarjetaCreditoTAO[1]','VARCHAR(61)'),''), 
+			cd_NumeroTarjetaTAO=ISNULL(F.Item.value('cd_NumeroTarjetaTAO[1]','VARCHAR(61)'),''), 
+			cd_VencimientoTarjetaTAO=ISNULL(F.Item.value('cd_VencimientoTarjetaTAO[1]','VARCHAR(10)'),'__/__'), 
+			cd_NumeroPolizaTAO=ISNULL(F.Item.value('cd_NumeroPolizaTAO[1]','VARCHAR(61)'),''),
+			cd_AnexoPolizaTAO=ISNULL(F.Item.value('cd_AnexoPolizaTAO[1]','VARCHAR(61)'),''),
 			am_PorDesFormaPagoTA=0, 
-			cd_Penalidad=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''), 
-			ds_cc_vence=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''), 
-			ds_cc_vence2=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_cc_autorizacion=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_cc_autorizacion2=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_cc_voucher=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_cc_voucher2=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_AutorizacionTarjetaTAO=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_VoucherTarjetaTAO=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			am_fptao=0,
-			in_cc_cuotas=0,
-			in_cc_cuotas2=0,
-			in_cuotasTarjetaTAO=0,
-			cd_TipoTarifaTAO=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_TipoTiquete=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			am_TasaCambio=1,
-			cd_tiqueteador_facturador=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			bl_ahorro=0,
+			cd_Penalidad=ISNULL(F.Item.value('cd_Penalidad[1]','VARCHAR(61)'),''), 
+			ds_cc_vence=ISNULL(F.Item.value('ds_cc_vence[1]','VARCHAR(61)'),''), 
+			ds_cc_vence2=ISNULL(F.Item.value('ds_cc_vence2[1]','VARCHAR(61)'),''),
+			ds_cc_autorizacion=ISNULL(F.Item.value('ds_cc_autorizacion[1]','VARCHAR(61)'),''),
+			ds_cc_autorizacion2=ISNULL(F.Item.value('ds_cc_autorizacion2[1]','VARCHAR(61)'),''),
+			ds_cc_voucher=ISNULL(F.Item.value('ds_cc_voucher[1]','VARCHAR(61)'),''),
+			ds_cc_voucher2=ISNULL(F.Item.value('ds_cc_voucher2[1]','VARCHAR(61)'),''),
+			ds_AutorizacionTarjetaTAO=ISNULL(F.Item.value('ds_AutorizacionTarjetaTAO[1]','VARCHAR(61)'),''),
+			ds_VoucherTarjetaTAO=ISNULL(F.Item.value('ds_VoucherTarjetaTAO[1]','VARCHAR(61)'),''),
+			am_fptao=ISNULL(F.Item.value('am_fptao[1]','MONEY'),0),
+			in_cc_cuotas=ISNULL(F.Item.value('in_cc_cuotas[1]','INT'),0),
+			in_cc_cuotas2=ISNULL(F.Item.value('in_cc_cuotas2[1]','INT'),0),
+			in_cuotasTarjetaTAO=ISNULL(F.Item.value('in_cuotasTarjetaTAO[1]','INT'),0),
+			cd_TipoTarifaTAO=ISNULL(F.Item.value('cd_TipoTarifaTAO[1]','VARCHAR(61)'),''),
+			cd_TipoTiquete=ISNULL(F.Item.value('cd_TipoTiquete[1]','VARCHAR(61)'),''),
+			am_TasaCambio=ISNULL(F.Item.value('../Tcambio[1]','MONEY'),1),
+			cd_tiqueteador_facturador=ISNULL(F.Item.value('../id_tiqueteador_Facturador[1]','VARCHAR(61)'),''),
+			bl_ahorro=ISNULL(F.Item.value('bl_ahorro[1]','BIT'),0),
 			in_CantidadTarifaTAO=0,
 			in_CantidadSegmentoTAO=0,
-			cd_tourcode=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_contrato=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_PasaportePax=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_itinerarioaerolinea=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_tkt_prefixIata=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_Evento=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_iata=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_aero_codeIata=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ReservaFactura=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_Ahorro=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_Categoria=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
+			cd_tourcode=ISNULL(F.Item.value('cd_tourcode[1]','VARCHAR(61)'),''),
+			ds_contrato=ISNULL(F.Item.value('ds_contrato[1]','VARCHAR(61)'),''),
+			cd_PasaportePax=ISNULL(F.Item.value('cd_PasaportePax[1]','VARCHAR(61)'),''),
+			ds_itinerarioaerolinea=ISNULL(F.Item.value('ds_itinerarioaerolinea[1]','VARCHAR(61)'),''),
+			ds_tkt_prefixIata=ISNULL(F.Item.value('ds_tkt_prefixIata[1]','VARCHAR(61)'),''),
+			ds_Evento=ISNULL(F.Item.value('../ds_Evento[1]','VARCHAR(61)'),''),
+			cd_iata=ISNULL(F.Item.value('../cd_iata[1]','VARCHAR(61)'),''),
+			ds_aero_codeIata=ISNULL(F.Item.value('ds_aero_codeIata[1]','VARCHAR(61)'),''),
+			ReservaFactura=ISNULL(F.Item.value('ds_records[1]','VARCHAR(61)'),''),
+			cd_Ahorro=ISNULL(F.Item.value('cd_Ahorro[1]','VARCHAR(61)'),''),
+			cd_Categoria=ISNULL(F.Item.value('cd_Categoria[1]','VARCHAR(61)'),''),
 			Id_FormasPagoAirPlus=NULL,
-			cd_FormasPagoAirPlus=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_FormasPagoAirPlus=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_TarjetasCreditoAirPlus=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_numerotarjetaAirPlus=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			am_PorFacParcial=100,
+			cd_FormasPagoAirPlus=ISNULL(F.Item.value('cd_FormasPagoAirPlus[1]','VARCHAR(61)'),''),
+			ds_FormasPagoAirPlus=ISNULL(F.Item.value('ds_FormasPagoAirPlus[1]','VARCHAR(61)'),''),
+			cd_TarjetasCreditoAirPlus=ISNULL(F.Item.value('cd_TarjetasCreditoAirPlus[1]','VARCHAR(61)'),''),
+			ds_numerotarjetaAirPlus=ISNULL(F.Item.value('ds_numerotarjetaAirPlus[1]','VARCHAR(61)'),''),
+			am_PorFacParcial=ISNULL(F.Item.value('am_PorFacParcial[1]','MONEY'),100),
 			am_PorFacParcial_Utilizar=0,
-			in_cantpax=0,
+			in_cantpax=ISNULL(F.Item.value('in_cantpax[1]','INT'),0),
 			Id_Precompra=NULL,
-			id_sucursal=ISNULL(S.id,1),
+			id_sucursal=1,
 			bl_cotizacion=0,
-			cd_htl=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
+			cd_htl=ISNULL(F.Item.value('cd_htl[1]','VARCHAR(61)'),''),
 			id_FormasPago=NULL,
 			id_TarjetasCredito=NULL,
 			id_formapago_cliente=NULL,
-			cd_formapago_cliente=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			ds_formapago_cliente=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_fp_OtrosItems=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_auxiliar=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
-			cd_tipoventa=ISNULL(F.Facturacion.value('ds_clases[1]','VARCHAR(61)'),''),
+			cd_formapago_cliente=ISNULL(F.Item.value('cd_formapago_cliente[1]','VARCHAR(61)'),''),
+			ds_formapago_cliente=ISNULL(F.Item.value('ds_formapago_cliente[1]','VARCHAR(61)'),''),
+			cd_fp_OtrosItems=ISNULL(F.Item.value('cd_fp_OtrosItems[1]','VARCHAR(61)'),''),
+			cd_auxiliar=ISNULL(F.Item.value('cd_auxiliar[1]','VARCHAR(61)'),''),
+			cd_tipoventa=ISNULL(F.Item.value('../id_tipoventa[1]','VARCHAR(61)'),''),
 			am_iva2=0,
-			cd_licitacion=ISNULL(F.Facturacion.value('cd_licitacion[1]','VARCHAR(61)'),''),
-			ds_descripcion=ISNULL(F.Facturacion.value('ds_descripcion[1]','VARCHAR(61)'),''),
+			cd_licitacion=ISNULL(F.Item.value('../id_Licitacion[1]','VARCHAR(61)'),''),
+			ds_descripcion=ISNULL(F.Item.value('ds_descrip[1]','VARCHAR(61)'),''),
 			id_tipoproveedor=NULL,
-			cd_tipoproveedor=ISNULL(F.Facturacion.value('cd_tipoproveedor[1]','VARCHAR(25)'),''),
-			ds_tipoproveedor=ISNULL(F.Facturacion.value('ds_tipoproveedor[1]','VARCHAR(50)'),''),
-			cd_Consecutivo_variablesadicionales=ISNULL(F.Facturacion.value('cd_Consecutivo_variablesadicionales[1]','VARCHAR(8)'),''),
-			cd_item=ISNULL(F.Facturacion.value('cd_item[1]','VARCHAR(25)'),'')
-
-			--id_sucursal = ISNULL(S.id,1),
-			--id_implante = I.id,
-			--cd_consecutivo = C.Cotizacion.value('cd_consecutivo[1]','VARCHAR(25)'),
-			--id_usuario = ISNULL(U.id,1),
+			cd_tipoproveedor=ISNULL(F.Item.value('cd_tipoproveedor[1]','VARCHAR(25)'),''),
+			ds_tipoproveedor=ISNULL(F.Item.value('ds_tipoproveedor[1]','VARCHAR(50)'),''),
+			cd_Consecutivo_variablesadicionales=ISNULL(F.Item.value('cd_Consecutivo_variablesadicionales[1]','VARCHAR(8)'),''),
+			cd_item=ISNULL(F.Item.value('cd_item[1]','VARCHAR(25)'),'')
 			--dt_fechacont = ISNULL(C.Cotizacion.value('dt_fechacont[1]','SMALLDATETIME'),'19000101'),
 			--dt_fecha = ISNULL(C.Cotizacion.value('dt_fecha[1]','SMALLDATETIME'),'19000101'),
 			--id_usuarioAct = ISNULL(U.id,1),
@@ -1167,16 +1184,108 @@ BEGIN
 			--id_Evento = NULL,
 			--id_Cotizacion = NULL,
 			--bl_existe = CASE WHEN CC.id IS NOT NULL THEN 1 ELSE 0 END 
-        FROM @xmlData.nodes('Facturaciones/Facturacion') AS F(Facturacion)
-		LEFT JOIN dbo.Sucursales S ON S.cd_codigo=F.Facturacion.value('cd_sucursal[1]','VARCHAR(25)')
-		LEFT JOIN dbo.Implantes I ON I.cd_codigo=F.Facturacion.value('cd_implante[1]','VARCHAR(25)')
-		LEFT JOIN dbo.Usuario U ON U.Login=F.Facturacion.value('cd_usuario[1]','VARCHAR(250)')
-		LEFT JOIN dbo.CLIENTES CL ON CL.IDCLIENTE = F.Facturacion.value('cd_cliente_codigo[1]','VARCHAR(25)')
-		LEFT JOIN dbo.TERCEROS TR ON TR.IDTERCERO = CL.IDTERCERO 
-		LEFT JOIN dbo.Monedas_IATA M ON M.cd_codigo=F.Facturacion.value('cd_monedas_IATA[1]','VARCHAR(3)')
-		LEFT JOIN dbo.Tiqueteadores Tq ON Tq.cd_codigo=F.Facturacion.value('cd_tiqueteador[1]','VARCHAR(6)')
-		LEFT JOIN dbo.TipoVenta Tv ON Tv.cd_codigo=F.Facturacion.value('cd_tipoventa[1]','VARCHAR(16)')
-		LEFT JOIN dbo.Cotizacion CC ON CC.cd_consecutivo = F.Facturacion.value('cd_consecutivo[1]','VARCHAR(25)')		 
+        FROM @xmlData.nodes('/Facturaciones/Facturacion/Item') AS F(Item);
+
+		-- Populate child tables from XML
+		DELETE FROM #Pasajeros;
+		INSERT INTO #Pasajeros (
+			id_facturacion, id_item, in_tipoitem, ds_paxape, ds_paxname, ds_paxprefix, ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion, in_edad, cd_tiquete
+		)
+		SELECT 
+			P.Pax.value('id_factura[1]', 'INT'),
+			P.Pax.value('id_item[1]', 'INT'),
+			P.Pax.value('in_tipoitem[1]', 'INT'),
+			P.Pax.value('ds_paxape[1]', 'VARCHAR(50)'),
+			P.Pax.value('ds_paxname[1]', 'VARCHAR(50)'),
+			P.Pax.value('ds_paxprefix[1]', 'VARCHAR(10)'),
+			P.Pax.value('ds_paxClasificacion[1]', 'VARCHAR(10)'),
+			P.Pax.value('cd_voucherpax[1]', 'VARCHAR(50)'),
+			P.Pax.value('cd_paxidentificacion[1]', 'VARCHAR(50)'),
+			P.Pax.value('in_edad[1]', 'INT'),
+			P.Pax.value('cd_tiquete[1]', 'VARCHAR(50)')
+		FROM @xmlData.nodes('/Facturaciones/Facturacion/Item/Pasajeros') P(Pax);
+
+		DELETE FROM #Itinerarios;
+		INSERT INTO #Itinerarios (
+			id_facturacion, id_item, in_tipoitem, in_orden, ds_origen, ds_destino, ds_clase, dt_llegada, dt_salida, ds_terminal, cd_aerolinea, cd_farebasis, ds_numerovuelo, ds_tipovuelo, am_valor, am_co2
+		)
+		SELECT 
+			I.Itin.value('id_factura[1]', 'INT'),
+			I.Itin.value('id_item[1]', 'INT'),
+			I.Itin.value('in_tipoitem[1]', 'INT'),
+			I.Itin.value('in_orden[1]', 'INT'),
+			I.Itin.value('ds_origen[1]', 'VARCHAR(25)'),
+			I.Itin.value('ds_destino[1]', 'VARCHAR(25)'),
+			I.Itin.value('ds_clase[1]', 'VARCHAR(25)'),
+			I.Itin.value('dt_llegada[1]', 'SMALLDATETIME'),
+			I.Itin.value('dt_salida[1]', 'SMALLDATETIME'),
+			I.Itin.value('ds_terminal[1]', 'VARCHAR(25)'),
+			I.Itin.value('cd_aerolinea[1]', 'VARCHAR(25)'),
+			I.Itin.value('cd_farebasis[1]', 'VARCHAR(25)'),
+			I.Itin.value('ds_numerovuelo[1]', 'VARCHAR(25)'),
+			I.Itin.value('ds_tipovuelo[1]', 'VARCHAR(25)'),
+			I.Itin.value('am_valor[1]', 'MONEY'),
+			I.Itin.value('am_co2[1]', 'MONEY')
+		FROM @xmlData.nodes('/Facturaciones/Facturacion/Item/itinerarios') I(Itin);
+
+		DELETE FROM #CargosImpuestos;
+		INSERT INTO #CargosImpuestos (
+			id_facturacion, id_item, in_tipoitem, cd_codigo, ds_nombre, cd_tipo, am_porcentaje, am_contado, am_credito, am_valor, in_orden
+		)
+		SELECT 
+			C.Cargo.value('id_factura[1]', 'INT'),
+			C.Cargo.value('id_item[1]', 'INT'),
+			C.Cargo.value('in_tipoitem[1]', 'INT'),
+			C.Cargo.value('cd_codigo[1]', 'VARCHAR(20)'),
+			C.Cargo.value('ds_nombre[1]', 'VARCHAR(100)'),
+			C.Cargo.value('cd_tipo[1]', 'CHAR(1)'),
+			C.Cargo.value('am_porcentaje[1]', 'NUMERIC(8,4)'),
+			C.Cargo.value('am_contado[1]', 'MONEY'),
+			C.Cargo.value('am_credito[1]', 'MONEY'),
+			C.Cargo.value('am_valor[1]', 'MONEY'),
+			C.Cargo.value('in_orden[1]', 'INT')
+		FROM @xmlData.nodes('/Facturaciones/Facturacion/Item/CargosImpuestos') C(Cargo);
+
+		DELETE FROM #FormasPagos;
+		INSERT INTO #FormasPagos (
+			id_facturacion, id_item, in_tipoitem, id_formaspago, cd_codigo, ds_nombre, id_tarjetascredito, cd_tipotarjeta, ds_numerotarjeta, ds_vouchertarjeta, ds_expiraciontarjeta, ds_autorizaciontarjeta, in_coutas, cd_banco, ds_cheque, ds_plaza, ds_referencia, ds_Poliza, ds_PolizaAnexo, am_valor
+		)
+		SELECT 
+			F.Pago.value('id_factura[1]', 'INT'),
+			F.Pago.value('id_item[1]', 'INT'),
+			F.Pago.value('in_tipoitem[1]', 'INT'),
+			F.Pago.value('id_formaspago[1]', 'INT'),
+			F.Pago.value('cd_codigo[1]', 'VARCHAR(10)'),
+			F.Pago.value('ds_nombre[1]', 'VARCHAR(50)'),
+			F.Pago.value('id_tarjetascredito[1]', 'INT'),
+			F.Pago.value('cd_tipotarjeta[1]', 'VARCHAR(10)'),
+			F.Pago.value('ds_numerotarjeta[1]', 'VARCHAR(50)'),
+			F.Pago.value('ds_vouchertarjeta[1]', 'VARCHAR(50)'),
+			F.Pago.value('ds_expiraciontarjeta[1]', 'VARCHAR(10)'),
+			F.Pago.value('ds_autorizaciontarjeta[1]', 'VARCHAR(50)'),
+			F.Pago.value('in_cuotas[1]', 'INT'),
+			F.Pago.value('cd_banco[1]', 'VARCHAR(50)'),
+			F.Pago.value('ds_cheque[1]', 'VARCHAR(50)'),
+			F.Pago.value('ds_plaza[1]', 'VARCHAR(50)'),
+			F.Pago.value('ds_referencia[1]', 'VARCHAR(50)'),
+			F.Pago.value('ds_Poliza[1]', 'VARCHAR(50)'),
+			F.Pago.value('ds_PolizaAnexo[1]', 'VARCHAR(50)'),
+			F.Pago.value('am_valor[1]', 'MONEY')
+		FROM @xmlData.nodes('/Facturaciones/Facturacion/Item/Formaspago') F(Pago);
+
+		DELETE FROM #VariablesAdicionales;
+		INSERT INTO #VariablesAdicionales (
+			id_facturacion, id_item, in_tipoitem, ds_maestro, ds_VariableAdicional, ds_valor, cd_codigo
+		)
+		SELECT 
+			V.Var.value('id_factura[1]', 'INT'),
+			V.Var.value('id_item[1]', 'INT'),
+			V.Var.value('in_tipoitem[1]', 'INT'),
+			V.Var.value('ds_maestro[1]', 'VARCHAR(25)'),
+			V.Var.value('ds_VariableAdicional[1]', 'VARCHAR(25)'),
+			V.Var.value('ds_valor[1]', 'VARCHAR(500)'),
+			V.Var.value('cd_codigo[1]', 'VARCHAR(25)')
+		FROM @xmlData.nodes('/Facturaciones/Facturacion/Item/Variables') V(Var);
 		
 	--While 1 = 1
 	--Begin
@@ -2086,24 +2195,24 @@ BEGIN
 								@id_fac_factura = @NewFacId, 
 								@id_fac_remision = @NewRmId, 
 								@id_Tiquetes = @NewTktId, 
-								@orden = ' + CAST(orden AS VARCHAR) + ', 
-								@cd_origen = ''' + ISNULL(cd_origen,'') + ''', 
-								@cd_destino = ''' + ISNULL(cd_destino,'') + ''', 
-								@cd_clase = ''' + ISNULL(cd_clase,'') + ''', 
-								@fecha_salida = ''' + ISNULL(CONVERT(VARCHAR(10),fecha_salida,111),'') + ''', 
-								@hora_salida = ''' + ISNULL(hora_salida,'') + ''', 
-								@hora_llegada = ''' + ISNULL(hora_llegada,'') + ''', 
-								@terminal = ''' + REPLACE(ISNULL(terminal,''), '''', '''''') + ''', 
-								@cd_aero_siglas = ''' + ISNULL(cd_aero_siglas,'') + ''', 
+								@orden = ' + CAST(in_orden AS VARCHAR) + ', 
+								@cd_origen = ''' + ISNULL(ds_origen,'') + ''', 
+								@cd_destino = ''' + ISNULL(ds_destino,'') + ''', 
+								@cd_clase = ''' + ISNULL(ds_clase,'') + ''', 
+								@fecha_salida = ''' + ISNULL(CONVERT(VARCHAR(10),dt_salida,111),'') + ''', 
+								@hora_salida = ''' + ISNULL(CONVERT(VARCHAR(8),dt_salida,108),'') + ''', 
+								@hora_llegada = ''' + ISNULL(CONVERT(VARCHAR(8),dt_llegada,108),'') + ''', 
+								@terminal = ''' + REPLACE(ISNULL(ds_terminal,''), '''', '''''') + ''', 
+								@cd_aero_siglas = ''' + ISNULL(cd_aerolinea,'') + ''', 
 								@cd_farebasis = ''' + ISNULL(cd_farebasis,'') + ''', 
-								@ds_NumVuelo = ''' + ISNULL(ds_NumVuelo,'') + ''', 
-								@ds_TipoVuelo = ''' + ISNULL(ds_TipoVuelo,'') + ''', 
+								@ds_NumVuelo = ''' + ISNULL(ds_numerovuelo,'') + ''', 
+								@ds_TipoVuelo = ''' + ISNULL(ds_tipovuelo,'') + ''', 
 								@am_valor = ' + CAST(ISNULL(am_valor, 0) AS VARCHAR) + ', 
 								@bl_NoUtilizado = NULL, 
 								@am_co2 = ' + CAST(ISNULL(am_co2, 0) AS VARCHAR) + '; '
-						FROM dbo.ReservaGDS_Itinerarios
-						WHERE id_reserva = @gen_id_air
-						ORDER BY Orden;
+						FROM #Itinerarios
+						WHERE id_item = @gen_id_item
+						ORDER BY in_orden;
 
 						SET @SqlStmt = @SqlStmt + CHAR(13) + CHAR(10) + '
 						DECLARE @NewTktId_' + CAST(@ItemIndex AS VARCHAR) + ' INT;
@@ -2495,6 +2604,17 @@ BEGIN
 					DECLARE @ReturnCode INT;
 					DECLARE @FacturaExecSqlStmt NVARCHAR(MAX);
 
+					DECLARE @ZML_VariablesXML XML = (
+						SELECT 
+							ds_maestro,
+							ds_VariableAdicional,
+							ds_valor,
+							cd_codigo
+						FROM #VariablesAdicionales
+						WHERE id_facturacion = @id_facturacion 
+						FOR XML PATH('Variable'), ROOT('Variables')
+					);
+
 					SET @FacturaExecSqlStmt = N'
 						EXEC @ReturnCode = dbo.spFacturaCrear' + CHAR(13) + CHAR(10) +
 							'@id_usuario = 1,' + CHAR(13) + CHAR(10) +
@@ -2568,7 +2688,7 @@ BEGIN
 							'@ds_num_resolucion_Adicional = '''',' + CHAR(13) + CHAR(10) +
 							'@id_fac_facturaRefacturacion = NULL,' + CHAR(13) + CHAR(10) +
 							'@bl_refacturacion_contabilizar_saldos = 0,' + CHAR(13) + CHAR(10) +
-							'@ZML_VariablesXML = NULL,' + CHAR(13) + CHAR(10) +
+							'@ZML_VariablesXML = ' + ISNULL('''' + REPLACE(CAST(@ZML_VariablesXML AS VARCHAR(MAX)), '''', '''''') + '''', 'NULL') + ',' + CHAR(13) + CHAR(10) +
 							'@bl_FormatoResumidoFactElectro = 0,' + CHAR(13) + CHAR(10) +
 							'@bl_ExigeAdjuntoFactElectro = 0,' + CHAR(13) + CHAR(10) +
 							'@bl_omitir_Validar_IVA_facturacion = 0,' + CHAR(13) + CHAR(10) +
