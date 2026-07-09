@@ -41,8 +41,8 @@ BEGIN
 		cd_serie VARCHAR(2),
 		cd_consecutivo VARCHAR(8),
 		cd_usuario INTEGER,  
-		cd_sucursal VARCHAR(3), 
-		cd_implante VARCHAR(3), 
+		cd_sucursal VARCHAR(25), 
+		cd_implante VARCHAR(25), 
 		dt_fechacont TIMESTAMP,
 		dt_vence TIMESTAMP,
 		cd_tercero_codigo VARCHAR(25),
@@ -185,8 +185,8 @@ BEGIN
 		in_cc_cuotas2 INTEGER,
 		cd_monedas_iata VARCHAR(25),
 		Tcambio DECIMAL,
-		cd_sucursal INTEGER,
-		cd_implante INTEGER,
+		cd_sucursal VARCHAR(25),
+		cd_implante VARCHAR(25),
 		bl_ahorro BIT(1),
 		cd_TipoTiqueteGDS VARCHAR(3),
 		cd_TiposDocumento VARCHAR(25),
@@ -313,7 +313,7 @@ BEGIN
 		id INT GENERATED ALWAYS AS IDENTITY,
 		id_factura INTEGER,
 		id_item INTEGER,
-		id_tipoitem INTEGER,
+		in_tipoitem INTEGER,
 		ds_maestro VARCHAR(25), 
 		ds_VariableAdicional VARCHAR(25),
 		ds_valor VARCHAR(500),
@@ -586,7 +586,7 @@ BEGIN
     FROM public."InvoicesProduct" ep
 	JOIN public."Invoices" e ON ep."invoiceId" = e.id
     JOIN public."Product" pr ON ep."productId" = pr.id
-	JOIN public."TicketType" tt ON tt.id = ep."ticketTypeId"
+	LEFT JOIN public."TicketType" tt ON tt.id = ep."ticketTypeId"
     JOIN Facturacion f ON ep."invoiceId" = f.id_factura
     LEFT JOIN public."Provider" prov ON ep."providerId" = prov."id"
 	LEFT JOIN public."Prestadora" pre ON pre."id" = ep."prestadoraId"
@@ -635,7 +635,7 @@ BEGIN
     SELECT 
         f.id_factura AS id_factura,
         itm.id_item AS id_item,
-        itm.in_tipoitem AS id_tipoitem,
+        itm.in_tipoitem AS in_tipoitem,
 	    CASE WHEN p.name IS NULL OR TRIM(p.name) = '' THEN '' WHEN TRIM(p.name) NOT LIKE '% %' THEN '' ELSE COALESCE(arr[2], '') END AS ds_paxape,
 	    CASE WHEN p.name IS NULL OR TRIM(p.name) = '' THEN '' WHEN TRIM(p.name) NOT LIKE '% %' THEN TRIM(p.name) ELSE COALESCE(arr[1], '') END AS ds_paxname,
 	    CASE WHEN TRIM(p.name) LIKE '% %' THEN SUBSTRING(COALESCE(arr[3], ''), 1, 3)::char(3) ELSE ''::char(3) END AS ds_paxprefix,
@@ -664,7 +664,7 @@ BEGIN
         am_porcentaje, am_valor, am_contado, am_credito, id_carg, id_imp, bl_iva, in_orden
     )
     SELECT 
-        f.cd_consecutivo AS id_factura,
+        f.id_factura AS id_factura,
         itm.id_item AS id_item,
         itm.in_tipoitem AS in_tipoitem,
         COALESCE(ct.code, 'TAR') AS cd_codigo,
@@ -685,15 +685,15 @@ BEGIN
 
     -- 9. Poblar Tabla Formaspago
     INSERT INTO Formaspago (
-        id_factura, id_item, id_tipoitem, id_formaspago, cd_codigo, ds_nombre,
+        id_factura, id_item, in_tipoitem, id_formaspago, cd_codigo, ds_nombre,
         id_tarjetascredito, cd_tipotarjeta, ds_numerotarjeta, ds_vouchertarjeta,
         ds_expiraciontarjeta, ds_autorizaciontarjeta, in_cuotas, cd_banco,
         ds_cheque, ds_plaza, ds_referencia, ds_Poliza, ds_PolizaAnexo, am_valor
     )
     SELECT 
-        f.cd_consecutivo AS id_factura,
+        f.id_factura AS id_factura,
         itm.id_item AS id_item,
-        itm.in_tipoitem AS id_tipoitem,
+        itm.in_tipoitem AS in_tipoitem,
         ipp.id AS id_formaspago,
         ipp."paymentMethod" AS cd_codigo,
         ipp."paymentMethod" AS ds_nombre,
@@ -723,7 +723,7 @@ BEGIN
     SELECT 
         f.id_factura AS id_factura,
         itm.id_item AS id_item,
-        itm.in_tipoitem AS id_tipoitem,
+        itm.in_tipoitem AS in_tipoitem,
         CASE WHEN itm.in_tipoitem=1 THEN itm.cd_tiquete ELSE itm.cd_Consecutivo_variablesadicionales END AS ds_maestro,
         COALESCE(mv.name, '') AS ds_VariableAdicional,
         COALESCE(v.value, '') AS ds_valor,
@@ -777,9 +777,9 @@ BEGIN
 									s.ds_cc_code, s.ds_cc_number, s.ds_cc_vence, s.ds_cc_autorizacion, 
 									s.ds_cc_voucher, s.in_cc_cuotas, s.am_fp2, s.ds_cc_code2, s.ds_cc_number2, 
 									s.ds_cc_vence2, s.ds_cc_autorizacion2, s.ds_cc_voucher2, s.in_cc_cuotas2, 
-									s.cd_monedas_iata, s.Tcambio, s.id_sucursal, s.id_implante, s.bl_ahorro, 
+									s.cd_monedas_iata, s.Tcambio, s.cd_sucursal, s.cd_implante, s.bl_ahorro, 
 									s.cd_TipoTiqueteGDS, s.cd_TiposDocumento, s.cd_entdist, s.cd_entvend, 
-									s.cd_destino, s.dt_fechaexped, s.id_tiqueteadores, s.id_gds, s.iden_gds, 
+									s.cd_destino, s.dt_fechaexped, s.cd_tiqueteadores, s.id_gds, s.iden_gds, 
 									s.am_comisionPNR, s.ds_records, s.bl_NoCalcComision, s.bl_NoCalcIvaComision, 
 									s.am_basecomisionable, s.am_porcomision, s.cd_tiposconceptfac, 
 									s.cd_conceptofacturacion, s.cd_tiposservicio, s.cd_proveedores, 
@@ -808,7 +808,7 @@ BEGIN
                                     SELECT xmlagg(
                                         xmlelement(name "Pasajeros",
                                             xmlforest(
-                                                p.id_factura, p.id_item, p.id_tipoitem, p.ds_paxape, p.ds_paxname, p.ds_paxprefix,
+                                                p.id_factura, p.id_item, p.in_tipoitem, p.ds_paxape, p.ds_paxname, p.ds_paxprefix,
                                                 p.ds_paxClasificacion, p.cd_voucherpax, p.cd_paxidentificacion, p.in_edad, p.cd_tiquete
                                             )
                                         )
@@ -820,7 +820,7 @@ BEGIN
                                     SELECT xmlagg(
                                         xmlelement(name "CargosImpuestos",
                                             xmlforest(
-                                                ci.id_factura, ci.id_item, ci.id_tipoitem, ci.cd_codigo, ci.ds_nombre, ci.cd_tipo,
+                                                ci.id_factura, ci.id_item, ci.in_tipoitem, ci.cd_codigo, ci.ds_nombre, ci.cd_tipo,
                                                 ci.am_porcentaje, ci.am_valor, ci.am_contado, ci.am_credito, ci.id_carg, ci.id_imp,
                                                 ci.bl_iva, ci.in_orden
                                             )
@@ -833,7 +833,7 @@ BEGIN
                                     SELECT xmlagg(
                                         xmlelement(name "Formaspago",
                                             xmlforest(
-                                                fp.id_factura, fp.id_item, fp.id_tipoitem, fp.id_formaspago, fp.cd_codigo, fp.ds_nombre,
+                                                fp.id_factura, fp.id_item, fp.in_tipoitem, fp.id_formaspago, fp.cd_codigo, fp.ds_nombre,
                                                 fp.id_tarjetascredito, fp.cd_tipotarjeta, fp.ds_numerotarjeta, fp.ds_vouchertarjeta,
                                                 fp.ds_expiraciontarjeta, fp.ds_autorizaciontarjeta, fp.in_cuotas, fp.cd_banco,
                                                 fp.ds_cheque, fp.ds_plaza, fp.ds_referencia, fp.ds_Poliza, fp.ds_PolizaAnexo, fp.am_valor
@@ -847,7 +847,7 @@ BEGIN
                                     SELECT xmlagg(
                                         xmlelement(name "Variables",
                                             xmlforest(
-                                                v.id_factura, v.id_item, v.id_tipoitem, v.ds_maestro, v.ds_VariableAdicional, v.ds_valor, v.cd_codigo
+                                                v.id_factura, v.id_item, v.in_tipoitem, v.ds_maestro, v.ds_VariableAdicional, v.ds_valor, v.cd_codigo
                                             )
                                         )
                                     )
