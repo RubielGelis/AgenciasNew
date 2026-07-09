@@ -1,4 +1,4 @@
-SET ANSI_NULLS ON
+﻿SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
@@ -1383,7 +1383,8 @@ BEGIN
 			V.Var.value('ds_valor[1]', 'VARCHAR(500)'),
 			V.Var.value('cd_codigo[1]', 'VARCHAR(25)')
 		FROM @xmlData.nodes('/Facturaciones/Facturacion/Item/Variables') V(Var);
-		
+	
+	
 	--While 1 = 1
 	--Begin
 		SET @Fecha = GETDATE();
@@ -1523,6 +1524,7 @@ BEGIN
 					am_basecomisionable, am_porcomision, id_tiposconceptfac, id_conceptofacturacion, id_tiposservicio, cd_proveedores, ds_servicio,
 					am_valorprov, id_monedaprov, dt_llegada, dt_salida, am_pordescuento, Fecha_Salida, Fecha_Llegada, am_basedescuento, cd_Consecutivo_depende, cd_Consecutivo_variablesadicionales, id_referencia_origen
 				FROM #TmpFacturaItems
+				WHERE id_factura=@id_facturacion
 				ORDER BY id_item;
 
 				IF OBJECT_ID('tempdb..#TmpVariablesObtenidas') IS NOT NULL DROP TABLE #TmpVariablesObtenidas;
@@ -1550,6 +1552,7 @@ BEGIN
 				BEGIN 
 					IF @gen_tipo_item IN ('Aire')
 					BEGIN
+
 						-- Build cargos / impuestos SQL
 						SET @TktSqlStmt = '';
 						
@@ -1661,9 +1664,9 @@ BEGIN
 						SET @SqlStmt = @SqlStmt + CHAR(13) + CHAR(10) + '
 						DECLARE @NewTktId_' + CAST(@ItemIndex AS VARCHAR) + ' INT;
 						EXECUTE dbo.spza_Tiquete_Vender
-							@cd_tiquete = ''' + @gen_cd_tiquete + ''',
-							@id_TiposDocumento = ' + CAST(@gen_id_TiposDocumento AS VARCHAR) + ',
-							@id_entdist = ' + CAST(@gen_id_entdist AS VARCHAR) + ',
+							@cd_tiquete = ''' + ISNULL(@gen_cd_tiquete,'') + ''',
+							@id_TiposDocumento = ' + ISNULL(CAST(@gen_id_TiposDocumento AS VARCHAR),'NULL') + ',
+							@id_entdist = ' + ISNULL(CAST(@gen_id_entdist AS VARCHAR),'1') + ',
 							@in_estado = 1,
 							@in_nacionalidad = ' + CAST(@gen_in_nacionalidad AS VARCHAR) + ',
 							@id_entvend = ' + CAST(@gen_id_entvend AS VARCHAR) + ',
@@ -1689,9 +1692,9 @@ BEGIN
 							@am_tarifa = ' + CAST(@gen_am_tarifa AS VARCHAR) + ',
 							@cd_ah = ''' + ISNULL(@gen_cd_tourcode, '') + ''',
 							@am_desah = 0,
-							@id_gds = ' + CAST(@gen_id_gds AS VARCHAR) + ',
-							@iden_gds = ' + CAST(@gen_iden_gds AS VARCHAR) + ',
-							@in_numtktconj = ' + CAST(@gen_NumTktConj AS VARCHAR) + ',
+							@id_gds = ' + ISNULL(CAST(@gen_id_gds AS VARCHAR),'NULL') + ',
+							@iden_gds = ' + ISNULL(CAST(@gen_iden_gds AS VARCHAR),'NULL') + ',
+							@in_numtktconj = ' + ISNULL(CAST(@gen_NumTktConj AS VARCHAR),'0') + ',
 							@bl_NoCalcComision = 0,
 							@bl_NoCalcIvaComision = 0,
 							@am_comisionPNR = ' + CAST(@gen_am_Comision AS VARCHAR) + ',
@@ -1725,6 +1728,8 @@ BEGIN
 							@cd_Penalidad = NULL,
 							@id_entdistIata = NULL,
 							@id_entvendIata = NULL; ';
+
+					
 					END
 					ELSE IF @gen_tipo_item = 'TAO'
 					BEGIN 
@@ -2138,7 +2143,7 @@ BEGIN
 							'@bl_omitir_Validar_IVA_facturacion = 0,' + CHAR(13) + CHAR(10) +
 							'@ZML_AjusteIvaXML = NULL,' + CHAR(13) + CHAR(10) +
 							'@ds_Respuesta = @FacturaRespuesta OUTPUT;';
-
+					
 					
 					EXEC sp_executesql @FacturaExecSqlStmt, 
 						N'@FacturaRespuesta VARCHAR(MAX) OUTPUT, @ReturnCode INT OUTPUT', 
