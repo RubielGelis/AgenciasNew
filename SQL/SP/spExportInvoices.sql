@@ -190,8 +190,8 @@ BEGIN
 		bl_ahorro BIT(1),
 		cd_TipoTiqueteGDS VARCHAR(3),
 		cd_TiposDocumento VARCHAR(25),
-		id_entdist INTEGER,
-		id_entvend INTEGER,
+		cd_entdist VARCHAR(25),
+		cd_entvend VARCHAR(25),
 		cd_destino VARCHAR(3),
 		dt_fechaexped TIMESTAMP,
 		cd_tiqueteadores VARCHAR(25),
@@ -450,7 +450,7 @@ BEGIN
 		ds_cc_voucher, in_cc_cuotas, am_fp2, ds_cc_code2, ds_cc_number2, 
 		ds_cc_vence2, ds_cc_autorizacion2, ds_cc_voucher2, in_cc_cuotas2, 
 		cd_monedas_iata, Tcambio, cd_sucursal, cd_implante, bl_ahorro, 
-		cd_TipoTiqueteGDS, cd_TiposDocumento, id_entdist, id_entvend, 
+		cd_TipoTiqueteGDS, cd_TiposDocumento, cd_entdist, cd_entvend, 
 		cd_destino, dt_fechaexped, cd_tiqueteadores, id_gds, iden_gds, 
 		am_comisionPNR, ds_records, bl_NoCalcComision, bl_NoCalcIvaComision, 
 		am_basecomisionable, am_porcomision, cd_tiposconceptfac, 
@@ -600,7 +600,7 @@ BEGIN
 
     -- 6. Poblar Tabla itinerarios
     INSERT INTO itinerarios (
-		id_factura,	id_item, in_tipoitem, ds_origen, ds_destino, ds_clase, 
+		id_factura,	id_item, in_tipoitem, in_orden, ds_origen, ds_destino, ds_clase, 
 		dt_llegada,	dt_salida, ds_terminal, cd_aerolinea, cd_farebasis,	ds_numerovuelo,	
 		ds_tipovuelo, am_valor, am_co2 
     )
@@ -622,7 +622,7 @@ BEGIN
 		epi."amount" AS am_valor,
 		0 AS am_co2
     FROM public."InvoicesProduct" ep
-    JOIN public."InvoicesProductItinerary" epi ON ep."invoiceProductId" = ep.id
+    JOIN public."InvoicesProductItinerary" epi ON epi."invoiceProductId" = ep.id
 	JOIN Item itm ON ep.id = itm.id_item
     JOIN Facturacion f ON ep."invoiceId" = f.id_factura
     WHERE ep.itinerary IS NOT NULL AND ep.itinerary <> '';
@@ -778,7 +778,7 @@ BEGIN
 									s.ds_cc_voucher, s.in_cc_cuotas, s.am_fp2, s.ds_cc_code2, s.ds_cc_number2, 
 									s.ds_cc_vence2, s.ds_cc_autorizacion2, s.ds_cc_voucher2, s.in_cc_cuotas2, 
 									s.cd_monedas_iata, s.Tcambio, s.id_sucursal, s.id_implante, s.bl_ahorro, 
-									s.cd_TipoTiqueteGDS, s.cd_TiposDocumento, s.id_entdist, s.id_entvend, 
+									s.cd_TipoTiqueteGDS, s.cd_TiposDocumento, s.cd_entdist, s.cd_entvend, 
 									s.cd_destino, s.dt_fechaexped, s.id_tiqueteadores, s.id_gds, s.iden_gds, 
 									s.am_comisionPNR, s.ds_records, s.bl_NoCalcComision, s.bl_NoCalcIvaComision, 
 									s.am_basecomisionable, s.am_porcomision, s.cd_tiposconceptfac, 
