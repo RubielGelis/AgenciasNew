@@ -953,7 +953,7 @@ BEGIN
 			ds_tkt_number=ISNULL(F.Facturacion.value('ds_tkt_number[1]','VARCHAR(11)'),''),
 			ds_tkt_prefix=ISNULL(F.Facturacion.value('ds_tkt_prefix[1]','VARCHAR(5)'),''),
 			ds_aero_code=ISNULL(F.Facturacion.value('ds_aero_code[1]','VARCHAR(5)'),''),
-			ds_moneda=ISNULL(F.Facturacion.value('ds_moneda[1]','VARCHAR(25)'),'COP'),
+			ds_moneda=ISNULL(F.Facturacion.value('id_monedas_iata[1]','VARCHAR(25)'),'COP'),
 			am_tarifa=ISNULL(F.Facturacion.value('am_tarifa[1]','MONEY'),0),
 			am_iva=0,
 			am_tua=0,
