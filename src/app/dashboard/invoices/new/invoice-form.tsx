@@ -1170,15 +1170,11 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                                                                                 </div>
                                                                                 <div className="col-span-2">
                                                                                     <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Tipo Vuelo</label>
-                                                                                    <select className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none" value={itin.Typeflight || ''} onChange={e => {
+                                                                                    <input type="text" placeholder="Tipo" maxLength={1} className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.Typeflight || ''} onChange={e => {
                                                                                         const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].Typeflight = e.target.value;
+                                                                                        list[itinIdx].Typeflight = e.target.value.toUpperCase();
                                                                                         updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }}>
-                                                                                        <option value="">Tipo</option>
-                                                                                        <option value="N">Nacional (N)</option>
-                                                                                        <option value="I">Internacional (I)</option>
-                                                                                    </select>
+                                                                                    }} />
                                                                                 </div>
                                                                                 <div className="col-span-2">
                                                                                     <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Valor</label>
