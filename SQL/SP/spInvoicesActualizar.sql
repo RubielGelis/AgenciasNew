@@ -70,7 +70,7 @@ BEGIN
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
                       "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "inNationality" INT,
-                      "servicios" TEXT, "itemDescription" TEXT, "itinerary" TEXT, "class" TEXT, "ticketTypeId" TEXT, "payments" JSONB, "itinerariesItineraryList" JSONB
+                      "servicios" TEXT, "itemDescription" TEXT, "itinerary" TEXT, "class" TEXT, "airline" TEXT, "ticketTypeId" TEXT, "payments" JSONB, "itinerariesItineraryList" JSONB
                   )
     LOOP
         -- 1. Lógica de Producto Al Vuelo
@@ -124,7 +124,7 @@ BEGIN
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
-            "servicios", "descripcion", "itinerary", "class", "ticketTypeId"
+            "servicios", "descripcion", "itinerary", "class", "airline", "ticketTypeId"
         ) VALUES (
             p_id, v_real_product_id, v_item.quantity, v_item.price, v_item.cost, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
@@ -132,7 +132,7 @@ BEGIN
             v_item.nights, v_item."paxAdults", v_item."paxChildren",
             v_item."serviceType", v_item."destination", v_item."reservationCode", v_item."sellerCommission",
             v_item."ticketPrinterCommission", NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
-            v_item."servicios", COALESCE(v_item."itemDescription", v_item."description"), v_item."itinerary", v_item."class", NULLIF(v_item."ticketTypeId", '')::INT
+            v_item."servicios", COALESCE(v_item."itemDescription", v_item."description"), v_item."itinerary", v_item."class", v_item."airline", NULLIF(v_item."ticketTypeId", '')::INT
         ) RETURNING id INTO v_invoice_product_id;
 
         IF v_item.passengers IS NOT NULL THEN
@@ -173,10 +173,10 @@ BEGIN
         END IF;
 
         IF v_item."itinerariesItineraryList" IS NOT NULL THEN
-            FOR v_itinerary IN SELECT * FROM jsonb_to_recordset(v_item."itinerariesItineraryList") AS x(origin TEXT, destination TEXT, class TEXT, "checkInDate" TEXT, "checkOutDate" TEXT, orden INT)
+            FOR v_itinerary IN SELECT * FROM jsonb_to_recordset(v_item."itinerariesItineraryList") AS x(origin TEXT, destination TEXT, class TEXT, "checkInDate" TEXT, "checkOutDate" TEXT, "prestadoraCode" TEXT, orden INT)
             LOOP
-                INSERT INTO public."InvoicesProductItinerary" ("invoiceProductId", "origin", "destination", "class", "checkInDate", "checkOutDate", "orden")
-                VALUES (v_invoice_product_id, v_itinerary.origin, v_itinerary.destination, v_itinerary.class, CASE WHEN v_itinerary."checkInDate" IS NOT NULL AND v_itinerary."checkInDate" <> '' THEN v_itinerary."checkInDate"::TIMESTAMP ELSE NULL END, CASE WHEN v_itinerary."checkOutDate" IS NOT NULL AND v_itinerary."checkOutDate" <> '' THEN v_itinerary."checkOutDate"::TIMESTAMP ELSE NULL END, v_itinerary.orden);
+                INSERT INTO public."InvoicesProductItinerary" ("invoiceProductId", "origin", "destination", "class", "checkInDate", "checkOutDate", "prestadoraCode", "orden")
+                VALUES (v_invoice_product_id, v_itinerary.origin, v_itinerary.destination, v_itinerary.class, CASE WHEN v_itinerary."checkInDate" IS NOT NULL AND v_itinerary."checkInDate" <> '' THEN v_itinerary."checkInDate"::TIMESTAMP ELSE NULL END, CASE WHEN v_itinerary."checkOutDate" IS NOT NULL AND v_itinerary."checkOutDate" <> '' THEN v_itinerary."checkOutDate"::TIMESTAMP ELSE NULL END, COALESCE(v_itinerary."prestadoraCode", ''), v_itinerary.orden);
             END LOOP;
         END IF;
 

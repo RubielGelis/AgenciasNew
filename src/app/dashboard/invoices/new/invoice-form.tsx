@@ -1055,7 +1055,8 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                                                                                     destination: parts[1].toUpperCase(),
                                                                                     class: item.class ? item.class.split('/')[0] : '',
                                                                                     checkInDate: item.checkIn || undefined,
-                                                                                    checkOutDate: item.checkOut || undefined
+                                                                                    checkOutDate: item.checkOut || undefined,
+                                                                                    prestadoraCode: item.airline ? item.airline.split('/')[0].toUpperCase() : ''
                                                                                 }]);
                                                                             }
                                                                         }
@@ -1105,6 +1106,13 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                                                                                     updateItem(index, 'itinerariesItineraryList', list);
                                                                                 }} />
                                                                             </div>
+                                                                            <div className="col-span-2">
+                                                                                <input type="text" placeholder="Aero" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.prestadoraCode || ''} onChange={e => {
+                                                                                    const list = [...(item.itinerariesItineraryList || [])];
+                                                                                    list[itinIdx].prestadoraCode = e.target.value.toUpperCase();
+                                                                                    updateItem(index, 'itinerariesItineraryList', list);
+                                                                                }} />
+                                                                            </div>
                                                                             <div className="col-span-1">
                                                                                 <input type="text" placeholder="Clase" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.class || ''} onChange={e => {
                                                                                     const list = [...(item.itinerariesItineraryList || [])];
@@ -1112,15 +1120,15 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                                                                                     updateItem(index, 'itinerariesItineraryList', list);
                                                                                 }} />
                                                                             </div>
-                                                                            <div className="col-span-3">
-                                                                                <input type="date" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none" value={itin.checkInDate ? (itin.checkInDate.includes('T') ? itin.checkInDate.split('T')[0] : itin.checkInDate) : ''} onChange={e => {
+                                                                            <div className="col-span-2">
+                                                                                <input type="date" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none text-[10px]" value={itin.checkInDate ? (itin.checkInDate.includes('T') ? itin.checkInDate.split('T')[0] : itin.checkInDate) : ''} onChange={e => {
                                                                                     const list = [...(item.itinerariesItineraryList || [])];
                                                                                     list[itinIdx].checkInDate = e.target.value;
                                                                                     updateItem(index, 'itinerariesItineraryList', list);
                                                                                 }} />
                                                                             </div>
-                                                                            <div className="col-span-3">
-                                                                                <input type="date" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none" value={itin.checkOutDate ? (itin.checkOutDate.includes('T') ? itin.checkOutDate.split('T')[0] : itin.checkOutDate) : ''} onChange={e => {
+                                                                            <div className="col-span-2">
+                                                                                <input type="date" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none text-[10px]" value={itin.checkOutDate ? (itin.checkOutDate.includes('T') ? itin.checkOutDate.split('T')[0] : itin.checkOutDate) : ''} onChange={e => {
                                                                                     const list = [...(item.itinerariesItineraryList || [])];
                                                                                     list[itinIdx].checkOutDate = e.target.value;
                                                                                     updateItem(index, 'itinerariesItineraryList', list);
@@ -1143,7 +1151,7 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                                                             )}
                                                             <button type="button" onClick={() => {
                                                                 const list = [...(item.itinerariesItineraryList || [])];
-                                                                list.push({ origin: '', destination: '', class: '', checkInDate: '', checkOutDate: '' });
+                                                                list.push({ origin: '', destination: '', class: '', checkInDate: '', checkOutDate: '', prestadoraCode: '' });
                                                                 updateItem(index, 'itinerariesItineraryList', list);
                                                             }} className="mt-2 text-[10px] text-blue-500 font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2 py-1 rounded transition-colors inline-flex items-center gap-1">
                                                                 <Plus className="w-3 h-3" /> Añadir Tramo
