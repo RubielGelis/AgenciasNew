@@ -29,7 +29,8 @@ BEGIN
             "descripcion" TEXT,
             "itinerary" TEXT,
             "class" VARCHAR(100),
-            "ticketTypeId" INT
+            "ticketTypeId" INT,
+            "airline" VARCHAR(100)
         );
     END IF;
 END $$;
