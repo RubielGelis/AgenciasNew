@@ -622,7 +622,7 @@ BEGIN
 		COALESCE(epi."Numflight",'') AS ds_numerovuelo,
 		COALESCE(epi."Typeflight",'') AS ds_tipovuelo,
 		COALESCE(epi."amount",0) AS am_valor,
-		0 AS am_co2
+		COALESCE(epi."co2", 0) AS am_co2
     FROM public."InvoicesProduct" ep
     JOIN public."InvoicesProductItinerary" epi ON epi."invoiceProductId" = ep.id
 	JOIN Item itm ON ep.id = itm.id_item

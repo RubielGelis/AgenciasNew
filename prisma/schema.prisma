@@ -427,6 +427,7 @@ model InvoicesProductItinerary {
   Numflight        String?         @db.VarChar(25)
   Typeflight       String?         @db.VarChar(1)
   amount           Float?
+  co2              Decimal?        @db.Decimal(10, 4)
   InvoicesProduct  InvoicesProduct @relation(fields: [invoiceProductId], references: [id], onDelete: Cascade)
 }
 

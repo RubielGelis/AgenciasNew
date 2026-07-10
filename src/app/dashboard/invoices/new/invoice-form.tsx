@@ -45,7 +45,7 @@ interface InvoiceFormData {
           airline?: string;
         ticketTypeId?: number;
         payments?: { amount: number, paymentMethod: string, date: string, reference: string, creditCardId?: number, cardNumber?: string, authorizationCode?: string, voucher?: string, expirationDate?: string }[];
-        itinerariesItineraryList?: { id?: number, orden?: number, origin: string, destination: string, class?: string, checkInDate?: string, checkOutDate?: string, terminal?: string, prestadoraCode?: string, farebasis?: string, Numflight?: string, Typeflight?: string, amount?: number }[];
+        itinerariesItineraryList?: { id?: number, orden?: number, origin: string, destination: string, class?: string, checkInDate?: string, checkOutDate?: string, terminal?: string, prestadoraCode?: string, farebasis?: string, Numflight?: string, Typeflight?: string, amount?: number, co2?: number }[];
         isPaymentModalOpen?: boolean;
         sellerCommission: number;
         ticketPrinterCommission: number;
@@ -1091,57 +1091,111 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                                                             {item.itinerariesItineraryList && item.itinerariesItineraryList.length > 0 ? (
                                                                 <div className="space-y-2">
                                                                     {item.itinerariesItineraryList.map((itin: any, itinIdx: number) => (
-                                                                        <div key={itinIdx} className="grid grid-cols-12 gap-2 items-center text-xs">
-                                                                            <div className="col-span-2">
-                                                                                <input type="text" placeholder="Origen" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.origin || ''} onChange={e => {
-                                                                                    const list = [...(item.itinerariesItineraryList || [])];
-                                                                                    list[itinIdx].origin = e.target.value.toUpperCase();
-                                                                                    updateItem(index, 'itinerariesItineraryList', list);
-                                                                                }} />
+                                                                        <div key={itinIdx} className="p-2 bg-white dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 space-y-2">
+                                                                            <div className="grid grid-cols-12 gap-2 items-center text-xs">
+                                                                                <div className="col-span-2">
+                                                                                    <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Origen</label>
+                                                                                    <input type="text" placeholder="Origen" className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.origin || ''} onChange={e => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list[itinIdx].origin = e.target.value.toUpperCase();
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }} />
+                                                                                </div>
+                                                                                <div className="col-span-2">
+                                                                                    <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Destino</label>
+                                                                                    <input type="text" placeholder="Destino" className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.destination || ''} onChange={e => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list[itinIdx].destination = e.target.value.toUpperCase();
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }} />
+                                                                                </div>
+                                                                                <div className="col-span-2">
+                                                                                    <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Aero</label>
+                                                                                    <input type="text" placeholder="Aero" className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.prestadoraCode || ''} onChange={e => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list[itinIdx].prestadoraCode = e.target.value.toUpperCase();
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }} />
+                                                                                </div>
+                                                                                <div className="col-span-1">
+                                                                                    <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Clase</label>
+                                                                                    <input type="text" placeholder="Clase" className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.class || ''} onChange={e => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list[itinIdx].class = e.target.value.toUpperCase();
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }} />
+                                                                                </div>
+                                                                                <div className="col-span-2">
+                                                                                    <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Salida</label>
+                                                                                    <input type="date" className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none text-[10px]" value={itin.checkInDate ? (itin.checkInDate.includes('T') ? itin.checkInDate.split('T')[0] : itin.checkInDate) : ''} onChange={e => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list[itinIdx].checkInDate = e.target.value;
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }} />
+                                                                                </div>
+                                                                                <div className="col-span-2">
+                                                                                    <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Llegada</label>
+                                                                                    <input type="date" className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none text-[10px]" value={itin.checkOutDate ? (itin.checkOutDate.includes('T') ? itin.checkOutDate.split('T')[0] : itin.checkOutDate) : ''} onChange={e => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list[itinIdx].checkOutDate = e.target.value;
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }} />
+                                                                                </div>
+                                                                                <div className="col-span-1 text-center pt-4">
+                                                                                    <button type="button" onClick={() => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list.splice(itinIdx, 1);
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }} className="text-red-500 hover:text-red-700 bg-red-50 dark:bg-red-900/20 p-1 rounded">
+                                                                                        <Trash2 className="w-3 h-3 mx-auto" />
+                                                                                    </button>
+                                                                                </div>
                                                                             </div>
-                                                                            <div className="col-span-2">
-                                                                                <input type="text" placeholder="Destino" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.destination || ''} onChange={e => {
-                                                                                    const list = [...(item.itinerariesItineraryList || [])];
-                                                                                    list[itinIdx].destination = e.target.value.toUpperCase();
-                                                                                    updateItem(index, 'itinerariesItineraryList', list);
-                                                                                }} />
-                                                                            </div>
-                                                                            <div className="col-span-2">
-                                                                                <input type="text" placeholder="Aero" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.prestadoraCode || ''} onChange={e => {
-                                                                                    const list = [...(item.itinerariesItineraryList || [])];
-                                                                                    list[itinIdx].prestadoraCode = e.target.value.toUpperCase();
-                                                                                    updateItem(index, 'itinerariesItineraryList', list);
-                                                                                }} />
-                                                                            </div>
-                                                                            <div className="col-span-1">
-                                                                                <input type="text" placeholder="Clase" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.class || ''} onChange={e => {
-                                                                                    const list = [...(item.itinerariesItineraryList || [])];
-                                                                                    list[itinIdx].class = e.target.value.toUpperCase();
-                                                                                    updateItem(index, 'itinerariesItineraryList', list);
-                                                                                }} />
-                                                                            </div>
-                                                                            <div className="col-span-2">
-                                                                                <input type="date" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none text-[10px]" value={itin.checkInDate ? (itin.checkInDate.includes('T') ? itin.checkInDate.split('T')[0] : itin.checkInDate) : ''} onChange={e => {
-                                                                                    const list = [...(item.itinerariesItineraryList || [])];
-                                                                                    list[itinIdx].checkInDate = e.target.value;
-                                                                                    updateItem(index, 'itinerariesItineraryList', list);
-                                                                                }} />
-                                                                            </div>
-                                                                            <div className="col-span-2">
-                                                                                <input type="date" className="w-full h-7 bg-white dark:bg-zinc-900 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none text-[10px]" value={itin.checkOutDate ? (itin.checkOutDate.includes('T') ? itin.checkOutDate.split('T')[0] : itin.checkOutDate) : ''} onChange={e => {
-                                                                                    const list = [...(item.itinerariesItineraryList || [])];
-                                                                                    list[itinIdx].checkOutDate = e.target.value;
-                                                                                    updateItem(index, 'itinerariesItineraryList', list);
-                                                                                }} />
-                                                                            </div>
-                                                                            <div className="col-span-1 text-center">
-                                                                                <button type="button" onClick={() => {
-                                                                                    const list = [...(item.itinerariesItineraryList || [])];
-                                                                                    list.splice(itinIdx, 1);
-                                                                                    updateItem(index, 'itinerariesItineraryList', list);
-                                                                                }} className="text-red-500 hover:text-red-700 bg-red-50 dark:bg-red-900/20 p-1 rounded">
-                                                                                    <Trash2 className="w-3 h-3 mx-auto" />
-                                                                                </button>
+                                                                            <div className="grid grid-cols-10 gap-2 items-center text-xs pt-1 border-t border-zinc-100 dark:border-zinc-800/80">
+                                                                                <div className="col-span-2">
+                                                                                    <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Fare Basis</label>
+                                                                                    <input type="text" placeholder="Farebasis" className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none uppercase" value={itin.farebasis || ''} onChange={e => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list[itinIdx].farebasis = e.target.value.toUpperCase();
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }} />
+                                                                                </div>
+                                                                                <div className="col-span-2">
+                                                                                    <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Nro. Vuelo</label>
+                                                                                    <input type="text" placeholder="Vuelo" className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none" value={itin.Numflight || ''} onChange={e => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list[itinIdx].Numflight = e.target.value;
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }} />
+                                                                                </div>
+                                                                                <div className="col-span-2">
+                                                                                    <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Tipo Vuelo</label>
+                                                                                    <select className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none" value={itin.Typeflight || ''} onChange={e => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list[itinIdx].Typeflight = e.target.value;
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }}>
+                                                                                        <option value="">Tipo</option>
+                                                                                        <option value="N">Nacional (N)</option>
+                                                                                        <option value="I">Internacional (I)</option>
+                                                                                    </select>
+                                                                                </div>
+                                                                                <div className="col-span-2">
+                                                                                    <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">Valor</label>
+                                                                                    <input type="number" step="any" placeholder="Valor" className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none" value={itin.amount != null ? itin.amount : ''} onChange={e => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list[itinIdx].amount = e.target.value !== '' ? parseFloat(e.target.value) : undefined;
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }} />
+                                                                                </div>
+                                                                                <div className="col-span-2">
+                                                                                    <label className="text-[9px] text-zinc-400 block font-bold mb-0.5">CO2</label>
+                                                                                    <input type="number" step="any" placeholder="CO2" className="w-full h-7 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none" value={itin.co2 != null ? itin.co2 : ''} onChange={e => {
+                                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                                        list[itinIdx].co2 = e.target.value !== '' ? parseFloat(e.target.value) : undefined;
+                                                                                        updateItem(index, 'itinerariesItineraryList', list);
+                                                                                    }} />
+                                                                                </div>
                                                                             </div>
                                                                         </div>
                                                                     ))}
@@ -1151,7 +1205,7 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                                                             )}
                                                             <button type="button" onClick={() => {
                                                                 const list = [...(item.itinerariesItineraryList || [])];
-                                                                list.push({ origin: '', destination: '', class: '', checkInDate: '', checkOutDate: '', prestadoraCode: '' });
+                                                                list.push({ origin: '', destination: '', class: '', checkInDate: '', checkOutDate: '', prestadoraCode: '', farebasis: '', Numflight: '', Typeflight: '', amount: undefined, co2: undefined });
                                                                 updateItem(index, 'itinerariesItineraryList', list);
                                                             }} className="mt-2 text-[10px] text-blue-500 font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2 py-1 rounded transition-colors inline-flex items-center gap-1">
                                                                 <Plus className="w-3 h-3" /> Añadir Tramo

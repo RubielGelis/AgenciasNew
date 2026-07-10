@@ -1841,6 +1841,7 @@ BEGIN
             "Numflight" VARCHAR(25),
             "Typeflight" VARCHAR(1),
             "amount" FLOAT,
+            "co2" DECIMAL(10,4),
             CONSTRAINT "InvoicesProductItinerary_invoiceProductId_fkey" FOREIGN KEY ("invoiceProductId") REFERENCES public."InvoicesProduct" (id) ON UPDATE CASCADE ON DELETE CASCADE
         );
     END IF;
