@@ -594,7 +594,7 @@ BEGIN
 	LEFT JOIN public."Prestadora" pre ON pre."id" = ep."prestadoraId"
 	LEFT JOIN public."TicketPrinter" tp ON tp."id" = e."ticketPrinterId"
 	LEFT JOIN LATERAL ( SELECT  pp.*,
-		        				regexp_split_to_array(TRIM(pp.name), 's+') AS arr
+		        				regexp_split_to_array(TRIM(pp.name), E'\\s+') AS arr
 		    			FROM public."InvoicesProductPasenger" pp 
 						WHERE pp."invoiceProductId" = ep.id
     					ORDER BY pp.id
@@ -622,7 +622,7 @@ BEGIN
 		COALESCE(epi."Numflight",'') AS ds_numerovuelo,
 		COALESCE(epi."Typeflight",'') AS ds_tipovuelo,
 		COALESCE(epi."amount",0) AS am_valor,
-		COALESCE(epi."co2", 0) AS am_co2
+		COALESCE(epi."co2",0) AS am_co2
     FROM public."InvoicesProduct" ep
     JOIN public."InvoicesProductItinerary" epi ON epi."invoiceProductId" = ep.id
 	JOIN Item itm ON ep.id = itm.id_item
@@ -649,7 +649,7 @@ BEGIN
 	FROM (
 	    SELECT 
 	        p.*,
-	        regexp_split_to_array(TRIM(p.name), 's+') AS arr,
+	        regexp_split_to_array(TRIM(p.name), E'\\s+') AS arr,
 	        ROW_NUMBER() OVER (
 	            PARTITION BY p."invoiceProductId"
 	            ORDER BY p.id
