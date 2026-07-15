@@ -1,3 +1,7 @@
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 -- Eliminar si existe
 IF OBJECT_ID('dbo.spFacturaCrear', 'P') IS NOT NULL
     DROP PROCEDURE dbo.spFacturaCrear;
