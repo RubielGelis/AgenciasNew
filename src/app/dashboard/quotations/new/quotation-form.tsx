@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer } from 'lucide-react'
+import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, CreditCard } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { generateQuotationPDF } from '@/lib/pdf-utils'
 import { SearchSelect } from '@/components/SearchSelect'
+import ItemPaymentModal from '@/app/dashboard/invoices/new/ItemPaymentModal'
+
 
 interface QuotationFormData {
     clientId: string;
@@ -33,6 +35,8 @@ interface QuotationFormData {
         destination: string;
         serviceType: string;
         reservationCode: string;
+        service?: string;
+        servicios?: string;
         descripcion?: string;
         passengers: { name: string, document: string }[];
         sellerCommission: number;
@@ -40,6 +44,8 @@ interface QuotationFormData {
         mainTaxId?: number;
         appliedTaxes: { id?: number, name?: string, amount: number }[],
         variables: { id?: number, masterVariableId: number, value: string }[];
+        payments?: { amount: number, paymentMethod: string, date: string, reference: string, creditCardId?: number, cardNumber?: string, authorizationCode?: string, voucher?: string, expirationDate?: string }[];
+        isPaymentModalOpen?: boolean;
         comboId?: number;
         inNationality?: number;
         _productName?: string;
@@ -109,6 +115,9 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                         providerId: item.providerId || null,
                         prestadoraId: item.prestadoraId || null,
                         cost: item.cost || 0,
+                        service: item.service || item.servicios || '',
+                        servicios: item.servicios || item.service || '',
+                        payments: Array.isArray(item.payments) ? item.payments : [],
                         appliedTaxes: taxes,
                         variables: item.variables || []
                     };
@@ -354,8 +363,11 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     destination: p.destination || '',
                                     serviceType: p.serviceType || '',
                                     reservationCode: p.reservationCode || '',
+                                    service: p.service || p.servicios || '',
+                                    servicios: p.servicios || p.service || '',
                                     descripcion: p.descripcion || '',
                                     passengers: Array.isArray(p.passengers) ? p.passengers : [],
+                                    payments: Array.isArray(p.payments) ? p.payments : [],
                                     sellerCommission: p.sellerCommission || 0,
                                     ticketPrinterCommission: p.ticketPrinterCommission || 0,
                                     mainTaxId,
@@ -941,11 +953,37 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     <label className="text-[10px] uppercase font-bold text-zinc-400">Reservación</label>
                                                     <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={item.reservationCode} onChange={(e) => updateItem(index, 'reservationCode', e.target.value)} />
                                                 </div>
-                                                <div className="space-y-1 md:col-span-2">
-                                                    <label className="text-[10px] uppercase font-bold text-blue-500">Descripción Manual</label>
-                                                    <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-blue-200 dark:border-blue-800 outline-none text-xs" value={item.descripcion || ''} onChange={(e) => updateItem(index, 'descripcion', e.target.value)} placeholder="Descripción manual del producto..." />
-                                                </div>
+                                                 <div className="space-y-1 md:col-span-2">
+                                                     <label className="text-[10px] uppercase font-bold text-blue-500">Servicio</label>
+                                                     <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-blue-200 dark:border-blue-800 outline-none text-xs" value={item.servicios || item.service || ''} onChange={(e) => { updateItem(index, 'servicios', e.target.value); updateItem(index, 'service', e.target.value); }} placeholder="Servicio (ej. Desayuno incluido, Traslado VIP)..." />
+                                                 </div>
+                                                 <div className="space-y-1 md:col-span-2">
+                                                     <label className="text-[10px] uppercase font-bold text-blue-500">Descripción Manual</label>
+                                                     <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-blue-200 dark:border-blue-800 outline-none text-xs" value={item.descripcion || ''} onChange={(e) => updateItem(index, 'descripcion', e.target.value)} placeholder="Descripción manual del producto..." />
+                                                 </div>
                                             </div>
+
+                                            <div className="col-span-12 mt-4 flex justify-between items-center bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                                                 <div>
+                                                     <p className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">Pagos Registrados</p>
+                                                     <p className="text-xs font-bold text-zinc-600 dark:text-zinc-300">
+                                                         Total: ${((item.appliedTaxes || []).reduce((acc: number, t: any) => acc + (t.amount || 0), 0) || (item.price || 0) * (item.quantity || 1)).toLocaleString(undefined, {minimumFractionDigits: 2})} | Pagado: ${((item.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0)).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                                     </p>
+                                                 </div>
+                                                 <button type="button" onClick={() => updateItem(index, 'isPaymentModalOpen', true)} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all">
+                                                     <CreditCard className="w-3.5 h-3.5" /> Administrar Pagos
+                                                 </button>
+                                             </div>
+                                             <ItemPaymentModal
+                                                 isOpen={item.isPaymentModalOpen || false}
+                                                 onClose={() => updateItem(index, 'isPaymentModalOpen', false)}
+                                                 productName={item.productId ? (data?.products?.find((p:any) => p.id.toString() === item.productId?.toString())?.description || 'Producto') : 'Producto sin nombre'}
+                                                 itemTotal={(item.appliedTaxes || []).reduce((acc: number, t: any) => acc + (t.amount || 0), 0) || (item.price || 0) * (item.quantity || 1)}
+                                                 payments={item.payments || []}
+                                                 onUpdatePayments={(payments) => updateItem(index, 'payments', payments)}
+                                                 creditCards={data?.creditCards || []}
+                                                 paymentsList={data?.payments || []}
+                                             />
 
                                             {/* Dynamic Passengers Array - Visible only if NOT a combo item */}
                                             {!item.comboId && (

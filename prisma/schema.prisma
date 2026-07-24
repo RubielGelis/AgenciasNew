@@ -221,7 +221,24 @@ model QuotationProduct {
   passengers              QuotationProductPassenger[]
   appliedTaxes            QuotationProductTax[]
   variables               QuotationProductVariable[]
+  payments                QuotationProductPayment[]
 }
+
+model QuotationProductPayment {
+  id                 Int              @id @default(autoincrement())
+  quotationProductId Int
+  amount             Float
+  paymentMethod      String?          @db.VarChar(100)
+  date               DateTime?        @default(now()) @db.Timestamp(6)
+  reference          String?          @db.VarChar(255)
+  creditCardId       Int?
+  cardNumber         String?          @db.VarChar(20)
+  authorizationCode  String?          @db.VarChar(50)
+  voucher            String?          @db.VarChar(50)
+  expirationDate     String?          @db.VarChar(10)
+  quotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
+}
+
 
 model QuotationProductPassenger {
   id                 Int              @id @default(autoincrement())
@@ -836,11 +853,10 @@ model ReportSorts {
 }
 
 model Menu {
-  id     Int     @id @default(autoincrement())
-  code   String  @unique @db.VarChar(100)
-  name   String  @db.VarChar(255)
+  id     Int      @id @default(autoincrement())
+  code   String   @unique @db.VarChar(100)
+  name   String   @db.VarChar(255)
   parent Int?
-  action String  @db.VarChar(500)
-  activo Boolean @default(true)
+  action String   @db.VarChar(500)
+  activo Boolean? @default(true)
 }
-

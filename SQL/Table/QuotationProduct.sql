@@ -23,6 +23,7 @@ BEGIN
             "comboId" INT,
             "mainTaxId" INT,
             "inNationality" INT DEFAULT 1,
+            "service" TEXT,
             "servicios" TEXT,
             "descripcion" TEXT
         );

@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        const [clients, providers, prestadoras, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies] = await Promise.all([
+        const [clients, providers, prestadoras, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies, creditCards, payments] = await Promise.all([
             (prisma as any).client?.findMany({ select: { id: true, name: true, document: true } }) || Promise.resolve([]),
             (prisma as any).provider?.findMany({ include: { prestadoras: true } }) || Promise.resolve([]),
             (prisma as any).prestadora?.findMany() || Promise.resolve([]),
@@ -44,7 +44,9 @@ export async function GET(req: NextRequest) {
                 },
                 orderBy: { createdAt: 'desc' }
             }),
-            (prisma as any).currency?.findMany() || Promise.resolve([])
+            (prisma as any).currency?.findMany() || Promise.resolve([]),
+            (prisma as any).creditCard?.findMany() || Promise.resolve([]),
+            (prisma as any).payment?.findMany() || Promise.resolve([])
         ])
 
         const today = new Date();
@@ -68,7 +70,9 @@ export async function GET(req: NextRequest) {
             variables,
             currentUser,
             combos: validCombos,
-            currencies
+            currencies,
+            creditCards,
+            payments
         })
     } catch (error: any) {
         console.error('Data fetch error:', error)

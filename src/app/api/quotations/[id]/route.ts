@@ -17,6 +17,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
                         appliedTaxes: true,
                         passengers: true,
                         variables: true,
+                        payments: true,
                         product: true,
                         provider: true,
                         prestadora: true
