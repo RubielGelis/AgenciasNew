@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, CreditCard } from 'lucide-react'
+import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, CreditCard, Receipt } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { generateQuotationPDF } from '@/lib/pdf-utils'
 import { SearchSelect } from '@/components/SearchSelect'
 import ItemPaymentModal from '@/app/dashboard/invoices/new/ItemPaymentModal'
+import QuotationInvoiceModal from '../QuotationInvoiceModal'
 
 
 interface QuotationFormData {
@@ -73,6 +74,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         state: 'Nuevo'
     })
     const [saving, setSaving] = useState(false)
+    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
     const [attachments, setAttachments] = useState<any[]>([])
     const [uploadingAttachment, setUploadingAttachment] = useState(false)
     const router = useRouter()
@@ -568,6 +570,17 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                     >
                         Cancelar
                     </button>
+                    {quotationId && (
+                        <button
+                            type="button"
+                            onClick={() => setIsInvoiceModalOpen(true)}
+                            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+                            title="Facturar Cotización"
+                        >
+                            <Receipt className="w-5 h-5" />
+                            Facturar
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={(e) => handleSave(e as any, true)}
@@ -588,6 +601,11 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                     </button>
                 </div>
             </div>
+            <QuotationInvoiceModal
+                isOpen={isInvoiceModalOpen}
+                onClose={() => setIsInvoiceModalOpen(false)}
+                quotationId={quotationId ? parseInt(quotationId) : null}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Core Details */}

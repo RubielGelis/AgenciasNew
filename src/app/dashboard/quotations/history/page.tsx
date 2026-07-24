@@ -11,17 +11,21 @@ import {
     Download,
     Edit,
     Trash2,
-    Printer
+    Printer,
+    Receipt
 } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
 import * as XLSX from 'xlsx'
+import QuotationInvoiceModal from '../QuotationInvoiceModal'
 
 export default function QuotationsHistoryPage() {
     const [quotations, setQuotations] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedIds, setSelectedIds] = useState<number[]>([])
+    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+    const [invoiceQuotationId, setInvoiceQuotationId] = useState<number | null>(null)
 
     const fetchQuotations = async () => {
         try {
@@ -249,6 +253,17 @@ export default function QuotationsHistoryPage() {
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setInvoiceQuotationId(q.id);
+                                                        setIsInvoiceModalOpen(true);
+                                                    }}
+                                                    className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-xl transition-all flex items-center gap-1 font-bold text-xs"
+                                                    title="Facturar Cotización"
+                                                >
+                                                    <Receipt className="w-5 h-5 text-emerald-600" />
+                                                    <span className="hidden xl:inline">Facturar</span>
+                                                </button>
                                                 <Link
                                                     href={`/dashboard/quotations/print?idIni=${q.id}&idFin=${q.id}`}
                                                     target="_blank"
@@ -280,6 +295,14 @@ export default function QuotationsHistoryPage() {
                     </div>
                 )}
             </div>
+            <QuotationInvoiceModal
+                isOpen={isInvoiceModalOpen}
+                onClose={() => {
+                    setIsInvoiceModalOpen(false);
+                    setInvoiceQuotationId(null);
+                }}
+                quotationId={invoiceQuotationId}
+            />
         </div>
     )
 }

@@ -65,7 +65,7 @@ interface InvoiceFormData {
     consecutivo?: string;
 }
 
-export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
+export default function InvoiceForm({ invoiceId, quotationId, initialData, onCancel }: { invoiceId?: string; quotationId?: string; initialData?: any; onCancel?: () => void }) {
     const [data, setData] = useState<any>(null)
     const [formData, setFormData] = useState<InvoiceFormData>({
         clientId: '',
@@ -354,7 +354,77 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                     setData({ clients: [], providers: [], prestadoras: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [], combos: [], currencies: [], creditCards: [], payments: [], ticketTypes: [] })
                 }
 
-                if (!invoiceId) {
+                if (!invoiceId && (initialData || quotationId)) {
+                    let qData = initialData;
+                    if (!qData && quotationId) {
+                        try {
+                            const quoRes = await fetch(`/api/quotations/${quotationId}/fn-cotizacion`)
+                            if (quoRes.ok) {
+                                qData = await quoRes.json()
+                            }
+                        } catch (err) {
+                            console.error("Error fetching fnCotizacion for invoice:", err)
+                        }
+                    }
+
+                    if (qData) {
+                        setFormData({
+                            clientId: qData.clientId?.toString() || '',
+                            branchId: qData.branchId?.toString() || '',
+                            implantId: qData.implantId?.toString() || '',
+                            currency: qData.currency || 'USD',
+                            exchangeRate: qData.exchangeRate || 1,
+                            sellerId: qData.sellerId?.toString() || '',
+                            ticketPrinterId: qData.ticketPrinterId?.toString() || '',
+                            commissionPercentage: qData.commissionPercentage || 0,
+                            chargesAndTaxes: qData.chargesAndTaxes || 0,
+                            state: 'Nuevo',
+                            fuente: '',
+                            serie: '',
+                            consecutivo: '',
+                            selectedCombos: (qData.combos || []).map((c: any) => ({ id: c.comboId || c.id, name: c.name })),
+                            items: (qData.products || []).map((p: any) => {
+                                const safeAppliedTaxes = Array.isArray(p.appliedTaxes) ? p.appliedTaxes.map((t: any) => ({
+                                    id: t.id ?? t.chargeAndTaxId,
+                                    chargeAndTaxId: t.id ?? t.chargeAndTaxId,
+                                    amount: t.explicitAmount ?? t.amount ?? 0
+                                })) : [];
+
+                                return {
+                                    productId: p.productId?.toString() || '',
+                                    ticketCode: p.ticketCode || p.product?.code || '',
+                                    ticketTypeId: p.ticketTypeId || '',
+                                    quantity: p.quantity || 1,
+                                    price: p.price || 0,
+                                    cost: p.cost || 0,
+                                    providerId: p.providerId?.toString() || '',
+                                    prestadoraId: p.prestadoraId?.toString() || '',
+                                    checkIn: p.checkInDate ? new Date(p.checkInDate).toISOString().split('T')[0] : '',
+                                    checkOut: p.checkOutDate ? new Date(p.checkOutDate).toISOString().split('T')[0] : '',
+                                    paxAdults: p.paxAdults || 1,
+                                    paxChildren: p.paxChildren || 0,
+                                    destination: p.destination || '',
+                                    serviceType: p.serviceType || '',
+                                    reservationCode: p.reservationCode || '',
+                                    servicios: p.servicios || p.service || '',
+                                    descripcion: p.descripcion || '',
+                                    passengers: Array.isArray(p.passengers) ? p.passengers : [],
+                                    sellerCommission: p.sellerCommission || 0,
+                                    ticketPrinterCommission: p.ticketPrinterCommission || 0,
+                                    mainTaxId: p.mainTaxId,
+                                    inNationality: p.inNationality || 1,
+                                    appliedTaxes: safeAppliedTaxes,
+                                    variables: Array.isArray(p.variables) ? p.variables : [],
+                                    payments: Array.isArray(p.payments) ? p.payments : [],
+                                    comboId: p.comboId,
+                                    _productName: p.product?.description,
+                                    _providerName: p.provider?.name,
+                                    _prestadoraName: p.prestadora?.name
+                                };
+                            })
+                        });
+                    }
+                } else if (!invoiceId) {
                     try {
                         const defaultUser = baseData?.currentUser || loggedUserCache;
                         setFormData((prev: any) => ({
@@ -616,14 +686,24 @@ export default function InvoiceForm({ invoiceId }: { invoiceId?: string }) {
                     </h2>
                     <p className="text-zinc-500 text-sm mt-1">Completa los detalles para tu cliente</p>
                 </div>
-                <div className="flex gap-3">
-                    <button
-                        type="button"
-                        onClick={() => router.push('/dashboard')}
-                        className="px-6 py-3 border border-zinc-200 dark:border-zinc-700 rounded-xl font-bold text-zinc-600 hover:bg-zinc-50 transition-all flex items-center gap-2"
-                    >
-                        Cancelar
-                    </button>
+                <div className="flex gap-4">
+                    {onCancel ? (
+                        <button
+                            type="button"
+                            onClick={onCancel}
+                            className="px-6 py-3 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl font-bold transition-all flex items-center gap-2"
+                        >
+                            Atrás
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => router.push('/dashboard/invoices')}
+                            className="px-6 py-3 bg-zinc-100 text-zinc-700 rounded-xl font-bold hover:bg-zinc-200 transition-all"
+                        >
+                            Cancelar
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={(e) => handleSave(e as any, true)}
