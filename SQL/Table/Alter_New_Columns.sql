@@ -67,4 +67,43 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'htmlTemplate') THEN
         ALTER TABLE public."Implant" ADD COLUMN "htmlTemplate" TEXT;
     END IF;
+    -- 5. Creación de tabla Menu si no existe
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Menu') THEN
+        CREATE TABLE public."Menu" (
+            id SERIAL PRIMARY KEY,
+            code VARCHAR(100) UNIQUE NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            parent INT NULL,
+            action VARCHAR(500) NOT NULL,
+            activo BOOLEAN DEFAULT true
+        );
+    END IF;
 END $$;
+
+-- Inserción de datos iniciales en Menu
+INSERT INTO public."Menu" (code, name, parent, action, activo)
+VALUES 
+    ('DASHBOARD', 'Dashboard', NULL, '/dashboard', true),
+    ('COTIZACIONES', 'Cotizaciones', NULL, '/dashboard/quotations/history', true),
+    ('FACTURACION', 'Facturación', NULL, '/dashboard/invoices/history', true),
+    ('MAESTROS', 'Maestros', NULL, '/dashboard/settings', true),
+    ('REPORTES', 'Reportes', NULL, '/dashboard/reports', true)
+ON CONFLICT (code) DO UPDATE SET 
+    name = EXCLUDED.name,
+    parent = EXCLUDED.parent,
+    action = EXCLUDED.action,
+    activo = EXCLUDED.activo;
+
+-- Función fnMenu
+CREATE OR REPLACE FUNCTION public.fnMenu()
+RETURNS SETOF public."Menu"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."Menu"
+    WHERE activo = true
+    ORDER BY id ASC;
+END;
+$$;
+

@@ -1,26 +1,109 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Users, FileText, ShoppingCart, Settings, LogOut, Search, PlusCircle, PieChart, Receipt, Shield } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, ShoppingCart, Settings, LogOut, Search, PlusCircle, PieChart, Receipt, Shield, Compass } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+
+interface MenuItemData {
+    id: number
+    code: string
+    name: string
+    parent: number | null
+    action: string
+    activo: boolean
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
     const router = useRouter()
     const pathname = usePathname()
+    const [menuList, setMenuList] = useState<MenuItemData[]>([])
+    const [loadingMenu, setLoadingMenu] = useState(true)
+
+    useEffect(() => {
+        let isMounted = true
+        fetch('/api/menu')
+            .then((res) => {
+                if (!res.ok) throw new Error('Failed to load menu')
+                return res.json()
+            })
+            .then((data: MenuItemData[]) => {
+                if (isMounted && Array.isArray(data) && data.length > 0) {
+                    setMenuList(data)
+                }
+            })
+            .catch((err) => {
+                console.error('Error loading menu from DB:', err)
+            })
+            .finally(() => {
+                if (isMounted) setLoadingMenu(false)
+            })
+
+        return () => {
+            isMounted = false
+        }
+    }, [])
 
     const handleLogout = () => {
         router.push('/login')
     }
 
-    const navItems = [
-        { icon: <LayoutDashboard className="w-5 h-5" />, label: 'Dashboard', href: '/dashboard', active: pathname === '/dashboard' },
-        { icon: <FileText className="w-5 h-5" />, label: 'Cotizaciones', href: '/dashboard/quotations/history', active: pathname.includes('/dashboard/quotations') },
-        { icon: <Receipt className="w-5 h-5" />, label: 'Facturación', href: '/dashboard/invoices/history', active: pathname.includes('/dashboard/invoices') },
-        { icon: <Settings className="w-5 h-5" />, label: 'Maestros', href: '/dashboard/settings', active: pathname.includes('/dashboard/settings') },
-        { icon: <PieChart className="w-5 h-5" />, label: 'Reportes', href: '/dashboard/reports', active: pathname.includes('/dashboard/reports') }
-    ];
+    const defaultMenuItems: MenuItemData[] = [
+        { id: 1, code: 'DASHBOARD', name: 'Dashboard', parent: null, action: '/dashboard', activo: true },
+        { id: 2, code: 'COTIZACIONES', name: 'Cotizaciones', parent: null, action: '/dashboard/quotations/history', activo: true },
+        { id: 3, code: 'FACTURACION', name: 'Facturación', parent: null, action: '/dashboard/invoices/history', activo: true },
+        { id: 4, code: 'MAESTROS', name: 'Maestros', parent: null, action: '/dashboard/settings', activo: true },
+        { id: 5, code: 'REPORTES', name: 'Reportes', parent: null, action: '/dashboard/reports', activo: true }
+    ]
+
+    const itemsToRender = menuList.length > 0 ? menuList : defaultMenuItems
+
+    const getMenuIcon = (code: string, action: string) => {
+        const uCode = (code || '').toUpperCase()
+        const uAction = (action || '').toLowerCase()
+
+        if (uCode.includes('DASHBOARD') || uAction === '/dashboard') return <LayoutDashboard className="w-5 h-5" />
+        if (uCode.includes('COTIZACION') || uAction.includes('quotations')) return <FileText className="w-5 h-5" />
+        if (uCode.includes('FACTURA') || uAction.includes('invoices')) return <Receipt className="w-5 h-5" />
+        if (uCode.includes('MAESTRO') || uCode.includes('SETTING') || uAction.includes('settings')) return <Settings className="w-5 h-5" />
+        if (uCode.includes('REPORTE') || uAction.includes('reports')) return <PieChart className="w-5 h-5" />
+        if (uCode.includes('USER') || uCode.includes('CLIENT')) return <Users className="w-5 h-5" />
+        return <Compass className="w-5 h-5" />
+    }
+
+    const isItemActive = (action: string) => {
+        if (!action) return false
+        if (action === '/dashboard') return pathname === '/dashboard'
+        if (action.includes('/quotations')) return pathname.includes('/dashboard/quotations')
+        if (action.includes('/invoices')) return pathname.includes('/dashboard/invoices')
+        if (action.includes('/settings')) return pathname.includes('/dashboard/settings')
+        if (action.includes('/reports')) return pathname.includes('/dashboard/reports')
+        return pathname === action
+    }
+
+    const handleMenuClick = (e: React.MouseEvent, item: MenuItemData) => {
+        const act = item.action ? item.action.trim() : ''
+        if (!act) return
+
+        // If action is a Javascript statement/code (e.g. alert(...) or custom JS execution)
+        if (act.startsWith('javascript:') || (!act.startsWith('/') && !act.startsWith('http') && !act.startsWith('#'))) {
+            e.preventDefault()
+            try {
+                const cleanCode = act.replace(/^javascript:/i, '')
+                new Function(cleanCode)()
+            } catch (err) {
+                console.error('Error executing menu action script:', err)
+            }
+            return
+        }
+
+        // Standard internal URL route navigation
+        if (!act.startsWith('http')) {
+            e.preventDefault()
+            router.push(act)
+        }
+    }
 
     if (pathname === '/dashboard/quotations/print') {
         return (
@@ -43,30 +126,44 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </div>
 
                     <nav className="space-y-1">
-                        {navItems.map((item) => (
-                            <Link
-                                key={item.label}
-                                href={item.href}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${item.active
-                                    ? 'bg-blue-600/10 text-blue-600'
-                                    : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                                    }`}
-                            >
-                                {item.icon}
-                                <span className="font-medium">{item.label}</span>
-                                {item.active && <motion.div layoutId="active" className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />}
-                            </Link>
-                        ))}
+                        {itemsToRender.map((item) => {
+                            const active = isItemActive(item.action)
+                            const icon = getMenuIcon(item.code, item.action)
+                            const isExternalUrl = item.action.startsWith('http')
+
+                            return (
+                                <a
+                                    key={item.id || item.code}
+                                    href={item.action}
+                                    onClick={(e) => handleMenuClick(e, item)}
+                                    target={isExternalUrl ? '_blank' : undefined}
+                                    rel={isExternalUrl ? 'noopener noreferrer' : undefined}
+                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${active
+                                        ? 'bg-blue-600/10 text-blue-600 font-semibold'
+                                        : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium'
+                                        }`}
+                                >
+                                    {icon}
+                                    <span>{item.name}</span>
+                                    {active && (
+                                        <motion.div
+                                            layoutId="active"
+                                            className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600"
+                                        />
+                                    )}
+                                </a>
+                            )
+                        })}
                     </nav>
                 </div>
 
                 <div className="mt-auto p-6 border-t border-zinc-200 dark:border-zinc-800">
                     <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/5 rounded-xl transition-all"
+                        className="w-full flex items-center gap-3 px-4 py-3 text-red-500 hover:bg-red-500/5 rounded-xl transition-all font-medium"
                     >
                         <LogOut className="w-5 h-5" />
-                        <span className="font-medium">Cerrar Sesión</span>
+                        <span>Cerrar Sesión</span>
                     </button>
                 </div>
             </aside>
@@ -78,3 +175,4 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
     )
 }
+

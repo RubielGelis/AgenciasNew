@@ -1,0 +1,46 @@
+import { NextRequest, NextResponse } from 'next/server'
+import prisma from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
+
+export async function GET() {
+    try {
+        // Query using fnMenu() function
+        const menuItems: any[] = await prisma.$queryRawUnsafe(`SELECT * FROM public.fnMenu()`)
+        return NextResponse.json(menuItems)
+    } catch (error: any) {
+        console.error('Error executing fnMenu():', error)
+        try {
+            // Fallback: direct table query
+            const fallbackItems = await prisma.menu.findMany({
+                where: { activo: true },
+                orderBy: { id: 'asc' }
+            })
+            return NextResponse.json(fallbackItems)
+        } catch (fallbackErr: any) {
+            console.error('Error fetching menu items:', fallbackErr)
+            return NextResponse.json({ message: 'Error fetching menu' }, { status: 500 })
+        }
+    }
+}
+
+export async function POST(req: NextRequest) {
+    try {
+        const body = await req.json()
+        const { code, name, parent, action, activo } = body
+
+        const menuItem = await prisma.menu.create({
+            data: {
+                code,
+                name,
+                parent: parent ? Number(parent) : null,
+                action,
+                activo: activo ?? true
+            }
+        })
+        return NextResponse.json(menuItem)
+    } catch (error: any) {
+        console.error('Error creating menu item:', error)
+        return NextResponse.json({ message: error.message || 'Error creating menu item' }, { status: 500 })
+    }
+}
