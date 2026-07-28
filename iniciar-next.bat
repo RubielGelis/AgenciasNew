@@ -5,7 +5,7 @@ echo ==============================
 echo Iniciando servidor Next.js
 echo ==============================
 
-cd /d C:\Proyectos\AgenciasNew
+cd /d "%~dp0"
 
 IF NOT EXIST package.json (
  echo ERROR: No se encontro package.json
@@ -55,6 +55,9 @@ IF %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo Iniciando servidor Next.js...
-npm run start
+call npm run start -- -p 3000
 
-pause
+IF %ERRORLEVEL% NEQ 0 (
+ echo Error al iniciar el servidor Next.js
+ pause
+)

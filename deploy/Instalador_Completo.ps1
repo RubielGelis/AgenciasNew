@@ -17,7 +17,8 @@ Write-Host " INICIANDO INSTALADOR TODO EN UNO: AgenciasNew en IIS " -ForegroundC
 Write-Host "======================================================" -ForegroundColor Cyan
 
 # Variables y Rutas
-$StandalonePath = "C:\Proyectos\AgenciasNew\.next\standalone"
+$RootDir = Split-Path -Parent $PSScriptRoot
+$StandalonePath = "$RootDir\.next\standalone"
 $SiteName = "AgenciasNew"
 $SitePort = 3000
 
@@ -48,7 +49,7 @@ Write-Host "   [+] Complementos de IIS configurados exitosamente." -ForegroundCo
 
 # 2. Compilar Next.js en Modo Standalone
 Write-Host "`n2. Compilando código de la plataforma Next.js... (Puede tardar 2+ minutos)" -ForegroundColor Yellow
-Set-Location "C:\Proyectos\AgenciasNew"
+Set-Location $RootDir
 npm run build
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: La compilación de NPM falló." -ForegroundColor Red

@@ -2,9 +2,9 @@
 AppName=AgenciasNew NextJS
 AppVersion=1.0
 AppPublisher=Agencias Corporation
-DefaultDirName=C:\AgenciasNew_Sistema
+DefaultDirName=F:\AgenciasNew_Sistema
 DefaultGroupName=AgenciasNew
-OutputDir=C:\Proyectos\AgenciasNew\Instalador
+OutputDir=F:\Proyectos\AgenciasNew\Instalador
 OutputBaseFilename=setup
 Compression=zip
 SolidCompression=no
@@ -17,8 +17,8 @@ ArchitecturesInstallIn64BitMode=x64
 ArchitecturesAllowed=x64
 
 [Files]
-Source: "C:\Proyectos\AgenciasNew\RELEASE_AGENCIAS\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "C:\Proyectos\AgenciasNew\deploy\Setup_Agencias_Silent.ps1"; DestDir: "{app}"; Flags: ignoreversion
+Source: "F:\Proyectos\AgenciasNew\RELEASE_AGENCIAS\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "F:\Proyectos\AgenciasNew\deploy\Setup_Agencias_Silent.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 [Code]
 var

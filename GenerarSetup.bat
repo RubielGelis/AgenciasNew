@@ -5,7 +5,7 @@ echo ========================================================
 echo.
 
 echo Paso 1: Ejecutando script de empaquetado (Next.js)...
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0deploy\Generar_Empaquetado.ps1"
+powershell.exe -ExecutionPolicy Bypass -File "F:\Proyectos\AgenciasNew\deploy\Generar_Empaquetado.ps1"
 if %errorlevel% neq 0 (
     echo Error durante el empaquetado.
     pause
@@ -30,7 +30,7 @@ if "%ISCC_PATH%"=="" (
 )
 
 echo Usando compilador en: "%ISCC_PATH%"
-"%ISCC_PATH%" "%~dp0deploy\AgenciasNew.iss"
+"F:\Proyectos\AgenciasNew\deploy\AgenciasNew.iss"
 if %errorlevel% neq 0 (
     echo Error compilando instalador de Inno Setup.
     pause

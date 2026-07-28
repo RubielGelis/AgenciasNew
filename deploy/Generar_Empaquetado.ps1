@@ -8,7 +8,7 @@ Write-Host "======================================================" -ForegroundC
 Write-Host " CONSTRUYENDO PAQUETE DE INSTALACION PARA CLIENTE FINAL " -ForegroundColor Cyan
 Write-Host "======================================================" -ForegroundColor Cyan
 
-$RootDir = "C:\Proyectos\AgenciasNew"
+$RootDir = Split-Path -Parent $PSScriptRoot
 $ReleaseDir = "$RootDir\RELEASE_AGENCIAS"
 
 # 1. Compilar modo Produccion

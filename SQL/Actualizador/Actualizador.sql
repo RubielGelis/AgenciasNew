@@ -7958,10 +7958,10 @@ ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "flightItinerary" text;
 ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "ticketTypeId" integer REFERENCES public."TicketType"(id) ON UPDATE CASCADE ON DELETE SET NULL;
 
 -- 5. Tabla Menu y Función fnMenu
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Menu') THEN
-        CREATE TABLE public."Menu" (
+--DO $$
+--BEGIN
+    --IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Menu') THEN
+       CREATE TABLE IF NOT EXISTS public."Menu" (
             id SERIAL PRIMARY KEY,
             code VARCHAR(100) UNIQUE NOT NULL,
             name VARCHAR(255) NOT NULL,
@@ -7969,8 +7969,8 @@ BEGIN
             action VARCHAR(500) NOT NULL,
             activo BOOLEAN DEFAULT true
         );
-    END IF;
-END $$;
+--    END IF;
+--END $$;
 
 INSERT INTO public."Menu" (code, name, parent, action, activo)
 VALUES 
@@ -7995,29 +7995,30 @@ BEGIN
     WHERE activo = true
     ORDER BY id ASC;
 END;
+$$;
 -- 6. Columnas service/servicios en QuotationProduct y tabla QuotationProductPayment
 ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "service" text;
 ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "servicios" text;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment') THEN
-        CREATE TABLE public."QuotationProductPayment" (
-            "id" SERIAL PRIMARY KEY,
-            "quotationProductId" INT NOT NULL,
-            "amount" FLOAT NOT NULL,
-            "paymentMethod" VARCHAR(100),
-            "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            "reference" VARCHAR(255),
-            "creditCardId" INT,
-            "cardNumber" VARCHAR(20),
-            "authorizationCode" VARCHAR(50),
-            "voucher" VARCHAR(50),
-            "expirationDate" VARCHAR(10),
-            CONSTRAINT "QuotationProductPayment_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct" (id) ON UPDATE CASCADE ON DELETE CASCADE
-        );
-    END IF;
-END $$;
+--DO $$
+--BEGIN
+    --IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment') THEN
+       --CREATE TABLE IF NOT EXISTS public."QuotationProductPayment" (
+       --    "id" SERIAL PRIMARY KEY,
+       --    "quotationProductId" INT NOT NULL,
+       --    "amount" FLOAT NOT NULL,
+       --    "paymentMethod" VARCHAR(100),
+       --    "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       --    "reference" VARCHAR(255),
+       --    "creditCardId" INT,
+       --    "cardNumber" VARCHAR(20),
+       --    "authorizationCode" VARCHAR(50),
+       --    "voucher" VARCHAR(50),
+       --    "expirationDate" VARCHAR(10),
+       --    CONSTRAINT "QuotationProductPayment_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct" (id) ON UPDATE CASCADE ON DELETE CASCADE
+       --);
+--    END IF;
+--END $$;
 
 -- 7. Función fnCotizacion para proceso de facturación de cotizaciones
 CREATE OR REPLACE FUNCTION public.fnCotizacion(p_quotation_id INT)

@@ -79,10 +79,10 @@ model Branch {
   id                   Int                    @id @default(autoincrement())
   code                 String                 @unique
   name                 String
-  logo                 Bytes?
   template             Bytes?
   templateConfig       Json?
   htmlTemplate         String?
+  logo                 Bytes?
   BranchGDSInvoiceAuto BranchGDSInvoiceAuto[]
   cellCustomizations   CellCustomization[]
   implants             Implant[]
@@ -95,11 +95,11 @@ model Implant {
   code               String              @unique
   name               String
   branchId           Int?
-  logo               Bytes?
+  Logo               Bytes?
   template           Bytes?
   templateConfig     Json?
   htmlTemplate       String?
-  Logo               Bytes?
+  logo               Bytes?
   cellCustomizations CellCustomization[]
   branch             Branch?             @relation(fields: [branchId], references: [id])
   quotations         Quotation[]
@@ -157,7 +157,7 @@ model Quotation {
   chargesAndTaxes      Float
   totalAmount          Float
   userId               Int?
-  state                String?            @default("NUEVO") @db.VarChar(25)
+  state                String?            @default("Nuevo") @db.VarChar(25)
   attachments          Attachment[]
   branch               Branch             @relation(fields: [branchId], references: [id])
   client               Client             @relation(fields: [clientId], references: [id])
@@ -208,7 +208,7 @@ model QuotationProduct {
   ticketPrinterCommission Float?
   comboId                 Int?
   mainTaxId               Int?
-  inNationality           Int                         @default(1)
+  inNationality           Int?                        @default(1)
   cost                    Float?                      @default(0)
   service                 String?
   description             String?
@@ -219,26 +219,10 @@ model QuotationProduct {
   provider                Provider?                   @relation(fields: [providerId], references: [id])
   quotation               Quotation                   @relation(fields: [quotationId], references: [id], onDelete: Cascade)
   passengers              QuotationProductPassenger[]
+  payments                QuotationProductPayment[]
   appliedTaxes            QuotationProductTax[]
   variables               QuotationProductVariable[]
-  payments                QuotationProductPayment[]
 }
-
-model QuotationProductPayment {
-  id                 Int              @id @default(autoincrement())
-  quotationProductId Int
-  amount             Float
-  paymentMethod      String?          @db.VarChar(100)
-  date               DateTime?        @default(now()) @db.Timestamp(6)
-  reference          String?          @db.VarChar(255)
-  creditCardId       Int?
-  cardNumber         String?          @db.VarChar(20)
-  authorizationCode  String?          @db.VarChar(50)
-  voucher            String?          @db.VarChar(50)
-  expirationDate     String?          @db.VarChar(10)
-  quotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
-}
-
 
 model QuotationProductPassenger {
   id                 Int              @id @default(autoincrement())
@@ -313,9 +297,9 @@ model Combo {
   code            String           @unique
   name            String
   createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  updatedAt       DateTime?        @default(now()) @updatedAt @db.Timestamp(6)
   currencyId      Int?
-  cupos           Int              @default(0)
+  cupos           Int?             @default(1)
   currency        Currency?        @relation(fields: [currencyId], references: [id])
   products        ComboProduct[]
   quotationCombos QuotationCombo[]
@@ -333,7 +317,7 @@ model ComboProduct {
   paxAdults     Int?
   paxChildren   Int?
   providerId    Int?
-  inNationality Int               @default(1)
+  inNationality Int?              @default(1)
   quantity      Int               @default(1)
   cost          Float?            @default(0)
   combo         Combo             @relation(fields: [comboId], references: [id], onDelete: Cascade)
@@ -393,9 +377,6 @@ model Invoices {
   totalAmount          Float
   userId               Int?
   state                String?  @default("NUEVO") @db.VarChar(25)
-  consecutivo          String?  @db.VarChar(25)
-  fuente               String?  @db.VarChar(25)
-  serie                String?  @db.VarChar(25)
 }
 
 model InvoicesProduct {
@@ -433,18 +414,17 @@ model InvoicesProductItinerary {
   id               Int             @id @default(autoincrement())
   invoiceProductId Int
   orden            Int?
-  origin           String
-  destination      String
-  class            String?
-  checkInDate      DateTime?
-  checkOutDate     DateTime?
-  terminal         String?
-  prestadoraCode   String?
-  farebasis        String?
+  origin           String          @db.VarChar(255)
+  destination      String          @db.VarChar(255)
+  class            String?         @db.VarChar(255)
+  checkInDate      DateTime?       @db.Timestamp(6)
+  checkOutDate     DateTime?       @db.Timestamp(6)
+  terminal         String?         @db.VarChar(255)
+  prestadoraCode   String?         @db.VarChar(255)
+  farebasis        String?         @db.VarChar(255)
   Numflight        String?         @db.VarChar(25)
   Typeflight       String?         @db.VarChar(1)
   amount           Float?
-  co2              Decimal?        @db.Decimal(10, 4)
   InvoicesProduct  InvoicesProduct @relation(fields: [invoiceProductId], references: [id], onDelete: Cascade)
 }
 
@@ -479,17 +459,18 @@ model InvoicesProductVariable {
 }
 
 model InvoicesProductPayment {
-  id                Int       @id @default(autoincrement())
+  id                Int         @id @default(autoincrement())
   invoiceProductId  Int
   amount            Float
-  paymentMethod     String?   @db.VarChar(100)
-  date              DateTime? @default(now()) @db.Timestamp(6)
-  reference         String?   @db.VarChar(255)
+  paymentMethod     String?     @db.VarChar(100)
+  date              DateTime?   @default(now()) @db.Timestamp(6)
+  reference         String?     @db.VarChar(255)
+  authorizationCode String?
+  cardNumber        String?
   creditCardId      Int?
-  cardNumber        String?   @db.VarChar(20)
-  authorizationCode String?   @db.VarChar(50)
-  voucher           String?   @db.VarChar(50)
-  expirationDate    String?   @db.VarChar(10)
+  expirationDate    String?
+  voucher           String?
+  CreditCard        CreditCard? @relation(fields: [creditCardId], references: [id])
 }
 
 model TicketType {
@@ -592,8 +573,8 @@ model BookingProductGDS {
   conjunction                Int?                         @default(0)
   revised                    String?                      @db.VarChar(25)
   typeproduct                String?                      @db.VarChar(25)
-  penalty                    String?                      @db.VarChar(25)
   consecutive                String?                      @db.VarChar(25)
+  penalty                    String?                      @db.VarChar(25)
   BookingProductFEEGDS       BookingProductFEEGDS[]
   BookingGDS                 BookingGDS                   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   BookingProductItineraryGDS BookingProductItineraryGDS[]
@@ -729,21 +710,24 @@ model Countries {
 }
 
 model CreditCard {
-  id       Int     @id @default(autoincrement())
-  code     String  @unique
-  name     String
-  type     String
-  inactive Boolean @default(false)
+  id                     Int                      @id @default(autoincrement())
+  code                   String                   @unique
+  name                   String
+  type                   String
+  inactive               Boolean                  @default(false)
+  InvoicesProductPayment InvoicesProductPayment[]
 }
 
 model EquivalencesInterfaces {
-  id            Int       @id @default(autoincrement())
+  id            Int        @id @default(autoincrement())
   id_interfaces Int
   id_master     Int
   cd_maestro    String
   cd_codigo     String
   cd_codigointe String
-  dt_fecha      DateTime? @default(now()) @db.Timestamp(6)
+  dt_fecha      DateTime?  @default(now()) @db.Timestamp(6)
+  Interfaces    Interfaces @relation(fields: [id_interfaces], references: [id])
+  Master        Master     @relation(fields: [id_master], references: [id])
 }
 
 model EquivalenciasInterfaces_Log {
@@ -766,23 +750,25 @@ model GDS {
 }
 
 model Interfaces {
-  id                              Int     @id(map: "interfaces_pkey") @default(autoincrement())
-  code                            String  @unique(map: "interfaces_code_key")
+  id                              Int                      @id(map: "interfaces_pkey") @default(autoincrement())
+  code                            String                   @unique(map: "interfaces_code_key")
   name                            String
-  inactivo                        Boolean @default(false)
-  bl_genera_archivoplano          Boolean @default(false)
+  inactivo                        Boolean                  @default(false)
+  bl_genera_archivoplano          Boolean                  @default(false)
   ds_storedprocedure_archivoplano String?
-  bl_job                          Boolean @default(false)
+  bl_job                          Boolean                  @default(false)
   ds_namejob                      String?
-  bl_facturador                   Boolean @default(false)
+  bl_facturador                   Boolean                  @default(false)
   id_gds                          Int?
+  EquivalencesInterfaces          EquivalencesInterfaces[]
 }
 
 model Master {
-  id       Int     @id(map: "master_pkey") @default(autoincrement())
-  code     String  @unique(map: "master_code_key")
-  name     String
-  inactivo Boolean @default(false)
+  id                     Int                      @id(map: "master_pkey") @default(autoincrement())
+  code                   String                   @unique(map: "master_code_key")
+  name                   String
+  inactivo               Boolean                  @default(false)
+  EquivalencesInterfaces EquivalencesInterfaces[]
 }
 
 model Payment {
@@ -797,10 +783,10 @@ model Payment {
 model Report {
   id            Int             @id @default(autoincrement())
   name          String          @db.VarChar(255)
-  base_table    String          @db.VarChar(100)
+  base_table    String?         @db.VarChar(100)
   description   String?
-  created_at    DateTime?       @default(now()) @db.Timestamp(6)
   custom_sql    String?
+  created_at    DateTime?       @default(now()) @db.Timestamp(6)
   ReportColumns ReportColumns[]
   ReportFilters ReportFilters[]
   ReportJoins   ReportJoins[]
@@ -814,9 +800,9 @@ model ReportColumns {
   column_name        String   @db.VarChar(100)
   alias              String?  @db.VarChar(150)
   is_calculated      Boolean? @default(false)
+  is_visible         Boolean? @default(true)
   formula_expression String?
   sort_order         Int?     @default(0)
-  is_visible         Boolean? @default(true)
   Report             Report   @relation(fields: [report_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
@@ -859,4 +845,19 @@ model Menu {
   parent Int?
   action String   @db.VarChar(500)
   activo Boolean? @default(true)
+}
+
+model QuotationProductPayment {
+  id                 Int              @id @default(autoincrement())
+  quotationProductId Int
+  amount             Float
+  paymentMethod      String?          @db.VarChar(100)
+  date               DateTime?        @default(now()) @db.Timestamp(6)
+  reference          String?          @db.VarChar(255)
+  creditCardId       Int?
+  cardNumber         String?          @db.VarChar(20)
+  authorizationCode  String?          @db.VarChar(50)
+  voucher            String?          @db.VarChar(50)
+  expirationDate     String?          @db.VarChar(10)
+  QuotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
 }

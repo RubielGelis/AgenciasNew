@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { generateQuotationPDF } from '@/lib/pdf-utils'
 import { SearchSelect } from '@/components/SearchSelect'
 import ItemPaymentModal from '@/app/dashboard/invoices/new/ItemPaymentModal'
+import GlobalPaymentModal from '@/app/dashboard/invoices/new/GlobalPaymentModal'
 import QuotationInvoiceModal from '../QuotationInvoiceModal'
 
 
@@ -75,6 +76,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     })
     const [saving, setSaving] = useState(false)
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+    const [isGlobalPaymentOpen, setIsGlobalPaymentOpen] = useState(false)
     const [attachments, setAttachments] = useState<any[]>([])
     const [uploadingAttachment, setUploadingAttachment] = useState(false)
     const router = useRouter()
@@ -273,6 +275,58 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     }, [formData.items, data?.taxes]);
 
     const total = Object.values(taxSummary).reduce((sum, val) => sum + val, 0);
+
+    const applyGlobalPayment = (amount: number, method: string, date: string, reference: string, ccData?: any) => {
+        const newItems = [...formData.items];
+        
+        const getItemTotal = (item: any) => {
+            const taxesTotal = (item.appliedTaxes || []).reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
+            return taxesTotal || (item.price || 0) * (item.quantity || 1);
+        };
+        
+        const totalValue = newItems.reduce((acc, item) => acc + getItemTotal(item), 0);
+        
+        if (totalValue === 0) {
+            const equalShare = amount / newItems.length;
+            newItems.forEach(item => {
+                const updatedPayments = [...(item.payments || [])];
+                updatedPayments.push({
+                    amount: parseFloat(equalShare.toFixed(2)),
+                    paymentMethod: method,
+                    date,
+                    reference,
+                    ...ccData
+                });
+                item.payments = updatedPayments;
+            });
+        } else {
+            let distributedSum = 0;
+            newItems.forEach((item, idx) => {
+                const updatedPayments = [...(item.payments || [])];
+                const itemTotal = getItemTotal(item);
+                
+                let itemShare = 0;
+                if (idx === newItems.length - 1) {
+                    itemShare = amount - distributedSum;
+                } else {
+                    itemShare = parseFloat((amount * (itemTotal / totalValue)).toFixed(2));
+                    distributedSum += itemShare;
+                }
+                
+                updatedPayments.push({
+                    amount: itemShare,
+                    paymentMethod: method,
+                    date,
+                    reference,
+                    ...ccData
+                });
+                item.payments = updatedPayments;
+            });
+        }
+        
+        setFormData({ ...formData, items: newItems });
+        alert('Pago global distribuido proporcionalmente con éxito.');
+    };
 
     const handleCalculateTaxes = (index: number) => {
         const item = formData.items[index];
@@ -1344,6 +1398,11 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                             ${total.toLocaleString()}
                                         </div>
                                         <p className="text-[10px] uppercase text-zinc-500 mt-1">Suma exacta en {formData.currency}</p>
+                                        <div className="mt-4">
+                                            <button type="button" onClick={() => setIsGlobalPaymentOpen(true)} className="w-full py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 font-bold rounded-xl border border-emerald-500/50 transition-all flex items-center justify-center gap-2">
+                                                <DollarSign className="w-4 h-4" /> Distribuir Pago Global
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1404,6 +1463,14 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                     )}
                 </div>
             </div>
+            <GlobalPaymentModal
+                isOpen={isGlobalPaymentOpen}
+                onClose={() => setIsGlobalPaymentOpen(false)}
+                totalAmount={total}
+                onApplyPayment={applyGlobalPayment}
+                creditCards={data?.creditCards || []}
+                paymentsList={data?.payments || []}
+            />
         </form >
     )
 }

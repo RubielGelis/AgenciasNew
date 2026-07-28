@@ -221,7 +221,7 @@ INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('BIF', 'Franc
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('THB', 'Baht Thailandes', 1.0) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('VEF', 'Bolivar', 1.0) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('MWK', 'Kwacha malauiano', 1.0) ON CONFLICT (code) DO NOTHING;
-INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('ANG'SustemParameter, 'Florin antillano neerlandes', 1.0) ON CONFLICT (code) DO NOTHING;
+INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('ANG', 'Florin antillano neerlandes', 1.0) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('CHF', 'FRANCO FRANCES', 1.0) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('CZK', 'Koruna', 1.0) ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Currency" (code, name, "exchangeRate") VALUES ('DOP', 'Peso dominicano', 1.0) ON CONFLICT (code) DO NOTHING;
