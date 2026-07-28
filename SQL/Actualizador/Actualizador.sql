@@ -3268,6 +3268,7 @@ DECLARE
     v_tax RECORD;
     v_pax RECORD;
     v_var RECORD;
+    v_pmt RECORD;
     v_combo RECORD;
     v_quotation_product_id INT;
 BEGIN
@@ -3323,8 +3324,8 @@ BEGIN
                       "checkIn" TEXT, "checkOut" TEXT, "nights" INT, "mainTaxId" TEXT,
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
-                      "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "inNationality" INT,
-                      "servicios" TEXT, "descripcion" TEXT
+                      "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "payments" JSONB, "inNationality" INT,
+                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
@@ -3332,7 +3333,7 @@ BEGIN
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
-            "servicios", "descripcion"
+            "service", "servicios", "descripcion"
         ) VALUES (
             p_id, v_item."productId", v_item.quantity, v_item.price, v_item.cost, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
@@ -3340,7 +3341,7 @@ BEGIN
             v_item.nights, v_item."paxAdults", v_item."paxChildren",
             v_item."serviceType", v_item."destination", v_item."reservationCode", v_item."sellerCommission",
             v_item."ticketPrinterCommission", NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
-            v_item."servicios", v_item."descripcion"
+            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion"
         ) RETURNING id INTO v_quotation_product_id;
 
         IF v_item.passengers IS NOT NULL THEN
@@ -3369,6 +3370,23 @@ BEGIN
             LOOP
                 INSERT INTO public."QuotationProductVariable" ("quotationProductId", "masterVariableId", "value")
                 VALUES (v_quotation_product_id, v_var."masterVariableId", v_var.value);
+            END LOOP;
+        END IF;
+
+        IF v_item.payments IS NOT NULL THEN
+            FOR v_pmt IN SELECT * FROM jsonb_to_recordset(v_item.payments) AS x(
+                "amount" FLOAT, "paymentMethod" TEXT, "date" TEXT, "reference" TEXT,
+                "creditCardId" INT, "cardNumber" TEXT, "authorizationCode" TEXT, "voucher" TEXT, "expirationDate" TEXT
+            )
+            LOOP
+                INSERT INTO public."QuotationProductPayment" (
+                    "quotationProductId", "amount", "paymentMethod", "reference", "date",
+                    "creditCardId", "cardNumber", "authorizationCode", "voucher", "expirationDate"
+                ) VALUES (
+                    v_quotation_product_id, v_pmt."amount", v_pmt."paymentMethod", v_pmt."reference",
+                    CASE WHEN v_pmt."date" IS NOT NULL AND v_pmt."date" <> '' THEN v_pmt."date"::TIMESTAMP ELSE CURRENT_TIMESTAMP END,
+                    v_pmt."creditCardId", v_pmt."cardNumber", v_pmt."authorizationCode", v_pmt."voucher", v_pmt."expirationDate"
+                );
             END LOOP;
         END IF;
     END LOOP;
@@ -3493,6 +3511,7 @@ DECLARE
     v_tax RECORD;
     v_pax RECORD;
     v_var RECORD;
+    v_pmt RECORD;
     v_combo RECORD;
     v_quotation_product_id INT;
 BEGIN
@@ -3557,8 +3576,8 @@ BEGIN
                       "checkIn" TEXT, "checkOut" TEXT, "nights" INT, "mainTaxId" TEXT,
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
-                      "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "inNationality" INT,
-                      "servicios" TEXT, "descripcion" TEXT
+                      "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "payments" JSONB, "inNationality" INT,
+                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
@@ -3566,7 +3585,7 @@ BEGIN
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
-            "servicios", "descripcion"
+            "service", "servicios", "descripcion"
         ) VALUES (
             v_quotation_id, v_item."productId", v_item.quantity, v_item.price, v_item.cost, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
@@ -3574,7 +3593,7 @@ BEGIN
             v_item.nights, v_item."paxAdults", v_item."paxChildren",
             v_item."serviceType", v_item."destination", v_item."reservationCode", v_item."sellerCommission",
             v_item."ticketPrinterCommission", NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
-            v_item."servicios", v_item."descripcion"
+            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion"
         ) RETURNING id INTO v_quotation_product_id;
 
         IF v_item.passengers IS NOT NULL THEN
@@ -3605,7 +3624,25 @@ BEGIN
                 VALUES (v_quotation_product_id, v_var."masterVariableId", v_var.value);
             END LOOP;
         END IF;
+
+        IF v_item.payments IS NOT NULL THEN
+            FOR v_pmt IN SELECT * FROM jsonb_to_recordset(v_item.payments) AS x(
+                "amount" FLOAT, "paymentMethod" TEXT, "date" TEXT, "reference" TEXT,
+                "creditCardId" INT, "cardNumber" TEXT, "authorizationCode" TEXT, "voucher" TEXT, "expirationDate" TEXT
+            )
+            LOOP
+                INSERT INTO public."QuotationProductPayment" (
+                    "quotationProductId", "amount", "paymentMethod", "reference", "date",
+                    "creditCardId", "cardNumber", "authorizationCode", "voucher", "expirationDate"
+                ) VALUES (
+                    v_quotation_product_id, v_pmt."amount", v_pmt."paymentMethod", v_pmt."reference",
+                    CASE WHEN v_pmt."date" IS NOT NULL AND v_pmt."date" <> '' THEN v_pmt."date"::TIMESTAMP ELSE CURRENT_TIMESTAMP END,
+                    v_pmt."creditCardId", v_pmt."cardNumber", v_pmt."authorizationCode", v_pmt."voucher", v_pmt."expirationDate"
+                );
+            END LOOP;
+        END IF;
     END LOOP;
+
 
     -- Calcular y actualizar el totalAmount basado en QuotationProductTax
     UPDATE public."Quotation"

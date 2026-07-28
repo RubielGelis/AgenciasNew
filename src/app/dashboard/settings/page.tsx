@@ -30,7 +30,7 @@ import {
 import { cn } from '@/lib/utils'
 import { SearchSelect } from '@/components/SearchSelect'
 
-type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes';
+type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
@@ -64,6 +64,7 @@ export default function SettingsPage() {
     const [cities, setCities] = useState<any[]>([])
     const [airports, setAirports] = useState<any[]>([])
     const [ticketTypes, setTicketTypes] = useState<any[]>([])
+    const [quotationStates, setQuotationStates] = useState<any[]>([])
     const [interfacesList, setInterfacesList] = useState<any[]>([])
     const [masterList, setMasterList] = useState<any[]>([])
     const [dynamicMasterOptions, setDynamicMasterOptions] = useState<any[]>([])
@@ -135,6 +136,10 @@ export default function SettingsPage() {
             setCities(Array.isArray(resCities) ? resCities : [])
             setAirports(Array.isArray(resAirports) ? resAirports : [])
             setTicketTypes(Array.isArray(resTicketTypes) ? resTicketTypes : [])
+
+            // Fetch quotation states
+            const resQStates = await fetch('/api/config/quotation-states').then(res => res.json()).catch(() => []);
+            setQuotationStates(Array.isArray(resQStates) ? resQStates : []);
         } finally {
             setLoading(false)
         }
@@ -246,12 +251,13 @@ export default function SettingsPage() {
                                                 activeTab === 'parametros' ? '/api/config/parameters' :
                                                     activeTab === 'monedas' ? '/api/config/currencies' :
                                                         activeTab === 'equivalencias' ? '/api/config/equivalences' :
-                                                                        activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
-                                                                            activeTab === 'formas-pago' ? '/api/config/payments' :
-                                                                                activeTab === 'paises' ? '/api/config/countries' :
-                                                                                    activeTab === 'ciudades' ? '/api/config/cities' :
-                                                                                        activeTab === 'aeropuertos' ? '/api/config/airports' :
-                                                                                            activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
+                                                            activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
+                                                                activeTab === 'formas-pago' ? '/api/config/payments' :
+                                                                    activeTab === 'paises' ? '/api/config/countries' :
+                                                                        activeTab === 'ciudades' ? '/api/config/cities' :
+                                                                            activeTab === 'aeropuertos' ? '/api/config/airports' :
+                                                                                activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
+                                                                                    activeTab === 'estados-cotizacion' ? '/api/config/quotation-states' :
                                                             activeTab === 'combos' ? (formData.id ? `/api/combos/${formData.id}` : '/api/combos') :
                                                                 '/api/config/implants'
 
@@ -293,17 +299,19 @@ export default function SettingsPage() {
             code: newCode,
             name: newName,
             products: (combo.products || []).map((cp: any) => ({
-                productId: cp.productId,
-                quantity: cp.quantity,
-                price: cp.price,
-                providerId: cp.providerId,
-                prestadoraId: cp.prestadoraId,
+                productId: cp.productId?.toString(),
+                quantity: cp.quantity || 1,
+                price: cp.price || 0,
+                providerId: cp.providerId?.toString(),
+                prestadoraId: cp.prestadoraId?.toString(),
+                checkInDate: cp.checkInDate,
+                checkOutDate: cp.checkOutDate,
+                paxAdults: cp.paxAdults || 1,
+                paxChildren: cp.paxChildren || 0,
                 mainTaxId: cp.mainTaxId,
-                inNationality: cp.inNationality,
-                appliedTaxes: (cp.appliedTaxes || []).map((at: any) => ({
-                    chargeAndTaxId: at.chargeAndTaxId,
-                    amount: at.amount,
-                    isMain: at.isMain
+                appliedTaxes: (cp.appliedTaxes || []).map((t: any) => ({
+                    chargeAndTaxId: t.chargeAndTaxId,
+                    amount: t.amount
                 }))
             }))
         };
@@ -318,7 +326,7 @@ export default function SettingsPage() {
                 body: JSON.stringify(duplicateData)
             });
 
-            if (!res.ok) throw new Error((await res.json()).message || 'Error al duplicar');
+            if (!res.ok) throw new Error((await res.json()).message || 'Error al duplicar combo');
 
             await fetchData();
             alert('Combo duplicado exitosamente');
@@ -345,12 +353,13 @@ export default function SettingsPage() {
                                                 activeTab === 'parametros' ? '/api/config/parameters' :
                                                     activeTab === 'monedas' ? '/api/config/currencies' :
                                                         activeTab === 'equivalencias' ? '/api/config/equivalences' :
-                                                                        activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
-                                                                            activeTab === 'formas-pago' ? '/api/config/payments' :
-                                                                                activeTab === 'paises' ? '/api/config/countries' :
-                                                                                    activeTab === 'ciudades' ? '/api/config/cities' :
-                                                                                        activeTab === 'aeropuertos' ? '/api/config/airports' :
-                                                                                            activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
+                                                            activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
+                                                                activeTab === 'formas-pago' ? '/api/config/payments' :
+                                                                    activeTab === 'paises' ? '/api/config/countries' :
+                                                                        activeTab === 'ciudades' ? '/api/config/cities' :
+                                                                            activeTab === 'aeropuertos' ? '/api/config/airports' :
+                                                                                activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
+                                                                                    activeTab === 'estados-cotizacion' ? '/api/config/quotation-states' :
                                                             activeTab === 'combos' ? `/api/combos/${id}` :
                                                                 '/api/config/implants'
 
@@ -453,7 +462,7 @@ export default function SettingsPage() {
                                 className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                             >
                                 <Plus className="w-5 h-5" />
-                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'monedas' ? 'Nueva Moneda' : activeTab === 'combos' ? 'Nuevo Combo' : activeTab === 'equivalencias' ? 'Nueva Equivalencia' : activeTab === 'tarjetas-credito' ? 'Nueva Tarjeta' : activeTab === 'formas-pago' ? 'Nueva Forma de Pago' : activeTab === 'paises' ? 'Nuevo País' : activeTab === 'ciudades' ? 'Nueva Ciudad' : activeTab === 'aeropuertos' ? 'Nuevo Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Nuevo Tipo de Tiquete' : 'Nuevo Implant'}
+                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'monedas' ? 'Nueva Moneda' : activeTab === 'combos' ? 'Nuevo Combo' : activeTab === 'equivalencias' ? 'Nueva Equivalencia' : activeTab === 'tarjetas-credito' ? 'Nueva Tarjeta' : activeTab === 'formas-pago' ? 'Nueva Forma de Pago' : activeTab === 'paises' ? 'Nuevo País' : activeTab === 'ciudades' ? 'Nueva Ciudad' : activeTab === 'aeropuertos' ? 'Nuevo Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Nuevo Tipo de Tiquete' : activeTab === 'estados-cotizacion' ? 'Nuevo Estado Cotización' : 'Nuevo Implant'}
                             </motion.button>
                         </>
                     )}
@@ -484,6 +493,7 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'ciudades'} onClick={() => setActiveTab('ciudades')} icon={<Tags className="w-4 h-4" />} label="Ciudades" />
                 <TabButton active={activeTab === 'aeropuertos'} onClick={() => setActiveTab('aeropuertos')} icon={<Tags className="w-4 h-4" />} label="Aeropuertos" />
                 <TabButton active={activeTab === 'tipos-tiquetes'} onClick={() => setActiveTab('tipos-tiquetes')} icon={<Tags className="w-4 h-4" />} label="Tipos Tiquete" />
+                <TabButton active={activeTab === 'estados-cotizacion'} onClick={() => setActiveTab('estados-cotizacion')} icon={<Tags className="w-4 h-4" />} label="Estados Cotiz." />
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
                 <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<TerminalSquare className="w-4 h-4" />} label="Logs del Sistema" />
             </div>
@@ -494,7 +504,7 @@ export default function SettingsPage() {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
                     <input
                         type="text"
-                        placeholder={`Buscar en ${activeTab === 'usuarios' ? 'Usuarios' : activeTab === 'sucursales' ? 'Sucursales' : activeTab === 'impuestos' ? 'Cargos e Impuestos' : activeTab === 'vendedores' ? 'Vendedores' : activeTab === 'tiqueteadores' ? 'Tiqueteadores' : activeTab === 'prestadoras' ? 'Prestadoras' : activeTab === 'clientes' ? 'Clientes' : activeTab === 'proveedores' ? 'Proveedores' : activeTab === 'productos' ? 'Productos' : activeTab === 'variables' ? 'Variables' : activeTab === 'parametros' ? 'Parámetros' : activeTab === 'monedas' ? 'Monedas' : activeTab === 'combos' ? 'Combos' : activeTab === 'logs' ? 'Logs' : activeTab === 'tarjetas-credito' ? 'Tarjetas' : activeTab === 'formas-pago' ? 'Formas de Pago' : activeTab === 'paises' ? 'Países' : activeTab === 'ciudades' ? 'Ciudades' : activeTab === 'aeropuertos' ? 'Aeropuertos' : activeTab === 'tipos-tiquetes' ? 'Tipos de Tiquete' : 'Implants'}...`}
+                        placeholder={`Buscar en ${activeTab === 'usuarios' ? 'Usuarios' : activeTab === 'sucursales' ? 'Sucursales' : activeTab === 'impuestos' ? 'Cargos e Impuestos' : activeTab === 'vendedores' ? 'Vendedores' : activeTab === 'tiqueteadores' ? 'Tiqueteadores' : activeTab === 'prestadoras' ? 'Prestadoras' : activeTab === 'clientes' ? 'Clientes' : activeTab === 'proveedores' ? 'Proveedores' : activeTab === 'productos' ? 'Productos' : activeTab === 'variables' ? 'Variables' : activeTab === 'parametros' ? 'Parámetros' : activeTab === 'monedas' ? 'Monedas' : activeTab === 'combos' ? 'Combos' : activeTab === 'logs' ? 'Logs' : activeTab === 'tarjetas-credito' ? 'Tarjetas' : activeTab === 'formas-pago' ? 'Formas de Pago' : activeTab === 'paises' ? 'Países' : activeTab === 'ciudades' ? 'Ciudades' : activeTab === 'aeropuertos' ? 'Aeropuertos' : activeTab === 'tipos-tiquetes' ? 'Tipos de Tiquete' : activeTab === 'estados-cotizacion' ? 'Estados de Cotización' : 'Implants'}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full h-14 pl-14 pr-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-zinc-900 dark:text-white"
@@ -866,7 +876,7 @@ export default function SettingsPage() {
                                     </tr>
                                 ))}
 
-                                {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : activeTab === 'tarjetas-credito' ? creditCards : activeTab === 'formas-pago' ? payments : activeTab === 'paises' ? countries : activeTab === 'ciudades' ? cities : activeTab === 'aeropuertos' ? airports : activeTab === 'tipos-tiquetes' ? ticketTypes : []) || [])
+                                {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : activeTab === 'tarjetas-credito' ? creditCards : activeTab === 'formas-pago' ? payments : activeTab === 'paises' ? countries : activeTab === 'ciudades' ? cities : activeTab === 'aeropuertos' ? airports : activeTab === 'tipos-tiquetes' ? ticketTypes : activeTab === 'estados-cotizacion' ? quotationStates : []) || [])
                                 .filter((item: any) => 
                                     item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                                     item.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -967,7 +977,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'monedas' ? 'Moneda' : activeTab === 'combos' ? 'Combo' : activeTab === 'equivalencias' ? 'Equivalencia' : activeTab === 'tarjetas-credito' ? 'Tarjeta' : activeTab === 'formas-pago' ? 'Forma de Pago' : activeTab === 'paises' ? 'País' : activeTab === 'ciudades' ? 'Ciudad' : activeTab === 'aeropuertos' ? 'Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Tipo de Tiquete' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'monedas' ? 'Moneda' : activeTab === 'combos' ? 'Combo' : activeTab === 'equivalencias' ? 'Equivalencia' : activeTab === 'tarjetas-credito' ? 'Tarjeta' : activeTab === 'formas-pago' ? 'Forma de Pago' : activeTab === 'paises' ? 'País' : activeTab === 'ciudades' ? 'Ciudad' : activeTab === 'aeropuertos' ? 'Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Tipo de Tiquete' : activeTab === 'estados-cotizacion' ? 'Estado de Cotización' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -1945,6 +1955,12 @@ export default function SettingsPage() {
                                             <Input label="Código" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. INTERNACIONAL" />
                                             <Input label="Nombre" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Tiquete Internacional" />
                                             <Input label="Descripción" value={formData.description || ''} onChange={(v: string) => setFormData({ ...formData, description: v })} placeholder="Descripción opcional" />
+                                        </>
+                                    ) : activeTab === 'estados-cotizacion' ? (
+                                        <>
+                                            <Input label="Código (Único)" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. NUEVO" />
+                                            <Input label="Nombre del Estado" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Nuevo" />
+                                            <Input label="Color (Opcional)" value={formData.color || ''} onChange={(v: string) => setFormData({ ...formData, color: v })} placeholder="Ej. blue, emerald, red o código hex" />
                                         </>
                                     ) : (
                                         <>

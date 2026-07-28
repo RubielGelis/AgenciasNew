@@ -861,3 +861,11 @@ model QuotationProductPayment {
   expirationDate     String?          @db.VarChar(10)
   QuotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
 }
+
+model QuotationState {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(50)
+  color     String?  @db.VarChar(20)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  code      String   @unique @db.VarChar(25)
+}

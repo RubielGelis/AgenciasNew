@@ -19,7 +19,22 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        const [clients, providers, prestadoras, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies, creditCards, payments] = await Promise.all([
+        // Seed default states if none exist
+        try {
+            const stateCount = await (prisma as any).quotationState?.count();
+            if (stateCount === 0) {
+                await (prisma as any).quotationState?.createMany({
+                    data: [
+                        { code: 'NUEVO', name: 'Nuevo', color: 'blue' },
+                        { code: 'ENVIADO', name: 'ENVIADO', color: 'emerald' }
+                    ]
+                });
+            }
+        } catch (e) {
+            console.error("Failed to seed default states in base-data", e);
+        }
+
+        const [clients, providers, prestadoras, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies, creditCards, payments, quotationStates] = await Promise.all([
             (prisma as any).client?.findMany({ select: { id: true, name: true, document: true } }) || Promise.resolve([]),
             (prisma as any).provider?.findMany({ include: { prestadoras: true } }) || Promise.resolve([]),
             (prisma as any).prestadora?.findMany() || Promise.resolve([]),
@@ -46,7 +61,8 @@ export async function GET(req: NextRequest) {
             }),
             (prisma as any).currency?.findMany() || Promise.resolve([]),
             (prisma as any).creditCard?.findMany() || Promise.resolve([]),
-            (prisma as any).payment?.findMany() || Promise.resolve([])
+            (prisma as any).payment?.findMany() || Promise.resolve([]),
+            (prisma as any).quotationState?.findMany({ orderBy: { id: 'asc' } }) || Promise.resolve([])
         ])
 
         const today = new Date();
@@ -72,7 +88,8 @@ export async function GET(req: NextRequest) {
             combos: validCombos,
             currencies,
             creditCards,
-            payments
+            payments,
+            quotationStates
         })
     } catch (error: any) {
         console.error('Data fetch error:', error)

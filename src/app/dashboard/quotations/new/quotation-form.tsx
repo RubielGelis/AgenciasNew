@@ -58,6 +58,32 @@ interface QuotationFormData {
     state: string;
 }
 
+const formatMoney = (val: any) => {
+    if (val === null || val === undefined || val === '') return '';
+    const num = parseFloat(val);
+    if (isNaN(num)) return '';
+    return num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+};
+
+const getStateColorClass = (stateName: string, statesList: any[]) => {
+    const stateObj = (statesList || []).find((s: any) => s.code === stateName || s.name === stateName);
+    const color = stateObj?.color?.toLowerCase() || 'blue';
+    
+    if (color === 'emerald' || color === 'green') {
+        return "bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500";
+    }
+    if (color === 'red' || color === 'rose') {
+        return "bg-red-50/50 dark:bg-red-500/5 border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 focus:ring-red-500";
+    }
+    if (color === 'amber' || color === 'orange' || color === 'yellow') {
+        return "bg-amber-50/50 dark:bg-amber-500/5 border-amber-200 dark:border-amber-500/20 text-amber-600 dark:text-amber-400 focus:ring-amber-500";
+    }
+    if (color === 'purple' || color === 'violet') {
+        return "bg-purple-50/50 dark:bg-purple-500/5 border-purple-200 dark:border-purple-500/20 text-purple-600 dark:text-purple-400 focus:ring-purple-500";
+    }
+    return "bg-blue-50/50 dark:bg-blue-500/5 border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 focus:ring-blue-500";
+};
+
 export default function QuotationForm({ quotationId }: { quotationId?: string }) {
     const [data, setData] = useState<any>(null)
     const [formData, setFormData] = useState<QuotationFormData>({
@@ -79,6 +105,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     const [isGlobalPaymentOpen, setIsGlobalPaymentOpen] = useState(false)
     const [attachments, setAttachments] = useState<any[]>([])
     const [uploadingAttachment, setUploadingAttachment] = useState(false)
+    const [focusedTax, setFocusedTax] = useState<{ itemIdx: number, taxId: number } | null>(null)
     const router = useRouter()
 
     const handleSave = async (e: React.FormEvent, downloadPdf = false) => {
@@ -358,8 +385,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 if (baseRes.ok && baseData?.clients) {
                     setData(baseData)
                 } else {
-                    console.error("No valid data received from base-data:", baseData)
-                    setData({ clients: [], providers: [], prestadoras: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [], combos: [] })
+                    setData({ clients: [], providers: [], prestadoras: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [], combos: [], quotationStates: [] })
                 }
 
                 if (!quotationId) {
@@ -449,7 +475,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 }
             } catch (err) {
                 console.error("Failed to load generic or quotation data", err);
-                setData({ clients: [], providers: [], prestadoras: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [], combos: [] })
+                setData({ clients: [], providers: [], prestadoras: [], branches: [], implants: [], products: [], taxes: [], sellers: [], ticketPrinters: [], variables: [], combos: [], quotationStates: [] })
             }
         }
         loadInitialData()
@@ -553,52 +579,48 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     }
 
     const updateItem = (index: number, field: string, value: any) => {
-        const newItems = [...formData.items]
-        const item = { ...newItems[index], [field]: value }
-
-        // AUTO-RECALCULATE: Manejo de cambios en Cantidad, Precio o Cargo Principal
-        if (field === 'quantity' || field === 'price' || field === 'mainTaxId') {
+        setFormData((prev) => {
+            const newItems = [...prev.items];
             const oldItem = newItems[index];
             const newItem = { ...oldItem, [field]: value };
-            const oldQty = oldItem.quantity || 1;
-            const newQty = newItem.quantity || 1;
-            const ratio = field === 'quantity' ? newQty / oldQty : 1;
 
-            const baseValue = (newItem.price || 0) * newQty;
-            const mainTaxIdNum = newItem.mainTaxId != null ? Number(newItem.mainTaxId) : null;
+            // AUTO-RECALCULATE: Manejo de cambios en Cantidad, Precio o Cargo Principal
+            if (field === 'quantity' || field === 'price' || field === 'mainTaxId') {
+                const oldQty = oldItem.quantity || 1;
+                const newQty = field === 'quantity' ? value : oldQty;
+                const ratio = field === 'quantity' ? newQty / oldQty : 1;
 
-            newItem.appliedTaxes = (oldItem.appliedTaxes || []).map((t: any) => {
-                const rawTaxId = t.id ?? t.chargeAndTaxId;
-                const taxId = rawTaxId != null ? Number(rawTaxId) : null;
+                const baseValue = (field === 'price' ? value : (oldItem.price || 0)) * newQty;
+                const mainTaxIdNum = field === 'mainTaxId' ? (value != null ? Number(value) : null) : (oldItem.mainTaxId != null ? Number(oldItem.mainTaxId) : null);
 
-                // 1. El Cargo principal siempre escala proporcionalmente al precio total
-                if (mainTaxIdNum != null && taxId === mainTaxIdNum) {
-                    return { ...t, amount: baseValue };
-                }
+                newItem.appliedTaxes = (oldItem.appliedTaxes || []).map((t: any) => {
+                    const rawTaxId = t.id ?? t.chargeAndTaxId;
+                    const taxId = rawTaxId != null ? Number(rawTaxId) : null;
 
-                // 2. Los impuestos porcentuales se recalculan sobre la nueva base (Precio Unitario * Cantidad)
-                const taxMaster = data?.taxes?.find((m: any) => Number(m.id) === taxId);
-                if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
-                    return { ...t, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(2)) };
-                }
+                    // 1. El Cargo principal siempre escala proporcionalmente al precio total
+                    if (mainTaxIdNum != null && taxId === mainTaxIdNum) {
+                        return { ...t, amount: baseValue };
+                    }
 
-                // 3. Otros cargos (fijos o manuales): 
-                // Si cambió la cantidad, escalan proporcionalmente (Ej: $10 -> $20 si duplicas)
-                // Si cambió el precio, se mantienen (Ej: un cargo fijo de $10 no depende del precio del producto)
-                if (field === 'quantity') {
-                    return { ...t, amount: parseFloat((t.amount * ratio).toFixed(2)) };
-                }
+                    // 2. Los impuestos porcentuales se recalculan sobre la nueva base (Precio Unitario * Cantidad)
+                    const taxMaster = data?.taxes?.find((m: any) => Number(m.id) === taxId);
+                    if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
+                        return { ...t, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(2)) };
+                    }
 
-                return t;
-            });
+                    // 3. Otros cargos (fijos o manuales): 
+                    // Si cambió la cantidad, escalan proporcionalmente (Ej: $10 -> $20 si duplicas)
+                    if (field === 'quantity') {
+                        return { ...t, amount: parseFloat((t.amount * ratio).toFixed(2)) };
+                    }
+
+                    return t;
+                });
+            }
 
             newItems[index] = newItem;
-            setFormData({ ...formData, items: newItems });
-            return; // Salir aquí ya que ya actualizamos el estado
-        }
-
-        newItems[index] = item
-        setFormData({ ...formData, items: newItems })
+            return { ...prev, items: newItems };
+        });
     }
 
     if (!data) return (
@@ -747,15 +769,17 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                 <select
                                     className={cn(
                                         "w-full h-12 rounded-xl px-4 border outline-none font-bold focus:ring-2 transition-all",
-                                        formData.state === 'ENVIADO' 
-                                            ? "bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500" 
-                                            : "bg-blue-50/50 dark:bg-blue-500/5 border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
+                                        getStateColorClass(formData.state, data.quotationStates)
                                     )}
                                     value={formData.state}
                                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                                 >
-                                    <option value="Nuevo">NUEVO</option>
-                                    <option value="ENVIADO">ENVIADO</option>
+                                    {(data.quotationStates || [
+                                        { code: 'NUEVO', name: 'Nuevo' },
+                                        { code: 'ENVIADO', name: 'ENVIADO' }
+                                    ]).map((s: any) => (
+                                        <option key={s.id || s.code} value={s.code}>{s.name.toUpperCase()}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>
@@ -1204,23 +1228,28 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                                     <span className="opacity-50 text-[10px] ml-auto">({tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : `$${tax.value}`})</span>
                                                                 </label>
                                                             </div>
-
                                                             {isChecked && (
                                                                 <div className="flex-1 flex flex-col md:flex-row md:items-center gap-2 border-l border-zinc-200 dark:border-zinc-700 pl-4 py-1">
                                                                     <span className="text-xs font-bold text-zinc-500">Valor Cobrado:</span>
                                                                     <div className="relative w-32">
                                                                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold">$</span>
                                                                         <input
-                                                                            type="number"
-                                                                            step="0.01"
+                                                                            type="text"
                                                                             className={cn(
                                                                                 "w-full h-8 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-3 border border-zinc-200 dark:border-zinc-700 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all",
                                                                                 tax.isEditable === false && !isPrincipal && "opacity-50 cursor-not-allowed bg-zinc-50 dark:bg-zinc-800"
                                                                             )}
-                                                                            value={appliedTax.amount}
+                                                                            value={
+                                                                                focusedTax?.itemIdx === index && focusedTax?.taxId === Number(tax.id)
+                                                                                    ? (appliedTax.amount ?? '')
+                                                                                    : formatMoney(appliedTax.amount)
+                                                                            }
                                                                             disabled={tax.isEditable === false && !isPrincipal}
+                                                                            onFocus={() => setFocusedTax({ itemIdx: index, taxId: Number(tax.id) })}
+                                                                            onBlur={() => setFocusedTax(null)}
                                                                             onChange={(e) => {
-                                                                                const val = parseFloat(e.target.value) || 0;
+                                                                                const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+                                                                                const val = parseFloat(cleanVal) || 0;
                                                                                 const taxIdNum = Number(tax.id);
                                                                                 const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
 

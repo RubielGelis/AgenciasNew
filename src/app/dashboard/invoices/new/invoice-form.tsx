@@ -622,52 +622,48 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
     }
 
     const updateItem = (index: number, field: string, value: any) => {
-        const newItems = [...formData.items]
-        const item = { ...newItems[index], [field]: value }
-
-        // AUTO-RECALCULATE: Manejo de cambios en Cantidad, Precio o Cargo Principal
-        if (field === 'quantity' || field === 'price' || field === 'mainTaxId') {
+        setFormData((prev) => {
+            const newItems = [...prev.items];
             const oldItem = newItems[index];
             const newItem = { ...oldItem, [field]: value };
-            const oldQty = oldItem.quantity || 1;
-            const newQty = newItem.quantity || 1;
-            const ratio = field === 'quantity' ? newQty / oldQty : 1;
 
-            const baseValue = (newItem.price || 0) * newQty;
-            const mainTaxIdNum = newItem.mainTaxId != null ? Number(newItem.mainTaxId) : null;
+            // AUTO-RECALCULATE: Manejo de cambios en Cantidad, Precio o Cargo Principal
+            if (field === 'quantity' || field === 'price' || field === 'mainTaxId') {
+                const oldQty = oldItem.quantity || 1;
+                const newQty = field === 'quantity' ? value : oldQty;
+                const ratio = field === 'quantity' ? newQty / oldQty : 1;
 
-            newItem.appliedTaxes = (oldItem.appliedTaxes || []).map((t: any) => {
-                const rawTaxId = t.id ?? t.chargeAndTaxId;
-                const taxId = rawTaxId != null ? Number(rawTaxId) : null;
+                const baseValue = (field === 'price' ? value : (oldItem.price || 0)) * newQty;
+                const mainTaxIdNum = field === 'mainTaxId' ? (value != null ? Number(value) : null) : (oldItem.mainTaxId != null ? Number(oldItem.mainTaxId) : null);
 
-                // 1. El Cargo principal siempre escala proporcionalmente al precio total
-                if (mainTaxIdNum != null && taxId === mainTaxIdNum) {
-                    return { ...t, amount: baseValue };
-                }
+                newItem.appliedTaxes = (oldItem.appliedTaxes || []).map((t: any) => {
+                    const rawTaxId = t.id ?? t.chargeAndTaxId;
+                    const taxId = rawTaxId != null ? Number(rawTaxId) : null;
 
-                // 2. Los impuestos porcentuales se recalculan sobre la nueva base (Precio Unitario * Cantidad)
-                const taxMaster = data?.taxes?.find((m: any) => Number(m.id) === taxId);
-                if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
-                    return { ...t, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(2)) };
-                }
+                    // 1. El Cargo principal siempre escala proporcionalmente al precio total
+                    if (mainTaxIdNum != null && taxId === mainTaxIdNum) {
+                        return { ...t, amount: baseValue };
+                    }
 
-                // 3. Otros cargos (fijos o manuales): 
-                // Si cambió la cantidad, escalan proporcionalmente (Ej: $10 -> $20 si duplicas)
-                // Si cambió el precio, se mantienen (Ej: un cargo fijo de $10 no depende del precio del producto)
-                if (field === 'quantity') {
-                    return { ...t, amount: parseFloat((t.amount * ratio).toFixed(2)) };
-                }
+                    // 2. Los impuestos porcentuales se recalculan sobre la nueva base (Precio Unitario * Cantidad)
+                    const taxMaster = data?.taxes?.find((m: any) => Number(m.id) === taxId);
+                    if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
+                        return { ...t, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(2)) };
+                    }
 
-                return t;
-            });
+                    // 3. Otros cargos (fijos o manuales): 
+                    // Si cambió la cantidad, escalan proporcionalmente (Ej: $10 -> $20 si duplicas)
+                    if (field === 'quantity') {
+                        return { ...t, amount: parseFloat((t.amount * ratio).toFixed(2)) };
+                    }
+
+                    return t;
+                });
+            }
 
             newItems[index] = newItem;
-            setFormData({ ...formData, items: newItems });
-            return; // Salir aquí ya que ya actualizamos el estado
-        }
-
-        newItems[index] = item
-        setFormData({ ...formData, items: newItems })
+            return { ...prev, items: newItems };
+        });
     }
 
     if (!data) return (
