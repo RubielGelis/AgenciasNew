@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
         // 1. Obtener XML desde Postgres
         const result = await prisma.$queryRawUnsafe<any[]>(
-            `CALL public."${pgProcedure}"($1, $2, $3)`,
+            `CALL public.${pgProcedure}($1, $2, $3)`,
             idsStr,
             userId ? Number(userId) : 0,
             '' 
