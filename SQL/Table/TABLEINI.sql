@@ -191,6 +191,16 @@ BEGIN
 	ALTER SEQUENCE public."Quotation_id_seq"
 	    OWNER TO postgres;
 
+	CREATE SEQUENCE IF NOT EXISTS public."QuotationState_id_seq"
+	    INCREMENT 1
+	    START 1
+	    MINVALUE 1
+	    MAXVALUE 2147483647
+	    CACHE 1;
+	
+	ALTER SEQUENCE public."QuotationState_id_seq"
+	    OWNER TO postgres;
+
 	CREATE SEQUENCE IF NOT EXISTS public."Role_id_seq"
 	    INCREMENT 1
 	    START 1
@@ -1030,6 +1040,25 @@ BEGIN
 
 	ALTER SEQUENCE public."Attachment_id_seq"
 	    OWNED BY public."Attachment".id;
+
+	CREATE TABLE IF NOT EXISTS public."QuotationState"
+	(
+	    id integer NOT NULL DEFAULT nextval('"QuotationState_id_seq"'::regclass),
+	    name character varying(50) NOT NULL,
+	    color character varying(20),
+	    "createdAt" timestamp(6) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	    code character varying(25) NOT NULL,
+	    CONSTRAINT "QuotationState_pkey" PRIMARY KEY (id),
+	    CONSTRAINT "QuotationState_code_key" UNIQUE (code)
+	)
+	
+	TABLESPACE pg_default;
+	
+	ALTER TABLE IF EXISTS public."QuotationState"
+	    OWNER to postgres;
+
+	ALTER SEQUENCE public."QuotationState_id_seq"
+	    OWNED BY public."QuotationState".id;
 
 	ALTER TABLE public."ChargeAndTax" ADD COLUMN IF NOT EXISTS "isEditable" boolean NOT NULL DEFAULT true;
 	ALTER TABLE public."ComboProduct" ADD COLUMN IF NOT EXISTS "inNationality" integer DEFAULT 1;
@@ -1878,3 +1907,38 @@ BEGIN
 END $$;
 
 
+
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN 
+        ALTER TABLE public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id); 
+    END IF; 
+END $$;
+
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'interfaces_pkey') THEN 
+        ALTER TABLE public."Interfaces" ADD CONSTRAINT "interfaces_pkey" PRIMARY KEY (id); 
+    END IF; 
+END $$;
+
+DO $$ 
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'master_pkey') THEN 
+        ALTER TABLE public."Master" ADD CONSTRAINT "master_pkey" PRIMARY KEY (id); 
+    END IF; 
+END $$;
+
+-- Sembrar estados de cotización iniciales si no existen
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationState') THEN
+        IF NOT EXISTS (SELECT 1 FROM public."QuotationState" WHERE code = 'NUEVO') THEN
+            INSERT INTO public."QuotationState" (code, name, color) VALUES ('NUEVO', 'Nuevo', 'blue');
+        END IF;
+        
+        IF NOT EXISTS (SELECT 1 FROM public."QuotationState" WHERE code = 'ENVIADO') THEN
+            INSERT INTO public."QuotationState" (code, name, color) VALUES ('ENVIADO', 'ENVIADO', 'emerald');
+        END IF;
+    END IF;
+END $$;

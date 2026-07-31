@@ -30,7 +30,7 @@ if "%ISCC_PATH%"=="" (
 )
 
 echo Usando compilador en: "%ISCC_PATH%"
-"F:\Proyectos\AgenciasNew\deploy\AgenciasNew.iss"
+"%ISCC_PATH%" "F:\Proyectos\AgenciasNew\deploy\AgenciasNew.iss"
 if %errorlevel% neq 0 (
     echo Error compilando instalador de Inno Setup.
     pause

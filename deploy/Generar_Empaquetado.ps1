@@ -35,6 +35,47 @@ Copy-Item ".\.next\static" -Destination "$ReleaseDir\.next\static" -Recurse -For
 # Borrar carpeta 'daemon' si se copió, para evitar archivos XML hardcodeados y rotos en el cliente
 if (Test-Path "$ReleaseDir\daemon") { Remove-Item "$ReleaseDir\daemon" -Recurse -Force }
 
+# Inyectar cargador de variables de entorno (.env) en server.js
+$ServerJsPath = "$ReleaseDir\server.js"
+if (Test-Path $ServerJsPath) {
+    Write-Host "Inyectando cargador de variables de entorno (.env) en server.js..." -ForegroundColor Yellow
+    $EnvLoader = @'
+const fs = require('fs');
+const path = require('path');
+try {
+  require('dotenv').config();
+  console.log('Loaded environment variables via dotenv');
+} catch (e) {
+  try {
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+      fs.readFileSync(envPath, 'utf8').split(/\r?\n/).forEach(line => {
+        const trimmed = line.trim();
+        if (trimmed && !trimmed.startsWith('#')) {
+          const eqIdx = trimmed.indexOf('=');
+          if (eqIdx > 0) {
+            const key = trimmed.slice(0, eqIdx).trim();
+            let val = trimmed.slice(eqIdx + 1).trim();
+            if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+              val = val.slice(1, -1);
+            }
+            process.env[key] = val;
+          }
+        }
+      });
+      console.log('Loaded environment variables manually from .env');
+    }
+  } catch (err) {
+    console.error('Failed to load .env manually:', err);
+  }
+}
+'@
+    $OriginalContent = Get-Content -Path $ServerJsPath -Raw
+    $NewContent = $EnvLoader + "`n" + $OriginalContent
+    Set-Content -Path $ServerJsPath -Value $NewContent -Encoding UTF8
+}
+
+
 # 4. Copiar Herramientas y SQL
 Write-Host "`n[4/5] Ensamblando Assets y Bases de Datos..." -ForegroundColor Yellow
 Copy-Item ".\deploy\install-service.js" -Destination $ReleaseDir -Force
@@ -43,6 +84,7 @@ Copy-Item ".\deploy\db_installer.js" -Destination $ReleaseDir -Force
 Copy-Item ".\deploy\web.config" -Destination $ReleaseDir -Force
 # SQL Master
 if (Test-Path ".\SQL\Actualizador\Actualizador.SQL") { Copy-Item ".\SQL\Actualizador\Actualizador.SQL" -Destination "$ReleaseDir\SQL" -Force }
+if (Test-Path ".\SQL\Actualizador\ActualizadorSERVER.SQL") { Copy-Item ".\SQL\Actualizador\ActualizadorSERVER.SQL" -Destination "$ReleaseDir\SQL" -Force }
 if (Test-Path ".\SQL\Data\Inicial.sql") { Copy-Item ".\SQL\Data\Inicial.sql" -Destination "$ReleaseDir\SQL" -Force }
 
 # 5. Instalar librería temporal de PG en Release para el auto-setup

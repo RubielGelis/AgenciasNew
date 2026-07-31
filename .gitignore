@@ -60,3 +60,8 @@ tmp_*.txt
 # Build Release
 RELEASE_AGENCIAS/
 Instalador/
+
+# Local installer files
+unins000.dat
+unins000.exe
+install_log.txt
