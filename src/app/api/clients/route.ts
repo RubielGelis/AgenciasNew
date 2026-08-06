@@ -1,14 +1,15 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const clients = await prisma.$queryRawUnsafe<any[]>(
             `SELECT * FROM public.fnClienteListar()`
         )
-        return NextResponse.json(clients)
+        return NextResponse.json(paginateArray(req, clients, c => [c.name, c.document]))
     } catch (error) {
         return NextResponse.json({ message: 'Error retrieving clients' }, { status: 500 })
     }
@@ -17,16 +18,17 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { name, document, contactInfo, address } = body
+        const { name, document, contactInfo, address, mandatoryVariables } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spClienteCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::INT, $6::INT, $7::TEXT)`,
+            `CALL public.spClienteCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::JSONB, $6::INT, $7::INT, $8::TEXT)`,
             name,
             document,
             contactInfo || null,
             address || null,
+            mandatoryVariables ? JSON.stringify(mandatoryVariables) : null,
             actingUserId,
             0, // p_client_id
             '' // p_mensaje_resultado
@@ -55,17 +57,18 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json()
-        const { id, name, document, contactInfo, address } = body
+        const { id, name, document, contactInfo, address, mandatoryVariables } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spClienteActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::TEXT, $6::INT, $7::TEXT)`,
+            `CALL public.spClienteActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::TEXT, $6::JSONB, $7::INT, $8::TEXT)`,
             parseInt(id),
             name,
             document,
             contactInfo || null,
             address || null,
+            mandatoryVariables ? JSON.stringify(mandatoryVariables) : null,
             actingUserId,
             '' // p_mensaje_resultado
         );

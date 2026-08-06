@@ -22,31 +22,33 @@ model Role {
 }
 
 model User {
-  id                   Int            @id @default(autoincrement())
+  id                   Int                     @id @default(autoincrement())
   name                 String
-  email                String         @unique
+  email                String                  @unique
   passwordHash         String
-  resetPasswordToken   String?        @unique
+  resetPasswordToken   String?                 @unique
   resetPasswordExpires DateTime?
   roleId               Int
   branchId             Int?
   implantId            Int?
   ticketPrinterId      Int?
   quotations           Quotation[]
+  stateHistories       QuotationStateHistory[]
   logs                 SystemLog[]
-  branch               Branch?        @relation(fields: [branchId], references: [id])
-  implant              Implant?       @relation(fields: [implantId], references: [id])
-  role                 Role           @relation(fields: [roleId], references: [id])
-  ticketPrinter        TicketPrinter? @relation(fields: [ticketPrinterId], references: [id])
+  branch               Branch?                 @relation(fields: [branchId], references: [id])
+  implant              Implant?                @relation(fields: [implantId], references: [id])
+  role                 Role                    @relation(fields: [roleId], references: [id])
+  ticketPrinter        TicketPrinter?          @relation(fields: [ticketPrinterId], references: [id])
 }
 
 model Client {
-  id          Int         @id @default(autoincrement())
-  name        String
-  document    String      @unique
-  contactInfo String?
-  address     String?
-  quotations  Quotation[]
+  id                 Int         @id @default(autoincrement())
+  name               String
+  document           String      @unique
+  contactInfo        String?
+  address            String?
+  mandatoryVariables Json?
+  quotations         Quotation[]
 }
 
 model Provider {
@@ -136,15 +138,16 @@ model Product {
   classItinerary    String?
   flightItinerary   String?
   ticketTypeId      Int?
+  mandatoryFields   Json?
   comboProducts     ComboProduct[]
   ticketType        TicketType?        @relation(fields: [ticketTypeId], references: [id])
   quotationProducts QuotationProduct[]
 }
 
 model Quotation {
-  id                   Int                @id @default(autoincrement())
-  internalNumber       String             @unique
-  date                 DateTime           @default(now())
+  id                   Int                     @id @default(autoincrement())
+  internalNumber       String                  @unique
+  date                 DateTime                @default(now())
   clientId             Int
   currency             String
   exchangeRate         Float
@@ -157,16 +160,19 @@ model Quotation {
   chargesAndTaxes      Float
   totalAmount          Float
   userId               Int?
-  state                String?            @default("Nuevo") @db.VarChar(25)
+  state                String?                 @default("Nuevo") @db.VarChar(25)
+  stateDescription     String?
+  stateUpdatedAt       DateTime?               @db.Timestamp(6)
   attachments          Attachment[]
-  branch               Branch             @relation(fields: [branchId], references: [id])
-  client               Client             @relation(fields: [clientId], references: [id])
-  implant              Implant?           @relation(fields: [implantId], references: [id])
-  seller               Seller?            @relation(fields: [sellerId], references: [id])
-  ticketPrinter        TicketPrinter?     @relation(fields: [ticketPrinterId], references: [id])
-  user                 User?              @relation(fields: [userId], references: [id])
+  branch               Branch                  @relation(fields: [branchId], references: [id])
+  client               Client                  @relation(fields: [clientId], references: [id])
+  implant              Implant?                @relation(fields: [implantId], references: [id])
+  seller               Seller?                 @relation(fields: [sellerId], references: [id])
+  ticketPrinter        TicketPrinter?          @relation(fields: [ticketPrinterId], references: [id])
+  user                 User?                   @relation(fields: [userId], references: [id])
   combos               QuotationCombo[]
   products             QuotationProduct[]
+  stateHistory         QuotationStateHistory[]
 }
 
 model QuotationCombo {
@@ -868,4 +874,17 @@ model QuotationState {
   color     String?  @db.VarChar(20)
   createdAt DateTime @default(now()) @db.Timestamp(6)
   code      String   @unique @db.VarChar(25)
+}
+
+model QuotationStateHistory {
+  id          Int       @id @default(autoincrement())
+  quotationId Int
+  state       String    @db.VarChar(25)
+  description String?
+  createdAt   DateTime  @default(now()) @db.Timestamp(6)
+  userId      Int?
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  user        User?     @relation(fields: [userId], references: [id])
+
+  @@index([quotationId])
 }

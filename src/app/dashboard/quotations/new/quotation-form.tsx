@@ -56,6 +56,8 @@ interface QuotationFormData {
     }[];
     selectedCombos?: { id: number, name: string }[];
     state: string;
+    stateDescription?: string;
+    stateUpdatedAt?: string | null;
 }
 
 const formatMoney = (val: any) => {
@@ -86,6 +88,7 @@ const getStateColorClass = (stateName: string, statesList: any[]) => {
 
 export default function QuotationForm({ quotationId }: { quotationId?: string }) {
     const [data, setData] = useState<any>(null)
+    const [originalState, setOriginalState] = useState('Nuevo')
     const [formData, setFormData] = useState<QuotationFormData>({
         clientId: '',
         branchId: '',
@@ -98,7 +101,9 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         chargesAndTaxes: 0,
         items: [],
         selectedCombos: [],
-        state: 'Nuevo'
+        state: 'Nuevo',
+        stateDescription: '',
+        stateUpdatedAt: null
     })
     const [saving, setSaving] = useState(false)
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
@@ -407,6 +412,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                     const qRes = await fetch(`/api/quotations/${quotationId}`)
                     if (qRes.ok) {
                         const qData = await qRes.json()
+                        setOriginalState(qData.state || 'Nuevo')
                         setFormData({
                             clientId: qData.clientId?.toString() || '',
                             branchId: qData.branchId?.toString() || '',
@@ -418,6 +424,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                             commissionPercentage: qData.commissionPercentage || 0,
                             chargesAndTaxes: qData.chargesAndTaxes || 0,
                             state: qData.state || 'Nuevo',
+                            stateDescription: qData.stateDescription || '',
+                            stateUpdatedAt: qData.stateUpdatedAt || null,
                             items: (qData.products || []).map((p: any) => {
                                 const safeAppliedTaxes = Array.isArray(p.appliedTaxes) ? p.appliedTaxes : [];
                                 const safeVariables = Array.isArray(p.variables) ? p.variables : [];
@@ -782,6 +790,31 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     ))}
                                 </select>
                             </div>
+
+                            {formData.state !== originalState && (
+                                <div className="col-span-2 space-y-2">
+                                    <label className="text-sm font-semibold text-zinc-500">Descripción del Cambio de Estado</label>
+                                    <textarea
+                                        className="w-full h-20 rounded-xl p-4 border border-zinc-250 dark:border-zinc-800 outline-none font-semibold focus:ring-2 focus:ring-blue-500 transition-all dark:bg-zinc-900 dark:text-white resize-none text-sm shadow-inner"
+                                        value={formData.stateDescription || ''}
+                                        onChange={(e) => setFormData({ ...formData, stateDescription: e.target.value })}
+                                        placeholder="Escribe la descripción de la actualización del estado..."
+                                        required
+                                    />
+                                </div>
+                            )}
+
+                            {formData.stateUpdatedAt && (
+                                <div className="col-span-2 bg-zinc-50 dark:bg-zinc-950/40 p-5 rounded-2xl border border-zinc-150 dark:border-zinc-850 space-y-1.5 shadow-inner">
+                                    <div className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Información de Último Estado</div>
+                                    <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                                        Descripción: <span className="italic">{formData.stateDescription || 'Sin comentarios registrados.'}</span>
+                                    </div>
+                                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider">
+                                        Fecha y Hora: {new Date(formData.stateUpdatedAt).toLocaleString()}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 

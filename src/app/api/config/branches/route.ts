@@ -1,3 +1,4 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getCellCustomizationConfig, syncCellCustomization } from '@/lib/cell-customization'
@@ -6,7 +7,7 @@ import { logSystemEvent } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const branches = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public.fnBranchListar()`)
         
@@ -22,7 +23,7 @@ export async function GET() {
             }
         }))
         
-        return NextResponse.json(branchesWithLogo)
+        return NextResponse.json(paginateArray(req, branchesWithLogo, b => [b.code, b.name]))
     } catch (error) {
         return NextResponse.json({ message: 'Error fetching branches' }, { status: 500 })
     }

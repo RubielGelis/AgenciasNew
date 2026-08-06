@@ -1991,10 +1991,22 @@ $$;
 
 
 -- Archivo: fnCotizacionHistorial.sql
-CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial()
+DROP FUNCTION IF EXISTS public.fnCotizacionHistorial();
+
+DROP FUNCTION IF EXISTS public.fnCotizacionHistorial();
+
+CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial(
+    p_referencia VARCHAR DEFAULT NULL,
+    p_fecha_desde DATE DEFAULT NULL,
+    p_fecha_hasta DATE DEFAULT NULL,
+    p_cliente VARCHAR DEFAULT NULL,
+    p_elaborado_por VARCHAR DEFAULT NULL,
+    p_monto_total NUMERIC DEFAULT NULL,
+    p_estado VARCHAR DEFAULT NULL
+)
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
-AS $$
+AS $
 BEGIN
     RETURN QUERY
     SELECT 
@@ -2014,209 +2026,38 @@ BEGIN
             'currency', q.currency,
             'userName', COALESCE(u.name, 'Sistema'),
             'state', COALESCE(q.state, 'NUEVO'),
+            'stateDescription', q."stateDescription",
+            'stateUpdatedAt', q."stateUpdatedAt",
             'nights', COALESCE((
                 SELECT qp.nights 
                 FROM public."QuotationProduct" qp
                 WHERE qp."quotationId" = q.id
                 LIMIT 1
-            ), 1)
+            ), 1),
+            'passengerName', COALESCE((
+                SELECT qpax.name 
+                FROM public."QuotationProduct" qp
+                JOIN public."QuotationProductPassenger" qpax ON qpax."quotationProductId" = qp.id
+                WHERE qp."quotationId" = q.id
+                ORDER BY qpax.id ASC
+                LIMIT 1
+            ), 'Mismo titular')
         )
     FROM public."Quotation" q
     JOIN public."Client" c ON q."clientId" = c.id
     LEFT JOIN public."User" u ON q."userId" = u.id
+    WHERE 
+        (p_referencia IS NULL OR q.id::text ILIKE '%' || p_referencia || '%')
+        AND (p_fecha_desde IS NULL OR q.date::date >= p_fecha_desde)
+        AND (p_fecha_hasta IS NULL OR q.date::date <= p_fecha_hasta)
+        AND (p_cliente IS NULL OR c.name ILIKE '%' || p_cliente || '%')
+        AND (p_elaborado_por IS NULL OR u.name ILIKE '%' || p_elaborado_por || '%')
+        AND (p_monto_total IS NULL OR q."totalAmount" = p_monto_total)
+        AND (p_estado IS NULL OR q.state ILIKE '%' || p_estado || '%')
     ORDER BY q.date DESC;
 END;
-$$;
+$;
 
-
--- Archivo: fnCotizacionListar.sql
-CREATE OR REPLACE FUNCTION public.fnCotizacionListar()
-RETURNS SETOF JSONB
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        jsonb_build_object(
-            'id', q.id,
-            'internalNumber', q."internalNumber",
-            'date', q.date,
-            'clientId', q."clientId",
-            'currency', q.currency,
-            'exchangeRate', q."exchangeRate",
-            'totalAmount', q."totalAmount",
-            'client', jsonb_build_object(
-                'id', c.id,
-                'name', c.name,
-                'document', c.document
-            ),
-            'products', COALESCE(
-                (
-                    SELECT jsonb_agg(
-                        jsonb_build_object(
-                            'id', qp.id,
-                            'productId', qp."productId",
-                            'product', jsonb_build_object(
-                                'id', p.id,
-                                'description', p.description
-                            ),
-                            'provider', CASE WHEN prov.id IS NOT NULL THEN jsonb_build_object('id', prov.id, 'name', prov.name) ELSE NULL END,
-                            'prestadora', CASE WHEN h.id IS NOT NULL THEN jsonb_build_object('id', h.id, 'name', h.name) ELSE NULL END,
-                            'quantity', qp.quantity,
-                            'price', qp.price,
-                            'checkInDate', qp."checkInDate",
-                            'checkOutDate', qp."checkOutDate",
-                            'inNationality', COALESCE(qp."inNationality", 1),
-                            'mainTaxId', qp."mainTaxId",
-                            'passengers', COALESCE((
-                                SELECT jsonb_agg(jsonb_build_object('id', qpax.id, 'name', qpax.name, 'document', qpax.document))
-                                FROM public."QuotationProductPassenger" qpax
-                                WHERE qpax."quotationProductId" = qp.id
-                            ), '[]'::jsonb),
-                            'variables', COALESCE((
-                                SELECT jsonb_agg(jsonb_build_object('id', qvar.id, 'masterVariableId', qvar."masterVariableId", 'value', qvar.value))
-                                FROM public."QuotationProductVariable" qvar
-                                WHERE qvar."quotationProductId" = qp.id
-                            ), '[]'::jsonb),
-                            'appliedTaxes', COALESCE((
-                                SELECT jsonb_agg(jsonb_build_object('chargeAndTaxId', qpt."chargeAndTaxId", 'explicitAmount', qpt."explicitAmount", 'isMain', qpt."isMain"))
-                                FROM public."QuotationProductTax" qpt
-                                WHERE qpt."quotationProductId" = qp.id
-                            ), '[]'::jsonb)
-                        )
-                    )
-                    FROM public."QuotationProduct" qp
-                    LEFT JOIN public."Product" p ON qp."productId" = p.id
-                    LEFT JOIN public."Provider" prov ON qp."providerId" = prov.id
-                    LEFT JOIN public."Prestadora" h ON qp."prestadoraId" = h.id
-                    WHERE qp."quotationId" = q.id
-                ),
-                '[]'::jsonb
-            )
-        )
-    FROM public."Quotation" q
-    JOIN public."Client" c ON q."clientId" = c.id
-    ORDER BY q.date DESC;
-END;
-$$;
-
-
--- Archivo: fnCountryListar.sql
-CREATE OR REPLACE FUNCTION public."fnCountryListar"()
-RETURNS TABLE(id integer, code text, name text, dane text, region text, prefix text, "curencyId" integer)
-LANGUAGE plpgsql AS $function$
-BEGIN
-    RETURN QUERY SELECT c.id, c.code::text, c.name::text, c.dane::text, c.region::text, c.prefix::text, c."curencyId" FROM public."Countries" c ORDER BY c.id ASC;
-END; $function$;
-
--- Archivo: fnCreditCardListar.sql
-CREATE OR REPLACE FUNCTION public."fnCreditCardListar"()
-RETURNS TABLE(
-    id integer,
-    code text,
-    name text,
-    type text,
-    inactive boolean
-)
-LANGUAGE plpgsql
-AS $function$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        c.id,
-        c.code,
-        c.name,
-        c.type,
-        c.inactive
-    FROM public."CreditCard" c
-    ORDER BY c.id ASC;
-END;
-$function$;
-
-
--- Archivo: fnEquivalenceInterface.sql
-CREATE OR REPLACE FUNCTION public."fnEquivalenceInterface"(
-	p_id_interface integer,
-	p_id_master integer,
-	p_value text
-)
-RETURNS text
-LANGUAGE 'plpgsql'
-COST 100
-VOLATILE PARALLEL UNSAFE
-AS $BODY$
-DECLARE
-    v_equivalence TEXT;
-BEGIN
-    -- Si el valor es nulo o vacío, retornamos el mismo valor
-    IF p_value IS NULL OR p_value = '' THEN
-        RETURN p_value;
-    END IF;
-
-    -- Buscamos el equivalente en la tabla EquivalencesInterfaces
-    SELECT cd_codigo 
-    INTO v_equivalence
-    FROM public."EquivalencesInterfaces"
-    WHERE id_interfaces = p_id_interface
-      AND id_master = p_id_master
-      AND cd_codigoInte = p_value
-    LIMIT 1;
-
-    -- Si no se encuentra equivalencia, retornamos el valor original
-    IF v_equivalence IS NULL OR v_equivalence = '' THEN
-        RETURN p_value;
-    ELSE
-        RETURN v_equivalence;
-    END IF;
-END;
-$BODY$;
-
-ALTER FUNCTION public."fnEquivalenceInterface"(integer, integer, text) OWNER TO postgres;
-
-
--- Archivo: fnGetSQLServerConfig.sql
-CREATE OR REPLACE FUNCTION "fnGetSQLServerConfig"()
-RETURNS TABLE (
-    servidor TEXT,
-    usuario TEXT,
-    clave TEXT,
-    base_datos TEXT,
-    puerto TEXT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        (SELECT value FROM "SystemParameter" WHERE code = 'ServidorSQLServer') as servidor,
-        (SELECT value FROM "SystemParameter" WHERE code = 'UsuarioSQLServer') as usuario,
-        (SELECT value FROM "SystemParameter" WHERE code = 'ClaveSQLServer') as clave,
-        (SELECT value FROM "SystemParameter" WHERE code = 'BaseSQLServer') as base_datos,
-        (SELECT value FROM "SystemParameter" WHERE code = 'PuertoSQLServer') as puerto;
-END;
-$$ LANGUAGE plpgsql;
-
-
--- Archivo: fnImplantListar.sql
-CREATE OR REPLACE FUNCTION public.fnImplantListar()
-RETURNS SETOF public."Implant"
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT * FROM public."Implant" ORDER BY name ASC;
-END;
-$$;
-
-
--- Archivo: fnImpuestoListar.sql
-CREATE OR REPLACE FUNCTION public.fnImpuestoListar()
-RETURNS SETOF public."ChargeAndTax"
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT * FROM public."ChargeAndTax" ORDER BY name ASC;
-END;
-$$;
 
 
 -- Archivo: fnInterfacesList.sql

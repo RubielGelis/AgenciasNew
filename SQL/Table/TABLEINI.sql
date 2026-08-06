@@ -480,6 +480,7 @@ BEGIN
 	    document text COLLATE pg_catalog."default" NOT NULL,
 	    "contactInfo" text COLLATE pg_catalog."default",
 	    address text COLLATE pg_catalog."default",
+	    "mandatoryVariables" jsonb,
 	    CONSTRAINT "Client_pkey" PRIMARY KEY (id)
 	)
 
@@ -662,6 +663,7 @@ BEGIN
 	    "billingConcept" text COLLATE pg_catalog."default",
 	    "serviceType" text COLLATE pg_catalog."default",
 	    code text COLLATE pg_catalog."default",
+	    "mandatoryFields" jsonb,
 	    CONSTRAINT "Product_pkey" PRIMARY KEY (id)
 	)
 	
@@ -826,6 +828,8 @@ BEGIN
 	    "totalAmount" double precision NOT NULL,
 	    "userId" integer,
 	    "state" varchar(25) DEFAULT 'NUEVO',
+	    "stateDescription" text,
+	    "stateUpdatedAt" timestamp without time zone,
 	    CONSTRAINT "Quotation_pkey" PRIMARY KEY (id),
 	    CONSTRAINT "Quotation_branchId_fkey" FOREIGN KEY ("branchId")
 	        REFERENCES public."Branch" (id) MATCH SIMPLE
@@ -1676,6 +1680,25 @@ BEGIN
 	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_branch_code_key" ON public."CellCustomization" ("branchId", "code") WHERE "branchId" IS NOT NULL;
 	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_implant_code_key" ON public."CellCustomization" ("implantId", "code") WHERE "implantId" IS NOT NULL;
 
+	CREATE SEQUENCE IF NOT EXISTS public."QuotationStateHistory_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."QuotationStateHistory_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."QuotationStateHistory" (
+		id integer NOT NULL DEFAULT nextval('"QuotationStateHistory_id_seq"'::regclass),
+		"quotationId" integer NOT NULL,
+		state varchar(25) NOT NULL,
+		description text,
+		"createdAt" timestamp(6) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		"userId" integer,
+		CONSTRAINT "QuotationStateHistory_pkey" PRIMARY KEY (id),
+		CONSTRAINT "QuotationStateHistory_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation" (id) ON UPDATE CASCADE ON DELETE CASCADE,
+		CONSTRAINT "QuotationStateHistory_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User" (id) ON UPDATE CASCADE ON DELETE SET NULL
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."QuotationStateHistory" OWNER to postgres;
+	ALTER SEQUENCE public."QuotationStateHistory_id_seq" OWNED BY public."QuotationStateHistory".id;
+
+	CREATE INDEX IF NOT EXISTS "QuotationStateHistory_quotationId_idx" ON public."QuotationStateHistory" ("quotationId");
+
 	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "logo" bytea;
 	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "template" bytea;
 	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "templateConfig" jsonb;
@@ -1685,6 +1708,11 @@ BEGIN
 	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "template" bytea;
 	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "templateConfig" jsonb;
 	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "htmlTemplate" text;
+
+	ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "mandatoryFields" jsonb;
+	ALTER TABLE public."Client" ADD COLUMN IF NOT EXISTS "mandatoryVariables" jsonb;
+	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "stateDescription" text;
+	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "stateUpdatedAt" timestamp without time zone;
 END $$;
 
 DO $$ 

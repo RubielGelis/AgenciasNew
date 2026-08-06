@@ -1,16 +1,17 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 import bcrypt from 'bcryptjs'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const users = await (prisma.user.findMany({
             include: { role: true, branch: true, implant: true, ticketPrinter: true },
             orderBy: { name: 'asc' }
         }) as any)
-        return NextResponse.json(users)
+        return NextResponse.json(paginateArray(req, users, (u: any) => [u.name, u.email, u.role?.name]))
     } catch (error: any) {
         console.error("error fetching users:", error)
         return NextResponse.json({ message: 'Error fetching users', error: error?.message || String(error) }, { status: 500 })

@@ -1,12 +1,13 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const creditCards = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public."fnCreditCardListar"()`)
-        return NextResponse.json(creditCards)
+        return NextResponse.json(paginateArray(req, creditCards, c => [c.code, c.name]))
     } catch (error) {
         return NextResponse.json({ message: 'Error fetching credit cards' }, { status: 500 })
     }

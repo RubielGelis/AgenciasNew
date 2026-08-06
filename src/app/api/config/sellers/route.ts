@@ -1,12 +1,13 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const sellers = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public.fnSellerListar()`)
-        return NextResponse.json(sellers)
+        return NextResponse.json(paginateArray(req, sellers, s => [s.code, s.name]))
     } catch (error) {
         return NextResponse.json({ message: 'Error fetching sellers' }, { status: 500 })
     }

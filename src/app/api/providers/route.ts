@@ -1,15 +1,16 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const results: any[] = await prisma.$queryRawUnsafe(
             `SELECT * FROM public.fnProveedorListar()`
         );
         const providers = results.map(row => row.fnproveedorlistar);
-        return NextResponse.json(providers)
+        return NextResponse.json(paginateArray(req, providers, p => [p.code, p.name]))
     } catch (error) {
         return NextResponse.json({ message: 'Error retrieving providers' }, { status: 500 })
     }

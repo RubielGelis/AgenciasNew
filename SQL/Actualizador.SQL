@@ -487,6 +487,7 @@ BEGIN
 	    document text COLLATE pg_catalog."default" NOT NULL,
 	    "contactInfo" text COLLATE pg_catalog."default",
 	    address text COLLATE pg_catalog."default",
+	    "mandatoryVariables" jsonb,
 	    CONSTRAINT "Client_pkey" PRIMARY KEY (id)
 	)
 
@@ -669,6 +670,7 @@ BEGIN
 	    "billingConcept" text COLLATE pg_catalog."default",
 	    "serviceType" text COLLATE pg_catalog."default",
 	    code text COLLATE pg_catalog."default",
+	    "mandatoryFields" jsonb,
 	    CONSTRAINT "Product_pkey" PRIMARY KEY (id)
 	)
 	
@@ -833,6 +835,8 @@ BEGIN
 	    "totalAmount" double precision NOT NULL,
 	    "userId" integer,
 	    "state" varchar(25) DEFAULT 'NUEVO',
+	    "stateDescription" text,
+	    "stateUpdatedAt" timestamp without time zone,
 	    CONSTRAINT "Quotation_pkey" PRIMARY KEY (id),
 	    CONSTRAINT "Quotation_branchId_fkey" FOREIGN KEY ("branchId")
 	        REFERENCES public."Branch" (id) MATCH SIMPLE
@@ -1683,6 +1687,25 @@ BEGIN
 	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_branch_code_key" ON public."CellCustomization" ("branchId", "code") WHERE "branchId" IS NOT NULL;
 	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_implant_code_key" ON public."CellCustomization" ("implantId", "code") WHERE "implantId" IS NOT NULL;
 
+	CREATE SEQUENCE IF NOT EXISTS public."QuotationStateHistory_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+	ALTER SEQUENCE public."QuotationStateHistory_id_seq" OWNER TO postgres;
+
+	CREATE TABLE IF NOT EXISTS public."QuotationStateHistory" (
+		id integer NOT NULL DEFAULT nextval('"QuotationStateHistory_id_seq"'::regclass),
+		"quotationId" integer NOT NULL,
+		state varchar(25) NOT NULL,
+		description text,
+		"createdAt" timestamp(6) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		"userId" integer,
+		CONSTRAINT "QuotationStateHistory_pkey" PRIMARY KEY (id),
+		CONSTRAINT "QuotationStateHistory_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation" (id) ON UPDATE CASCADE ON DELETE CASCADE,
+		CONSTRAINT "QuotationStateHistory_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User" (id) ON UPDATE CASCADE ON DELETE SET NULL
+	) TABLESPACE pg_default;
+	ALTER TABLE IF EXISTS public."QuotationStateHistory" OWNER to postgres;
+	ALTER SEQUENCE public."QuotationStateHistory_id_seq" OWNED BY public."QuotationStateHistory".id;
+
+	CREATE INDEX IF NOT EXISTS "QuotationStateHistory_quotationId_idx" ON public."QuotationStateHistory" ("quotationId");
+
 	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "logo" bytea;
 	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "template" bytea;
 	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "templateConfig" jsonb;
@@ -1692,6 +1715,11 @@ BEGIN
 	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "template" bytea;
 	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "templateConfig" jsonb;
 	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "htmlTemplate" text;
+
+	ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "mandatoryFields" jsonb;
+	ALTER TABLE public."Client" ADD COLUMN IF NOT EXISTS "mandatoryVariables" jsonb;
+	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "stateDescription" text;
+	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "stateUpdatedAt" timestamp without time zone;
 END $$;
 
 DO $$ 
@@ -2104,6 +2132,8 @@ BEGIN
             'chargesAndTaxes', q."chargesAndTaxes",
             'totalAmount', q."totalAmount",
             'state', q.state,
+            'stateDescription', q."stateDescription",
+            'stateUpdatedAt', q."stateUpdatedAt",
             'client', jsonb_build_object(
                 'id', c.id,
                 'name', c.name,
@@ -2201,10 +2231,22 @@ END;
 $$;
 
 
-CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial()
+DROP FUNCTION IF EXISTS public.fnCotizacionHistorial();
+
+DROP FUNCTION IF EXISTS public.fnCotizacionHistorial();
+
+CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial(
+    p_referencia VARCHAR DEFAULT NULL,
+    p_fecha_desde DATE DEFAULT NULL,
+    p_fecha_hasta DATE DEFAULT NULL,
+    p_cliente VARCHAR DEFAULT NULL,
+    p_elaborado_por VARCHAR DEFAULT NULL,
+    p_monto_total NUMERIC DEFAULT NULL,
+    p_estado VARCHAR DEFAULT NULL
+)
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
-AS $$
+AS $
 BEGIN
     RETURN QUERY
     SELECT 
@@ -2224,202 +2266,38 @@ BEGIN
             'currency', q.currency,
             'userName', COALESCE(u.name, 'Sistema'),
             'state', COALESCE(q.state, 'NUEVO'),
+            'stateDescription', q."stateDescription",
+            'stateUpdatedAt', q."stateUpdatedAt",
             'nights', COALESCE((
                 SELECT qp.nights 
                 FROM public."QuotationProduct" qp
                 WHERE qp."quotationId" = q.id
                 LIMIT 1
-            ), 1)
+            ), 1),
+            'passengerName', COALESCE((
+                SELECT qpax.name 
+                FROM public."QuotationProduct" qp
+                JOIN public."QuotationProductPassenger" qpax ON qpax."quotationProductId" = qp.id
+                WHERE qp."quotationId" = q.id
+                ORDER BY qpax.id ASC
+                LIMIT 1
+            ), 'Mismo titular')
         )
     FROM public."Quotation" q
     JOIN public."Client" c ON q."clientId" = c.id
     LEFT JOIN public."User" u ON q."userId" = u.id
+    WHERE 
+        (p_referencia IS NULL OR q.id::text ILIKE '%' || p_referencia || '%')
+        AND (p_fecha_desde IS NULL OR q.date::date >= p_fecha_desde)
+        AND (p_fecha_hasta IS NULL OR q.date::date <= p_fecha_hasta)
+        AND (p_cliente IS NULL OR c.name ILIKE '%' || p_cliente || '%')
+        AND (p_elaborado_por IS NULL OR u.name ILIKE '%' || p_elaborado_por || '%')
+        AND (p_monto_total IS NULL OR q."totalAmount" = p_monto_total)
+        AND (p_estado IS NULL OR q.state ILIKE '%' || p_estado || '%')
     ORDER BY q.date DESC;
 END;
-$$;
+$;
 
-
-CREATE OR REPLACE FUNCTION public.fnCotizacionListar()
-RETURNS SETOF JSONB
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        jsonb_build_object(
-            'id', q.id,
-            'internalNumber', q."internalNumber",
-            'date', q.date,
-            'clientId', q."clientId",
-            'currency', q.currency,
-            'exchangeRate', q."exchangeRate",
-            'totalAmount', q."totalAmount",
-            'client', jsonb_build_object(
-                'id', c.id,
-                'name', c.name,
-                'document', c.document
-            ),
-            'products', COALESCE(
-                (
-                    SELECT jsonb_agg(
-                        jsonb_build_object(
-                            'id', qp.id,
-                            'productId', qp."productId",
-                            'product', jsonb_build_object(
-                                'id', p.id,
-                                'description', p.description
-                            ),
-                            'provider', CASE WHEN prov.id IS NOT NULL THEN jsonb_build_object('id', prov.id, 'name', prov.name) ELSE NULL END,
-                            'prestadora', CASE WHEN h.id IS NOT NULL THEN jsonb_build_object('id', h.id, 'name', h.name) ELSE NULL END,
-                            'quantity', qp.quantity,
-                            'price', qp.price,
-                            'checkInDate', qp."checkInDate",
-                            'checkOutDate', qp."checkOutDate",
-                            'inNationality', COALESCE(qp."inNationality", 1),
-                            'mainTaxId', qp."mainTaxId",
-                            'passengers', COALESCE((
-                                SELECT jsonb_agg(jsonb_build_object('id', qpax.id, 'name', qpax.name, 'document', qpax.document))
-                                FROM public."QuotationProductPassenger" qpax
-                                WHERE qpax."quotationProductId" = qp.id
-                            ), '[]'::jsonb),
-                            'variables', COALESCE((
-                                SELECT jsonb_agg(jsonb_build_object('id', qvar.id, 'masterVariableId', qvar."masterVariableId", 'value', qvar.value))
-                                FROM public."QuotationProductVariable" qvar
-                                WHERE qvar."quotationProductId" = qp.id
-                            ), '[]'::jsonb),
-                            'appliedTaxes', COALESCE((
-                                SELECT jsonb_agg(jsonb_build_object('chargeAndTaxId', qpt."chargeAndTaxId", 'explicitAmount', qpt."explicitAmount", 'isMain', qpt."isMain"))
-                                FROM public."QuotationProductTax" qpt
-                                WHERE qpt."quotationProductId" = qp.id
-                            ), '[]'::jsonb)
-                        )
-                    )
-                    FROM public."QuotationProduct" qp
-                    LEFT JOIN public."Product" p ON qp."productId" = p.id
-                    LEFT JOIN public."Provider" prov ON qp."providerId" = prov.id
-                    LEFT JOIN public."Prestadora" h ON qp."prestadoraId" = h.id
-                    WHERE qp."quotationId" = q.id
-                ),
-                '[]'::jsonb
-            )
-        )
-    FROM public."Quotation" q
-    JOIN public."Client" c ON q."clientId" = c.id
-    ORDER BY q.date DESC;
-END;
-$$;
-
-
-CREATE OR REPLACE FUNCTION public."fnCountryListar"()
-RETURNS TABLE(id integer, code text, name text, dane text, region text, prefix text, "curencyId" integer)
-LANGUAGE plpgsql AS $function$
-BEGIN
-    RETURN QUERY SELECT c.id, c.code::text, c.name::text, c.dane::text, c.region::text, c.prefix::text, c."curencyId" FROM public."Countries" c ORDER BY c.id ASC;
-END; $function$;
-
-CREATE OR REPLACE FUNCTION public."fnCreditCardListar"()
-RETURNS TABLE(
-    id integer,
-    code text,
-    name text,
-    type text,
-    inactive boolean
-)
-LANGUAGE plpgsql
-AS $function$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        c.id,
-        c.code,
-        c.name,
-        c.type,
-        c.inactive
-    FROM public."CreditCard" c
-    ORDER BY c.id ASC;
-END;
-$function$;
-
-
-CREATE OR REPLACE FUNCTION public."fnEquivalenceInterface"(
-	p_id_interface integer,
-	p_id_master integer,
-	p_value text
-)
-RETURNS text
-LANGUAGE 'plpgsql'
-COST 100
-VOLATILE PARALLEL UNSAFE
-AS $BODY$
-DECLARE
-    v_equivalence TEXT;
-BEGIN
-    -- Si el valor es nulo o vacío, retornamos el mismo valor
-    IF p_value IS NULL OR p_value = '' THEN
-        RETURN p_value;
-    END IF;
-
-    -- Buscamos el equivalente en la tabla EquivalencesInterfaces
-    SELECT cd_codigo 
-    INTO v_equivalence
-    FROM public."EquivalencesInterfaces"
-    WHERE id_interfaces = p_id_interface
-      AND id_master = p_id_master
-      AND cd_codigoInte = p_value
-    LIMIT 1;
-
-    -- Si no se encuentra equivalencia, retornamos el valor original
-    IF v_equivalence IS NULL OR v_equivalence = '' THEN
-        RETURN p_value;
-    ELSE
-        RETURN v_equivalence;
-    END IF;
-END;
-$BODY$;
-
-ALTER FUNCTION public."fnEquivalenceInterface"(integer, integer, text) OWNER TO postgres;
-
-
-CREATE OR REPLACE FUNCTION "fnGetSQLServerConfig"()
-RETURNS TABLE (
-    servidor TEXT,
-    usuario TEXT,
-    clave TEXT,
-    base_datos TEXT,
-    puerto TEXT
-) AS $$
-BEGIN
-    RETURN QUERY
-    SELECT 
-        (SELECT value FROM "SystemParameter" WHERE code = 'ServidorSQLServer') as servidor,
-        (SELECT value FROM "SystemParameter" WHERE code = 'UsuarioSQLServer') as usuario,
-        (SELECT value FROM "SystemParameter" WHERE code = 'ClaveSQLServer') as clave,
-        (SELECT value FROM "SystemParameter" WHERE code = 'BaseSQLServer') as base_datos,
-        (SELECT value FROM "SystemParameter" WHERE code = 'PuertoSQLServer') as puerto;
-END;
-$$ LANGUAGE plpgsql;
-
-
-CREATE OR REPLACE FUNCTION public.fnImplantListar()
-RETURNS SETOF public."Implant"
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT * FROM public."Implant" ORDER BY name ASC;
-END;
-$$;
-
-
-CREATE OR REPLACE FUNCTION public.fnImpuestoListar()
-RETURNS SETOF public."ChargeAndTax"
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT * FROM public."ChargeAndTax" ORDER BY name ASC;
-END;
-$$;
 
 
 DROP FUNCTION IF EXISTS public."fnInterfacesList"();
@@ -3231,6 +3109,7 @@ CREATE OR REPLACE PROCEDURE public.spClienteActualizar(
     p_document TEXT,
     p_contact_info TEXT,
     p_address TEXT,
+    p_mandatory_variables JSONB,
     p_acting_user_id INT,
     INOUT p_mensaje_resultado TEXT
 )
@@ -3246,7 +3125,8 @@ BEGIN
         "name" = p_name,
         "document" = p_document,
         "contactInfo" = p_contact_info,
-        "address" = p_address
+        "address" = p_address,
+        "mandatoryVariables" = p_mandatory_variables
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Cliente ' || p_id || ' actualizado.';
@@ -3264,6 +3144,7 @@ CREATE OR REPLACE PROCEDURE public.spClienteCrear(
     p_document TEXT,
     p_contact_info TEXT,
     p_address TEXT,
+    p_mandatory_variables JSONB,
     p_acting_user_id INT,
     INOUT p_client_id INT,
     INOUT p_mensaje_resultado TEXT
@@ -3276,8 +3157,8 @@ BEGIN
         RETURN;
     END IF;
 
-    INSERT INTO public."Client" ("name", "document", "contactInfo", "address")
-    VALUES (p_name, p_document, p_contact_info, p_address)
+    INSERT INTO public."Client" ("name", "document", "contactInfo", "address", "mandatoryVariables")
+    VALUES (p_name, p_document, p_contact_info, p_address, p_mandatory_variables)
     RETURNING id INTO p_client_id;
 
     p_mensaje_resultado := 'SUCCESS: Cliente creado con ID ' || p_client_id;
@@ -3481,12 +3362,37 @@ DECLARE
     v_pmt RECORD;
     v_combo RECORD;
     v_quotation_product_id INT;
+    -- Variables para validación de campos obligatorios dinámicos
+    v_val_item JSONB;
+    v_val_prod_id INT;
+    v_mandatory_fields JSONB;
+    v_field_key TEXT;
+    v_model TEXT;
+    v_field_name TEXT;
+    v_prod_desc TEXT;
+    v_has_passengers BOOLEAN;
+    v_has_empty_pax_name BOOLEAN;
+    v_has_payments BOOLEAN;
+    v_json_field_name TEXT;
+    -- Variables para validación de variables obligatorias específicas del cliente
+    v_client_id INT;
+    v_client_mandatory_vars JSONB;
+    v_client_var_id_text TEXT;
+    v_req_var_id INT;
+    v_req_var_name TEXT;
+    v_item_json JSONB;
+    v_item_prod_id INT;
+    v_item_prod_desc TEXT;
+    v_has_var BOOLEAN;
+    v_old_state TEXT;
 BEGIN
     -- Validaciones
     IF NOT EXISTS (SELECT 1 FROM public."Quotation" WHERE id = p_id) THEN
         p_mensaje_resultado := 'ERROR: La cotización con ID ' || p_id || ' no existe.';
         RETURN;
     END IF;
+
+    SELECT "state" INTO v_old_state FROM public."Quotation" WHERE id = p_id;
 
     IF NULLIF(p_data->>'clientId', '') IS NULL THEN
         p_mensaje_resultado := 'ERROR: El campo Cliente es obligatorio.';
@@ -3506,6 +3412,109 @@ BEGIN
         RETURN;
     END IF;
 
+    -- Validación de campos obligatorios dinámicos por producto
+    FOR v_val_item IN SELECT jsonb_array_elements(p_data->'items')
+    LOOP
+        v_val_prod_id := (v_val_item->>'productId')::INT;
+        
+        SELECT "mandatoryFields", "description" 
+        INTO v_mandatory_fields, v_prod_desc 
+        FROM public."Product" 
+        WHERE id = v_val_prod_id;
+
+        v_prod_desc := COALESCE(v_prod_desc, 'Producto #' || v_val_prod_id);
+
+        IF v_mandatory_fields IS NOT NULL AND jsonb_typeof(v_mandatory_fields) = 'array' THEN
+            FOR v_field_key IN SELECT jsonb_array_elements_text(v_mandatory_fields)
+            LOOP
+                v_model := split_part(v_field_key, '.', 1);
+                v_field_name := split_part(v_field_key, '.', 2);
+
+                IF v_model = 'Quotation' THEN
+                    IF NULLIF(p_data->>v_field_name, '') IS NULL THEN
+                        p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere completar el campo general "' || v_field_name || '".';
+                        RETURN;
+                    END IF;
+                ELSIF v_model = 'QuotationProduct' THEN
+                    v_json_field_name := v_field_name;
+                    IF v_field_name = 'checkInDate' THEN
+                        v_json_field_name := 'checkIn';
+                    ELSIF v_field_name = 'checkOutDate' THEN
+                        v_json_field_name := 'checkOut';
+                    END IF;
+
+                    IF v_field_name = 'passengers' THEN
+                        v_has_passengers := FALSE;
+                        v_has_empty_pax_name := FALSE;
+                        
+                        IF v_val_item->'passengers' IS NOT NULL AND jsonb_typeof(v_val_item->'passengers') = 'array' THEN
+                            SELECT COALESCE(jsonb_array_length(v_val_item->'passengers') > 0, FALSE) INTO v_has_passengers;
+                            SELECT EXISTS (
+                                SELECT 1 FROM jsonb_to_recordset(v_val_item->'passengers') AS p(name TEXT)
+                                WHERE p.name IS NULL OR trim(p.name) = ''
+                            ) INTO v_has_empty_pax_name;
+                        END IF;
+
+                        IF NOT v_has_passengers OR v_has_empty_pax_name THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere registrar al menos un pasajero con su nombre.';
+                            RETURN;
+                        END IF;
+                    ELSIF v_field_name = 'payments' THEN
+                        v_has_payments := FALSE;
+                        IF v_val_item->'payments' IS NOT NULL AND jsonb_typeof(v_val_item->'payments') = 'array' THEN
+                            SELECT COALESCE(jsonb_array_length(v_val_item->'payments') > 0, FALSE) INTO v_has_payments;
+                        END IF;
+
+                        IF NOT v_has_payments THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere registrar al menos un pago.';
+                            RETURN;
+                        END IF;
+                    ELSE
+                        IF NULLIF(v_val_item->>v_json_field_name, '') IS NULL THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere completar el campo "' || v_field_name || '".';
+                            RETURN;
+                        END IF;
+                    END IF;
+                END IF;
+            END LOOP;
+        END IF;
+    END LOOP;
+
+    -- Validación de variables obligatorias específicas del cliente
+    v_client_id := NULLIF(p_data->>'clientId', '')::INT;
+    IF v_client_id IS NOT NULL THEN
+        SELECT "mandatoryVariables" INTO v_client_mandatory_vars
+        FROM public."Client"
+        WHERE id = v_client_id;
+
+        IF v_client_mandatory_vars IS NOT NULL AND jsonb_typeof(v_client_mandatory_vars) = 'array' AND jsonb_array_length(v_client_mandatory_vars) > 0 THEN
+            FOR v_client_var_id_text IN SELECT jsonb_array_elements_text(v_client_mandatory_vars)
+            LOOP
+                v_req_var_id := v_client_var_id_text::INT;
+                
+                SELECT "name" INTO v_req_var_name FROM public."MasterVariable" WHERE id = v_req_var_id;
+                v_req_var_name := COALESCE(v_req_var_name, 'Variable #' || v_req_var_id);
+
+                FOR v_item_json IN SELECT jsonb_array_elements(p_data->'items')
+                LOOP
+                    v_item_prod_id := (v_item_json->>'productId')::INT;
+                    SELECT "description" INTO v_item_prod_desc FROM public."Product" WHERE id = v_item_prod_id;
+                    v_item_prod_desc := COALESCE(v_item_prod_desc, 'Producto #' || v_item_prod_id);
+
+                    SELECT EXISTS (
+                        SELECT 1 FROM jsonb_to_recordset(v_item_json->'variables') AS v("masterVariableId" INT, value TEXT)
+                        WHERE v."masterVariableId" = v_req_var_id AND NULLIF(trim(v.value), '') IS NOT NULL
+                    ) INTO v_has_var;
+
+                    IF NOT v_has_var THEN
+                        p_mensaje_resultado := 'ERROR: El cliente requiere completar la variable adicional "' || v_req_var_name || '" en el producto "' || v_item_prod_desc || '".';
+                        RETURN;
+                    END IF;
+                END LOOP;
+            END LOOP;
+        END IF;
+    END IF;
+
     UPDATE public."Quotation" SET
         "clientId" = NULLIF(p_data->>'clientId', '')::INT,
         "currency" = p_data->>'currency',
@@ -3518,8 +3527,16 @@ BEGIN
         "chargesAndTaxes" = NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
         "totalAmount" = NULLIF(p_data->>'totalAmount', '')::FLOAT,
         "state" = COALESCE(p_data->>'state', 'Nuevo'),
+        "stateDescription" = CASE WHEN COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN p_data->>'stateDescription' ELSE "stateDescription" END,
+        "stateUpdatedAt" = CASE WHEN COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN CURRENT_TIMESTAMP ELSE "stateUpdatedAt" END,
         "date" = CURRENT_TIMESTAMP
     WHERE id = p_id;
+
+    -- Insertar historial de estado si cambia
+    IF COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN
+        INSERT INTO public."QuotationStateHistory" ("quotationId", "state", "description", "createdAt", "userId")
+        VALUES (p_id, COALESCE(p_data->>'state', 'Nuevo'), p_data->>'stateDescription', CURRENT_TIMESTAMP, p_acting_user_id);
+    END IF;
 
     DELETE FROM public."QuotationCombo" WHERE "quotationId" = p_id;
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
@@ -3705,6 +3722,63 @@ END;
 $$;
 
 
+-- Archivo: spCotizacionActualizarEstadoManual.sql
+CREATE OR REPLACE PROCEDURE public.spCotizacionActualizarEstadoManual(
+    p_quotation_id INT,
+    p_state TEXT,
+    p_description TEXT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Validaciones
+    IF p_state IS NULL OR p_state = '' THEN
+        p_mensaje_resultado := 'ERROR: El estado es obligatorio.';
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM public."Quotation" WHERE id = p_quotation_id) THEN
+        p_mensaje_resultado := 'ERROR: La cotización con ID ' || p_quotation_id || ' no existe.';
+        RETURN;
+    END IF;
+
+    -- Validar si el estado existe en la tabla de estados
+    IF NOT EXISTS (SELECT 1 FROM public."QuotationState" WHERE code = p_state) THEN
+        p_mensaje_resultado := 'ERROR: El estado "' || p_state || '" no es válido.';
+        RETURN;
+    END IF;
+
+    UPDATE public."Quotation" SET
+        "state" = p_state,
+        "stateDescription" = p_description,
+        "stateUpdatedAt" = CURRENT_TIMESTAMP
+    WHERE id = p_quotation_id;
+
+    -- Insertar historial de estado
+    INSERT INTO public."QuotationStateHistory" ("quotationId", "state", "description", "createdAt", "userId")
+    VALUES (p_quotation_id, p_state, p_description, CURRENT_TIMESTAMP, p_acting_user_id);
+
+    p_mensaje_resultado := 'SUCCESS: Estado de cotización actualizado correctamente.';
+
+    -- Registrar en Auditoría
+    CALL public."spLogRegistrar"(
+        p_acting_user_id, 
+        'QUOTATION', 
+        'UPDATE_STATE', 
+        'Se cambió el estado de la cotización ID ' || p_quotation_id || ' a ' || p_state || '. Descripción: ' || COALESCE(p_description, ''), 
+        jsonb_build_object('quotationId', p_quotation_id, 'state', p_state, 'description', p_description), 
+        p_quotation_id
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
 -- Archivo: spCotizacionCrear.sql
 CREATE OR REPLACE PROCEDURE public.spCotizacionCrear(
     p_data JSONB,
@@ -3724,6 +3798,28 @@ DECLARE
     v_pmt RECORD;
     v_combo RECORD;
     v_quotation_product_id INT;
+    -- Variables para validación de campos obligatorios dinámicos
+    v_val_item JSONB;
+    v_val_prod_id INT;
+    v_mandatory_fields JSONB;
+    v_field_key TEXT;
+    v_model TEXT;
+    v_field_name TEXT;
+    v_prod_desc TEXT;
+    v_has_passengers BOOLEAN;
+    v_has_empty_pax_name BOOLEAN;
+    v_has_payments BOOLEAN;
+    v_json_field_name TEXT;
+    -- Variables para validación de variables obligatorias específicas del cliente
+    v_client_id INT;
+    v_client_mandatory_vars JSONB;
+    v_client_var_id_text TEXT;
+    v_req_var_id INT;
+    v_req_var_name TEXT;
+    v_item_json JSONB;
+    v_item_prod_id INT;
+    v_item_prod_desc TEXT;
+    v_has_var BOOLEAN;
 BEGIN
     -- Validaciones
     IF NULLIF(p_data->>'clientId', '') IS NULL THEN
@@ -3744,19 +3840,126 @@ BEGIN
         RETURN;
     END IF;
 
+    -- Validación de campos obligatorios dinámicos por producto
+    FOR v_val_item IN SELECT jsonb_array_elements(p_data->'items')
+    LOOP
+        v_val_prod_id := (v_val_item->>'productId')::INT;
+        
+        SELECT "mandatoryFields", "description" 
+        INTO v_mandatory_fields, v_prod_desc 
+        FROM public."Product" 
+        WHERE id = v_val_prod_id;
+
+        v_prod_desc := COALESCE(v_prod_desc, 'Producto #' || v_val_prod_id);
+
+        IF v_mandatory_fields IS NOT NULL AND jsonb_typeof(v_mandatory_fields) = 'array' THEN
+            FOR v_field_key IN SELECT jsonb_array_elements_text(v_mandatory_fields)
+            LOOP
+                v_model := split_part(v_field_key, '.', 1);
+                v_field_name := split_part(v_field_key, '.', 2);
+
+                IF v_model = 'Quotation' THEN
+                    IF NULLIF(p_data->>v_field_name, '') IS NULL THEN
+                        p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere completar el campo general "' || v_field_name || '".';
+                        RETURN;
+                    END IF;
+                ELSIF v_model = 'QuotationProduct' THEN
+                    v_json_field_name := v_field_name;
+                    IF v_field_name = 'checkInDate' THEN
+                        v_json_field_name := 'checkIn';
+                    ELSIF v_field_name = 'checkOutDate' THEN
+                        v_json_field_name := 'checkOut';
+                    END IF;
+
+                    IF v_field_name = 'passengers' THEN
+                        v_has_passengers := FALSE;
+                        v_has_empty_pax_name := FALSE;
+                        
+                        IF v_val_item->'passengers' IS NOT NULL AND jsonb_typeof(v_val_item->'passengers') = 'array' THEN
+                            SELECT COALESCE(jsonb_array_length(v_val_item->'passengers') > 0, FALSE) INTO v_has_passengers;
+                            SELECT EXISTS (
+                                SELECT 1 FROM jsonb_to_recordset(v_val_item->'passengers') AS p(name TEXT)
+                                WHERE p.name IS NULL OR trim(p.name) = ''
+                            ) INTO v_has_empty_pax_name;
+                        END IF;
+
+                        IF NOT v_has_passengers OR v_has_empty_pax_name THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere registrar al menos un pasajero con su nombre.';
+                            RETURN;
+                        END IF;
+                    ELSIF v_field_name = 'payments' THEN
+                        v_has_payments := FALSE;
+                        IF v_val_item->'payments' IS NOT NULL AND jsonb_typeof(v_val_item->'payments') = 'array' THEN
+                            SELECT COALESCE(jsonb_array_length(v_val_item->'payments') > 0, FALSE) INTO v_has_payments;
+                        END IF;
+
+                        IF NOT v_has_payments THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere registrar al menos un pago.';
+                            RETURN;
+                        END IF;
+                    ELSE
+                        IF NULLIF(v_val_item->>v_json_field_name, '') IS NULL THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere completar el campo "' || v_field_name || '".';
+                            RETURN;
+                        END IF;
+                    END IF;
+                END IF;
+            END LOOP;
+        END IF;
+    END LOOP;
+
+    -- Validación de variables obligatorias específicas del cliente
+    v_client_id := NULLIF(p_data->>'clientId', '')::INT;
+    IF v_client_id IS NOT NULL THEN
+        SELECT "mandatoryVariables" INTO v_client_mandatory_vars
+        FROM public."Client"
+        WHERE id = v_client_id;
+
+        IF v_client_mandatory_vars IS NOT NULL AND jsonb_typeof(v_client_mandatory_vars) = 'array' AND jsonb_array_length(v_client_mandatory_vars) > 0 THEN
+            FOR v_client_var_id_text IN SELECT jsonb_array_elements_text(v_client_mandatory_vars)
+            LOOP
+                v_req_var_id := v_client_var_id_text::INT;
+                
+                SELECT "name" INTO v_req_var_name FROM public."MasterVariable" WHERE id = v_req_var_id;
+                v_req_var_name := COALESCE(v_req_var_name, 'Variable #' || v_req_var_id);
+
+                FOR v_item_json IN SELECT jsonb_array_elements(p_data->'items')
+                LOOP
+                    v_item_prod_id := (v_item_json->>'productId')::INT;
+                    SELECT "description" INTO v_item_prod_desc FROM public."Product" WHERE id = v_item_prod_id;
+                    v_item_prod_desc := COALESCE(v_item_prod_desc, 'Producto #' || v_item_prod_id);
+
+                    SELECT EXISTS (
+                        SELECT 1 FROM jsonb_to_recordset(v_item_json->'variables') AS v("masterVariableId" INT, value TEXT)
+                        WHERE v."masterVariableId" = v_req_var_id AND NULLIF(trim(v.value), '') IS NOT NULL
+                    ) INTO v_has_var;
+
+                    IF NOT v_has_var THEN
+                        p_mensaje_resultado := 'ERROR: El cliente requiere completar la variable adicional "' || v_req_var_name || '" en el producto "' || v_item_prod_desc || '".';
+                        RETURN;
+                    END IF;
+                END LOOP;
+            END LOOP;
+        END IF;
+    END IF;
+
     v_internal_number := 'QUO-' || to_char(CURRENT_DATE, 'YYYYMMDD') || '-' || floor(random() * 1000)::text;
 
     INSERT INTO public."Quotation" (
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
         "branchId", "implantId", "sellerId", "ticketPrinterId", 
         "baseCommissionable", "commissionPercentage", "chargesAndTaxes", 
-        "totalAmount", "userId", "state"
+        "totalAmount", "userId", "state", "stateDescription", "stateUpdatedAt"
     ) VALUES (
         v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
         NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
         0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
-        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO'
+        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO', 'Creación de cotización', CURRENT_TIMESTAMP
     ) RETURNING id INTO v_quotation_id;
+
+    -- Insertar historial de estado inicial
+    INSERT INTO public."QuotationStateHistory" ("quotationId", "state", "description", "createdAt", "userId")
+    VALUES (v_quotation_id, 'NUEVO', 'Creación de cotización', CURRENT_TIMESTAMP, p_acting_user_id);
 
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
     LOOP

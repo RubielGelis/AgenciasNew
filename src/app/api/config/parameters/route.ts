@@ -1,12 +1,13 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const parameters = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public.fnParameterListar()`)
-        return NextResponse.json(parameters)
+        return NextResponse.json(paginateArray(req, parameters, p => [p.code, p.name, p.value]))
     } catch (error) {
         return NextResponse.json({ message: 'Error retrieving system parameters' }, { status: 500 })
     }

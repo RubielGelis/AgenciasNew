@@ -1,12 +1,13 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const printers = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public.fnTicketPrinterListar()`)
-        return NextResponse.json(printers)
+        return NextResponse.json(paginateArray(req, printers, tp => [tp.code, tp.name]))
     } catch (error) {
         return NextResponse.json({ message: 'Error fetching ticket printers' }, { status: 500 })
     }

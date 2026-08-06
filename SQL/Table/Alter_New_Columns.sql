@@ -132,3 +132,45 @@ BEGIN
     END IF;
 END $$;
 
+-- 7. Alteración para Product (campos obligatorios)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'mandatoryFields') THEN
+        ALTER TABLE public."Product" ADD COLUMN "mandatoryFields" JSONB;
+    END IF;
+END $$;
+
+-- 8. Alteración para Client (variables obligatorias)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'mandatoryVariables') THEN
+        ALTER TABLE public."Client" ADD COLUMN "mandatoryVariables" JSONB;
+    END IF;
+END $$;
+
+-- 9. Alteraciones para Quotation (historial de estados)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'stateDescription') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "stateDescription" TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'stateUpdatedAt') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "stateUpdatedAt" TIMESTAMP WITHOUT TIME ZONE;
+    END IF;
+END $$;
+
+-- 10. Creación de tabla QuotationStateHistory (Historial completo de estados)
+CREATE SEQUENCE IF NOT EXISTS public."QuotationStateHistory_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
+CREATE TABLE IF NOT EXISTS public."QuotationStateHistory" (
+    id integer NOT NULL DEFAULT nextval('"QuotationStateHistory_id_seq"'::regclass),
+    "quotationId" integer NOT NULL,
+    state varchar(25) NOT NULL,
+    description text,
+    "createdAt" timestamp(6) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "userId" integer,
+    CONSTRAINT "QuotationStateHistory_pkey" PRIMARY KEY (id),
+    CONSTRAINT "QuotationStateHistory_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation" (id) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT "QuotationStateHistory_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User" (id) ON UPDATE CASCADE ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS "QuotationStateHistory_quotationId_idx" ON public."QuotationStateHistory" ("quotationId");
+

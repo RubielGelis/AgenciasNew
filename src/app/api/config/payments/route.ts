@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server'
+import { paginateArray } from '@/lib/pagination'
+import { NextResponse, NextRequest } from 'next/server'
 import prisma from '@/lib/prisma'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const records = await prisma.$queryRawUnsafe('SELECT * FROM public."fnPaymentListar"()');
-        return NextResponse.json(records);
+        return NextResponse.json(paginateArray(req, records as any[], (p: any) => [p.code, p.name]));
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }

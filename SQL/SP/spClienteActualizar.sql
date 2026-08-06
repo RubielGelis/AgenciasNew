@@ -4,6 +4,7 @@ CREATE OR REPLACE PROCEDURE public.spClienteActualizar(
     p_document TEXT,
     p_contact_info TEXT,
     p_address TEXT,
+    p_mandatory_variables JSONB,
     p_acting_user_id INT,
     INOUT p_mensaje_resultado TEXT
 )
@@ -19,7 +20,8 @@ BEGIN
         "name" = p_name,
         "document" = p_document,
         "contactInfo" = p_contact_info,
-        "address" = p_address
+        "address" = p_address,
+        "mandatoryVariables" = p_mandatory_variables
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Cliente ' || p_id || ' actualizado.';

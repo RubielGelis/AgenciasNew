@@ -1,14 +1,15 @@
-import { NextResponse } from 'next/server'
+import { paginateArray } from '@/lib/pagination'
+import { NextResponse, NextRequest } from 'next/server'
 import prisma from '@/lib/prisma'
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url)
         const id_interfaces = searchParams.get('id_interfaces') || 'NULL'
         const id_master = searchParams.get('id_master') || 'NULL'
 
         const result = await prisma.$queryRawUnsafe(`SELECT * FROM public."fnEquivalencesInterfacesConsultar"(${id_interfaces}, ${id_master})`)
-        return NextResponse.json(result)
+        return NextResponse.json(paginateArray(req, result as any[], (e: any) => [e.cd_maestro, e.cd_codigo, e.cd_codigointe, e.interfaceName, e.masterName]))
     } catch (error: any) {
         return NextResponse.json({ message: error.message }, { status: 500 })
     }

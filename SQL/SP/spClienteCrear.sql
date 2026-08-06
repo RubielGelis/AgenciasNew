@@ -3,6 +3,7 @@ CREATE OR REPLACE PROCEDURE public.spClienteCrear(
     p_document TEXT,
     p_contact_info TEXT,
     p_address TEXT,
+    p_mandatory_variables JSONB,
     p_acting_user_id INT,
     INOUT p_client_id INT,
     INOUT p_mensaje_resultado TEXT
@@ -15,8 +16,8 @@ BEGIN
         RETURN;
     END IF;
 
-    INSERT INTO public."Client" ("name", "document", "contactInfo", "address")
-    VALUES (p_name, p_document, p_contact_info, p_address)
+    INSERT INTO public."Client" ("name", "document", "contactInfo", "address", "mandatoryVariables")
+    VALUES (p_name, p_document, p_contact_info, p_address, p_mandatory_variables)
     RETURNING id INTO p_client_id;
 
     p_mensaje_resultado := 'SUCCESS: Cliente creado con ID ' || p_client_id;

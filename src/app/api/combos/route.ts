@@ -1,15 +1,16 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const results: any[] = await prisma.$queryRawUnsafe(
             `SELECT * FROM public.fnComboListar()`
         );
         const combos = results.map(row => row.fncombolistar);
-        return NextResponse.json(combos)
+        return NextResponse.json(paginateArray(req, combos, c => [c.code, c.name]))
     } catch (error) {
         return NextResponse.json({ message: 'Error retrieving combos' }, { status: 500 })
     }

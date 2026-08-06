@@ -74,12 +74,11 @@ try {
     $NewContent = $EnvLoader + "`n" + $OriginalContent
     Set-Content -Path $ServerJsPath -Value $NewContent -Encoding UTF8
 }
-
-
 # 4. Copiar Herramientas y SQL
 Write-Host "`n[4/5] Ensamblando Assets y Bases de Datos..." -ForegroundColor Yellow
 Copy-Item ".\deploy\install-service.js" -Destination $ReleaseDir -Force
 Copy-Item ".\deploy\Setup_Agencias.ps1" -Destination $ReleaseDir -Force
+Copy-Item ".\deploy\Update_Agencias.ps1" -Destination $ReleaseDir -Force
 Copy-Item ".\deploy\db_installer.js" -Destination $ReleaseDir -Force
 Copy-Item ".\deploy\web.config" -Destination $ReleaseDir -Force
 # SQL Master

@@ -74,5 +74,6 @@ if (fs.existsSync(spDir)) {
 }
 
 fs.writeFileSync('SQL/Actualizador/Actualizador.SQL', outputPg, 'utf8');
+fs.writeFileSync('SQL/Actualizador.SQL', outputPg, 'utf8');
 fs.writeFileSync('SQL/Actualizador/ActualizadorSERVER.SQL', outputSqlserver, 'utf8');
 console.log('Regenerated Actualizador.SQL (PostgreSQL) and ActualizadorSERVER.SQL (SQL Server) successfully.');

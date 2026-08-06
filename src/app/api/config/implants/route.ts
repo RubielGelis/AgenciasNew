@@ -1,3 +1,4 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getCellCustomizationConfig, syncCellCustomization } from '@/lib/cell-customization'
@@ -6,7 +7,7 @@ import { logSystemEvent } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const implants = await prisma.$queryRawUnsafe<any[]>(
             `SELECT i.*, 
@@ -28,7 +29,7 @@ export async function GET() {
             }
         }))
         
-        return NextResponse.json(implantsWithLogo)
+        return NextResponse.json(paginateArray(req, implantsWithLogo, i => [i.code, i.name]))
     } catch (error: any) {
         console.error('Error in implants GET', error)
         return NextResponse.json({ message: 'Error fetching implants', detail: error.message }, { status: 500 })

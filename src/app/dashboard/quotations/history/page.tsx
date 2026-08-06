@@ -21,17 +21,60 @@ import QuotationInvoiceModal from '../QuotationInvoiceModal'
 
 export default function QuotationsHistoryPage() {
     const [quotations, setQuotations] = useState<any[]>([])
+    const [states, setStates] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const [searchTerm, setSearchTerm] = useState('')
+    
+    // Filtros de búsqueda
+    const [filterReferencia, setFilterReferencia] = useState('')
+    const [filterFechaDesde, setFilterFechaDesde] = useState('')
+    const [filterFechaHasta, setFilterFechaHasta] = useState('')
+    const [filterCliente, setFilterCliente] = useState('')
+    const [filterElaboradoPor, setFilterElaboradoPor] = useState('')
+    const [filterMontoTotal, setFilterMontoTotal] = useState('')
+    const [filterEstado, setFilterEstado] = useState('')
+
     const [selectedIds, setSelectedIds] = useState<number[]>([])
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
     const [invoiceQuotationId, setInvoiceQuotationId] = useState<number | null>(null)
 
-    const fetchQuotations = async () => {
+    const fetchQuotations = async (filters?: {
+        referencia?: string;
+        fechaDesde?: string;
+        fechaHasta?: string;
+        cliente?: string;
+        elaboradoPor?: string;
+        montoTotal?: string;
+        estado?: string;
+    }) => {
+        setLoading(true)
         try {
-            const res = await fetch('/api/quotations/history')
-            const data = await res.json()
-            setQuotations(Array.isArray(data) ? data : [])
+            const params = new URLSearchParams()
+            if (filters) {
+                if (filters.referencia) params.append('referencia', filters.referencia)
+                if (filters.fechaDesde) params.append('fechaDesde', filters.fechaDesde)
+                if (filters.fechaHasta) params.append('fechaHasta', filters.fechaHasta)
+                if (filters.cliente) params.append('cliente', filters.cliente)
+                if (filters.elaboradoPor) params.append('elaboradoPor', filters.elaboradoPor)
+                if (filters.montoTotal) params.append('montoTotal', filters.montoTotal)
+                if (filters.estado) params.append('estado', filters.estado)
+            }
+
+            const url = `/api/quotations/history?${params.toString()}`
+
+            const [quoRes, statesRes] = await Promise.all([
+                fetch(url).then(res => res.json()),
+                fetch('/api/config/quotation-states').then(res => res.json()).catch(() => [])
+            ])
+
+            setQuotations(Array.isArray(quoRes) ? quoRes : [])
+            if (Array.isArray(statesRes) && statesRes.length > 0) {
+                setStates(statesRes)
+            } else {
+                setStates(prev => prev.length > 0 ? prev : [
+                    { code: 'NUEVO', name: 'Nuevo', color: 'blue' },
+                    { code: 'ENVIADO', name: 'ENVIADO', color: 'emerald' }
+                ])
+            }
         } catch (error) {
             console.error('Error fetching history:', error)
         } finally {
@@ -39,14 +82,34 @@ export default function QuotationsHistoryPage() {
         }
     }
 
+    const handleApplyFilters = () => {
+        fetchQuotations({
+            referencia: filterReferencia,
+            fechaDesde: filterFechaDesde,
+            fechaHasta: filterFechaHasta,
+            cliente: filterCliente,
+            elaboradoPor: filterElaboradoPor,
+            montoTotal: filterMontoTotal,
+            estado: filterEstado
+        })
+    }
+
+    const handleClearFilters = () => {
+        setFilterReferencia('')
+        setFilterFechaDesde('')
+        setFilterFechaHasta('')
+        setFilterCliente('')
+        setFilterElaboradoPor('')
+        setFilterMontoTotal('')
+        setFilterEstado('')
+        fetchQuotations({})
+    }
+
     useEffect(() => {
         fetchQuotations()
     }, [])
 
-    const filteredQs = quotations.filter(q =>
-        q.id.toString().includes(searchTerm) ||
-        q.clientName.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    const filteredQs = quotations
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
@@ -141,26 +204,14 @@ export default function QuotationsHistoryPage() {
                     <p className="text-zinc-500 dark:text-zinc-400 font-medium text-lg">Consulta y administra todas las cotizaciones emitidas</p>
                 </div>
                 <div className="flex gap-4">
-                    <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 w-5 h-5" />
-                        <input
-                            type="text"
-                            placeholder="Buscar ID o cliente..."
-                            className="h-14 bg-white dark:bg-zinc-900 rounded-2xl pl-12 pr-6 border border-zinc-200 dark:border-zinc-800 focus:ring-2 focus:ring-blue-500 outline-none w-full md:w-80 font-medium transition-all shadow-sm"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleExport}
-                            className="px-6 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-xl shadow-emerald-500/20 font-bold transition-all flex items-center gap-3 shrink-0"
-                        >
-                            <Download className="w-5 h-5" /> Exportar
-                        </motion.button>
-                    </div>
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleExport}
+                        className="px-6 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-xl shadow-emerald-500/20 font-bold transition-all flex items-center gap-3 shrink-0"
+                    >
+                        <Download className="w-5 h-5" /> Exportar
+                    </motion.button>
                     <Link href="/dashboard/quotations/new">
                         <motion.button
                             whileHover={{ scale: 1.02 }}
@@ -172,6 +223,118 @@ export default function QuotationsHistoryPage() {
                     </Link>
                 </div>
             </header>
+
+            {/* Filtros Avanzados */}
+            <div className="bg-white dark:bg-zinc-900/50 p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 mb-8 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                    <Calendar className="w-5 h-5 text-blue-600" />
+                    <h2 className="text-sm font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-widest">Filtros de Búsqueda</h2>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {/* Referencia */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Referencia / ID</label>
+                        <input
+                            type="text"
+                            placeholder="Ej. #12 o COT-001..."
+                            className="h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-100 dark:border-zinc-700/50 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-zinc-700 dark:text-zinc-200 font-medium"
+                            value={filterReferencia}
+                            onChange={(e) => setFilterReferencia(e.target.value)}
+                        />
+                    </div>
+                    
+                    {/* Cliente */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Cliente</label>
+                        <input
+                            type="text"
+                            placeholder="Nombre del cliente..."
+                            className="h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-100 dark:border-zinc-700/50 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-zinc-700 dark:text-zinc-200 font-medium"
+                            value={filterCliente}
+                            onChange={(e) => setFilterCliente(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Elaborado por */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Elaborado por</label>
+                        <input
+                            type="text"
+                            placeholder="Nombre del vendedor..."
+                            className="h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-100 dark:border-zinc-700/50 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-zinc-700 dark:text-zinc-200 font-medium"
+                            value={filterElaboradoPor}
+                            onChange={(e) => setFilterElaboradoPor(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Estado */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Estado</label>
+                        <select
+                            className="h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-3 border border-zinc-100 dark:border-zinc-700/50 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-zinc-700 dark:text-zinc-200 font-semibold"
+                            value={filterEstado}
+                            onChange={(e) => setFilterEstado(e.target.value)}
+                        >
+                            <option value="">TODOS</option>
+                            {states.map((s: any) => (
+                                <option key={s.id || s.code} value={s.code}>{s.name.toUpperCase()}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Fecha Desde */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Fecha Desde</label>
+                        <input
+                            type="date"
+                            className="h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-100 dark:border-zinc-700/50 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-zinc-700 dark:text-zinc-200 font-medium"
+                            value={filterFechaDesde}
+                            onChange={(e) => setFilterFechaDesde(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Fecha Hasta */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Fecha Hasta</label>
+                        <input
+                            type="date"
+                            className="h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-100 dark:border-zinc-700/50 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-zinc-700 dark:text-zinc-200 font-medium"
+                            value={filterFechaHasta}
+                            onChange={(e) => setFilterFechaHasta(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Monto Total */}
+                    <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Monto Total</label>
+                        <input
+                            type="number"
+                            placeholder="Monto exacto..."
+                            className="h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-100 dark:border-zinc-700/50 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-zinc-700 dark:text-zinc-200 font-medium"
+                            value={filterMontoTotal}
+                            onChange={(e) => setFilterMontoTotal(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Acciones de Filtro */}
+                    <div className="flex items-end gap-2 h-11 mt-auto">
+                        <button
+                            onClick={handleApplyFilters}
+                            className="flex-1 h-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-sm shadow-md shadow-blue-500/10 flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                        >
+                            <Search className="w-4 h-4" /> Buscar
+                        </button>
+                        <button
+                            onClick={handleClearFilters}
+                            className="h-full px-4 border border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-850 rounded-xl font-black text-xs uppercase tracking-wider transition-all"
+                            title="Limpiar filtros"
+                        >
+                            Limpiar
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[500px]">
                 {loading ? (
@@ -230,7 +393,7 @@ export default function QuotationsHistoryPage() {
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="font-semibold text-zinc-800 dark:text-zinc-200">{q.clientName}</div>
-                                            <div className="text-xs text-zinc-500">{q.nights} Noches - {q.providerName}</div>
+                                            <div className="text-xs text-zinc-500 font-medium">Pax: {q.passengerName || 'Mismo titular'}</div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400">

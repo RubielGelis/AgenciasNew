@@ -21,6 +21,8 @@ BEGIN
             'chargesAndTaxes', q."chargesAndTaxes",
             'totalAmount', q."totalAmount",
             'state', q.state,
+            'stateDescription', q."stateDescription",
+            'stateUpdatedAt', q."stateUpdatedAt",
             'client', jsonb_build_object(
                 'id', c.id,
                 'name', c.name,

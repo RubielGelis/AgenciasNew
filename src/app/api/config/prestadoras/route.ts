@@ -1,15 +1,16 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const results: any[] = await prisma.$queryRawUnsafe(
             `SELECT * FROM public.fnPrestadoraListar()`
         );
         const prestadoras = results.map(row => row.fnprestadoralistar);
-        return NextResponse.json(prestadoras)
+        return NextResponse.json(paginateArray(req, prestadoras, p => [p.code, p.name, p.category, p.type, p.providerName]))
     } catch (error) {
         console.error('Error fetching prestadoras:', error);
         return NextResponse.json({ message: 'Error fetching prestadoras' }, { status: 500 })

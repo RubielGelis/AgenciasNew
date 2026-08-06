@@ -1,14 +1,15 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const results = await prisma.product.findMany({
             orderBy: { id: 'desc' }
         });
-        return NextResponse.json(results)
+        return NextResponse.json(paginateArray(req, results, p => [p.code, p.type, p.description]))
     } catch (error) {
         return NextResponse.json({ message: 'Error retrieving products' }, { status: 500 })
     }
@@ -17,7 +18,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId } = body
+        const { code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId, mandatoryFields } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
                 classItinerary: classItinerary || null,
                 airlineItinerary: airlineItinerary || null,
                 ticketTypeId: ticketTypeId ? parseInt(ticketTypeId) : null,
+                mandatoryFields: mandatoryFields || null,
             }
         });
 
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json()
-        const { id, code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId } = body
+        const { id, code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId, mandatoryFields } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
@@ -69,6 +71,7 @@ export async function PUT(req: NextRequest) {
                 classItinerary: classItinerary || null,
                 airlineItinerary: airlineItinerary || null,
                 ticketTypeId: ticketTypeId ? parseInt(ticketTypeId) : null,
+                mandatoryFields: mandatoryFields || null,
             }
         });
 

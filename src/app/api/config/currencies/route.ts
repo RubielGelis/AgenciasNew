@@ -1,3 +1,4 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
             param
         )
 
-        return NextResponse.json(results)
+        return NextResponse.json(paginateArray(req, results, c => [c.code, c.name]))
     } catch (error: any) {
         console.error('Error retrieving currencies:', error)
         return NextResponse.json({ message: 'Error retrieving currencies: ' + error.message }, { status: 500 })

@@ -1,12 +1,13 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         const taxes = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public.fnImpuestoListar()`)
-        return NextResponse.json(taxes)
+        return NextResponse.json(paginateArray(req, taxes, t => [t.code, t.name, t.type]))
     } catch (error) {
         return NextResponse.json({ message: 'Error al obtener cargos e impuestos' }, { status: 500 })
     }

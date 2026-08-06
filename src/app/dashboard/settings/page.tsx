@@ -69,80 +69,179 @@ export default function SettingsPage() {
     const [masterList, setMasterList] = useState<any[]>([])
     const [dynamicMasterOptions, setDynamicMasterOptions] = useState<any[]>([])
 
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(25)
+    const [totalItems, setTotalItems] = useState(0)
+    const [totalPages, setTotalPages] = useState(1)
+
     // Form states
     const [formData, setFormData] = useState<any>({})
     const [searchTerm, setSearchTerm] = useState('')
+    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
 
+    // Debounce search term
     useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedSearchTerm(searchTerm)
+        }, 300)
+        return () => clearTimeout(handler)
+    }, [searchTerm])
+
+    // Reset pagination and search on tab change
+    useEffect(() => {
+        setCurrentPage(1)
         setSearchTerm('')
+        setDebouncedSearchTerm('')
     }, [activeTab])
 
+    // Load initial metadata once on mount
     useEffect(() => {
-        fetchData()
+        fetchMetadata()
     }, [])
 
-    const fetchData = async () => {
+    // Load active tab data whenever pagination/search dependencies change
+    useEffect(() => {
+        fetchActiveTabData(activeTab, currentPage, pageSize, debouncedSearchTerm)
+    }, [activeTab, currentPage, pageSize, debouncedSearchTerm])
+
+    const fetchMetadata = async () => {
+        try {
+            const [resInterfaces, resMasters, resRoles] = await Promise.all([
+                fetch('/api/config/interfaces').then(res => res.json()).catch(() => []),
+                fetch('/api/config/masters').then(res => res.json()).catch(() => []),
+                fetch('/api/config/roles').then(res => res.json()).catch(() => []),
+            ]);
+            setInterfacesList(Array.isArray(resInterfaces) ? resInterfaces : []);
+            setMasterList(Array.isArray(resMasters) ? resMasters : []);
+            setRoles(Array.isArray(resRoles) ? resRoles : []);
+        } catch (error) {
+            console.error('Error fetching metadata:', error);
+        }
+    }
+
+    const fetchLookupData = async (tab: Tab) => {
+        try {
+            if (tab === 'aeropuertos') {
+                const res = await fetch('/api/config/cities').then(res => res.json());
+                setCities(Array.isArray(res) ? res : []);
+            } else if (tab === 'prestadoras') {
+                const res = await fetch('/api/providers').then(res => res.json());
+                setProviders(Array.isArray(res) ? res : []);
+            } else if (tab === 'ciudades') {
+                const res = await fetch('/api/config/countries').then(res => res.json());
+                setCountries(Array.isArray(res) ? res : []);
+            } else if (tab === 'paises') {
+                const res = await fetch('/api/config/currencies').then(res => res.json());
+                setCurrencies(Array.isArray(res) ? res : []);
+            } else if (tab === 'productos') {
+                const res = await fetch('/api/config/ticket-types').then(res => res.json());
+                setTicketTypes(Array.isArray(res) ? res : []);
+            } else if (tab === 'usuarios') {
+                const [b, i, tp] = await Promise.all([
+                    fetch('/api/config/branches').then(res => res.json()),
+                    fetch('/api/config/implants').then(res => res.json()),
+                    fetch('/api/config/ticket-printers').then(res => res.json()),
+                ]);
+                setBranches(Array.isArray(b) ? b : []);
+                setImplants(Array.isArray(i) ? i : []);
+                setTicketPrinters(Array.isArray(tp) ? tp : []);
+            }
+        } catch (err) {
+            console.error("Error fetching lookup data:", err);
+        }
+    }
+
+    const setTabListState = (tab: Tab, data: any[]) => {
+        switch (tab) {
+            case 'usuarios': setUsers(data); break;
+            case 'sucursales': setBranches(data); break;
+            case 'implants': setImplants(data); break;
+            case 'impuestos': setTaxes(data); break;
+            case 'vendedores': setSellers(data); break;
+            case 'tiqueteadores': setTicketPrinters(data); break;
+            case 'prestadoras': setHotels(data); break;
+            case 'proveedores': setProviders(data); break;
+            case 'clientes': setClients(data); break;
+            case 'productos': setProducts(data); break;
+            case 'variables': setVariables(data); break;
+            case 'parametros': setParameters(data); break;
+            case 'monedas': setCurrencies(data); break;
+            case 'equivalencias': setEquivalences(data); break;
+            case 'tarjetas-credito': setCreditCards(data); break;
+            case 'formas-pago': setPayments(data); break;
+            case 'paises': setCountries(data); break;
+            case 'ciudades': setCities(data); break;
+            case 'aeropuertos': setAirports(data); break;
+            case 'tipos-tiquetes': setTicketTypes(data); break;
+            case 'estados-cotizacion': setQuotationStates(data); break;
+            case 'combos': setCombos(data); break;
+            case 'logs': setLogs(data); break;
+        }
+    }
+
+    const fetchActiveTabData = async (tab: Tab, pageNum: number, limitNum: number, searchVal: string) => {
         setLoading(true)
         try {
-            const [u, r, b, i, t, v, tp, h, provs, systemLogs, resClients, resProducts, resVariables, resParams, resCombos, resCurrencies, resEquivalences, resInterfaces, resMasters, resCreditCards, resPayments, resCountries, resCities, resAirports, resTicketTypes] = await Promise.all([
-                fetch('/api/config/users').then(res => res.json()),
-                fetch('/api/config/roles').then(res => res.json()),
-                fetch('/api/config/branches').then(res => res.json()),
-                fetch('/api/config/implants').then(res => res.json()),
-                fetch('/api/config/taxes').then(res => res.json()),
-                fetch('/api/config/sellers').then(res => res.json()),
-                fetch('/api/config/ticket-printers').then(res => res.json()),
-                fetch('/api/config/prestadoras').then(res => res.json()),
-                fetch('/api/providers').then(res => res.json()),
-                fetch('/api/config/logs').then(res => res.json()),
-                fetch('/api/clients').then(res => res.json()),
-                fetch('/api/products').then(res => res.json()),
-                fetch('/api/config/variables').then(res => res.json()),
-                fetch('/api/config/parameters').then(res => res.json()),
-                fetch('/api/combos').then(res => res.json()),
-                fetch('/api/config/currencies').then(res => res.json()),
-                fetch('/api/config/equivalences').then(res => res.json()),
-                fetch('/api/config/interfaces').then(res => res.json()),
-                fetch('/api/config/masters').then(res => res.json())
-              ,fetch('/api/config/credit-cards').then(res => res.json())
-              ,fetch('/api/config/payments').then(res => res.json())
-              ,fetch('/api/config/countries').then(res => res.json())
-              ,fetch('/api/config/cities').then(res => res.json())
-              ,fetch('/api/config/airports').then(res => res.json())
-              ,fetch('/api/config/ticket-types').then(res => res.json())
-            ])
-            setUsers(Array.isArray(u) ? u : [])
-            setRoles(Array.isArray(r) ? r : [])
-            setBranches(Array.isArray(b) ? b : [])
-            setImplants(Array.isArray(i) ? i : [])
-            setTaxes(Array.isArray(t) ? t : [])
-            setSellers(Array.isArray(v) ? v : [])
-            setTicketPrinters(Array.isArray(tp) ? tp : [])
-            setHotels(Array.isArray(h) ? h : [])
-            setProviders(Array.isArray(provs) ? provs : [])
-            setLogs(Array.isArray(systemLogs) ? systemLogs : [])
-            setClients(Array.isArray(resClients) ? resClients : [])
-            setProducts(Array.isArray(resProducts) ? resProducts : [])
-            setVariables(Array.isArray(resVariables) ? resVariables : [])
-            setParameters(Array.isArray(resParams) ? resParams : [])
-            setCombos(Array.isArray(resCombos) ? resCombos : [])
-            setCurrencies(Array.isArray(resCurrencies) ? resCurrencies : [])
-            setEquivalences(Array.isArray(resEquivalences) ? resEquivalences : [])
-            setInterfacesList(Array.isArray(resInterfaces) ? resInterfaces : [])
-            setMasterList(Array.isArray(resMasters) ? resMasters : [])
-            setCreditCards(Array.isArray(resCreditCards) ? resCreditCards : [])
-            setPayments(Array.isArray(resPayments) ? resPayments : [])
-            setCountries(Array.isArray(resCountries) ? resCountries : [])
-            setCities(Array.isArray(resCities) ? resCities : [])
-            setAirports(Array.isArray(resAirports) ? resAirports : [])
-            setTicketTypes(Array.isArray(resTicketTypes) ? resTicketTypes : [])
+            let endpoint = '';
+            switch (tab) {
+                case 'usuarios': endpoint = '/api/config/users'; break;
+                case 'sucursales': endpoint = '/api/config/branches'; break;
+                case 'implants': endpoint = '/api/config/implants'; break;
+                case 'impuestos': endpoint = '/api/config/taxes'; break;
+                case 'vendedores': endpoint = '/api/config/sellers'; break;
+                case 'tiqueteadores': endpoint = '/api/config/ticket-printers'; break;
+                case 'prestadoras': endpoint = '/api/config/prestadoras'; break;
+                case 'proveedores': endpoint = '/api/providers'; break;
+                case 'clientes': endpoint = '/api/clients'; break;
+                case 'productos': endpoint = '/api/products'; break;
+                case 'variables': endpoint = '/api/config/variables'; break;
+                case 'parametros': endpoint = '/api/config/parameters'; break;
+                case 'monedas': endpoint = '/api/config/currencies'; break;
+                case 'equivalencias': endpoint = '/api/config/equivalences'; break;
+                case 'tarjetas-credito': endpoint = '/api/config/credit-cards'; break;
+                case 'formas-pago': endpoint = '/api/config/payments'; break;
+                case 'paises': endpoint = '/api/config/countries'; break;
+                case 'ciudades': endpoint = '/api/config/cities'; break;
+                case 'aeropuertos': endpoint = '/api/config/airports'; break;
+                case 'tipos-tiquetes': endpoint = '/api/config/ticket-types'; break;
+                case 'estados-cotizacion': endpoint = '/api/config/quotation-states'; break;
+                case 'combos': endpoint = '/api/combos'; break;
+                case 'logs': endpoint = '/api/config/logs'; break;
+            }
 
-            // Fetch quotation states
-            const resQStates = await fetch('/api/config/quotation-states').then(res => res.json()).catch(() => []);
-            setQuotationStates(Array.isArray(resQStates) ? resQStates : []);
+            if (!endpoint) return;
+
+            const queryParams = new URLSearchParams();
+            queryParams.append('page', pageNum.toString());
+            queryParams.append('limit', limitNum.toString());
+            if (searchVal) {
+                queryParams.append('search', searchVal);
+            }
+
+            const res = await fetch(`${endpoint}?${queryParams.toString()}`);
+            const json = await res.json();
+
+            if (json && typeof json === 'object' && 'data' in json) {
+                setTotalItems(json.total || 0);
+                setTotalPages(json.totalPages || 1);
+                setTabListState(tab, json.data);
+            } else {
+                const list = Array.isArray(json) ? json : [];
+                setTotalItems(list.length);
+                setTotalPages(1);
+                setTabListState(tab, list);
+            }
+        } catch (error) {
+            console.error('Error fetching active tab data:', error);
+            setTabListState(tab, []);
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
+    }
+
+    const fetchData = async () => {
+        await fetchActiveTabData(activeTab, currentPage, pageSize, debouncedSearchTerm);
     }
 
     useEffect(() => {
@@ -168,6 +267,7 @@ export default function SettingsPage() {
     }, [formData.id_master, activeTab, masterList]);
 
     const handleOpenModal = (item?: any) => {
+        fetchLookupData(activeTab);
         if (item) {
             if (activeTab === 'combos' && item.products) {
                 // Normalizar los tipos de datos de los productos del combo al cargar para editar
@@ -519,6 +619,7 @@ export default function SettingsPage() {
                         <Loader2 className="animate-spin w-12 h-12 text-blue-600" />
                     </div>
                 ) : (
+                    <>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead className="bg-zinc-50 dark:bg-zinc-800/30">
@@ -955,6 +1056,50 @@ export default function SettingsPage() {
                             </tbody>
                         </table>
                     </div>
+                    {/* Pagination Controls */}
+                    <div className="px-8 py-5 bg-zinc-50 dark:bg-zinc-800/30 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
+                        <div className="text-zinc-500 dark:text-zinc-400 text-sm font-medium">
+                            Mostrando <span className="font-bold text-zinc-900 dark:text-white">{totalItems === 0 ? 0 : Math.min(totalItems, (currentPage - 1) * pageSize + 1)}</span> a <span className="font-bold text-zinc-900 dark:text-white">{Math.min(totalItems, currentPage * pageSize)}</span> de <span className="font-bold text-zinc-900 dark:text-white">{totalItems}</span> registros
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Filas por página:</label>
+                                <select
+                                    className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-1.5 text-xs font-bold text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer"
+                                    value={pageSize}
+                                    onChange={(e) => {
+                                        setPageSize(parseInt(e.target.value))
+                                        setCurrentPage(1)
+                                    }}
+                                >
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-3.5 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-100 dark:hover:bg-zinc-800 font-bold text-xs rounded-xl shadow-sm transition-all"
+                                >
+                                    Anterior
+                                </button>
+                                <span className="text-zinc-500 dark:text-zinc-400 text-xs font-bold px-2">
+                                    {currentPage} de {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                    disabled={currentPage === totalPages || totalPages === 0}
+                                    className="px-3.5 py-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-zinc-100 dark:hover:bg-zinc-800 font-bold text-xs rounded-xl shadow-sm transition-all"
+                                >
+                                    Siguiente
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    </>
                 )}
             </div>
 

@@ -12,6 +12,8 @@ interface SearchSelectProps {
     disabled?: boolean;
     labelKey?: string;
     secondaryKey?: string; 
+    hasError?: boolean;
+    className?: string;
 }
 
 export function SearchSelect({ 
@@ -21,7 +23,9 @@ export function SearchSelect({
     placeholder = "Seleccionar...", 
     disabled = false, 
     labelKey = "name", 
-    secondaryKey = "code" 
+    secondaryKey = "code",
+    hasError = false,
+    className = ""
 }: SearchSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -43,7 +47,7 @@ export function SearchSelect({
                 type="button"
                 onClick={() => !disabled && setIsOpen(true)}
                 disabled={disabled}
-                className={`w-full h-11 sm:h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-3 sm:px-4 border border-zinc-200 dark:border-zinc-700 outline-none flex items-center justify-between text-left focus:ring-2 focus:ring-blue-500 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'}`}
+                className={className || `w-full h-11 sm:h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-3 sm:px-4 border outline-none flex items-center justify-between text-left focus:ring-2 focus:ring-blue-500 ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-zinc-100 dark:hover:bg-zinc-700'} ${hasError ? 'border-red-500 ring-2 ring-red-100 dark:ring-red-950/30' : 'border-zinc-200 dark:border-zinc-700'}`}
             >
                 <span className="truncate text-xs sm:text-sm font-medium dark:text-white">
                     {selectedOption 

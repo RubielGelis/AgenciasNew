@@ -1,3 +1,4 @@
+import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 
@@ -19,13 +20,13 @@ async function ensureDefaultStates() {
     }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
     try {
         await ensureDefaultStates();
         const results = await prisma.quotationState.findMany({
             orderBy: { id: 'asc' }
         });
-        return NextResponse.json(results)
+        return NextResponse.json(paginateArray(req, results, (q: any) => [q.name, q.code]))
     } catch (error: any) {
         return NextResponse.json({ message: 'Error retrieving quotation states: ' + error.message }, { status: 500 })
     }

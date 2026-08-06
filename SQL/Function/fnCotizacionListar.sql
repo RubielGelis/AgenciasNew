@@ -1,4 +1,14 @@
-CREATE OR REPLACE FUNCTION public.fnCotizacionListar()
+DROP FUNCTION IF EXISTS public.fnCotizacionListar();
+
+CREATE OR REPLACE FUNCTION public.fnCotizacionListar(
+    p_referencia VARCHAR DEFAULT NULL,
+    p_fecha_desde DATE DEFAULT NULL,
+    p_fecha_hasta DATE DEFAULT NULL,
+    p_cliente VARCHAR DEFAULT NULL,
+    p_elaborado_por VARCHAR DEFAULT NULL,
+    p_monto_total NUMERIC DEFAULT NULL,
+    p_estado VARCHAR DEFAULT NULL
+)
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
 AS $$
@@ -13,6 +23,10 @@ BEGIN
             'currency', q.currency,
             'exchangeRate', q."exchangeRate",
             'totalAmount', q."totalAmount",
+            'state', q.state,
+            'stateDescription', q."stateDescription",
+            'stateUpdatedAt', q."stateUpdatedAt",
+            'user', CASE WHEN u.id IS NOT NULL THEN jsonb_build_object('id', u.id, 'name', u.name) ELSE NULL END,
             'client', jsonb_build_object(
                 'id', c.id,
                 'name', c.name,
@@ -64,6 +78,15 @@ BEGIN
         )
     FROM public."Quotation" q
     JOIN public."Client" c ON q."clientId" = c.id
+    LEFT JOIN public."User" u ON q."userId" = u.id
+    WHERE 
+        (p_referencia IS NULL OR q.id::text ILIKE '%' || p_referencia || '%')
+        AND (p_fecha_desde IS NULL OR q.date::date >= p_fecha_desde)
+        AND (p_fecha_hasta IS NULL OR q.date::date <= p_fecha_hasta)
+        AND (p_cliente IS NULL OR c.name ILIKE '%' || p_cliente || '%')
+        AND (p_elaborado_por IS NULL OR u.name ILIKE '%' || p_elaborado_por || '%')
+        AND (p_monto_total IS NULL OR q."totalAmount" = p_monto_total)
+        AND (p_estado IS NULL OR q.state ILIKE '%' || p_estado || '%')
     ORDER BY q.date DESC;
 END;
 $$;
