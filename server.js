@@ -1,5 +1,31 @@
 const path = require('path')
 
+// Cargar variables de entorno de .env para Next.js Standalone
+try {
+  require('dotenv').config()
+} catch (e) {
+  const fs = require('fs')
+  try {
+    const envPath = path.join(__dirname, '.env')
+    if (fs.existsSync(envPath)) {
+      const env = fs.readFileSync(envPath, 'utf8')
+      env.split('\n').forEach(line => {
+        const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/)
+        if (match) {
+          const key = match[1]
+          let value = match[2] || ''
+          if (value.startsWith('"') && value.endsWith('"')) {
+            value = value.substring(1, value.length - 1)
+          }
+          if (!process.env[key]) {
+            process.env[key] = value
+          }
+        }
+      })
+    }
+  } catch (err) {}
+}
+
 const dir = path.join(__dirname)
 
 process.env.NODE_ENV = 'production'

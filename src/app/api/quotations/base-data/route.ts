@@ -73,6 +73,11 @@ export async function GET(req: NextRequest) {
             products: combo.products.filter((p: any) => !p.checkOutDate || new Date(p.checkOutDate) >= today)
         })).filter((combo: any) => combo.products.length > 0 && (combo.cupos === undefined || combo.cupos === null || combo.cupos > 0));
 
+        const showTotalsParam = await (prisma as any).systemParameter?.findUnique({
+            where: { code: 'MOSTRAR_TOTALIZACION_COTIZACION' }
+        });
+        const showTotals = showTotalsParam ? showTotalsParam.value?.trim().toLowerCase() === 'true' : true;
+
         return NextResponse.json({
             clients,
             providers,
@@ -89,7 +94,8 @@ export async function GET(req: NextRequest) {
             currencies,
             creditCards,
             payments,
-            quotationStates
+            quotationStates,
+            showTotals
         })
     } catch (error: any) {
         console.error('Data fetch error:', error)

@@ -55,7 +55,7 @@ IF %ERRORLEVEL% NEQ 0 (
 
 echo.
 echo Iniciando servidor Next.js...
-call npm run start -- -p 3000
+call npm run start -- -p 3001
 
 IF %ERRORLEVEL% NEQ 0 (
  echo Error al iniciar el servidor Next.js

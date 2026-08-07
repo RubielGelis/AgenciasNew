@@ -8,6 +8,9 @@ $TargetDir = $PSScriptRoot
 $SitePort = 3000
 $SiteName = "AgenciasNew"
 
+# Optimizar velocidad de descargas desactivando barra de progreso en consola
+$ProgressPreference = 'SilentlyContinue'
+
 # 1. VALIDAR / INSTALAR NODE.JS Core
 try {
     $nodeVer = node -v
@@ -24,11 +27,23 @@ try {
 $RewriteMsi = "$env:TEMP\rewrite_amd64.msi"
 $ArrMsi = "$env:TEMP\requestRouter_amd64.msi"
 
-if (!(Test-Path $RewriteMsi)) { Invoke-WebRequest -Uri "https://download.microsoft.com/download/1/2/8/128E2E22-C1B9-44A4-BE2A-5859ED1D4592/rewrite_amd64_es-ES.msi" -OutFile $RewriteMsi }
-if (!(Test-Path $ArrMsi)) { Invoke-WebRequest -Uri "https://download.microsoft.com/download/E/9/8/E9849D6A-020E-47E4-9FD0-A023E99B54EB/requestRouter_amd64.msi" -OutFile $ArrMsi }
+# Verificar si URL Rewrite ya está instalado
+$RewriteInstalled = Test-Path "$env:SystemRoot\system32\inetsrv\rewrite.dll"
+if (-not $RewriteInstalled) {
+    if (!(Test-Path $RewriteMsi)) { 
+        Invoke-WebRequest -Uri "https://download.microsoft.com/download/1/2/8/128E2E22-C1B9-44A4-BE2A-5859ED1D4592/rewrite_amd64_es-ES.msi" -OutFile $RewriteMsi 
+    }
+    Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$RewriteMsi`" /qn /norestart" -Wait -NoNewWindow
+}
 
-Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$RewriteMsi`" /qn /norestart" -Wait -NoNewWindow
-Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$ArrMsi`" /qn /norestart" -Wait -NoNewWindow
+# Verificar si ARR ya está instalado
+$ArrInstalled = Test-Path "$env:SystemRoot\system32\inetsrv\requestRouter.dll"
+if (-not $ArrInstalled) {
+    if (!(Test-Path $ArrMsi)) { 
+        Invoke-WebRequest -Uri "https://download.microsoft.com/download/E/9/8/E9849D6A-020E-47E4-9FD0-A023E99B54EB/requestRouter_amd64.msi" -OutFile $ArrMsi 
+    }
+    Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$ArrMsi`" /qn /norestart" -Wait -NoNewWindow
+}
 
 $AppCmd = "$env:windir\system32\inetsrv\appcmd.exe"
 if (Test-Path $AppCmd) {

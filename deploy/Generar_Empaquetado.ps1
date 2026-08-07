@@ -20,11 +20,14 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# 2. Recrear directorio de Release
+# 2. Recrear directorio de Release (preservando node_modules para optimizar velocidad)
 Write-Host "`n[2/5] Creando directorio de distribución seguro..." -ForegroundColor Yellow
-if (Test-Path $ReleaseDir) { Remove-Item $ReleaseDir -Recurse -Force }
-New-Item -ItemType Directory -Path $ReleaseDir | Out-Null
-New-Item -ItemType Directory -Path "$ReleaseDir\SQL" | Out-Null
+if (Test-Path $ReleaseDir) {
+    Get-ChildItem $ReleaseDir -Exclude "node_modules" | Remove-Item -Recurse -Force
+} else {
+    New-Item -ItemType Directory -Path $ReleaseDir | Out-Null
+}
+if (!(Test-Path "$ReleaseDir\SQL")) { New-Item -ItemType Directory -Path "$ReleaseDir\SQL" | Out-Null }
 
 # 3. Copiar sistema Node.js (Standalone)
 Write-Host "`n[3/5] Ensamblando Motor (Archivos Binarios)..." -ForegroundColor Yellow
@@ -86,11 +89,22 @@ if (Test-Path ".\SQL\Actualizador\Actualizador.SQL") { Copy-Item ".\SQL\Actualiz
 if (Test-Path ".\SQL\Actualizador\ActualizadorSERVER.SQL") { Copy-Item ".\SQL\Actualizador\ActualizadorSERVER.SQL" -Destination "$ReleaseDir\SQL" -Force }
 if (Test-Path ".\SQL\Data\Inicial.sql") { Copy-Item ".\SQL\Data\Inicial.sql" -Destination "$ReleaseDir\SQL" -Force }
 
-# 5. Instalar librería temporal de PG en Release para el auto-setup
-Write-Host "`n[5/5] Inyectando conectores de Postgres al Release..." -ForegroundColor Yellow
-Set-Location $ReleaseDir
-npm install pg node-windows --no-save --silent | Out-Null
-Set-Location $RootDir
+# 5. Instalar librería temporal de PG en Release para el auto-setup (solo si no existen)
+if (-not (Test-Path "$ReleaseDir\node_modules\pg") -or -not (Test-Path "$ReleaseDir\node_modules\node-windows")) {
+    Write-Host "`n[5/5] Inyectando conectores de Postgres al Release..." -ForegroundColor Yellow
+    Set-Location $ReleaseDir
+    npm install pg node-windows --no-save --silent | Out-Null
+    Set-Location $RootDir
+} else {
+    Write-Host "`n[5/5] Los conectores de Postgres ya están presentes en Release. Omitiendo instalación..." -ForegroundColor Green
+}
+
+# Limpieza de archivos temporales/ocultos en node_modules que puedan interferir con Inno Setup
+if (Test-Path "$ReleaseDir\node_modules") {
+    Write-Host "Limpiando archivos temporales en node_modules..." -ForegroundColor Yellow
+    Get-ChildItem "$ReleaseDir\node_modules" -Filter ".next-*" -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    Get-ChildItem "$ReleaseDir\node_modules" -Filter ".cache" -Recurse -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+}
 
 Write-Host "`n==========================================================================" -ForegroundColor Green
 Write-Host " ¡PAQUETE CONSTRUIDO CON ÉXITO!" -ForegroundColor Green

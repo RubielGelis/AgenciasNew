@@ -37,6 +37,13 @@ DECLARE
     v_item_prod_desc TEXT;
     v_has_var BOOLEAN;
     v_old_state TEXT;
+    -- Variables para cálculos financieros
+    v_mostrar_totalizacion BOOLEAN;
+    v_comision_utilidad DOUBLE PRECISION;
+    v_comision_freelance DOUBLE PRECISION;
+    v_comision_propia DOUBLE PRECISION;
+    v_costo_total DOUBLE PRECISION;
+    v_valor_base DOUBLE PRECISION;
 BEGIN
     -- Validaciones
     IF NOT EXISTS (SELECT 1 FROM public."Quotation" WHERE id = p_id) THEN
@@ -270,14 +277,49 @@ BEGIN
         END IF;
     END LOOP;
 
-    -- Calcular y actualizar el totalAmount basado en QuotationProductTax
+    -- Calcular y actualizar el totalAmount y los nuevos campos financieros
+    SELECT COALESCE(SUM(qp.cost * qp.quantity), 0.0), COALESCE(SUM(qp.price * qp.quantity), 0.0)
+    INTO v_costo_total, v_valor_base
+    FROM public."QuotationProduct" qp
+    WHERE qp."quotationId" = p_id;
+
+    SELECT COALESCE(value = 'true', FALSE) INTO v_mostrar_totalizacion
+    FROM public."SystemParameter"
+    WHERE code = 'MOSTRAR_TOTALIZACION_COTIZACION';
+
+    v_comision_freelance := COALESCE(NULLIF(p_data->>'comisionFreelancePercentage', '')::DOUBLE PRECISION, 0.0);
+
+    IF v_mostrar_totalizacion THEN
+        v_comision_utilidad := ROUND(public.fn_calcular_porcentaje_comision(public.fn_calcular_utilidad(v_valor_base, v_costo_total), v_valor_base)::NUMERIC, 2)::DOUBLE PRECISION;
+        v_comision_propia := v_comision_utilidad - v_comision_freelance;
+    ELSE
+        v_comision_propia := public.fn_calcular_comision_resta(
+            COALESCE(NULLIF(p_data->>'comisionTotalPercentage', '')::DOUBLE PRECISION, COALESCE(NULLIF(p_data->>'commissionPercentage', '')::DOUBLE PRECISION, 0.0)),
+            v_comision_freelance
+        );
+    END IF;
+
     UPDATE public."Quotation"
-    SET "totalAmount" = COALESCE("chargesAndTaxes", 0) + (
-        SELECT COALESCE(SUM(qpt."explicitAmount"), 0)
-        FROM public."QuotationProductTax" qpt
-        JOIN public."QuotationProduct" qp ON qpt."quotationProductId" = qp.id
-        WHERE qp."quotationId" = p_id
-    )
+    SET 
+        "totalAmount" = COALESCE("chargesAndTaxes", 0) + (
+            SELECT COALESCE(SUM(qpt."explicitAmount"), 0)
+            FROM public."QuotationProductTax" qpt
+            JOIN public."QuotationProduct" qp ON qpt."quotationProductId" = qp.id
+            WHERE qp."quotationId" = p_id
+        ),
+        "costoTotal" = v_costo_total,
+        "valorBase" = v_valor_base,
+        "comisionTotalPercentage" = COALESCE(NULLIF(p_data->>'comisionTotalPercentage', '')::DOUBLE PRECISION, COALESCE(NULLIF(p_data->>'commissionPercentage', '')::DOUBLE PRECISION, 0.0)),
+        "comisionFreelancePercentage" = v_comision_freelance,
+        "comisionPropiaPercentage" = v_comision_propia,
+        "commissionPercentage" = v_comision_propia,
+        "utilidad" = public.fn_calcular_utilidad(v_valor_base, v_costo_total),
+        "comisionUtilidadPercentage" = public.fn_calcular_porcentaje_comision(
+            public.fn_calcular_utilidad(v_valor_base, v_costo_total),
+            v_valor_base
+        ),
+        "comisionFreelanceValue" = public.fn_calcular_valor_comision(v_comision_freelance, v_valor_base),
+        "comisionPropiaValue" = public.fn_calcular_valor_comision(v_comision_propia, v_valor_base)
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Cotización ' || p_id || ' actualizada correctamente.';

@@ -5,6 +5,9 @@
 #>
 param([switch]$Elevated)
 
+# Optimizar velocidad de descargas desactivando barra de progreso en consola
+$ProgressPreference = 'SilentlyContinue'
+
 if (-not $Elevated) {
     if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         Write-Host "Elevando privilegios..."
@@ -59,11 +62,31 @@ Write-Host "`n[-] Comprobando Módulos del Servidor IIS (ARR / Rewrite)..." -For
 $RewriteMsi = "$env:TEMP\rewrite_amd64.msi"
 $ArrMsi = "$env:TEMP\requestRouter_amd64.msi"
 
-if (!(Test-Path $RewriteMsi)) { Invoke-WebRequest -Uri "https://download.microsoft.com/download/1/2/8/128E2E22-C1B9-44A4-BE2A-5859ED1D4592/rewrite_amd64_es-ES.msi" -OutFile $RewriteMsi }
-if (!(Test-Path $ArrMsi)) { Invoke-WebRequest -Uri "https://download.microsoft.com/download/E/9/8/E9849D6A-020E-47E4-9FD0-A023E99B54EB/requestRouter_amd64.msi" -OutFile $ArrMsi }
+# Verificar si URL Rewrite ya está instalado (buscando la DLL de IIS)
+$RewriteInstalled = Test-Path "$env:SystemRoot\system32\inetsrv\rewrite.dll"
+if (-not $RewriteInstalled) {
+    Write-Host "    [!] URL Rewrite no detectado. Descargando e instalando..." -ForegroundColor Yellow
+    if (!(Test-Path $RewriteMsi)) { 
+        Invoke-WebRequest -Uri "https://download.microsoft.com/download/1/2/8/128E2E22-C1B9-44A4-BE2A-5859ED1D4592/rewrite_amd64_es-ES.msi" -OutFile $RewriteMsi 
+    }
+    Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$RewriteMsi`" /qn /norestart" -Wait -NoNewWindow
+    Write-Host "    [OK] URL Rewrite instalado." -ForegroundColor Green
+} else {
+    Write-Host "    [OK] URL Rewrite ya instalado." -ForegroundColor Green
+}
 
-Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$RewriteMsi`" /qn /norestart" -Wait -NoNewWindow
-Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$ArrMsi`" /qn /norestart" -Wait -NoNewWindow
+# Verificar si ARR ya está instalado (buscando la DLL de IIS)
+$ArrInstalled = Test-Path "$env:SystemRoot\system32\inetsrv\requestRouter.dll"
+if (-not $ArrInstalled) {
+    Write-Host "    [!] Application Request Routing (ARR) no detectado. Descargando e instalando..." -ForegroundColor Yellow
+    if (!(Test-Path $ArrMsi)) { 
+        Invoke-WebRequest -Uri "https://download.microsoft.com/download/E/9/8/E9849D6A-020E-47E4-9FD0-A023E99B54EB/requestRouter_amd64.msi" -OutFile $ArrMsi 
+    }
+    Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$ArrMsi`" /qn /norestart" -Wait -NoNewWindow
+    Write-Host "    [OK] ARR instalado." -ForegroundColor Green
+} else {
+    Write-Host "    [OK] ARR ya instalado." -ForegroundColor Green
+}
 
 $AppCmd = "$env:windir\system32\inetsrv\appcmd.exe"
 if (Test-Path $AppCmd) {

@@ -22,6 +22,9 @@ interface QuotationFormData {
     sellerId: string;
     ticketPrinterId: string;
     commissionPercentage: number;
+    comisionTotalPercentage: number;
+    comisionFreelancePercentage: number;
+    comisionPropiaPercentage: number;
     chargesAndTaxes: number;
     items: {
         productId: string;
@@ -58,6 +61,7 @@ interface QuotationFormData {
     state: string;
     stateDescription?: string;
     stateUpdatedAt?: string | null;
+    internalNumber?: string;
 }
 
 const formatMoney = (val: any) => {
@@ -98,12 +102,16 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         sellerId: '',
         ticketPrinterId: '',
         commissionPercentage: 10,
+        comisionTotalPercentage: 10,
+        comisionFreelancePercentage: 0,
+        comisionPropiaPercentage: 10,
         chargesAndTaxes: 0,
         items: [],
         selectedCombos: [],
         state: 'Nuevo',
         stateDescription: '',
-        stateUpdatedAt: null
+        stateUpdatedAt: null,
+        internalNumber: ''
     })
     const [saving, setSaving] = useState(false)
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
@@ -111,6 +119,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     const [attachments, setAttachments] = useState<any[]>([])
     const [uploadingAttachment, setUploadingAttachment] = useState(false)
     const [focusedTax, setFocusedTax] = useState<{ itemIdx: number, taxId: number } | null>(null)
+    const [activeGeneralTab, setActiveGeneralTab] = useState<'info' | 'history'>('info')
+    const [stateHistoryList, setStateHistoryList] = useState<any[]>([])
     const router = useRouter()
 
     const handleSave = async (e: React.FormEvent, downloadPdf = false) => {
@@ -119,8 +129,14 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         const printWindow = downloadPdf ? window.open('about:blank', '_blank') : null;
         setSaving(true)
         try {
+            const calculatedComisionPropia = showTotals
+                ? porcentajeComisionUtilidad - (formData.comisionFreelancePercentage || 0)
+                : (formData.comisionTotalPercentage || 0) - (formData.comisionFreelancePercentage || 0);
+
             const payload = {
                 ...formData,
+                comisionPropiaPercentage: calculatedComisionPropia,
+                commissionPercentage: calculatedComisionPropia,
                 clientId: formData.clientId || null,
                 branchId: formData.branchId || null,
                 implantId: formData.implantId || null,
@@ -308,6 +324,17 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
     const total = Object.values(taxSummary).reduce((sum, val) => sum + val, 0);
 
+    const showTotals = data?.showTotals ?? true;
+    const costoTotal = formData.items.reduce((sum, item) => sum + (item.cost || 0) * (item.quantity || 1), 0);
+    const valorBase = formData.items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+    const utilidad = valorBase - costoTotal;
+    const porcentajeComisionUtilidad = valorBase > 0 ? parseFloat(((utilidad / valorBase) * 100).toFixed(2)) : 0;
+    const comisionPropiaPercentage = showTotals
+        ? porcentajeComisionUtilidad - (formData.comisionFreelancePercentage || 0)
+        : (formData.comisionTotalPercentage || 0) - (formData.comisionFreelancePercentage || 0);
+    const comisionFreelanceValue = ((formData.comisionFreelancePercentage || 0) / 100) * valorBase;
+    const comisionPropiaValue = (comisionPropiaPercentage / 100) * valorBase;
+
     const applyGlobalPayment = (amount: number, method: string, date: string, reference: string, ccData?: any) => {
         const newItems = [...formData.items];
         
@@ -413,6 +440,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                     if (qRes.ok) {
                         const qData = await qRes.json()
                         setOriginalState(qData.state || 'Nuevo')
+                        setStateHistoryList(qData.stateHistory || [])
                         setFormData({
                             clientId: qData.clientId?.toString() || '',
                             branchId: qData.branchId?.toString() || '',
@@ -421,11 +449,15 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                             exchangeRate: qData.exchangeRate,
                             sellerId: qData.sellerId?.toString() || '',
                             ticketPrinterId: qData.ticketPrinterId?.toString() || '',
-                            commissionPercentage: qData.commissionPercentage || 0,
+                            commissionPercentage: qData.comisionPropiaPercentage ?? qData.commissionPercentage ?? 0,
+                            comisionTotalPercentage: qData.comisionTotalPercentage ?? qData.commissionPercentage ?? 10,
+                            comisionFreelancePercentage: qData.comisionFreelancePercentage ?? 0,
+                            comisionPropiaPercentage: qData.comisionPropiaPercentage ?? qData.commissionPercentage ?? 10,
                             chargesAndTaxes: qData.chargesAndTaxes || 0,
                             state: qData.state || 'Nuevo',
                             stateDescription: qData.stateDescription || '',
                             stateUpdatedAt: qData.stateUpdatedAt || null,
+                            internalNumber: qData.internalNumber || '',
                             items: (qData.products || []).map((p: any) => {
                                 const safeAppliedTaxes = Array.isArray(p.appliedTaxes) ? p.appliedTaxes : [];
                                 const safeVariables = Array.isArray(p.variables) ? p.variables : [];
@@ -696,126 +728,202 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 <div className="lg:col-span-2 space-y-8">
 
                     {/* Section: Client & Origin */}
-                    <div className="bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2 dark:text-white">
-                            <Users className="w-5 h-5 text-blue-500" />
-                            Cliente y Origen
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Cliente</label>
-                                <SearchSelect
-                                    options={data.clients}
-                                    value={formData.clientId}
-                                    onChange={(val) => setFormData({ ...formData, clientId: val })}
-                                    placeholder="Seleccionar Cliente"
-                                    secondaryKey="document"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Vendedor</label>
-                                <SearchSelect
-                                    options={data.sellers || []}
-                                    value={formData.sellerId}
-                                    onChange={(val) => setFormData({ ...formData, sellerId: val })}
-                                    placeholder="Seleccionar Vendedor"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Sucursal</label>
-                                <SearchSelect
-                                    options={data.branches}
-                                    value={formData.branchId}
-                                    onChange={(val) => setFormData({ ...formData, branchId: val, implantId: '' })}
-                                    placeholder="Sel. Sucursal"
-                                    secondaryKey="code"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Implant</label>
-                                <SearchSelect
-                                    options={data.implants.filter((i: any) => i.branchId?.toString() === formData.branchId)}
-                                    value={formData.implantId}
-                                    onChange={(val) => setFormData({ ...formData, implantId: val })}
-                                    disabled={!formData.branchId}
-                                    placeholder="Sel. Implant"
-                                    secondaryKey="code"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Tiqueteador</label>
-                                <SearchSelect
-                                    options={data.ticketPrinters || []}
-                                    value={formData.ticketPrinterId}
-                                    onChange={(val) => setFormData({ ...formData, ticketPrinterId: val })}
-                                    placeholder="Sel. Tiqueteador"
-                                    secondaryKey="code"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Moneda a Cotizar</label>
-                                <select
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
-                                    value={formData.currency}
-                                    onChange={(e) => {
-                                        const code = e.target.value;
-                                        const curr = data.currencies?.find((c: any) => c.code === code);
-                                        setFormData({
-                                            ...formData,
-                                            currency: code,
-                                            exchangeRate: curr ? curr.exchangeRate : 1
-                                        });
-                                    }}
-                                >
-                                    {(data.currencies || [{ code: 'USD', name: 'Dólar Estadounidense' }]).map((c: any) => (
-                                        <option key={c.id || c.code} value={c.code}>{c.code} - {c.name}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-zinc-500">Estado de Cotización</label>
-                                <select
-                                    className={cn(
-                                        "w-full h-12 rounded-xl px-4 border outline-none font-bold focus:ring-2 transition-all",
-                                        getStateColorClass(formData.state, data.quotationStates)
-                                    )}
-                                    value={formData.state}
-                                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                                >
-                                    {(data.quotationStates || [
-                                        { code: 'NUEVO', name: 'Nuevo' },
-                                        { code: 'ENVIADO', name: 'ENVIADO' }
-                                    ]).map((s: any) => (
-                                        <option key={s.id || s.code} value={s.code}>{s.name.toUpperCase()}</option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {formData.state !== originalState && (
-                                <div className="col-span-2 space-y-2">
-                                    <label className="text-sm font-semibold text-zinc-500">Descripción del Cambio de Estado</label>
-                                    <textarea
-                                        className="w-full h-20 rounded-xl p-4 border border-zinc-250 dark:border-zinc-800 outline-none font-semibold focus:ring-2 focus:ring-blue-500 transition-all dark:bg-zinc-900 dark:text-white resize-none text-sm shadow-inner"
-                                        value={formData.stateDescription || ''}
-                                        onChange={(e) => setFormData({ ...formData, stateDescription: e.target.value })}
-                                        placeholder="Escribe la descripción de la actualización del estado..."
-                                        required
-                                    />
-                                </div>
-                            )}
-
-                            {formData.stateUpdatedAt && (
-                                <div className="col-span-2 bg-zinc-50 dark:bg-zinc-950/40 p-5 rounded-2xl border border-zinc-150 dark:border-zinc-850 space-y-1.5 shadow-inner">
-                                    <div className="text-[10px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Información de Último Estado</div>
-                                    <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-                                        Descripción: <span className="italic">{formData.stateDescription || 'Sin comentarios registrados.'}</span>
+                    <div className="bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-4 gap-4">
+                            <div className="flex items-center gap-4">
+                                <h3 className="text-lg font-bold flex items-center gap-2 dark:text-white">
+                                    <Users className="w-5 h-5 text-blue-500" />
+                                    Cliente y Origen
+                                </h3>
+                                {quotationId && (
+                                    <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl">
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveGeneralTab('info')}
+                                            className={cn(
+                                                "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all",
+                                                activeGeneralTab === 'info'
+                                                    ? "bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-white"
+                                                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                                            )}
+                                        >
+                                            Datos
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => setActiveGeneralTab('history')}
+                                            className={cn(
+                                                "px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all",
+                                                activeGeneralTab === 'history'
+                                                    ? "bg-white dark:bg-zinc-700 shadow-sm text-blue-600 dark:text-white"
+                                                    : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+                                            )}
+                                        >
+                                            Historial ({stateHistoryList.length})
+                                        </button>
                                     </div>
-                                    <div className="text-[10px] text-zinc-500 dark:text-zinc-400 font-bold uppercase tracking-wider">
-                                        Fecha y Hora: {new Date(formData.stateUpdatedAt).toLocaleString()}
-                                    </div>
-                                </div>
+                                )}
+                            </div>
+                            {formData.internalNumber && (
+                                <span className="text-xs font-black bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-xl text-zinc-500 tracking-wider self-start sm:self-auto">
+                                    {formData.internalNumber}
+                                </span>
                             )}
                         </div>
+
+                        {activeGeneralTab === 'info' ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-zinc-500">Cliente</label>
+                                    <SearchSelect
+                                        options={data.clients}
+                                        value={formData.clientId}
+                                        onChange={(val) => setFormData({ ...formData, clientId: val })}
+                                        placeholder="Seleccionar Cliente"
+                                        secondaryKey="document"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-zinc-500">Vendedor</label>
+                                    <SearchSelect
+                                        options={data.sellers || []}
+                                        value={formData.sellerId}
+                                        onChange={(val) => setFormData({ ...formData, sellerId: val })}
+                                        placeholder="Seleccionar Vendedor"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-zinc-500">Sucursal</label>
+                                    <SearchSelect
+                                        options={data.branches}
+                                        value={formData.branchId}
+                                        onChange={(val) => setFormData({ ...formData, branchId: val, implantId: '' })}
+                                        placeholder="Sel. Sucursal"
+                                        secondaryKey="code"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-zinc-500">Implant</label>
+                                    <SearchSelect
+                                        options={data.implants.filter((i: any) => i.branchId?.toString() === formData.branchId)}
+                                        value={formData.implantId}
+                                        onChange={(val) => setFormData({ ...formData, implantId: val })}
+                                        disabled={!formData.branchId}
+                                        placeholder="Sel. Implant"
+                                        secondaryKey="code"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-zinc-500">Tiqueteador</label>
+                                    <SearchSelect
+                                        options={data.ticketPrinters || []}
+                                        value={formData.ticketPrinterId}
+                                        onChange={(val) => setFormData({ ...formData, ticketPrinterId: val })}
+                                        placeholder="Sel. Tiqueteador"
+                                        secondaryKey="code"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-zinc-500">Moneda a Cotizar</label>
+                                    <select
+                                        className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                        value={formData.currency}
+                                        onChange={(e) => {
+                                            const code = e.target.value;
+                                            const curr = data.currencies?.find((c: any) => c.code === code);
+                                            setFormData({
+                                                ...formData,
+                                                currency: code,
+                                                exchangeRate: curr ? curr.exchangeRate : 1
+                                            });
+                                        }}
+                                    >
+                                        {(data.currencies || [{ code: 'USD', name: 'Dólar Estadounidense' }]).map((c: any) => (
+                                            <option key={c.id || c.code} value={c.code}>{c.code} - {c.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold text-zinc-500">Estado de Cotización</label>
+                                    <select
+                                        className={cn(
+                                            "w-full h-12 rounded-xl px-4 border outline-none font-bold focus:ring-2 transition-all",
+                                            getStateColorClass(formData.state, data.quotationStates)
+                                        )}
+                                        value={formData.state}
+                                        onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                                    >
+                                        {(data.quotationStates || [
+                                            { code: 'NUEVO', name: 'Nuevo' },
+                                            { code: 'ENVIADO', name: 'ENVIADO' }
+                                        ]).map((s: any) => (
+                                            <option key={s.id || s.code} value={s.code}>{s.name.toUpperCase()}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {formData.state !== originalState && (
+                                    <div className="col-span-2 space-y-2">
+                                        <label className="text-sm font-semibold text-zinc-500">Descripción del Cambio de Estado</label>
+                                        <textarea
+                                            className="w-full h-20 rounded-xl p-4 border border-zinc-250 dark:border-zinc-800 outline-none font-semibold focus:ring-2 focus:ring-blue-500 transition-all dark:bg-zinc-900 dark:text-white resize-none text-sm shadow-inner"
+                                            value={formData.stateDescription || ''}
+                                            onChange={(e) => setFormData({ ...formData, stateDescription: e.target.value })}
+                                            placeholder="Escribe la descripción de la actualización del estado..."
+                                            required
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {stateHistoryList.length === 0 ? (
+                                    <div className="text-center py-8 text-zinc-450 dark:text-zinc-550 font-semibold text-sm">
+                                        No hay historial de cambios de estado registrado.
+                                    </div>
+                                ) : (
+                                    <div className="border border-zinc-100 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-inner bg-zinc-50/50 dark:bg-zinc-950/20">
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse text-xs">
+                                                <thead>
+                                                    <tr className="bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 font-bold text-zinc-500 uppercase tracking-wider text-[10px]">
+                                                        <th className="px-5 py-3">Estado</th>
+                                                        <th className="px-5 py-3">Comentario</th>
+                                                        <th className="px-5 py-3">Fecha y Hora</th>
+                                                        <th className="px-5 py-3">Usuario</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 font-medium">
+                                                    {stateHistoryList.map((h: any) => (
+                                                        <tr key={h.id} className="hover:bg-zinc-100/30 dark:hover:bg-zinc-800/10 text-zinc-700 dark:text-zinc-300">
+                                                            <td className="px-5 py-3">
+                                                                <span className={cn(
+                                                                    "px-2.5 py-1 rounded-full font-bold uppercase tracking-wider text-[9px] border",
+                                                                    h.state === 'NUEVO' ? 'bg-blue-50 dark:bg-blue-500/10 border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400' :
+                                                                    h.state === 'ENVIADO' ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
+                                                                    'bg-zinc-50 dark:bg-zinc-500/10 border-zinc-200 dark:border-zinc-500/20 text-zinc-600 dark:text-zinc-400'
+                                                                )}>
+                                                                    {h.state}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-5 py-3 italic font-semibold max-w-[200px] truncate" title={h.description}>
+                                                                {h.description || 'Sin comentarios.'}
+                                                            </td>
+                                                            <td className="px-5 py-3 text-zinc-500 dark:text-zinc-400 font-bold">
+                                                                {new Date(h.createdAt).toLocaleString()}
+                                                            </td>
+                                                            <td className="px-5 py-3 font-semibold text-zinc-900 dark:text-zinc-250">
+                                                                {h.userName || 'Sistema'}
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
                     {/* Section: Combos */}
@@ -1429,9 +1537,19 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Comisión (%)</label>
                                     <input
                                         type="number"
-                                        className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right"
-                                        value={formData.commissionPercentage}
-                                        onChange={(e) => setFormData({ ...formData, commissionPercentage: parseFloat(e.target.value) || 0 })}
+                                        className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right text-white"
+                                        value={formData.comisionTotalPercentage}
+                                        onChange={(e) => {
+                                            const totalPct = parseFloat(e.target.value) || 0;
+                                            const freelancePct = formData.comisionFreelancePercentage || 0;
+                                            const ownPct = totalPct - freelancePct;
+                                            setFormData({
+                                                ...formData,
+                                                comisionTotalPercentage: totalPct,
+                                                comisionPropiaPercentage: ownPct,
+                                                commissionPercentage: ownPct
+                                            });
+                                        }}
                                     />
                                 </div>
                             </div>
@@ -1450,6 +1568,75 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     </div>
                                 ))}
                             </div>
+
+                            {/* NUEVOS CAMPOS FINANCIEROS */}
+                            {showTotals && (
+                                <div className="pt-6 border-t border-zinc-800 space-y-3 relative z-10 text-sm">
+                                    <h4 className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider mb-2">Resumen Financiero Interno</h4>
+                                    
+                                    <div className="flex justify-between items-center text-zinc-400">
+                                        <span>Costo Total:</span>
+                                        <span className="font-bold text-white">${costoTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-zinc-400">
+                                        <span>Valor Base (Cargo Principal):</span>
+                                        <span className="font-bold text-white">${valorBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-zinc-400">
+                                        <span>Utilidad:</span>
+                                        <span className={`font-bold ${utilidad >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                            ${utilidad.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-zinc-400">
+                                        <span>% Comisión s/ Utilidad:</span>
+                                        <span className="font-bold text-white">
+                                            {porcentajeComisionUtilidad.toFixed(2)}%
+                                        </span>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-zinc-800/50 space-y-3">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">% Comisión Free Lance/Agencia</label>
+                                            <input
+                                                type="number"
+                                                className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right text-white"
+                                                value={formData.comisionFreelancePercentage}
+                                                onChange={(e) => {
+                                                    const freelancePct = parseFloat(e.target.value) || 0;
+                                                    const totalPct = formData.comisionTotalPercentage || 0;
+                                                    const ownPct = totalPct - freelancePct;
+                                                    setFormData({
+                                                        ...formData,
+                                                        comisionFreelancePercentage: freelancePct,
+                                                        comisionPropiaPercentage: ownPct,
+                                                        commissionPercentage: ownPct
+                                                    });
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div className="flex justify-between items-center text-zinc-400">
+                                            <span>Comisión Free Lance/Agencia:</span>
+                                            <span className="font-bold text-white">
+                                                ${comisionFreelanceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-zinc-400">
+                                            <span>% Comisión Propia:</span>
+                                            <span className="font-bold text-white">
+                                                {comisionPropiaPercentage.toFixed(2)}%
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-zinc-400 border-b border-dashed border-zinc-800 pb-3">
+                                            <span>Comisión Propia:</span>
+                                            <span className="font-bold text-white">
+                                                ${comisionPropiaValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Final Math */}
                             <div className="pt-8 space-y-4 relative z-10">

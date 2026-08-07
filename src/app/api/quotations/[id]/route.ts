@@ -46,7 +46,15 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             return NextResponse.json({ message: 'Cotización no encontrada' }, { status: 404 })
         }
 
-        return NextResponse.json(quotation)
+        const stateHistory = await prisma.$queryRawUnsafe(
+            `SELECT * FROM public.fn_obtener_historial_estados($1::INT)`,
+            id
+        );
+
+        return NextResponse.json({
+            ...quotation,
+            stateHistory
+        })
     } catch (error: any) {
         console.error('Error fetching quotation:', error)
         return NextResponse.json({ message: 'Error interno del servidor', error: error.message }, { status: 500 })

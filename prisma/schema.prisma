@@ -145,34 +145,43 @@ model Product {
 }
 
 model Quotation {
-  id                   Int                     @id @default(autoincrement())
-  internalNumber       String                  @unique
-  date                 DateTime                @default(now())
-  clientId             Int
-  currency             String
-  exchangeRate         Float
-  branchId             Int
-  implantId            Int?
-  sellerId             Int?
-  ticketPrinterId      Int?
-  baseCommissionable   Float
-  commissionPercentage Float
-  chargesAndTaxes      Float
-  totalAmount          Float
-  userId               Int?
-  state                String?                 @default("Nuevo") @db.VarChar(25)
-  stateDescription     String?
-  stateUpdatedAt       DateTime?               @db.Timestamp(6)
-  attachments          Attachment[]
-  branch               Branch                  @relation(fields: [branchId], references: [id])
-  client               Client                  @relation(fields: [clientId], references: [id])
-  implant              Implant?                @relation(fields: [implantId], references: [id])
-  seller               Seller?                 @relation(fields: [sellerId], references: [id])
-  ticketPrinter        TicketPrinter?          @relation(fields: [ticketPrinterId], references: [id])
-  user                 User?                   @relation(fields: [userId], references: [id])
-  combos               QuotationCombo[]
-  products             QuotationProduct[]
-  stateHistory         QuotationStateHistory[]
+  id                          Int                     @id @default(autoincrement())
+  internalNumber              String                  @unique
+  date                        DateTime                @default(now())
+  clientId                    Int
+  currency                    String
+  exchangeRate                Float
+  branchId                    Int
+  implantId                   Int?
+  sellerId                    Int?
+  ticketPrinterId             Int?
+  baseCommissionable          Float
+  commissionPercentage        Float
+  chargesAndTaxes             Float
+  totalAmount                 Float
+  userId                      Int?
+  state                       String?                 @default("Nuevo") @db.VarChar(25)
+  stateDescription            String?
+  stateUpdatedAt              DateTime?               @db.Timestamp(6)
+  costoTotal                  Float?                  @default(0)
+  valorBase                   Float?                  @default(0)
+  utilidad                    Float?                  @default(0)
+  comisionTotalPercentage     Float?                  @default(0)
+  comisionFreelancePercentage Float?                  @default(0)
+  comisionFreelanceValue      Float?                  @default(0)
+  comisionPropiaPercentage    Float?                  @default(0)
+  comisionPropiaValue         Float?                  @default(0)
+  comisionUtilidadPercentage  Float?                  @default(0)
+  attachments                 Attachment[]
+  branch                      Branch                  @relation(fields: [branchId], references: [id])
+  client                      Client                  @relation(fields: [clientId], references: [id])
+  implant                     Implant?                @relation(fields: [implantId], references: [id])
+  seller                      Seller?                 @relation(fields: [sellerId], references: [id])
+  ticketPrinter               TicketPrinter?          @relation(fields: [ticketPrinterId], references: [id])
+  user                        User?                   @relation(fields: [userId], references: [id])
+  combos                      QuotationCombo[]
+  products                    QuotationProduct[]
+  stateHistory                QuotationStateHistory[]
 }
 
 model QuotationCombo {
