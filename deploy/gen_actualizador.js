@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 try {
-    const root = 'C:/Proyectos/AgenciasNew/SQL';
+    const root = path.join(__dirname, '..', 'SQL');
     const actFile = path.join(root, 'Actualizador', 'Actualizador.SQL');
 
     console.log("Generando Actualizador.SQL...");
