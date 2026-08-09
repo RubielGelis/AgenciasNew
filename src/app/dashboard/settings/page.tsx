@@ -146,6 +146,9 @@ export default function SettingsPage() {
                 setBranches(Array.isArray(b) ? b : []);
                 setImplants(Array.isArray(i) ? i : []);
                 setTicketPrinters(Array.isArray(tp) ? tp : []);
+            } else if (tab === 'clientes') {
+                const res = await fetch('/api/config/variables').then(res => res.json());
+                setVariables(Array.isArray(res) ? res : []);
             }
         } catch (err) {
             console.error("Error fetching lookup data:", err);
@@ -288,6 +291,19 @@ export default function SettingsPage() {
                     inNationality: cp.inNationality || 1
                 }));
                 setFormData({ ...item, products: normalizedProducts });
+            } else if (activeTab === 'clientes') {
+                let mandatoryVars = item.mandatoryVariables;
+                if (typeof mandatoryVars === 'string') {
+                    try {
+                        mandatoryVars = JSON.parse(mandatoryVars);
+                    } catch (e) {
+                        mandatoryVars = [];
+                    }
+                }
+                if (!Array.isArray(mandatoryVars)) {
+                    mandatoryVars = [];
+                }
+                setFormData({ ...item, mandatoryVariables: mandatoryVars })
             } else {
                 setFormData({ ...item })
             }
@@ -302,7 +318,7 @@ export default function SettingsPage() {
             } else if (activeTab === 'prestadoras') {
                 setFormData({ code: '', name: '', category: '', location: '', providerId: '', type: '' })
             } else if (activeTab === 'clientes') {
-                setFormData({ name: '', document: '', contactInfo: '', address: '' })
+                setFormData({ name: '', document: '', contactInfo: '', address: '', mandatoryVariables: [] })
             } else if (activeTab === 'proveedores') {
                 setFormData({ code: '', name: '', contactInfo: '' })
             } else if (activeTab === 'productos') {
@@ -1566,6 +1582,58 @@ export default function SettingsPage() {
                                                     <Input label="Teléfono / Contacto" value={formData.contactInfo || formData.phone || ''} onChange={(v: string) => setFormData({ ...formData, contactInfo: v, phone: v })} placeholder="Opcional" />
                                                 </div>
                                                 {activeTab === 'clientes' && <Input label="Dirección" value={formData.address || ''} onChange={(v: string) => setFormData({ ...formData, address: v })} placeholder="Opcional" />}
+                                                {activeTab === 'clientes' && (
+                                                    <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-6 space-y-4">
+                                                        <h4 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
+                                                            Variables Adicionales Obligatorias para Cotizaciones
+                                                        </h4>
+                                                        <p className="text-xs text-zinc-500">
+                                                            Selecciona cuáles variables adicionales serán de carácter obligatorio al guardar una cotización para este cliente.
+                                                        </p>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl">
+                                                            {variables && variables.length > 0 ? (
+                                                                variables.map((v: any) => {
+                                                                    const isChecked = Array.isArray(formData.mandatoryVariables)
+                                                                        ? formData.mandatoryVariables.includes(v.id)
+                                                                        : false;
+                                                                    return (
+                                                                        <label key={v.id} className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors">
+                                                                            <input
+                                                                                type="checkbox"
+                                                                                className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                                                                                checked={isChecked}
+                                                                                onChange={(e) => {
+                                                                                    const currentMandatory = Array.isArray(formData.mandatoryVariables)
+                                                                                        ? [...formData.mandatoryVariables]
+                                                                                        : [];
+                                                                                    if (e.target.checked) {
+                                                                                        if (!currentMandatory.includes(v.id)) {
+                                                                                            currentMandatory.push(v.id);
+                                                                                        }
+                                                                                    } else {
+                                                                                        const index = currentMandatory.indexOf(v.id);
+                                                                                        if (index > -1) {
+                                                                                            currentMandatory.splice(index, 1);
+                                                                                        }
+                                                                                    }
+                                                                                    setFormData({ ...formData, mandatoryVariables: currentMandatory });
+                                                                                }}
+                                                                            />
+                                                                            <div className="flex flex-col">
+                                                                                <span className="text-xs font-black text-zinc-700 dark:text-zinc-300">{v.name}</span>
+                                                                                <span className="text-[10px] text-zinc-400 font-mono">{v.code}</span>
+                                                                            </div>
+                                                                        </label>
+                                                                    );
+                                                                })
+                                                            ) : (
+                                                                <div className="col-span-2 text-center py-4 text-xs text-zinc-400">
+                                                                    No hay variables adicionales configuradas en el sistema.
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </>
                                         ) : activeTab === 'productos' ? (
                                             <>
