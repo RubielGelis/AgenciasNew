@@ -4,8 +4,24 @@ echo   GENERANDO ENSAMBLADO Y PROGRAMA DE INSTALACION
 echo ========================================================
 echo.
 
-echo Paso 1: Ejecutando script de empaquetado (Next.js)...
-powershell.exe -ExecutionPolicy Bypass -File "F:\Proyectos\AgenciasNew\deploy\Generar_Empaquetado.ps1"
+echo Paso 0: Generando descriptor de esquema de base de datos...
+node "%~dp0deploy\gen_schema_json.js"
+if %errorlevel% neq 0 (
+    echo Error generando el descriptor del esquema de la base de datos.
+    pause
+    exit /b %errorlevel%
+)
+echo.
+
+set /p COMPILAR_NEXT="Desea compilar el sitio web (Next.js)? (S/N) [S]: "
+set "ARGS_EMPAQUETAR="
+if /i "%COMPILAR_NEXT%"=="N" (
+    set "ARGS_EMPAQUETAR=-SkipBuild"
+)
+echo.
+
+echo Paso 1: Ejecutando script de empaquetado...
+powershell.exe -ExecutionPolicy Bypass -File "F:\Proyectos\AgenciasNew\deploy\Generar_Empaquetado.ps1" %ARGS_EMPAQUETAR%
 if %errorlevel% neq 0 (
     echo Error durante el empaquetado.
     pause
@@ -30,7 +46,7 @@ if "%ISCC_PATH%"=="" (
 )
 
 echo Usando compilador en: "%ISCC_PATH%"
-"%ISCC_PATH%" "F:\Proyectos\AgenciasNew\deploy\AgenciasNew.iss"
+"%ISCC_PATH%" "F:\Proyectos\AgenciasNew\deploy\Korex.iss"
 if %errorlevel% neq 0 (
     echo Error compilando instalador de Inno Setup.
     pause
@@ -39,6 +55,6 @@ if %errorlevel% neq 0 (
 echo.
 
 echo ========================================================
-echo   EXITO: Instalador generado en la carpeta: Instalador
+echo   EXITO: Instalador generado en la carpeta: Instalador (Korex_Setup.exe)
 echo ========================================================
 pause

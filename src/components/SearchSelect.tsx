@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, X, Check } from 'lucide-react'
 
@@ -14,6 +14,8 @@ interface SearchSelectProps {
     secondaryKey?: string; 
     hasError?: boolean;
     className?: string;
+    remoteSearchEndpoint?: string;
+    minSearchLength?: number;
 }
 
 export function SearchSelect({ 
@@ -25,21 +27,120 @@ export function SearchSelect({
     labelKey = "name", 
     secondaryKey = "code",
     hasError = false,
-    className = ""
+    className = "",
+    remoteSearchEndpoint,
+    minSearchLength = 1
 }: SearchSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [localOptions, setLocalOptions] = useState<any[]>(options);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const selectedOption = options.find(o => String(o.id) === String(value) || String(o.code) === String(value) || String(o.document) === String(value) || (secondaryKey && o[secondaryKey] && String(o[secondaryKey]) === String(value)));
+    // Merge options without duplicates
+    const mergeOptions = (existing: any[], incoming: any[]) => {
+        const map = new Map();
+        existing.forEach(item => {
+            if (item.id !== undefined && item.id !== null) map.set(String(item.id), item);
+            else if (item.code !== undefined && item.code !== null) map.set(String(item.code), item);
+        });
+        incoming.forEach(item => {
+            if (item.id !== undefined && item.id !== null) map.set(String(item.id), item);
+            else if (item.code !== undefined && item.code !== null) map.set(String(item.code), item);
+        });
+        return Array.from(map.values());
+    };
+
+    // Update localOptions when options prop changes
+    useEffect(() => {
+        if (options && options.length > 0) {
+            setLocalOptions(prev => mergeOptions(prev, options));
+        }
+    }, [options]);
+
+    // Fetch initial selected option if not present in localOptions
+    useEffect(() => {
+        if (!value || !remoteSearchEndpoint) return;
+        
+        const found = localOptions.find(o => 
+            (o.id !== undefined && o.id !== null && String(o.id) === String(value)) ||
+            (o.code !== undefined && o.code !== null && String(o.code) === String(value))
+        );
+
+        if (!found) {
+            const fetchInitial = async () => {
+                try {
+                    const res = await fetch(`${remoteSearchEndpoint}?id=${encodeURIComponent(value)}`);
+                    if (res.ok) {
+                        const item = await res.json();
+                        if (item && !item.message) {
+                            setLocalOptions(prev => mergeOptions(prev, [item]));
+                        }
+                    }
+                } catch (err) {
+                    console.error("Error fetching initial option:", err);
+                }
+            };
+            fetchInitial();
+        }
+    }, [value, remoteSearchEndpoint]);
+
+    // Handle remote search
+    useEffect(() => {
+        if (!isOpen || !remoteSearchEndpoint) return;
+        
+        if (searchTerm.trim().length < minSearchLength) {
+            return;
+        }
+
+        const delayDebounce = setTimeout(async () => {
+            setIsLoading(true);
+            try {
+                const res = await fetch(`${remoteSearchEndpoint}?search=${encodeURIComponent(searchTerm)}`);
+                if (res.ok) {
+                    const resData = await res.json();
+                    const results = Array.isArray(resData) ? resData : (Array.isArray(resData?.data) ? resData.data : []);
+                    setLocalOptions(prev => mergeOptions(prev, results));
+                }
+            } catch (err) {
+                console.error("Error fetching remote options:", err);
+            } finally {
+                setIsLoading(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(delayDebounce);
+    }, [searchTerm, isOpen, remoteSearchEndpoint, minSearchLength]);
+
+    const selectedOption = useMemo(() => {
+        if (!value) return null;
+        
+        // 1. Priority: exact match on ID
+        let found = localOptions.find(o => o.id !== undefined && o.id !== null && String(o.id) === String(value));
+        if (found) return found;
+
+        // 2. Exact match on code
+        found = localOptions.find(o => o.code !== undefined && o.code !== null && String(o.code) === String(value));
+        if (found) return found;
+
+        // 3. Match on document or secondaryKey
+        found = localOptions.find(o => 
+            (o.document !== undefined && o.document !== null && String(o.document) === String(value)) ||
+            (secondaryKey && o[secondaryKey] !== undefined && o[secondaryKey] !== null && String(o[secondaryKey]) === String(value))
+        );
+        return found;
+    }, [localOptions, value, secondaryKey]);
 
     const filteredOptions = useMemo(() => {
-        if (!searchTerm) return options;
+        if (!searchTerm) {
+            if (remoteSearchEndpoint) return [];
+            return localOptions;
+        }
         const lowerTerm = searchTerm.toLowerCase();
-        return options.filter(o => 
+        return localOptions.filter(o => 
             (o[labelKey] && String(o[labelKey]).toLowerCase().includes(lowerTerm)) ||
             (o[secondaryKey] && String(o[secondaryKey]).toLowerCase().includes(lowerTerm))
         );
-    }, [options, searchTerm, labelKey, secondaryKey]);
+    }, [localOptions, searchTerm, labelKey, secondaryKey, remoteSearchEndpoint]);
 
     return (
         <>
@@ -90,12 +191,24 @@ export function SearchSelect({
                             </div>
                             
                             <div className="overflow-y-auto flex-1 p-2">
-                                {filteredOptions.length === 0 ? (
+                                {isLoading ? (
+                                    <div className="text-center p-8 text-zinc-500 text-sm flex items-center justify-center gap-2">
+                                        <span className="animate-spin border-2 border-blue-500 border-t-transparent rounded-full w-4 h-4" />
+                                        Cargando...
+                                    </div>
+                                ) : remoteSearchEndpoint && searchTerm.trim().length < minSearchLength ? (
+                                    <div className="text-center p-8 text-zinc-500 text-sm">
+                                        Ingresa al menos {minSearchLength} caracter{minSearchLength > 1 ? 'es' : ''} para buscar
+                                    </div>
+                                ) : filteredOptions.length === 0 ? (
                                     <div className="text-center p-8 text-zinc-500 text-sm">No se encontraron resultados</div>
                                 ) : (
                                     <div className="space-y-1">
                                         {filteredOptions.map(opt => {
-                                            const isSelected = String(opt.id) === String(value) || String(opt.code) === String(value);
+                                            const isSelected = selectedOption && (
+                                                (opt.id !== undefined && String(opt.id) === String(selectedOption.id)) ||
+                                                (opt.code !== undefined && String(opt.code) === String(selectedOption.code))
+                                            );
                                             return (
                                                 <button
                                                     key={opt.id || opt.code || Math.random()}

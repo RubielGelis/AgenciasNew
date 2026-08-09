@@ -1,1972 +1,2043 @@
-DO $$ 
+do $$
 BEGIN
-	CREATE SEQUENCE IF NOT EXISTS public."Attachment_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Attachment_id_seq"
-	    OWNER TO postgres;
 
-	CREATE SEQUENCE IF NOT EXISTS public."Branch_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-		
-	ALTER SEQUENCE public."Branch_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."ChargeAndTax_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-		
-	ALTER SEQUENCE public."ChargeAndTax_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Client_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Client_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Combo_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Combo_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Currency_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."ComboProduct_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-		
-	ALTER SEQUENCE public."ComboProduct_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."ComboProductTax_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."ComboProductTax_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Hotel_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Hotel_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Implant_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Implant_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."MasterVariable_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-
-	
-	ALTER SEQUENCE public."MasterVariable_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Product_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Product_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."Provider_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Provider_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationCombo_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."QuotationCombo_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationProductPassenger_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."QuotationProductPassenger_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationProductTax_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."QuotationProductTax_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationProductVariable_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."QuotationProductVariable_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationProduct_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."QuotationProduct_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."Quotation_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Quotation_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationState_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."QuotationState_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Role_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Role_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Seller_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Seller_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."SystemLog_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."SystemLog_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."SystemParameter_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."SystemParameter_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."TicketPrinter_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."TicketPrinter_id_seq"
-		OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."User_id_seq"
-		INCREMENT 1
-		START 1
-		MINVALUE 1
-		MAXVALUE 2147483647
-		CACHE 1;
-	
-	ALTER SEQUENCE public."User_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."GDS_id_seq"
-		INCREMENT 1
-		START 1
-		MINVALUE 1
-		MAXVALUE 2147483647
-		CACHE 1;
-	
-	ALTER SEQUENCE public."GDS_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Interfaces_id_seq"
-		INCREMENT 1
-		START 1
-		MINVALUE 1
-		MAXVALUE 2147483647
-		CACHE 1;
-	
-	ALTER SEQUENCE public."Interfaces_id_seq"
-	    OWNER TO postgres;	
-		
-	CREATE TABLE IF NOT EXISTS public."Role"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Role_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "Role_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-
-	ALTER TABLE IF EXISTS public."Role"
-	    OWNER to postgres;
-	-- Index: Role_name_key
-	
-	-- DROP INDEX IF EXISTS public."Role_name_key";
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Role_name_key"
-	    ON public."Role" USING btree
-	    (name COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Role_id_seq"
-	    OWNED BY public."Role".id;
-
-	CREATE TABLE IF NOT EXISTS public."Branch"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Branch_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "Branch_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-
-	ALTER TABLE IF EXISTS public."Branch"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Branch_code_key"
-	    ON public."Branch" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Branch_id_seq"
-	    OWNED BY public."Branch".id;
-
-	CREATE TABLE IF NOT EXISTS public."Implant"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Implant_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    "branchId" integer,
-	    CONSTRAINT "Implant_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Implant_branchId_fkey" FOREIGN KEY ("branchId")
-	        REFERENCES public."Branch" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Implant"
-	    OWNER to postgres;
-	-- Index: Implant_code_key
-	
-	-- DROP INDEX IF EXISTS public."Implant_code_key";
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Implant_code_key"
-	    ON public."Implant" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Implant_id_seq"
-	    OWNED BY public."Implant".id;
-
-
-	CREATE TABLE IF NOT EXISTS public."ChargeAndTax"
-	(
-	    id integer NOT NULL DEFAULT nextval('"ChargeAndTax_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    type text COLLATE pg_catalog."default" NOT NULL,
-	    "valueType" text COLLATE pg_catalog."default" NOT NULL,
-	    value double precision NOT NULL,
-	    "isEditable" boolean NOT NULL DEFAULT true,
-	    CONSTRAINT "ChargeAndTax_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."ChargeAndTax_id_seq"
-	    OWNED BY public."ChargeAndTax".id;
-
-	CREATE TABLE IF NOT EXISTS public."TicketPrinter"
-	(
-	    id integer NOT NULL DEFAULT nextval('"TicketPrinter_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default",
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    email text COLLATE pg_catalog."default",
-	    CONSTRAINT "TicketPrinter_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."TicketPrinter"
-	    OWNER to postgres;
-
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "TicketPrinter_code_key"
-	    ON public."TicketPrinter" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."TicketPrinter_id_seq"
-	    OWNED BY public."TicketPrinter".id;
-	
-	CREATE TABLE IF NOT EXISTS public."User"
-	(
-	    id integer NOT NULL DEFAULT nextval('"User_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    email text COLLATE pg_catalog."default" NOT NULL,
-	    "passwordHash" text COLLATE pg_catalog."default" NOT NULL,
-	    "resetPasswordToken" text COLLATE pg_catalog."default",
-	    "resetPasswordExpires" timestamp(3) without time zone,
-	    "roleId" integer NOT NULL,
-	    "branchId" integer,
-	    "implantId" integer,
-	    "ticketPrinterId" integer,
-	    CONSTRAINT "User_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "User_branchId_fkey" FOREIGN KEY ("branchId")
-	        REFERENCES public."Branch" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "User_implantId_fkey" FOREIGN KEY ("implantId")
-	        REFERENCES public."Implant" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId")
-	        REFERENCES public."Role" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "User_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId")
-	        REFERENCES public."TicketPrinter" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-
-	TABLESPACE pg_default;
-
-	ALTER TABLE IF EXISTS public."User"
-	    OWNER to postgres;
-
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key"
-	    ON public."User" USING btree
-	    (email COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;
-
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "User_resetPasswordToken_key"
-	    ON public."User" USING btree
-	    ("resetPasswordToken" COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."User_id_seq"
-	    OWNED BY public."User".id;
-	
-
-	CREATE TABLE IF NOT EXISTS public."Branch"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Branch_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "Branch_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	
-	ALTER TABLE IF EXISTS public."Branch"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."Branch_id_seq"
-	    OWNED BY public."Branch".id;	
-
-	CREATE TABLE IF NOT EXISTS public."Client"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Client_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    document text COLLATE pg_catalog."default" NOT NULL,
-	    "contactInfo" text COLLATE pg_catalog."default",
-	    address text COLLATE pg_catalog."default",
-	    "mandatoryVariables" jsonb,
-	    CONSTRAINT "Client_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Client"
-	    OWNER to postgres;
-		
-	CREATE UNIQUE INDEX IF NOT EXISTS "Client_document_key"
-	    ON public."Client" USING btree
-	    (document COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Client_id_seq"
-	    OWNED BY public."Client".id;
-
-
-	CREATE TABLE IF NOT EXISTS public."Provider"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Provider_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default",
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    "contactInfo" text COLLATE pg_catalog."default",
-	    "commissionConfig" jsonb,
-	    CONSTRAINT "Provider_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Provider"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Provider_code_key"
-	    ON public."Provider" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	    
-	TABLESPACE pg_default;	
-
-	ALTER SEQUENCE public."Provider_id_seq"
-	    OWNED BY public."Provider".id;
-		
-
-	CREATE TABLE IF NOT EXISTS public."MasterVariable"
-	(
-	    id integer NOT NULL DEFAULT nextval('"MasterVariable_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "MasterVariable_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-
-	ALTER TABLE IF EXISTS public."MasterVariable"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "MasterVariable_code_key"
-	    ON public."MasterVariable" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-		
-	TABLESPACE pg_default;
-	
-	ALTER SEQUENCE public."MasterVariable_id_seq"
-	    OWNED BY public."MasterVariable".id;
-
-	CREATE TABLE IF NOT EXISTS public."Seller"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Seller_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default",
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    email text COLLATE pg_catalog."default",
-	    CONSTRAINT "Seller_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Seller"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Seller_code_key"
-	    ON public."Seller" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Seller_id_seq"
-	    OWNED BY public."Seller".id;
-	    
-	
-	CREATE TABLE IF NOT EXISTS public."Prestadora"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Hotel_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    location text COLLATE pg_catalog."default",
-	    category text COLLATE pg_catalog."default",
-	    "providerId" integer,
-	    code text COLLATE pg_catalog."default",
-	    type text COLLATE pg_catalog."default",
-	    CONSTRAINT "Prestadora_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Prestadora_providerId_fkey" FOREIGN KEY ("providerId")
-	        REFERENCES public."Provider" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT
-	)
-	TABLESPACE pg_default;
-
-	ALTER TABLE IF EXISTS public."Prestadora"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Hotel_code_key"
-	    ON public."Prestadora" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Hotel_id_seq"
-	    OWNED BY public."Prestadora".id;
-
-	CREATE TABLE IF NOT EXISTS public."SystemLog"
-	(
-	    id integer NOT NULL DEFAULT nextval('"SystemLog_id_seq"'::regclass),
-	    "userId" integer,
-	    action text COLLATE pg_catalog."default" NOT NULL,
-	    module text COLLATE pg_catalog."default" NOT NULL,
-	    description text COLLATE pg_catalog."default" NOT NULL,
-	    metadata jsonb,
-	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    CONSTRAINT "SystemLog_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "SystemLog_userId_fkey" FOREIGN KEY ("userId")
-	        REFERENCES public."User" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."SystemLog"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."SystemLog_id_seq"
-	    OWNED BY public."SystemLog".id;	
-
-	CREATE TABLE IF NOT EXISTS public."SystemParameter"
-	(
-	    id integer NOT NULL DEFAULT nextval('"SystemParameter_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    value text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "SystemParameter_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."SystemParameter"
-	    OWNER to postgres;
-
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "SystemParameter_code_key"
-	    ON public."SystemParameter" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;	
-
-	ALTER SEQUENCE public."SystemParameter_id_seq"
-	    OWNED BY public."SystemParameter".id;	
-
-	CREATE TABLE IF NOT EXISTS public."Product"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Product_id_seq"'::regclass),
-	    type text COLLATE pg_catalog."default" NOT NULL,
-	    description text COLLATE pg_catalog."default" NOT NULL,
-	    "basePrice" double precision NOT NULL,
-	    cost double precision DEFAULT 0,
-	    "billingConcept" text COLLATE pg_catalog."default",
-	    "serviceType" text COLLATE pg_catalog."default",
-	    code text COLLATE pg_catalog."default",
-	    "mandatoryFields" jsonb,
-	    CONSTRAINT "Product_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Product"
-	    OWNER to postgres;
-	-- Index: Product_code_key
-	
-	-- DROP INDEX IF EXISTS public."Product_code_key";
-	
-	CREATE UNIQUE INDEX IF NOT EXISTS "Product_code_key"
-	    ON public."Product" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;	
-
-	ALTER SEQUENCE public."Product_id_seq"
-	    OWNED BY public."Product".id;	
-
-	CREATE TABLE IF NOT EXISTS public."Currency"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Currency_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    "exchangeRate" double precision NOT NULL,
-	    CONSTRAINT "Currency_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Currency"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Currency_code_key"
-	    ON public."Currency" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Currency_id_seq"
-	    OWNED BY public."Currency".id;
-
-	CREATE TABLE IF NOT EXISTS public."Combo"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Combo_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    cupos integer DEFAULT 0,
-	    "currencyId" integer,
-	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    "updatedAt" timestamp without time zone DEFAULT now(),
-	    CONSTRAINT "Combo_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Combo_currencyId_fkey" FOREIGN KEY ("currencyId")
-	        REFERENCES public."Currency" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Combo"
-	    OWNER to postgres;
-	-- Index: Combo_code_key
-
- 	--DROP INDEX IF EXISTS public."Combo_code_key";
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Combo_code_key"
-		ON public."Combo" USING btree
-		(code COLLATE pg_catalog."default" ASC NULLS LAST)
-		WITH (fillfactor=100, deduplicate_items=True)
-	
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Combo_id_seq"
-	    OWNED BY public."Combo".id;		
-
-	CREATE TABLE IF NOT EXISTS public."ComboProduct"
-	(
-	    id integer NOT NULL DEFAULT nextval('"ComboProduct_id_seq"'::regclass),
-	    "comboId" integer NOT NULL,
-	    "productId" integer NOT NULL,
-	    price double precision NOT NULL,
-	    cost double precision DEFAULT 0,
-	    "checkInDate" timestamp(3) without time zone,
-	    "checkOutDate" timestamp(3) without time zone,
-	    "prestadoraId" integer,
-	    "mainTaxId" integer,
-	    "paxAdults" integer,
-	    "paxChildren" integer,
-	    "providerId" integer,
-	    "inNationality" integer DEFAULT 1,
-	    quantity integer NOT NULL DEFAULT 1,
-	    CONSTRAINT "ComboProduct_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "ComboProduct_comboId_fkey" FOREIGN KEY ("comboId")
-	        REFERENCES public."Combo" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE,
-	    CONSTRAINT "ComboProduct_prestadoraId_fkey" FOREIGN KEY ("prestadoraId")
-	        REFERENCES public."Prestadora" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "ComboProduct_productId_fkey" FOREIGN KEY ("productId")
-	        REFERENCES public."Product" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "ComboProduct_providerId_fkey" FOREIGN KEY ("providerId")
-	        REFERENCES public."Provider" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."ComboProduct"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."ComboProduct_id_seq"
-	    OWNED BY public."ComboProduct".id;		
-
-	CREATE TABLE IF NOT EXISTS public."ComboProductTax"
-	(
-	    id integer NOT NULL DEFAULT nextval('"ComboProductTax_id_seq"'::regclass),
-	    "comboProductId" integer NOT NULL,
-	    "chargeAndTaxId" integer NOT NULL,
-	    amount double precision NOT NULL,
-	    "isMain" boolean NOT NULL DEFAULT false,
-	    CONSTRAINT "ComboProductTax_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "ComboProductTax_chargeAndTaxId_fkey" FOREIGN KEY ("chargeAndTaxId")
-	        REFERENCES public."ChargeAndTax" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "ComboProductTax_comboProductId_fkey" FOREIGN KEY ("comboProductId")
-	        REFERENCES public."ComboProduct" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."ComboProductTax"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."ComboProductTax_id_seq"
-	    OWNED BY public."ComboProductTax".id;		
-
-	CREATE TABLE IF NOT EXISTS public."Quotation"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Quotation_id_seq"'::regclass),
-	    "internalNumber" text COLLATE pg_catalog."default" NOT NULL,
-	    date timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    "clientId" integer NOT NULL,
-	    currency text COLLATE pg_catalog."default" NOT NULL,
-	    "exchangeRate" double precision NOT NULL,
-	    "branchId" integer NOT NULL,
-	    "implantId" integer,
-	    "sellerId" integer,
-	    "ticketPrinterId" integer,
-	    "baseCommissionable" double precision NOT NULL,
-	    "commissionPercentage" double precision NOT NULL,
-	    "chargesAndTaxes" double precision NOT NULL,
-	    "totalAmount" double precision NOT NULL,
-	    "userId" integer,
-	    "state" varchar(25) DEFAULT 'NUEVO',
-	    "stateDescription" text,
-	    "stateUpdatedAt" timestamp without time zone,
-	    CONSTRAINT "Quotation_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Quotation_branchId_fkey" FOREIGN KEY ("branchId")
-	        REFERENCES public."Branch" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "Quotation_clientId_fkey" FOREIGN KEY ("clientId")
-	        REFERENCES public."Client" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "Quotation_implantId_fkey" FOREIGN KEY ("implantId")
-	        REFERENCES public."Implant" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "Quotation_sellerId_fkey" FOREIGN KEY ("sellerId")
-	        REFERENCES public."Seller" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "Quotation_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId")
-	        REFERENCES public."TicketPrinter" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "Quotation_userId_fkey" FOREIGN KEY ("userId")
-	        REFERENCES public."User" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Quotation"
-	    OWNER to postgres;
-	-- Index: Quotation_internalNumber_key
-	
-	-- DROP INDEX IF EXISTS public."Quotation_internalNumber_key";
-	
-	CREATE UNIQUE INDEX IF NOT EXISTS "Quotation_internalNumber_key"
-	    ON public."Quotation" USING btree
-	    ("internalNumber" COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;	
-
-	ALTER SEQUENCE public."Quotation_id_seq"
-	    OWNED BY public."Quotation".id;
-	
-	CREATE TABLE IF NOT EXISTS public."QuotationCombo"
-	(
-	    id integer NOT NULL DEFAULT nextval('"QuotationCombo_id_seq"'::regclass),
-	    "quotationId" integer NOT NULL,
-	    "comboId" integer NOT NULL,
-	    CONSTRAINT "QuotationCombo_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationCombo_comboId_fkey" FOREIGN KEY ("comboId")
-	        REFERENCES public."Combo" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "QuotationCombo_quotationId_fkey" FOREIGN KEY ("quotationId")
-	        REFERENCES public."Quotation" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."QuotationCombo"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."QuotationCombo_id_seq"
-	    OWNED BY public."QuotationCombo".id;	
-
-	CREATE TABLE IF NOT EXISTS public."QuotationProduct"
-	(
-	    id integer NOT NULL DEFAULT nextval('"QuotationProduct_id_seq"'::regclass),
-	    "quotationId" integer NOT NULL,
-	    "productId" integer NOT NULL,
-	    quantity integer NOT NULL,
-	    price double precision NOT NULL,
-	    cost double precision DEFAULT 0,
-	    "providerId" integer,
-	    "prestadoraId" integer,
-	    "checkInDate" timestamp(3) without time zone,
-	    "checkOutDate" timestamp(3) without time zone,
-	    nights integer,
-	    "paxAdults" integer,
-	    "paxChildren" integer,
-	    "serviceType" text COLLATE pg_catalog."default",
-	    destination text COLLATE pg_catalog."default",
-	    "reservationCode" text COLLATE pg_catalog."default",
-	    "sellerCommission" double precision,
-	    "ticketPrinterCommission" double precision,
-	    "comboId" integer,
-	    "mainTaxId" integer,
-	    "inNationality" integer DEFAULT 1,
-	    CONSTRAINT "QuotationProduct_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationProduct_prestadoraId_fkey" FOREIGN KEY ("prestadoraId")
-	        REFERENCES public."Prestadora" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "QuotationProduct_productId_fkey" FOREIGN KEY ("productId")
-	        REFERENCES public."Product" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE,
-	    CONSTRAINT "QuotationProduct_providerId_fkey" FOREIGN KEY ("providerId")
-	        REFERENCES public."Provider" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "QuotationProduct_quotationId_fkey" FOREIGN KEY ("quotationId")
-	        REFERENCES public."Quotation" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."QuotationProduct"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."QuotationProduct_id_seq"
-	    OWNED BY public."QuotationProduct".id;	
-	
-	CREATE TABLE IF NOT EXISTS public."QuotationProductPassenger"
-	(
-	    id integer NOT NULL DEFAULT nextval('"QuotationProductPassenger_id_seq"'::regclass),
-	    "quotationProductId" integer NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    document text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "QuotationProductPassenger_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationProductPassenger_quotationProductId_fkey" FOREIGN KEY ("quotationProductId")
-	        REFERENCES public."QuotationProduct" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."QuotationProductPassenger"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."QuotationProductPassenger_id_seq"
-	    OWNED BY public."QuotationProductPassenger".id;	
-
-	CREATE TABLE IF NOT EXISTS public."QuotationProductTax"
-	(
-	    id integer NOT NULL DEFAULT nextval('"QuotationProductTax_id_seq"'::regclass),
-	    "quotationProductId" integer NOT NULL,
-	    "chargeAndTaxId" integer NOT NULL,
-	    "valueSnapshot" double precision NOT NULL,
-	    "valueTypeSnapshot" text COLLATE pg_catalog."default" NOT NULL,
-	    "explicitAmount" double precision,
-	    "isMain" boolean NOT NULL DEFAULT false,
-	    CONSTRAINT "QuotationProductTax_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationProductTax_chargeAndTaxId_fkey" FOREIGN KEY ("chargeAndTaxId")
-	        REFERENCES public."ChargeAndTax" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "QuotationProductTax_quotationProductId_fkey" FOREIGN KEY ("quotationProductId")
-	        REFERENCES public."QuotationProduct" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."QuotationProductTax"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."QuotationProductTax_id_seq"
-	    OWNED BY public."QuotationProductTax".id;		
-
-	CREATE TABLE IF NOT EXISTS public."QuotationProductVariable"
-	(
-	    id integer NOT NULL DEFAULT nextval('"QuotationProductVariable_id_seq"'::regclass),
-	    "quotationProductId" integer NOT NULL,
-	    "masterVariableId" integer NOT NULL,
-	    value text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "QuotationProductVariable_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationProductVariable_masterVariableId_fkey" FOREIGN KEY ("masterVariableId")
-	        REFERENCES public."MasterVariable" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "QuotationProductVariable_quotationProductId_fkey" FOREIGN KEY ("quotationProductId")
-	        REFERENCES public."QuotationProduct" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."QuotationProductVariable"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."QuotationProductVariable_id_seq"
-	    OWNED BY public."QuotationProductVariable".id;
-
-	CREATE TABLE IF NOT EXISTS public."Attachment"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Attachment_id_seq"'::regclass),
-	    "quotationId" integer NOT NULL,
-	    "fileName" text COLLATE pg_catalog."default" NOT NULL,
-	    "fileType" text COLLATE pg_catalog."default" NOT NULL,
-	    "fileSize" integer NOT NULL,
-	    "fileContent" bytea NOT NULL,
-	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    CONSTRAINT "Attachment_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Attachment_quotationId_fkey" FOREIGN KEY ("quotationId")
-	        REFERENCES public."Quotation" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Attachment" OWNER to postgres;
-
-	ALTER SEQUENCE public."Attachment_id_seq"
-	    OWNED BY public."Attachment".id;
-
-	CREATE TABLE IF NOT EXISTS public."QuotationState"
-	(
-	    id integer NOT NULL DEFAULT nextval('"QuotationState_id_seq"'::regclass),
-	    name character varying(50) NOT NULL,
-	    color character varying(20),
-	    "createdAt" timestamp(6) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    code character varying(25) NOT NULL,
-	    CONSTRAINT "QuotationState_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationState_code_key" UNIQUE (code)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."QuotationState"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."QuotationState_id_seq"
-	    OWNED BY public."QuotationState".id;
-
-	ALTER TABLE public."ChargeAndTax" ADD COLUMN IF NOT EXISTS "isEditable" boolean NOT NULL DEFAULT true;
-	ALTER TABLE public."ComboProduct" ADD COLUMN IF NOT EXISTS "inNationality" integer DEFAULT 1;
-	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "inNationality" integer DEFAULT 1;
-	ALTER TABLE public."QuotationProductTax" ADD COLUMN IF NOT EXISTS "explicitAmount" double precision;
-	ALTER TABLE public."QuotationProductTax" ADD COLUMN IF NOT EXISTS "isMain" boolean NOT NULL DEFAULT false;
-	ALTER TABLE public."ComboProductTax" ADD COLUMN IF NOT EXISTS "isMain" boolean NOT NULL DEFAULT false;	
-	--ALTER TABLE public."ComboProduct" RENAME COLUMN "hotelId" TO "prestadoraId";
-	--ALTER TABLE public."QuotationProduct" RENAME COLUMN "hotelId" TO "prestadoraId";
-	ALTER TABLE public."ChargeAndTax" ADD COLUMN IF NOT EXISTS "code" text;
-	ALTER TABLE public."ChargeAndTax" DROP CONSTRAINT IF EXISTS "ChargeAndTax_code_key";
-	ALTER TABLE public."ChargeAndTax" ADD CONSTRAINT "ChargeAndTax_code_key" UNIQUE ("code");
-	-- Columnas de costo en productos
-	ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
-	ALTER TABLE public."ComboProduct" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
-	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
-	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "service" text;
-	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "description" text;
-	ALTER TABLE public."Prestadora" ADD COLUMN IF NOT EXISTS "initials" text;
-	ALTER TABLE public."Prestadora" ADD COLUMN IF NOT EXISTS "nogds" text;
-	-- Tabla Currency ya incluida en la creación arriba, pero por si la BD es existente:
-	CREATE TABLE IF NOT EXISTS public."Currency"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Currency_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    "exchangeRate" double precision NOT NULL,
-	    CONSTRAINT "Currency_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Currency" OWNER to postgres;
-	CREATE UNIQUE INDEX IF NOT EXISTS "Currency_code_key"
-	    ON public."Currency" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;
-	-- Columna currencyId en Combo para BDs existentes
-	ALTER TABLE public."Combo" ADD COLUMN IF NOT EXISTS "currencyId" integer;
-	ALTER TABLE public."Combo" DROP CONSTRAINT IF EXISTS "Combo_currencyId_fkey";
-	ALTER TABLE public."Combo" ADD CONSTRAINT "Combo_currencyId_fkey"
-	    FOREIGN KEY ("currencyId") REFERENCES public."Currency"(id)
-	    ON UPDATE CASCADE ON DELETE SET NULL;
-
-	-- Columna state en Quotation
-	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "state" varchar(25) DEFAULT 'Nuevo';
-
-	CREATE TABLE IF NOT EXISTS public."GDS"(
-		id integer NOT NULL DEFAULT nextval('"GDS_id_seq"'::regclass),
-		name text COLLATE pg_catalog."default" NOT NULL,
-		CONSTRAINT "GDS_pkey" PRIMARY KEY (id)
-	)	
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."GDS" OWNER to postgres;
-	
-	
-
-	--DROP INDEX IF EXISTS public."gds_name_key";
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "gds_name_key"
-	    ON public."GDS" USING btree
-	    (name COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."GDS_id_seq"
-	    OWNED BY public."GDS".id;	
-
-	CREATE TABLE IF NOT EXISTS public."Interfaces"(
-		id integer NOT NULL DEFAULT nextval('"Interfaces_id_seq"'::regclass),
-		code text COLLATE pg_catalog."default" NOT NULL,
-		name text COLLATE pg_catalog."default" NOT NULL,
-		inactivo boolean NOT NULL DEFAULT false,
-		bl_genera_archivoplano boolean NOT NULL DEFAULT false,
-		ds_storedprocedure_archivoplano text COLLATE pg_catalog."default",
-		bl_job boolean NOT NULL DEFAULT false,
-		ds_nameJob text COLLATE pg_catalog."default",
-		bl_facturador boolean NOT NULL DEFAULT false,
-		id_GDS integer,
-		CONSTRAINT "interfaces_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Interfaces" OWNER to postgres;
-
-	
-
-	-- DROP INDEX IF EXISTS public."interfaces_code_key";
-	
-	CREATE UNIQUE INDEX IF NOT EXISTS "interfaces_code_key"
-	    ON public."Interfaces" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Interfaces_id_seq"
-	    OWNED BY public."Interfaces".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Master_id_seq"
-		INCREMENT 1
-		START 1
-		MINVALUE 1
-		MAXVALUE 2147483647
-		CACHE 1;
-	
-	ALTER SEQUENCE public."Master_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE TABLE IF NOT EXISTS public."Master"(
-		id integer NOT NULL DEFAULT nextval('"Master_id_seq"'::regclass),
-		code text COLLATE pg_catalog."default" NOT NULL,
-		name text COLLATE pg_catalog."default" NOT NULL,
-		inactivo boolean NOT NULL DEFAULT false,
-		CONSTRAINT "master_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Master" OWNER to postgres;
-
-	
-
-	-- DROP INDEX IF EXISTS public."master_code_key";
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "master_code_key"
-	    ON public."Master" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Master_id_seq"
-	    OWNED BY public."Master".id;
-
-
-	CREATE SEQUENCE IF NOT EXISTS public."EquivalencesInterfaces_id_seq"
-		INCREMENT 1
-		START 1
-		MINVALUE 1
-		MAXVALUE 2147483647
-		CACHE 1;
-	
-	ALTER SEQUENCE public."EquivalencesInterfaces_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE TABLE IF NOT EXISTS public."EquivalencesInterfaces"(
-		id integer NOT NULL DEFAULT nextval('"EquivalencesInterfaces_id_seq"'::regclass),
-		id_interfaces integer NOT NULL,
-		id_master integer NOT NULL,
-		cd_maestro text COLLATE pg_catalog."default" NOT NULL,
-		cd_codigo text COLLATE pg_catalog."default" NOT NULL,
-		cd_codigoInte text COLLATE pg_catalog."default" NOT NULL,
-		dt_fecha timestamp without time zone DEFAULT now(),
-		CONSTRAINT "EquivalencesInterfaces_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "EquivalencesInterfaces_id_interfaces_fkey" FOREIGN KEY ("id_interfaces")
-	        REFERENCES public."Interfaces" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-		CONSTRAINT "EquivalencesInterfaces_id_master_fkey" FOREIGN KEY ("id_master")
-	        REFERENCES public."Master" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT	
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."EquivalencesInterfaces" OWNER to postgres;
-
-	ALTER SEQUENCE public."EquivalencesInterfaces_id_seq"
-		OWNED BY public."EquivalencesInterfaces".id;
-
-	CREATE TABLE IF NOT EXISTS public."Report" (
-	    id SERIAL PRIMARY KEY,
-	    name VARCHAR(255) NOT NULL,
-	    base_table VARCHAR(100), -- Puede ser NULL si es Custom SQL
-	    description TEXT,
-	    custom_sql TEXT, -- Para reportes definidos por script
-	    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
-	);
-
-	CREATE TABLE IF NOT EXISTS public."ReportSorts" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    column_expr TEXT NOT NULL,
-	    direction VARCHAR(10) DEFAULT 'ASC',
-	    sort_order INTEGER DEFAULT 0
-	);
-
-	CREATE TABLE IF NOT EXISTS public."ReportJoins" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    table_name VARCHAR(100) NOT NULL,
-	    alias VARCHAR(20) NOT NULL,
-	    join_type VARCHAR(50) NOT NULL DEFAULT 'INNER JOIN',
-	    join_condition TEXT NOT NULL,
-	    sort_order INTEGER DEFAULT 0
-	);
-
-	CREATE TABLE IF NOT EXISTS public."ReportColumns" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    table_alias VARCHAR(20),
-	    column_name VARCHAR(100) NOT NULL,
-	    alias VARCHAR(150),
-	    is_calculated BOOLEAN DEFAULT false,
-	    is_visible BOOLEAN DEFAULT true,
-	    formula_expression TEXT,
-	    sort_order INTEGER DEFAULT 0
-	);
-
-	CREATE TABLE IF NOT EXISTS public."ReportFilters" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    table_alias VARCHAR(20),
-	    column_name VARCHAR(100) NOT NULL,
-	    filter_label VARCHAR(150),
-	    filter_type VARCHAR(50) NOT NULL, -- 'text', 'date', 'number', 'select'
-	    operator VARCHAR(20) DEFAULT '=',
-	    sort_order INTEGER DEFAULT 0
-	);
-		
-
-
-	-- SEQUENCES FOR BOOKING GDS
-	CREATE SEQUENCE IF NOT EXISTS public."BookingGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingGDS_id_seq" OWNER TO postgres;
-	
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductGDS_id_seq" OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductTaxGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductTaxGDS_id_seq" OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductPassangerGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductPassangerGDS_id_seq" OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductVariableGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductVariableGDS_id_seq" OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductPaymentGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductPaymentGDS_id_seq" OWNER TO postgres;
-
-	-- TABLES FOR BOOKING GDS
-	CREATE TABLE IF NOT EXISTS public."BookingGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingGDS_id_seq"'::regclass),
-		code VARCHAR(25) NOT NULL,
-		type VARCHAR(25) NOT NULL,
-		"blanch" VARCHAR(25) NOT NULL,
-		"implant" VARCHAR(25) NULL,
-		"external" boolean NOT NULL DEFAULT false,
-		"gds" integer,
-		"date" timestamp without time zone DEFAULT now(),
-		"currency" text COLLATE pg_catalog."default" NOT NULL,
-	    "exchangeRate" double precision NOT NULL,
-		"tiquetPrinter" VARCHAR(25) NOT NULL,
-		"seller" VARCHAR(25) NOT NULL,
-		"client" VARCHAR(25) NOT NULL,
-		"booking" text NULL,
-		"typetransaction" VARCHAR(25),
-		"iata" VARCHAR(25),
-		"description" text,
-		"observation" text,
-		"state" VARCHAR(25),
-		CONSTRAINT "BookingGDS_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingGDS_id_seq" OWNED BY public."BookingGDS".id;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "bookingds_code_key"
-	    ON public."BookingGDS" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;	
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductGDS_id_seq"'::regclass),
-		"bookingId" integer NOT NULL,
-		code VARCHAR(25) NOT NULL,
-		type VARCHAR(25),
-		"service" text COLLATE pg_catalog."default",
-		"description" text COLLATE pg_catalog."default",
-		"prestadoracode" VARCHAR(25),
-		"prestadorainitials" VARCHAR(25),
-		"prestadoradist" VARCHAR(25),
-		"provider" VARCHAR(25),
-		"quantity" integer NOT NULL,
-	    price double precision NOT NULL,
-	    cost double precision DEFAULT 0,
-		"checkInDate" timestamp(3) without time zone,
-	    "checkOutDate" timestamp(3) without time zone,
-	    "nights" integer,
-	    "paxAdults" integer,
-	    "paxChildren" integer,
-	    "serviceType" text COLLATE pg_catalog."default",
-		"billingConcept" text COLLATE pg_catalog."default",
-	    "destination" text COLLATE pg_catalog."default",
-	    "reservationCode" text COLLATE pg_catalog."default",
-	    "sellerCom" double precision,
-	    "ticketPrinterCom" double precision,
-	    "inNationality" integer DEFAULT 1,
-		"state" VARCHAR(25) DEFAULT 'NUEVO',
-		"conjunction" integer DEFAULT 0,
-		"revised" VARCHAR(25),
-		"typeproduct" VARCHAR(25),
-		"consecutive" VARCHAR(25),
-		CONSTRAINT "BookingProductGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductGDS_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES public."BookingGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductGDS_id_seq" OWNED BY public."BookingProductGDS".id;
-
-	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "conjunction" integer DEFAULT 0;
-	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "revised" VARCHAR(25);
-	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "penalty" VARCHAR(25);
-	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "typeproduct" VARCHAR(25);
-	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "consecutive" VARCHAR(25);
-	
-	CREATE TABLE IF NOT EXISTS public."BookingProductTaxGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductTaxGDS_id_seq"'::regclass),
-		"bookingProductId" integer NOT NULL,
-		code VARCHAR(25) NOT NULL,
-		name VARCHAR(50) NOT NULL,
-		type VARCHAR(25) NOT NULL,
-		"ismain" boolean DEFAULT false,
-		"percentage" double precision NOT NULL,
-		"amount" double precision NOT NULL, 
-		CONSTRAINT "BookingProductTaxGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductTaxGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductTaxGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductTaxGDS_id_seq" OWNED BY public."BookingProductTaxGDS".id;
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductPassangerGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductPassangerGDS_id_seq"'::regclass),
-		"bookingProductId" integer NOT NULL,
-		code VARCHAR(25),
-		"firstnm" VARCHAR(30),
-		"lastnm" VARCHAR(30),
-		"prefix" VARCHAR(25),
-		"identification" VARCHAR(25),
-		"phone" VARCHAR(25),
-		"email" VARCHAR(250),
-		CONSTRAINT "BookingProductPassangerGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductPassangerGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductPassangerGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductPassangerGDS_id_seq" OWNED BY public."BookingProductPassangerGDS".id;
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductVariableGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductVariableGDS_id_seq"'::regclass),
-		"bookingProductId" integer NOT NULL,
-		code text COLLATE pg_catalog."default",
-		name text COLLATE pg_catalog."default",
-		"value" text COLLATE pg_catalog."default",
-		CONSTRAINT "BookingProductVariableGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductVariableGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductVariableGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductVariableGDS_id_seq" OWNED BY public."BookingProductVariableGDS".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductFEEGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductFEEGDS_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductFEEGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductFEEGDS_id_seq"'::regclass),
-		"bookingProductId" integer NOT NULL,
-		code text COLLATE pg_catalog."default" NOT NULL,
-		name text COLLATE pg_catalog."default" NOT NULL,
-		type text COLLATE pg_catalog."default" NOT NULL,
-		"description" text COLLATE pg_catalog."default" NOT NULL,
-		"billigconcept" text COLLATE pg_catalog."default" NOT NULL,
-		"servicetype" text COLLATE pg_catalog."default" NOT NULL,
-		"amount" double precision NOT NULL,
-		"tax" double precision NOT NULL,
-		"other" double precision NOT NULL,
-		"total" double precision NOT NULL,
-		CONSTRAINT "BookingProductFEEGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductFEEGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductFEEGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductFEEGDS_id_seq" OWNED BY public."BookingProductFEEGDS".id;
-
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductPaymentGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductPaymentGDS_id_seq"'::regclass),
-		"bookingProductId" integer NULL,
-		"bookingProductFEEId" integer NULL,
-		code VARCHAR(50) NOT NULL,
-		name VARCHAR(50) NOT NULL,
-		type VARCHAR(50) NOT NULL,
-		"typecreditcard" VARCHAR(25),
-		"numbercreditcard" VARCHAR(16),
-		"vouchercreditcard" VARCHAR(25),
-		"expiredcreditcard" VARCHAR(5),
-		"authcreditcard" VARCHAR(25),
-		"quotas" integer,
-		"bank" VARCHAR(25),
-		"square" VARCHAR(30),
-		"reference" VARCHAR(50),
-		"policy" VARCHAR(25),
-		"policyannex" VARCHAR(25),
-		"amount" double precision NOT NULL, 
-		CONSTRAINT "BookingProductPaymentGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductPaymentGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE,
-		CONSTRAINT "BookingProductPaymentGDS_bookingProductFEEId_fkey" FOREIGN KEY ("bookingProductFEEId") REFERENCES public."BookingProductFEEGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductPaymentGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductPaymentGDS_id_seq" OWNED BY public."BookingProductPaymentGDS".id;
-
-	
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductItineraryGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductItineraryGDS_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductItineraryGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductItineraryGDS_id_seq"'::regclass),
-		"bookingProductId" integer NOT NULL,
-		"orden" integer,
-		"origin" text COLLATE pg_catalog."default" NOT NULL,
-		"destination" text COLLATE pg_catalog."default" NOT NULL,
-		"class" text COLLATE pg_catalog."default" NOT NULL,
-		"checkInDate" timestamp(3) without time zone,
-		"checkOutDate" timestamp(3) without time zone,
-		"terminal" text COLLATE pg_catalog."default" NOT NULL,
-		"prestadoraCode" text COLLATE pg_catalog."default" NOT NULL,
-		"farebasis" text COLLATE pg_catalog."default" NOT NULL,
-		"Numflight" VARCHAR(25),
-		"Typeflight" VARCHAR(1),
-		"amount" double precision NOT NULL,
-		CONSTRAINT "BookingProductItineraryGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductItineraryGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductItineraryGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductItineraryGDS_id_seq" OWNED BY public."BookingProductItineraryGDS".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BranchGDSInvoiceAuto_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BranchGDSInvoiceAuto_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BranchGDSInvoiceAuto" (
-		id integer NOT NULL DEFAULT nextval('"BranchGDSInvoiceAuto_id_seq"'::regclass),
-		"branchId" integer NOT NULL,
-		"gdsId" integer NOT NULL,
-		"EnvoiceAuto" boolean DEFAULT false,
-		CONSTRAINT "BranchGDSInvoiceAuto_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BranchGDSInvoiceAuto_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BranchGDSInvoiceAuto" OWNER to postgres;
-	ALTER SEQUENCE public."BranchGDSInvoiceAuto_id_seq" OWNED BY public."BranchGDSInvoiceAuto".id;
-
-
-	CREATE SEQUENCE IF NOT EXISTS public."Payment_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."Payment_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."Payment"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Payment_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    "name" text COLLATE pg_catalog."default" NOT NULL,
-	    "inactive" boolean NOT NULL DEFAULT false,
-	    "iscash" boolean NOT NULL DEFAULT false,
-		"iscredit" boolean NOT NULL DEFAULT false,
-	    CONSTRAINT "Payment_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Payment" OWNER to postgres;
-	CREATE UNIQUE INDEX IF NOT EXISTS "Payment_code_key" ON public."Payment" USING btree (code COLLATE pg_catalog."default" ASC NULLS LAST) WITH (fillfactor=100, deduplicate_items=True) TABLESPACE pg_default;
-	ALTER SEQUENCE public."Payment_id_seq" OWNED BY public."Payment".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."CreditCard_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."CreditCard_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."CreditCard"
-	(
-	    id integer NOT NULL DEFAULT nextval('"CreditCard_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    "name" text COLLATE pg_catalog."default" NOT NULL,
-		"type" text COLLATE pg_catalog."default" NOT NULL,
-	    "inactive" boolean NOT NULL DEFAULT false,
-	    CONSTRAINT "CreditCard_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."CreditCard" OWNER to postgres;
-	CREATE UNIQUE INDEX IF NOT EXISTS "CreditCard_code_key" ON public."CreditCard" USING btree (code COLLATE pg_catalog."default" ASC NULLS LAST) WITH (fillfactor=100, deduplicate_items=True) TABLESPACE pg_default;
-	ALTER SEQUENCE public."CreditCard_id_seq" OWNED BY public."CreditCard".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingsGDS_log_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingsGDS_log_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BookingsGDS_log"
-	(
-	    id integer NOT NULL DEFAULT nextval('"BookingsGDS_log_id_seq"'::regclass),
-	    blanch VARCHAR(25),
-	    implant VARCHAR(25),
-	    "message" TEXT,
-	    file VARCHAR(250),
-	    codebooking VARCHAR(50),
-	    booking TEXT,
-	    error integer NOT NULL DEFAULT 0,
-	    CONSTRAINT "BookingsGDS_log_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingsGDS_log" OWNER to postgres;
-	ALTER SEQUENCE public."BookingsGDS_log_id_seq" OWNED BY public."BookingsGDS_log".id;
-	CREATE SEQUENCE IF NOT EXISTS public."BookingsGDSInvoiceAuto_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingsGDSInvoiceAuto_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BookingsGDSInvoiceAuto"
-	(
-	    id integer NOT NULL DEFAULT nextval('"BookingsGDSInvoiceAuto_id_seq"'::regclass),
-	    "Branch" VARCHAR(25),
-	    implant VARCHAR(25),
-	    "bookingCode" VARCHAR(25),
-	    "bookingId" integer,
-	    CONSTRAINT "BookingsGDSInvoiceAuto_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingsGDSInvoiceAuto" OWNER to postgres;
-	ALTER SEQUENCE public."BookingsGDSInvoiceAuto_id_seq" OWNED BY public."BookingsGDSInvoiceAuto".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingGDSInvoiceAutoLog_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingGDSInvoiceAutoLog_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BookingGDSInvoiceAutoLog"
-	(
-	    "Id" integer NOT NULL DEFAULT nextval('"BookingGDSInvoiceAutoLog_id_seq"'::regclass),
-	    "branchId" integer,
-	    "implanteId" integer,
-	    "date" TIMESTAMP,
-	    menssage text,
-	    "bookingCode" VARCHAR(25),
-	    "bookingId" integer,
-	    error boolean,
-	    file text,
-	    "userId" integer,
-	    CONSTRAINT "BookingGDSInvoiceAutoLog_pkey" PRIMARY KEY ("Id")
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingGDSInvoiceAutoLog" OWNER to postgres;
-	ALTER SEQUENCE public."BookingGDSInvoiceAutoLog_id_seq" OWNED BY public."BookingGDSInvoiceAutoLog"."Id";
-
-	CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."Currency_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."Currency" (
-		id integer NOT NULL DEFAULT nextval('"Currency_id_seq"'::regclass),
-		code VARCHAR(10) NOT NULL,
-		name VARCHAR(50) NOT NULL,
-		"exchangeRate" double precision,
-		CONSTRAINT "Currency_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Currency" OWNER to postgres;
-	ALTER SEQUENCE public."Currency_id_seq" OWNED BY public."Currency".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Countries_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."Countries_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."Countries" (
-		id integer NOT NULL DEFAULT nextval('"Countries_id_seq"'::regclass),
-		code VARCHAR(10) NOT NULL,
-		name VARCHAR(100) NOT NULL,
-		dane VARCHAR(25),
-		region VARCHAR(50),
-		prefix VARCHAR(10),
-		"curencyId" integer,
-		CONSTRAINT "Countries_pkey" PRIMARY KEY (id),
-		CONSTRAINT "Countries_curencyId_fkey" FOREIGN KEY ("curencyId") REFERENCES public."Currency" (id) ON UPDATE CASCADE ON DELETE SET NULL
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Countries" OWNER to postgres;
-	ALTER SEQUENCE public."Countries_id_seq" OWNED BY public."Countries".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Cities_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."Cities_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."Cities" (
-		id integer NOT NULL DEFAULT nextval('"Cities_id_seq"'::regclass),
-		code VARCHAR(10) NOT NULL,
-		name VARCHAR(100) NOT NULL,
-		"countriesId" integer NOT NULL,
-		statecode VARCHAR(25),
-		iata VARCHAR(10),
-		CONSTRAINT "Cities_pkey" PRIMARY KEY (id),
-		CONSTRAINT "Cities_countriesId_fkey" FOREIGN KEY ("countriesId") REFERENCES public."Countries" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Cities" OWNER to postgres;
-	ALTER SEQUENCE public."Cities_id_seq" OWNED BY public."Cities".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Airports_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."Airports_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."Airports" (
-		id integer NOT NULL DEFAULT nextval('"Airports_id_seq"'::regclass),
-		code VARCHAR(10) NOT NULL,
-		name VARCHAR(150) NOT NULL,
-		"citiesId" integer NOT NULL,
-		CONSTRAINT "Airports_pkey" PRIMARY KEY (id),
-		CONSTRAINT "Airports_citiesId_fkey" FOREIGN KEY ("citiesId") REFERENCES public."Cities" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Airports" OWNER to postgres;
-	ALTER SEQUENCE public."Airports_id_seq" OWNED BY public."Airports".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."CellCustomization_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."CellCustomization_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."CellCustomization" (
-		id integer NOT NULL DEFAULT nextval('"CellCustomization_id_seq"'::regclass),
-		code VARCHAR(50) NOT NULL,
-		"name" VARCHAR(100) NOT NULL,
-		"value" VARCHAR(10),
-		"branchId" integer,
-		"implantId" integer,
-		CONSTRAINT "CellCustomization_pkey" PRIMARY KEY (id),
-		CONSTRAINT "CellCustomization_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch" (id) ON UPDATE CASCADE ON DELETE CASCADE,
-		CONSTRAINT "CellCustomization_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."CellCustomization" OWNER to postgres;
-	ALTER SEQUENCE public."CellCustomization_id_seq" OWNED BY public."CellCustomization".id;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_branch_code_key" ON public."CellCustomization" ("branchId", "code") WHERE "branchId" IS NOT NULL;
-	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_implant_code_key" ON public."CellCustomization" ("implantId", "code") WHERE "implantId" IS NOT NULL;
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationStateHistory_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."QuotationStateHistory_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."QuotationStateHistory" (
-		id integer NOT NULL DEFAULT nextval('"QuotationStateHistory_id_seq"'::regclass),
-		"quotationId" integer NOT NULL,
-		state varchar(25) NOT NULL,
-		description text,
-		"createdAt" timestamp(6) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		"userId" integer,
-		CONSTRAINT "QuotationStateHistory_pkey" PRIMARY KEY (id),
-		CONSTRAINT "QuotationStateHistory_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation" (id) ON UPDATE CASCADE ON DELETE CASCADE,
-		CONSTRAINT "QuotationStateHistory_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User" (id) ON UPDATE CASCADE ON DELETE SET NULL
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."QuotationStateHistory" OWNER to postgres;
-	ALTER SEQUENCE public."QuotationStateHistory_id_seq" OWNED BY public."QuotationStateHistory".id;
-
-	CREATE INDEX IF NOT EXISTS "QuotationStateHistory_quotationId_idx" ON public."QuotationStateHistory" ("quotationId");
-
-	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "logo" bytea;
-	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "template" bytea;
-	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "templateConfig" jsonb;
-	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "htmlTemplate" text;
-
-	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "logo" bytea;
-	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "template" bytea;
-	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "templateConfig" jsonb;
-	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "htmlTemplate" text;
-
-	ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "mandatoryFields" jsonb;
-	ALTER TABLE public."Client" ADD COLUMN IF NOT EXISTS "mandatoryVariables" jsonb;
-	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "stateDescription" text;
-	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "stateUpdatedAt" timestamp without time zone;
-END $$;
-
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN 
-        ALTER TABLE public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id); 
-    END IF; 
-END $$;
-
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'interfaces_pkey') THEN 
-        ALTER TABLE public."Interfaces" ADD CONSTRAINT "interfaces_pkey" PRIMARY KEY (id); 
-    END IF; 
-END $$;
-
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'master_pkey') THEN 
-        ALTER TABLE public."Master" ADD CONSTRAINT "master_pkey" PRIMARY KEY (id); 
-    END IF; 
-END $$;
--- Script para la tabla maestra TicketType
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'TicketType') THEN
-        CREATE TABLE public."TicketType" (
-            "id" SERIAL PRIMARY KEY,
-            "code" VARCHAR(50) UNIQUE NOT NULL,
-            "name" VARCHAR(255) NOT NULL,
-            "description" TEXT,
-            "isActive" BOOLEAN DEFAULT true
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Invoices') THEN
-        CREATE TABLE public."Invoices" (
-            "id" SERIAL PRIMARY KEY,
-            "internalNumber" VARCHAR(255) UNIQUE NOT NULL,
-            "date" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "clientId" INT NOT NULL,
-            "currency" VARCHAR(50) NOT NULL,
-            "exchangeRate" FLOAT NOT NULL,
-            "branchId" INT NOT NULL,
-            "implantId" INT,
-            "sellerId" INT,
-            "ticketPrinterId" INT,
-            "baseCommissionable" FLOAT NOT NULL,
-            "commissionPercentage" FLOAT NOT NULL,
-            "chargesAndTaxes" FLOAT NOT NULL,
-            "totalAmount" FLOAT NOT NULL,
-            "userId" INT,
-            "state" VARCHAR(25) DEFAULT 'NUEVO'
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProduct') THEN
-        CREATE TABLE public."InvoicesProduct" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceId" INT NOT NULL,
-            "productId" INT NOT NULL,
-            "quantity" INT NOT NULL,
-            "price" FLOAT NOT NULL,
-            "cost" FLOAT DEFAULT 0,
-            "providerId" INT,
-            "prestadoraId" INT,
-            "checkInDate" TIMESTAMP,
-            "checkOutDate" TIMESTAMP,
-            "nights" INT,
-            "paxAdults" INT,
-            "paxChildren" INT,
-            "serviceType" VARCHAR(255),
-            "destination" VARCHAR(255),
-            "reservationCode" VARCHAR(255),
-            "sellerCommission" FLOAT,
-            "ticketPrinterCommission" FLOAT,
-            "comboId" INT,
-            "mainTaxId" INT,
-            "inNationality" INT DEFAULT 1,
-            
-            -- Nuevos campos solicitados
-            "servicios" TEXT,
-            "descripcion" TEXT,
-            "itinerary" TEXT,
-            "class" VARCHAR(100),
-            "ticketTypeId" INT
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductCombo') THEN
-        CREATE TABLE public."InvoicesProductCombo" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceId" INT NOT NULL,
-            "comboId" INT NOT NULL
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax') THEN
-        CREATE TABLE public."InvoicesProductTax" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceProductId" INT NOT NULL,
-            "chargeAndTaxId" INT NOT NULL,
-            "valueSnapshot" FLOAT NOT NULL,
-            "valueTypeSnapshot" VARCHAR(50) NOT NULL,
-            "explicitAmount" FLOAT,
-            "isMain" BOOLEAN DEFAULT false
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger') THEN
-        CREATE TABLE public."InvoicesProductPasenger" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceProductId" INT NOT NULL,
-            "name" VARCHAR(255) NOT NULL,
-            "document" VARCHAR(255) NOT NULL
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable') THEN
-        CREATE TABLE public."InvoicesProductVariable" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceProductId" INT NOT NULL,
-            "masterVariableId" INT NOT NULL,
-            "value" VARCHAR(255) NOT NULL
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment') THEN
-        CREATE TABLE public."InvoicesProductPayment" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceProductId" INT NOT NULL,
-            "amount" FLOAT NOT NULL,
-            "paymentMethod" VARCHAR(100),
-            "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            "reference" VARCHAR(255)
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'servicios') THEN
-        ALTER TABLE public."QuotationProduct" ADD COLUMN "servicios" TEXT;
-    END IF;
-    
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'descripcion') THEN
-        ALTER TABLE public."QuotationProduct" ADD COLUMN "descripcion" TEXT;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'airline') THEN
-        ALTER TABLE public."InvoicesProduct" ADD COLUMN "airline" VARCHAR(100);
-    END IF;
-END $$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary') THEN
-        CREATE TABLE public."InvoicesProductItinerary" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceProductId" INT NOT NULL,
-            "orden" INT,
-            "origin" VARCHAR(255) NOT NULL,
-            "destination" VARCHAR(255) NOT NULL,
-            "class" VARCHAR(255),
-            "checkInDate" TIMESTAMP,
-            "checkOutDate" TIMESTAMP,
-            "terminal" VARCHAR(255),
-            "prestadoraCode" VARCHAR(255),
-            "farebasis" VARCHAR(255),
-            "Numflight" VARCHAR(25),
-            "Typeflight" VARCHAR(1),
-            "amount" FLOAT,
-            "co2" DECIMAL(10,4),
-            CONSTRAINT "InvoicesProductItinerary_invoiceProductId_fkey" FOREIGN KEY ("invoiceProductId") REFERENCES public."InvoicesProduct" (id) ON UPDATE CASCADE ON DELETE CASCADE
-        );
-    END IF;
-END $$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Menu') THEN
-        CREATE TABLE public."Menu" (
-            id SERIAL PRIMARY KEY,
-            code VARCHAR(100) UNIQUE NOT NULL,
-            name VARCHAR(255) NOT NULL,
-            parent INT NULL,
-            action VARCHAR(500) NOT NULL,
-            activo BOOLEAN DEFAULT true
-        );
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment') THEN
-        CREATE TABLE public."QuotationProductPayment" (
-            "id" SERIAL PRIMARY KEY,
-            "quotationProductId" INT NOT NULL,
-            "amount" FLOAT NOT NULL,
-            "paymentMethod" VARCHAR(100),
-            "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            "reference" VARCHAR(255),
-            "creditCardId" INT,
-            "cardNumber" VARCHAR(20),
-            "authorizationCode" VARCHAR(50),
-            "voucher" VARCHAR(50),
-            "expirationDate" VARCHAR(10),
-            CONSTRAINT "QuotationProductPayment_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct" (id) ON UPDATE CASCADE ON DELETE CASCADE
-        );
-    END IF;
-END $$;
-
-
-
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN 
-        ALTER TABLE public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id); 
-    END IF; 
-END $$;
-
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'interfaces_pkey') THEN 
-        ALTER TABLE public."Interfaces" ADD CONSTRAINT "interfaces_pkey" PRIMARY KEY (id); 
-    END IF; 
-END $$;
-
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'master_pkey') THEN 
-        ALTER TABLE public."Master" ADD CONSTRAINT "master_pkey" PRIMARY KEY (id); 
-    END IF; 
-END $$;
-
--- Sembrar estados de cotización iniciales si no existen
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationState') THEN
-        IF NOT EXISTS (SELECT 1 FROM public."QuotationState" WHERE code = 'NUEVO') THEN
-            INSERT INTO public."QuotationState" (code, name, color) VALUES ('NUEVO', 'Nuevo', 'blue');
+    CREATE TABLE IF NOT EXISTS public."Branch" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        template bytea,
+        "templateConfig" jsonb,
+        "htmlTemplate" text,
+        logo bytea
+    );
+    CREATE TABLE IF NOT EXISTS public."Client" (
+        id integer NOT NULL,
+        name text NOT NULL,
+        document text NOT NULL,
+        "contactInfo" text,
+        address text,
+        "mandatoryVariables" jsonb
+    );
+    CREATE TABLE IF NOT EXISTS public."Implant" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        "branchId" integer,
+        "Logo" bytea,
+        template bytea,
+        "templateConfig" jsonb,
+        "htmlTemplate" text,
+        logo bytea
+    );
+    CREATE TABLE IF NOT EXISTS public."ChargeAndTax" (
+        id integer NOT NULL,
+        name text NOT NULL,
+        type text NOT NULL,
+        "valueType" text NOT NULL,
+        value double precision NOT NULL,
+        "isEditable" boolean DEFAULT true NOT NULL,
+        code text
+    );
+    CREATE TABLE IF NOT EXISTS public."Menu" (
+        id integer NOT NULL,
+        code character varying(100) NOT NULL,
+        name character varying(255) NOT NULL,
+        parent integer,
+        action character varying(500) NOT NULL,
+        activo boolean DEFAULT true
+    );
+    CREATE TABLE IF NOT EXISTS public."SystemParameter" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        value text NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS public."Product" (
+        id integer NOT NULL,
+        type text NOT NULL,
+        description text NOT NULL,
+        "basePrice" double precision NOT NULL,
+        "billingConcept" text,
+        "serviceType" text,
+        code text,
+        cost double precision DEFAULT 0,
+        "airlineItinerary" text,
+        "classItinerary" text,
+        "flightItinerary" text,
+        "ticketTypeId" integer,
+        "mandatoryFields" jsonb
+    );
+    CREATE TABLE IF NOT EXISTS public."Seller" (
+        id integer NOT NULL,
+        code text,
+        name text NOT NULL,
+        email text
+    );
+    CREATE TABLE IF NOT EXISTS public."TicketPrinter" (
+        id integer NOT NULL,
+        code text,
+        name text NOT NULL,
+        email text
+    );
+    CREATE TABLE IF NOT EXISTS public."MasterVariable" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS public."Airports" (
+        id integer NOT NULL,
+        code character varying(10) NOT NULL,
+        name character varying(150) NOT NULL,
+        "citiesId" integer NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Airports_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Airports_id_seq" OWNED BY public."Airports".id;
+    CREATE TABLE IF NOT EXISTS public."Attachment" (
+        id integer NOT NULL,
+        "quotationId" integer NOT NULL,
+        "fileName" text NOT NULL,
+        "fileType" text NOT NULL,
+        "fileSize" integer NOT NULL,
+        "fileContent" bytea NOT NULL,
+        "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Attachment_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Attachment_id_seq" OWNED BY public."Attachment".id;
+    CREATE TABLE IF NOT EXISTS public."BookingGDS" (
+        id integer NOT NULL,
+        code character varying(25) NOT NULL,
+        type character varying(25) NOT NULL,
+        blanch character varying(25) NOT NULL,
+        implant character varying(25),
+        external boolean DEFAULT false NOT NULL,
+        gds integer,
+        date timestamp without time zone DEFAULT now(),
+        currency text NOT NULL,
+        "exchangeRate" double precision NOT NULL,
+        "tiquetPrinter" character varying(25) NOT NULL,
+        seller character varying(25) NOT NULL,
+        client character varying(25) NOT NULL,
+        booking text,
+        typetransaction character varying(25),
+        iata character varying(25),
+        description text,
+        observation text,
+        state character varying(25)
+    );
+    CREATE TABLE IF NOT EXISTS public."BookingGDSInvoiceAutoLog" (
+        "Id" integer NOT NULL,
+        "branchId" integer,
+        "implanteId" integer,
+        date timestamp without time zone,
+        menssage text,
+        "bookingCode" character varying(25),
+        "bookingId" integer,
+        error boolean,
+        file text,
+        "userId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingGDSInvoiceAutoLog_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingGDSInvoiceAutoLog_id_seq" OWNED BY public."BookingGDSInvoiceAutoLog"."Id";
+    CREATE SEQUENCE IF NOT EXISTS public."BookingGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingGDS_id_seq" OWNED BY public."BookingGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductFEEGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        type text NOT NULL,
+        description text NOT NULL,
+        billigconcept text NOT NULL,
+        servicetype text NOT NULL,
+        amount double precision NOT NULL,
+        tax double precision NOT NULL,
+        other double precision NOT NULL,
+        total double precision NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductFEEGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductFEEGDS_id_seq" OWNED BY public."BookingProductFEEGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductGDS" (
+        id integer NOT NULL,
+        "bookingId" integer NOT NULL,
+        code character varying(25) NOT NULL,
+        type character varying(25),
+        service text,
+        description text,
+        prestadoracode character varying(25),
+        prestadorainitials character varying(25),
+        prestadoradist character varying(25),
+        provider character varying(25),
+        quantity integer NOT NULL,
+        price double precision NOT NULL,
+        cost double precision DEFAULT 0,
+        "checkInDate" timestamp(3) without time zone,
+        "checkOutDate" timestamp(3) without time zone,
+        nights integer,
+        "paxAdults" integer,
+        "paxChildren" integer,
+        "serviceType" text,
+        "billingConcept" text,
+        destination text,
+        "reservationCode" text,
+        "sellerCom" double precision,
+        "ticketPrinterCom" double precision,
+        "inNationality" integer DEFAULT 1,
+        state character varying(25) DEFAULT 'NUEVO'::character varying,
+        conjunction integer DEFAULT 0,
+        revised character varying(25),
+        typeproduct character varying(25),
+        consecutive character varying(25),
+        penalty character varying(25)
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductGDS_id_seq" OWNED BY public."BookingProductGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductItineraryGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer NOT NULL,
+        orden integer,
+        origin text NOT NULL,
+        destination text NOT NULL,
+        class text NOT NULL,
+        "checkInDate" timestamp(3) without time zone,
+        "checkOutDate" timestamp(3) without time zone,
+        terminal text NOT NULL,
+        "prestadoraCode" text NOT NULL,
+        farebasis text NOT NULL,
+        "Numflight" character varying(25),
+        "Typeflight" character varying(1),
+        amount double precision NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductItineraryGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductItineraryGDS_id_seq" OWNED BY public."BookingProductItineraryGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductPassangerGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer NOT NULL,
+        code character varying(25),
+        firstnm character varying(30),
+        lastnm character varying(30),
+        prefix character varying(25),
+        identification character varying(25),
+        phone character varying(25),
+        email character varying(250)
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductPassangerGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductPassangerGDS_id_seq" OWNED BY public."BookingProductPassangerGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductPaymentGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer,
+        "bookingProductFEEId" integer,
+        code character varying(50) NOT NULL,
+        name character varying(50) NOT NULL,
+        type character varying(50) NOT NULL,
+        typecreditcard character varying(25),
+        numbercreditcard character varying(16),
+        vouchercreditcard character varying(25),
+        expiredcreditcard character varying(5),
+        authcreditcard character varying(25),
+        quotas integer,
+        bank character varying(25),
+        square character varying(30),
+        reference character varying(50),
+        policy character varying(25),
+        policyannex character varying(25),
+        amount double precision NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductPaymentGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductPaymentGDS_id_seq" OWNED BY public."BookingProductPaymentGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductTaxGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer NOT NULL,
+        code character varying(25) NOT NULL,
+        name character varying(50) NOT NULL,
+        type character varying(25) NOT NULL,
+        ismain boolean DEFAULT false,
+        percentage double precision NOT NULL,
+        amount double precision NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductTaxGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductTaxGDS_id_seq" OWNED BY public."BookingProductTaxGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductVariableGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer NOT NULL,
+        code text,
+        name text,
+        value text
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductVariableGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductVariableGDS_id_seq" OWNED BY public."BookingProductVariableGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingsGDSInvoiceAuto" (
+        id integer NOT NULL,
+        "Branch" character varying(25),
+        implant character varying(25),
+        "bookingCode" character varying(25),
+        "bookingId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingsGDSInvoiceAuto_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingsGDSInvoiceAuto_id_seq" OWNED BY public."BookingsGDSInvoiceAuto".id;
+    CREATE TABLE IF NOT EXISTS public."BookingsGDS_log" (
+        id integer NOT NULL,
+        blanch character varying(25),
+        implant character varying(25),
+        message text,
+        file character varying(250),
+        codebooking character varying(50),
+        booking text,
+        error integer DEFAULT 0 NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingsGDS_log_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingsGDS_log_id_seq" OWNED BY public."BookingsGDS_log".id;
+    CREATE TABLE IF NOT EXISTS public."BranchGDSInvoiceAuto" (
+        id integer NOT NULL,
+        "branchId" integer NOT NULL,
+        "gdsId" integer NOT NULL,
+        "EnvoiceAuto" boolean DEFAULT false
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BranchGDSInvoiceAuto_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BranchGDSInvoiceAuto_id_seq" OWNED BY public."BranchGDSInvoiceAuto".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Branch_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Branch_id_seq" OWNED BY public."Branch".id;
+    CREATE TABLE IF NOT EXISTS public."CellCustomization" (
+        id integer NOT NULL,
+        code character varying(50) NOT NULL,
+        name character varying(100) NOT NULL,
+        value character varying(10),
+        "branchId" integer,
+        "implantId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."CellCustomization_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."CellCustomization_id_seq" OWNED BY public."CellCustomization".id;
+    CREATE SEQUENCE IF NOT EXISTS public."ChargeAndTax_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."ChargeAndTax_id_seq" OWNED BY public."ChargeAndTax".id;
+    CREATE TABLE IF NOT EXISTS public."Cities" (
+        id integer NOT NULL,
+        code character varying(10) NOT NULL,
+        name character varying(100) NOT NULL,
+        "countriesId" integer NOT NULL,
+        statecode character varying(25),
+        iata character varying(10)
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Cities_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Cities_id_seq" OWNED BY public."Cities".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Client_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Client_id_seq" OWNED BY public."Client".id;
+    CREATE TABLE IF NOT EXISTS public."Combo" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" timestamp without time zone DEFAULT now(),
+        "currencyId" integer,
+        cupos integer DEFAULT 1
+    );
+    CREATE TABLE IF NOT EXISTS public."ComboProduct" (
+        id integer NOT NULL,
+        "comboId" integer NOT NULL,
+        "productId" integer NOT NULL,
+        price double precision NOT NULL,
+        "checkInDate" timestamp(3) without time zone,
+        "checkOutDate" timestamp(3) without time zone,
+        "prestadoraId" integer,
+        "mainTaxId" integer,
+        "paxAdults" integer,
+        "paxChildren" integer,
+        "providerId" integer,
+        "inNationality" integer DEFAULT 1,
+        quantity integer DEFAULT 1 NOT NULL,
+        cost double precision DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS public."ComboProductTax" (
+        id integer NOT NULL,
+        "comboProductId" integer NOT NULL,
+        "chargeAndTaxId" integer NOT NULL,
+        amount double precision NOT NULL,
+        "isMain" boolean DEFAULT false NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."ComboProductTax_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."ComboProductTax_id_seq" OWNED BY public."ComboProductTax".id;
+    CREATE SEQUENCE IF NOT EXISTS public."ComboProduct_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."ComboProduct_id_seq" OWNED BY public."ComboProduct".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Combo_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Combo_id_seq" OWNED BY public."Combo".id;
+    CREATE TABLE IF NOT EXISTS public."Countries" (
+        id integer NOT NULL,
+        code character varying(10) NOT NULL,
+        name character varying(100) NOT NULL,
+        dane character varying(25),
+        region character varying(50),
+        prefix character varying(10),
+        "curencyId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Countries_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Countries_id_seq" OWNED BY public."Countries".id;
+    CREATE TABLE IF NOT EXISTS public."CreditCard" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        type text NOT NULL,
+        inactive boolean DEFAULT false NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."CreditCard_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."CreditCard_id_seq" OWNED BY public."CreditCard".id;
+    CREATE TABLE IF NOT EXISTS public."Currency" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        "exchangeRate" double precision NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Currency_id_seq" OWNED BY public."Currency".id;
+    CREATE TABLE IF NOT EXISTS public."EquivalencesInterfaces" (
+        id integer NOT NULL,
+        id_interfaces integer NOT NULL,
+        id_master integer NOT NULL,
+        cd_maestro text NOT NULL,
+        cd_codigo text NOT NULL,
+        cd_codigointe text NOT NULL,
+        dt_fecha timestamp without time zone DEFAULT now()
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."EquivalencesInterfaces_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."EquivalencesInterfaces_id_seq" OWNED BY public."EquivalencesInterfaces".id;
+    CREATE TABLE IF NOT EXISTS public."EquivalenciasInterfaces_Log" (
+        id integer NOT NULL,
+        "Id_Interfaces" integer,
+        cd_maestro character varying(50),
+        cd_codigo character varying(50),
+        "cd_codigoInte" character varying(50),
+        cd_operacion character varying(50),
+        ds_xmlpeticion text,
+        ds_xmlrespuesta text,
+        ds_xmlorg text,
+        "ds_Logpeticion" text,
+        fecha_creacion timestamp(6) without time zone DEFAULT now()
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."EquivalenciasInterfaces_Log_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."EquivalenciasInterfaces_Log_id_seq" OWNED BY public."EquivalenciasInterfaces_Log".id;
+    CREATE TABLE IF NOT EXISTS public."GDS" (
+        id integer NOT NULL,
+        name text NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."GDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."GDS_id_seq" OWNED BY public."GDS".id;
+    CREATE TABLE IF NOT EXISTS public."Prestadora" (
+        id integer NOT NULL,
+        name text NOT NULL,
+        location text,
+        category text,
+        "providerId" integer,
+        code text,
+        type text,
+        initials text,
+        nogds text
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Hotel_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Hotel_id_seq" OWNED BY public."Prestadora".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Implant_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Implant_id_seq" OWNED BY public."Implant".id;
+    CREATE TABLE IF NOT EXISTS public."Interfaces" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        inactivo boolean DEFAULT false NOT NULL,
+        bl_genera_archivoplano boolean DEFAULT false NOT NULL,
+        ds_storedprocedure_archivoplano text,
+        bl_job boolean DEFAULT false NOT NULL,
+        ds_namejob text,
+        bl_facturador boolean DEFAULT false NOT NULL,
+        id_gds integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Interfaces_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Interfaces_id_seq" OWNED BY public."Interfaces".id;
+    CREATE TABLE IF NOT EXISTS public."Invoices" (
+        id integer NOT NULL,
+        "internalNumber" character varying(255) NOT NULL,
+        date timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "clientId" integer NOT NULL,
+        currency character varying(50) NOT NULL,
+        "exchangeRate" double precision NOT NULL,
+        "branchId" integer NOT NULL,
+        "implantId" integer,
+        "sellerId" integer,
+        "ticketPrinterId" integer,
+        "baseCommissionable" double precision NOT NULL,
+        "commissionPercentage" double precision NOT NULL,
+        "chargesAndTaxes" double precision NOT NULL,
+        "totalAmount" double precision NOT NULL,
+        "userId" integer,
+        state character varying(25) DEFAULT 'NUEVO'::character varying
+    );
+    CREATE TABLE IF NOT EXISTS public."InvoicesProduct" (
+        id integer NOT NULL,
+        "invoiceId" integer NOT NULL,
+        "productId" integer NOT NULL,
+        quantity integer NOT NULL,
+        price double precision NOT NULL,
+        cost double precision DEFAULT 0,
+        "providerId" integer,
+        "prestadoraId" integer,
+        "checkInDate" timestamp without time zone,
+        "checkOutDate" timestamp without time zone,
+        nights integer,
+        "paxAdults" integer,
+        "paxChildren" integer,
+        "serviceType" character varying(255),
+        destination character varying(255),
+        "reservationCode" character varying(255),
+        "sellerCommission" double precision,
+        "ticketPrinterCommission" double precision,
+        "comboId" integer,
+        "mainTaxId" integer,
+        "inNationality" integer DEFAULT 1,
+        servicios text,
+        descripcion text,
+        itinerary text,
+        class character varying(100),
+        "ticketTypeId" integer,
+        airline character varying(100)
+    );
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductCombo" (
+        id integer NOT NULL,
+        "invoiceId" integer NOT NULL,
+        "comboId" integer NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductCombo_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductCombo_id_seq" OWNED BY public."InvoicesProductCombo".id;
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductItinerary" (
+        id integer NOT NULL,
+        "invoiceProductId" integer NOT NULL,
+        orden integer,
+        origin character varying(255) NOT NULL,
+        destination character varying(255) NOT NULL,
+        class character varying(255),
+        "checkInDate" timestamp without time zone,
+        "checkOutDate" timestamp without time zone,
+        terminal character varying(255),
+        "prestadoraCode" character varying(255),
+        farebasis character varying(255),
+        "Numflight" character varying(25),
+        "Typeflight" character varying(1),
+        amount double precision
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductItinerary_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductItinerary_id_seq" OWNED BY public."InvoicesProductItinerary".id;
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductPasenger" (
+        id integer NOT NULL,
+        "invoiceProductId" integer NOT NULL,
+        name character varying(255) NOT NULL,
+        document character varying(255) NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductPasenger_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductPasenger_id_seq" OWNED BY public."InvoicesProductPasenger".id;
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductPayment" (
+        id integer NOT NULL,
+        "invoiceProductId" integer NOT NULL,
+        amount double precision NOT NULL,
+        "paymentMethod" character varying(100),
+        date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+        reference character varying(255),
+        "authorizationCode" text,
+        "cardNumber" text,
+        "creditCardId" integer,
+        "expirationDate" text,
+        voucher text
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductPayment_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductPayment_id_seq" OWNED BY public."InvoicesProductPayment".id;
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductTax" (
+        id integer NOT NULL,
+        "invoiceProductId" integer NOT NULL,
+        "chargeAndTaxId" integer NOT NULL,
+        "valueSnapshot" double precision NOT NULL,
+        "valueTypeSnapshot" character varying(50) NOT NULL,
+        "explicitAmount" double precision,
+        "isMain" boolean DEFAULT false
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductTax_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductTax_id_seq" OWNED BY public."InvoicesProductTax".id;
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductVariable" (
+        id integer NOT NULL,
+        "invoiceProductId" integer NOT NULL,
+        "masterVariableId" integer NOT NULL,
+        value character varying(255) NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductVariable_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductVariable_id_seq" OWNED BY public."InvoicesProductVariable".id;
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProduct_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProduct_id_seq" OWNED BY public."InvoicesProduct".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Invoices_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."Invoices_id_seq" OWNED BY public."Invoices".id;
+    CREATE TABLE IF NOT EXISTS public."Master" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        inactivo boolean DEFAULT false NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."MasterVariable_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."MasterVariable_id_seq" OWNED BY public."MasterVariable".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Master_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Master_id_seq" OWNED BY public."Master".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Menu_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."Menu_id_seq" OWNED BY public."Menu".id;
+    CREATE TABLE IF NOT EXISTS public."Payment" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        inactive boolean DEFAULT false NOT NULL,
+        iscash boolean DEFAULT false NOT NULL,
+        iscredit boolean DEFAULT false NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Payment_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Payment_id_seq" OWNED BY public."Payment".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Product_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Product_id_seq" OWNED BY public."Product".id;
+    CREATE TABLE IF NOT EXISTS public."Provider" (
+        id integer NOT NULL,
+        code text,
+        name text NOT NULL,
+        "contactInfo" text,
+        "commissionConfig" jsonb
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Provider_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Provider_id_seq" OWNED BY public."Provider".id;
+    CREATE TABLE IF NOT EXISTS public."Quotation" (
+        id integer NOT NULL,
+        "internalNumber" text NOT NULL,
+        date timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "clientId" integer NOT NULL,
+        currency text NOT NULL,
+        "exchangeRate" double precision NOT NULL,
+        "branchId" integer NOT NULL,
+        "implantId" integer,
+        "sellerId" integer,
+        "ticketPrinterId" integer,
+        "baseCommissionable" double precision NOT NULL,
+        "commissionPercentage" double precision NOT NULL,
+        "chargesAndTaxes" double precision NOT NULL,
+        "totalAmount" double precision NOT NULL,
+        "userId" integer,
+        state character varying(25) DEFAULT 'Nuevo'::character varying,
+        "stateDescription" text,
+        "stateUpdatedAt" timestamp without time zone,
+        "costoTotal" double precision DEFAULT 0,
+        "valorBase" double precision DEFAULT 0,
+        utilidad double precision DEFAULT 0,
+        "comisionTotalPercentage" double precision DEFAULT 0,
+        "comisionFreelancePercentage" double precision DEFAULT 0,
+        "comisionFreelanceValue" double precision DEFAULT 0,
+        "comisionPropiaPercentage" double precision DEFAULT 0,
+        "comisionPropiaValue" double precision DEFAULT 0,
+        "comisionUtilidadPercentage" double precision DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS public."QuotationCombo" (
+        id integer NOT NULL,
+        "quotationId" integer NOT NULL,
+        "comboId" integer NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationCombo_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationCombo_id_seq" OWNED BY public."QuotationCombo".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationProduct" (
+        id integer NOT NULL,
+        "quotationId" integer NOT NULL,
+        "productId" integer NOT NULL,
+        quantity integer NOT NULL,
+        price double precision NOT NULL,
+        "providerId" integer,
+        "prestadoraId" integer,
+        "checkInDate" timestamp(3) without time zone,
+        "checkOutDate" timestamp(3) without time zone,
+        nights integer,
+        "paxAdults" integer,
+        "paxChildren" integer,
+        "serviceType" text,
+        destination text,
+        "reservationCode" text,
+        "sellerCommission" double precision,
+        "ticketPrinterCommission" double precision,
+        "comboId" integer,
+        "mainTaxId" integer,
+        "inNationality" integer DEFAULT 1,
+        cost double precision DEFAULT 0,
+        service text,
+        description text,
+        servicios text,
+        descripcion text
+    );
+    CREATE TABLE IF NOT EXISTS public."QuotationProductPassenger" (
+        id integer NOT NULL,
+        "quotationProductId" integer NOT NULL,
+        name text NOT NULL,
+        document text NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationProductPassenger_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationProductPassenger_id_seq" OWNED BY public."QuotationProductPassenger".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationProductPayment" (
+        id integer NOT NULL,
+        "quotationProductId" integer NOT NULL,
+        amount double precision NOT NULL,
+        "paymentMethod" character varying(100),
+        date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+        reference character varying(255),
+        "creditCardId" integer,
+        "cardNumber" character varying(20),
+        "authorizationCode" character varying(50),
+        voucher character varying(50),
+        "expirationDate" character varying(10)
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationProductPayment_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationProductPayment_id_seq" OWNED BY public."QuotationProductPayment".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationProductTax" (
+        id integer NOT NULL,
+        "quotationProductId" integer NOT NULL,
+        "chargeAndTaxId" integer NOT NULL,
+        "valueSnapshot" double precision NOT NULL,
+        "valueTypeSnapshot" text NOT NULL,
+        "explicitAmount" double precision,
+        "isMain" boolean DEFAULT false NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationProductTax_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationProductTax_id_seq" OWNED BY public."QuotationProductTax".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationProductVariable" (
+        id integer NOT NULL,
+        "quotationProductId" integer NOT NULL,
+        "masterVariableId" integer NOT NULL,
+        value text NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationProductVariable_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationProductVariable_id_seq" OWNED BY public."QuotationProductVariable".id;
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationProduct_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationProduct_id_seq" OWNED BY public."QuotationProduct".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationState" (
+        id integer NOT NULL,
+        name character varying(50) NOT NULL,
+        color character varying(20),
+        "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        code character varying(25) NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS public."QuotationStateHistory" (
+        id integer NOT NULL,
+        "quotationId" integer NOT NULL,
+        state character varying(25) NOT NULL,
+        description text,
+        "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "userId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationStateHistory_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationStateHistory_id_seq" OWNED BY public."QuotationStateHistory".id;
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationState_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationState_id_seq" OWNED BY public."QuotationState".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Quotation_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Quotation_id_seq" OWNED BY public."Quotation".id;
+    CREATE TABLE IF NOT EXISTS public."Report" (
+        id integer NOT NULL,
+        name character varying(255) NOT NULL,
+        base_table character varying(100),
+        description text,
+        custom_sql text,
+        created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS public."ReportColumns" (
+        id integer NOT NULL,
+        report_id integer NOT NULL,
+        table_alias character varying(20),
+        column_name character varying(100) NOT NULL,
+        alias character varying(150),
+        is_calculated boolean DEFAULT false,
+        is_visible boolean DEFAULT true,
+        formula_expression text,
+        sort_order integer DEFAULT 0
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."ReportColumns_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."ReportColumns_id_seq" OWNED BY public."ReportColumns".id;
+    CREATE TABLE IF NOT EXISTS public."ReportFilters" (
+        id integer NOT NULL,
+        report_id integer NOT NULL,
+        table_alias character varying(20),
+        column_name character varying(100) NOT NULL,
+        filter_label character varying(150),
+        filter_type character varying(50) NOT NULL,
+        operator character varying(20) DEFAULT '='::character varying,
+        sort_order integer DEFAULT 0
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."ReportFilters_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."ReportFilters_id_seq" OWNED BY public."ReportFilters".id;
+    CREATE TABLE IF NOT EXISTS public."ReportJoins" (
+        id integer NOT NULL,
+        report_id integer NOT NULL,
+        table_name character varying(100) NOT NULL,
+        alias character varying(20) NOT NULL,
+        join_type character varying(50) DEFAULT 'INNER JOIN'::character varying NOT NULL,
+        join_condition text NOT NULL,
+        sort_order integer DEFAULT 0
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."ReportJoins_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."ReportJoins_id_seq" OWNED BY public."ReportJoins".id;
+    CREATE TABLE IF NOT EXISTS public."ReportSorts" (
+        id integer NOT NULL,
+        report_id integer NOT NULL,
+        column_expr text NOT NULL,
+        direction character varying(10) DEFAULT 'ASC'::character varying,
+        sort_order integer DEFAULT 0
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."ReportSorts_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."ReportSorts_id_seq" OWNED BY public."ReportSorts".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Report_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."Report_id_seq" OWNED BY public."Report".id;
+    CREATE TABLE IF NOT EXISTS public."Role" (
+        id integer NOT NULL,
+        name text NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Role_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Role_id_seq" OWNED BY public."Role".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Seller_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Seller_id_seq" OWNED BY public."Seller".id;
+    CREATE TABLE IF NOT EXISTS public."SystemLog" (
+        id integer NOT NULL,
+        "userId" integer,
+        action text NOT NULL,
+        module text NOT NULL,
+        description text NOT NULL,
+        metadata jsonb,
+        "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."SystemLog_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."SystemLog_id_seq" OWNED BY public."SystemLog".id;
+    CREATE SEQUENCE IF NOT EXISTS public."SystemParameter_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."SystemParameter_id_seq" OWNED BY public."SystemParameter".id;
+    CREATE SEQUENCE IF NOT EXISTS public."TicketPrinter_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."TicketPrinter_id_seq" OWNED BY public."TicketPrinter".id;
+    CREATE TABLE IF NOT EXISTS public."TicketType" (
+        id integer NOT NULL,
+        code character varying(50) NOT NULL,
+        name character varying(255) NOT NULL,
+        description text,
+        "isActive" boolean DEFAULT true
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."TicketType_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."TicketType_id_seq" OWNED BY public."TicketType".id;
+    CREATE TABLE IF NOT EXISTS public."User" (
+        id integer NOT NULL,
+        name text NOT NULL,
+        email text NOT NULL,
+        "passwordHash" text NOT NULL,
+        "resetPasswordToken" text,
+        "resetPasswordExpires" timestamp(3) without time zone,
+        "roleId" integer NOT NULL,
+        "branchId" integer,
+        "implantId" integer,
+        "ticketPrinterId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."User_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."User_id_seq" OWNED BY public."User".id;
+    ALTER TABLE ONLY public."Airports" ALTER COLUMN id SET DEFAULT nextval('public."Airports_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Attachment" ALTER COLUMN id SET DEFAULT nextval('public."Attachment_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingGDSInvoiceAutoLog" ALTER COLUMN "Id" SET DEFAULT nextval('public."BookingGDSInvoiceAutoLog_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductFEEGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductFEEGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductItineraryGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductItineraryGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductPassangerGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductPassangerGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductPaymentGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductPaymentGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductTaxGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductTaxGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductVariableGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductVariableGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingsGDSInvoiceAuto" ALTER COLUMN id SET DEFAULT nextval('public."BookingsGDSInvoiceAuto_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingsGDS_log" ALTER COLUMN id SET DEFAULT nextval('public."BookingsGDS_log_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Branch" ALTER COLUMN id SET DEFAULT nextval('public."Branch_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BranchGDSInvoiceAuto" ALTER COLUMN id SET DEFAULT nextval('public."BranchGDSInvoiceAuto_id_seq"'::regclass);
+    ALTER TABLE ONLY public."CellCustomization" ALTER COLUMN id SET DEFAULT nextval('public."CellCustomization_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ChargeAndTax" ALTER COLUMN id SET DEFAULT nextval('public."ChargeAndTax_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Cities" ALTER COLUMN id SET DEFAULT nextval('public."Cities_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Client" ALTER COLUMN id SET DEFAULT nextval('public."Client_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Combo" ALTER COLUMN id SET DEFAULT nextval('public."Combo_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ComboProduct" ALTER COLUMN id SET DEFAULT nextval('public."ComboProduct_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ComboProductTax" ALTER COLUMN id SET DEFAULT nextval('public."ComboProductTax_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Countries" ALTER COLUMN id SET DEFAULT nextval('public."Countries_id_seq"'::regclass);
+    ALTER TABLE ONLY public."CreditCard" ALTER COLUMN id SET DEFAULT nextval('public."CreditCard_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Currency" ALTER COLUMN id SET DEFAULT nextval('public."Currency_id_seq"'::regclass);
+    ALTER TABLE ONLY public."EquivalencesInterfaces" ALTER COLUMN id SET DEFAULT nextval('public."EquivalencesInterfaces_id_seq"'::regclass);
+    ALTER TABLE ONLY public."EquivalenciasInterfaces_Log" ALTER COLUMN id SET DEFAULT nextval('public."EquivalenciasInterfaces_Log_id_seq"'::regclass);
+    ALTER TABLE ONLY public."GDS" ALTER COLUMN id SET DEFAULT nextval('public."GDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Implant" ALTER COLUMN id SET DEFAULT nextval('public."Implant_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Interfaces" ALTER COLUMN id SET DEFAULT nextval('public."Interfaces_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Invoices" ALTER COLUMN id SET DEFAULT nextval('public."Invoices_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProduct" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProduct_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductCombo" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductCombo_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductItinerary" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductItinerary_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductPasenger" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductPasenger_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductPayment" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductPayment_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductTax" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductTax_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductVariable" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductVariable_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Master" ALTER COLUMN id SET DEFAULT nextval('public."Master_id_seq"'::regclass);
+    ALTER TABLE ONLY public."MasterVariable" ALTER COLUMN id SET DEFAULT nextval('public."MasterVariable_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Menu" ALTER COLUMN id SET DEFAULT nextval('public."Menu_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Payment" ALTER COLUMN id SET DEFAULT nextval('public."Payment_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Prestadora" ALTER COLUMN id SET DEFAULT nextval('public."Hotel_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Product" ALTER COLUMN id SET DEFAULT nextval('public."Product_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Provider" ALTER COLUMN id SET DEFAULT nextval('public."Provider_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Quotation" ALTER COLUMN id SET DEFAULT nextval('public."Quotation_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationCombo" ALTER COLUMN id SET DEFAULT nextval('public."QuotationCombo_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationProduct" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProduct_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationProductPassenger" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductPassenger_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationProductPayment" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductPayment_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationProductTax" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductTax_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationProductVariable" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductVariable_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationState" ALTER COLUMN id SET DEFAULT nextval('public."QuotationState_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationStateHistory" ALTER COLUMN id SET DEFAULT nextval('public."QuotationStateHistory_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Report" ALTER COLUMN id SET DEFAULT nextval('public."Report_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ReportColumns" ALTER COLUMN id SET DEFAULT nextval('public."ReportColumns_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ReportFilters" ALTER COLUMN id SET DEFAULT nextval('public."ReportFilters_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ReportJoins" ALTER COLUMN id SET DEFAULT nextval('public."ReportJoins_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ReportSorts" ALTER COLUMN id SET DEFAULT nextval('public."ReportSorts_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Role" ALTER COLUMN id SET DEFAULT nextval('public."Role_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Seller" ALTER COLUMN id SET DEFAULT nextval('public."Seller_id_seq"'::regclass);
+    ALTER TABLE ONLY public."SystemLog" ALTER COLUMN id SET DEFAULT nextval('public."SystemLog_id_seq"'::regclass);
+    ALTER TABLE ONLY public."SystemParameter" ALTER COLUMN id SET DEFAULT nextval('public."SystemParameter_id_seq"'::regclass);
+    ALTER TABLE ONLY public."TicketPrinter" ALTER COLUMN id SET DEFAULT nextval('public."TicketPrinter_id_seq"'::regclass);
+    ALTER TABLE ONLY public."TicketType" ALTER COLUMN id SET DEFAULT nextval('public."TicketType_id_seq"'::regclass);
+    ALTER TABLE ONLY public."User" ALTER COLUMN id SET DEFAULT nextval('public."User_id_seq"'::regclass);
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Airports_pkey') THEN
+            ALTER TABLE ONLY public."Airports" ADD CONSTRAINT "Airports_pkey" PRIMARY KEY (id);
         END IF;
-        
-        IF NOT EXISTS (SELECT 1 FROM public."QuotationState" WHERE code = 'ENVIADO') THEN
-            INSERT INTO public."QuotationState" (code, name, color) VALUES ('ENVIADO', 'ENVIADO', 'emerald');
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Attachment_pkey') THEN
+            ALTER TABLE ONLY public."Attachment" ADD CONSTRAINT "Attachment_pkey" PRIMARY KEY (id);
         END IF;
-    END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingGDSInvoiceAutoLog_pkey') THEN
+            ALTER TABLE ONLY public."BookingGDSInvoiceAutoLog" ADD CONSTRAINT "BookingGDSInvoiceAutoLog_pkey" PRIMARY KEY ("Id");
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingGDS" ADD CONSTRAINT "BookingGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductFEEGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductFEEGDS" ADD CONSTRAINT "BookingProductFEEGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductGDS" ADD CONSTRAINT "BookingProductGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductItineraryGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductItineraryGDS" ADD CONSTRAINT "BookingProductItineraryGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductPassangerGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductPassangerGDS" ADD CONSTRAINT "BookingProductPassangerGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductPaymentGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductPaymentGDS" ADD CONSTRAINT "BookingProductPaymentGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductTaxGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductTaxGDS" ADD CONSTRAINT "BookingProductTaxGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductVariableGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductVariableGDS" ADD CONSTRAINT "BookingProductVariableGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingsGDSInvoiceAuto_pkey') THEN
+            ALTER TABLE ONLY public."BookingsGDSInvoiceAuto" ADD CONSTRAINT "BookingsGDSInvoiceAuto_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingsGDS_log_pkey') THEN
+            ALTER TABLE ONLY public."BookingsGDS_log" ADD CONSTRAINT "BookingsGDS_log_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BranchGDSInvoiceAuto_pkey') THEN
+            ALTER TABLE ONLY public."BranchGDSInvoiceAuto" ADD CONSTRAINT "BranchGDSInvoiceAuto_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Branch_pkey') THEN
+            ALTER TABLE ONLY public."Branch" ADD CONSTRAINT "Branch_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CellCustomization_pkey') THEN
+            ALTER TABLE ONLY public."CellCustomization" ADD CONSTRAINT "CellCustomization_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ChargeAndTax_code_key') THEN
+            ALTER TABLE ONLY public."ChargeAndTax" ADD CONSTRAINT "ChargeAndTax_code_key" UNIQUE (code);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ChargeAndTax_pkey') THEN
+            ALTER TABLE ONLY public."ChargeAndTax" ADD CONSTRAINT "ChargeAndTax_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Cities_pkey') THEN
+            ALTER TABLE ONLY public."Cities" ADD CONSTRAINT "Cities_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Client_pkey') THEN
+            ALTER TABLE ONLY public."Client" ADD CONSTRAINT "Client_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProductTax_pkey') THEN
+            ALTER TABLE ONLY public."ComboProductTax" ADD CONSTRAINT "ComboProductTax_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProduct_pkey') THEN
+            ALTER TABLE ONLY public."ComboProduct" ADD CONSTRAINT "ComboProduct_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Combo_pkey') THEN
+            ALTER TABLE ONLY public."Combo" ADD CONSTRAINT "Combo_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Countries_pkey') THEN
+            ALTER TABLE ONLY public."Countries" ADD CONSTRAINT "Countries_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CreditCard_pkey') THEN
+            ALTER TABLE ONLY public."CreditCard" ADD CONSTRAINT "CreditCard_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Currency_pkey') THEN
+            ALTER TABLE ONLY public."Currency" ADD CONSTRAINT "Currency_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'EquivalencesInterfaces_pkey') THEN
+            ALTER TABLE ONLY public."EquivalencesInterfaces" ADD CONSTRAINT "EquivalencesInterfaces_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'EquivalenciasInterfaces_Log_pkey') THEN
+            ALTER TABLE ONLY public."EquivalenciasInterfaces_Log" ADD CONSTRAINT "EquivalenciasInterfaces_Log_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN
+            ALTER TABLE ONLY public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Implant_pkey') THEN
+            ALTER TABLE ONLY public."Implant" ADD CONSTRAINT "Implant_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductCombo_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductCombo" ADD CONSTRAINT "InvoicesProductCombo_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductItinerary_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductItinerary" ADD CONSTRAINT "InvoicesProductItinerary_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductPasenger_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductPasenger" ADD CONSTRAINT "InvoicesProductPasenger_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductPayment_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductPayment" ADD CONSTRAINT "InvoicesProductPayment_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductTax_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductTax" ADD CONSTRAINT "InvoicesProductTax_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductVariable_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductVariable" ADD CONSTRAINT "InvoicesProductVariable_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProduct_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProduct" ADD CONSTRAINT "InvoicesProduct_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Invoices_internalNumber_key') THEN
+            ALTER TABLE ONLY public."Invoices" ADD CONSTRAINT "Invoices_internalNumber_key" UNIQUE ("internalNumber");
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Invoices_pkey') THEN
+            ALTER TABLE ONLY public."Invoices" ADD CONSTRAINT "Invoices_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'MasterVariable_pkey') THEN
+            ALTER TABLE ONLY public."MasterVariable" ADD CONSTRAINT "MasterVariable_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Menu_code_key') THEN
+            ALTER TABLE ONLY public."Menu" ADD CONSTRAINT "Menu_code_key" UNIQUE (code);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Menu_pkey') THEN
+            ALTER TABLE ONLY public."Menu" ADD CONSTRAINT "Menu_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Payment_pkey') THEN
+            ALTER TABLE ONLY public."Payment" ADD CONSTRAINT "Payment_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Prestadora_pkey') THEN
+            ALTER TABLE ONLY public."Prestadora" ADD CONSTRAINT "Prestadora_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Product_pkey') THEN
+            ALTER TABLE ONLY public."Product" ADD CONSTRAINT "Product_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Provider_pkey') THEN
+            ALTER TABLE ONLY public."Provider" ADD CONSTRAINT "Provider_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationCombo_pkey') THEN
+            ALTER TABLE ONLY public."QuotationCombo" ADD CONSTRAINT "QuotationCombo_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductPassenger_pkey') THEN
+            ALTER TABLE ONLY public."QuotationProductPassenger" ADD CONSTRAINT "QuotationProductPassenger_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductPayment_pkey') THEN
+            ALTER TABLE ONLY public."QuotationProductPayment" ADD CONSTRAINT "QuotationProductPayment_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductTax_pkey') THEN
+            ALTER TABLE ONLY public."QuotationProductTax" ADD CONSTRAINT "QuotationProductTax_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductVariable_pkey') THEN
+            ALTER TABLE ONLY public."QuotationProductVariable" ADD CONSTRAINT "QuotationProductVariable_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProduct_pkey') THEN
+            ALTER TABLE ONLY public."QuotationProduct" ADD CONSTRAINT "QuotationProduct_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationStateHistory_pkey') THEN
+            ALTER TABLE ONLY public."QuotationStateHistory" ADD CONSTRAINT "QuotationStateHistory_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationState_pkey') THEN
+            ALTER TABLE ONLY public."QuotationState" ADD CONSTRAINT "QuotationState_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_pkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportColumns_pkey') THEN
+            ALTER TABLE ONLY public."ReportColumns" ADD CONSTRAINT "ReportColumns_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportFilters_pkey') THEN
+            ALTER TABLE ONLY public."ReportFilters" ADD CONSTRAINT "ReportFilters_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportJoins_pkey') THEN
+            ALTER TABLE ONLY public."ReportJoins" ADD CONSTRAINT "ReportJoins_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportSorts_pkey') THEN
+            ALTER TABLE ONLY public."ReportSorts" ADD CONSTRAINT "ReportSorts_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Report_pkey') THEN
+            ALTER TABLE ONLY public."Report" ADD CONSTRAINT "Report_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Role_pkey') THEN
+            ALTER TABLE ONLY public."Role" ADD CONSTRAINT "Role_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Seller_pkey') THEN
+            ALTER TABLE ONLY public."Seller" ADD CONSTRAINT "Seller_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SystemLog_pkey') THEN
+            ALTER TABLE ONLY public."SystemLog" ADD CONSTRAINT "SystemLog_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SystemParameter_pkey') THEN
+            ALTER TABLE ONLY public."SystemParameter" ADD CONSTRAINT "SystemParameter_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'TicketPrinter_pkey') THEN
+            ALTER TABLE ONLY public."TicketPrinter" ADD CONSTRAINT "TicketPrinter_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'TicketType_code_key') THEN
+            ALTER TABLE ONLY public."TicketType" ADD CONSTRAINT "TicketType_code_key" UNIQUE (code);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'TicketType_pkey') THEN
+            ALTER TABLE ONLY public."TicketType" ADD CONSTRAINT "TicketType_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_pkey') THEN
+            ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'interfaces_pkey') THEN
+            ALTER TABLE ONLY public."Interfaces" ADD CONSTRAINT "interfaces_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'master_pkey') THEN
+            ALTER TABLE ONLY public."Master" ADD CONSTRAINT "master_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    CREATE UNIQUE INDEX IF NOT EXISTS "Branch_code_key" ON public."Branch" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_branch_code_key" ON public."CellCustomization" USING btree ("branchId", code) WHERE ("branchId" IS NOT NULL);
+    CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_implant_code_key" ON public."CellCustomization" USING btree ("implantId", code) WHERE ("implantId" IS NOT NULL);
+    CREATE UNIQUE INDEX IF NOT EXISTS "Client_document_key" ON public."Client" USING btree (document) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Combo_code_key" ON public."Combo" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "CreditCard_code_key" ON public."CreditCard" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Currency_code_key" ON public."Currency" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Hotel_code_key" ON public."Prestadora" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Implant_code_key" ON public."Implant" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "MasterVariable_code_key" ON public."MasterVariable" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Payment_code_key" ON public."Payment" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Product_code_key" ON public."Product" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Provider_code_key" ON public."Provider" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE INDEX IF NOT EXISTS "QuotationStateHistory_quotationId_idx" ON public."QuotationStateHistory" USING btree ("quotationId");
+    CREATE UNIQUE INDEX IF NOT EXISTS "QuotationState_code_key" ON public."QuotationState" USING btree (code);
+    CREATE UNIQUE INDEX IF NOT EXISTS "Quotation_internalNumber_key" ON public."Quotation" USING btree ("internalNumber") WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Role_name_key" ON public."Role" USING btree (name) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Seller_code_key" ON public."Seller" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "SystemParameter_code_key" ON public."SystemParameter" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "TicketPrinter_code_key" ON public."TicketPrinter" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON public."User" USING btree (email) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "User_resetPasswordToken_key" ON public."User" USING btree ("resetPasswordToken") WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS airports_code_key ON public."Airports" USING btree (code);
+    CREATE UNIQUE INDEX IF NOT EXISTS bookingds_code_key ON public."BookingGDS" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS cities_code_key ON public."Cities" USING btree (code);
+    CREATE UNIQUE INDEX IF NOT EXISTS countries_code_key ON public."Countries" USING btree (code);
+    CREATE UNIQUE INDEX IF NOT EXISTS currency_code_key ON public."Currency" USING btree (code);
+    CREATE UNIQUE INDEX IF NOT EXISTS gds_name_key ON public."GDS" USING btree (name) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS interfaces_code_key ON public."Interfaces" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS master_code_key ON public."Master" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Airports_citiesId_fkey') THEN
+            ALTER TABLE ONLY public."Airports" ADD CONSTRAINT "Airports_citiesId_fkey" FOREIGN KEY ("citiesId") REFERENCES public."Cities"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Attachment_quotationId_fkey') THEN
+            ALTER TABLE ONLY public."Attachment" ADD CONSTRAINT "Attachment_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductFEEGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductFEEGDS" ADD CONSTRAINT "BookingProductFEEGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductGDS_bookingId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductGDS" ADD CONSTRAINT "BookingProductGDS_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES public."BookingGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductItineraryGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductItineraryGDS" ADD CONSTRAINT "BookingProductItineraryGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductPassangerGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductPassangerGDS" ADD CONSTRAINT "BookingProductPassangerGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductPaymentGDS_bookingProductFEEId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductPaymentGDS" ADD CONSTRAINT "BookingProductPaymentGDS_bookingProductFEEId_fkey" FOREIGN KEY ("bookingProductFEEId") REFERENCES public."BookingProductFEEGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductPaymentGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductPaymentGDS" ADD CONSTRAINT "BookingProductPaymentGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductTaxGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductTaxGDS" ADD CONSTRAINT "BookingProductTaxGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductVariableGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductVariableGDS" ADD CONSTRAINT "BookingProductVariableGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BranchGDSInvoiceAuto_branchId_fkey') THEN
+            ALTER TABLE ONLY public."BranchGDSInvoiceAuto" ADD CONSTRAINT "BranchGDSInvoiceAuto_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CellCustomization_branchId_fkey') THEN
+            ALTER TABLE ONLY public."CellCustomization" ADD CONSTRAINT "CellCustomization_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CellCustomization_implantId_fkey') THEN
+            ALTER TABLE ONLY public."CellCustomization" ADD CONSTRAINT "CellCustomization_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Cities_countriesId_fkey') THEN
+            ALTER TABLE ONLY public."Cities" ADD CONSTRAINT "Cities_countriesId_fkey" FOREIGN KEY ("countriesId") REFERENCES public."Countries"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProductTax_chargeAndTaxId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProductTax" ADD CONSTRAINT "ComboProductTax_chargeAndTaxId_fkey" FOREIGN KEY ("chargeAndTaxId") REFERENCES public."ChargeAndTax"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProductTax_comboProductId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProductTax" ADD CONSTRAINT "ComboProductTax_comboProductId_fkey" FOREIGN KEY ("comboProductId") REFERENCES public."ComboProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProduct_comboId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProduct" ADD CONSTRAINT "ComboProduct_comboId_fkey" FOREIGN KEY ("comboId") REFERENCES public."Combo"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProduct_prestadoraId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProduct" ADD CONSTRAINT "ComboProduct_prestadoraId_fkey" FOREIGN KEY ("prestadoraId") REFERENCES public."Prestadora"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProduct_productId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProduct" ADD CONSTRAINT "ComboProduct_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProduct_providerId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProduct" ADD CONSTRAINT "ComboProduct_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES public."Provider"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Combo_currencyId_fkey') THEN
+            ALTER TABLE ONLY public."Combo" ADD CONSTRAINT "Combo_currencyId_fkey" FOREIGN KEY ("currencyId") REFERENCES public."Currency"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Countries_curencyId_fkey') THEN
+            ALTER TABLE ONLY public."Countries" ADD CONSTRAINT "Countries_curencyId_fkey" FOREIGN KEY ("curencyId") REFERENCES public."Currency"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'EquivalencesInterfaces_id_interfaces_fkey') THEN
+            ALTER TABLE ONLY public."EquivalencesInterfaces" ADD CONSTRAINT "EquivalencesInterfaces_id_interfaces_fkey" FOREIGN KEY (id_interfaces) REFERENCES public."Interfaces"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'EquivalencesInterfaces_id_master_fkey') THEN
+            ALTER TABLE ONLY public."EquivalencesInterfaces" ADD CONSTRAINT "EquivalencesInterfaces_id_master_fkey" FOREIGN KEY (id_master) REFERENCES public."Master"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Implant_branchId_fkey') THEN
+            ALTER TABLE ONLY public."Implant" ADD CONSTRAINT "Implant_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductItinerary_invoiceProductId_fkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductItinerary" ADD CONSTRAINT "InvoicesProductItinerary_invoiceProductId_fkey" FOREIGN KEY ("invoiceProductId") REFERENCES public."InvoicesProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductPayment_creditCardId_fkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductPayment" ADD CONSTRAINT "InvoicesProductPayment_creditCardId_fkey" FOREIGN KEY ("creditCardId") REFERENCES public."CreditCard"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Prestadora_providerId_fkey') THEN
+            ALTER TABLE ONLY public."Prestadora" ADD CONSTRAINT "Prestadora_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES public."Provider"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Product_ticketTypeId_fkey') THEN
+            ALTER TABLE ONLY public."Product" ADD CONSTRAINT "Product_ticketTypeId_fkey" FOREIGN KEY ("ticketTypeId") REFERENCES public."TicketType"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationCombo_comboId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationCombo" ADD CONSTRAINT "QuotationCombo_comboId_fkey" FOREIGN KEY ("comboId") REFERENCES public."Combo"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationCombo_quotationId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationCombo" ADD CONSTRAINT "QuotationCombo_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductPassenger_quotationProductId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductPassenger" ADD CONSTRAINT "QuotationProductPassenger_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductPayment_quotationProductId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductPayment" ADD CONSTRAINT "QuotationProductPayment_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductTax_chargeAndTaxId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductTax" ADD CONSTRAINT "QuotationProductTax_chargeAndTaxId_fkey" FOREIGN KEY ("chargeAndTaxId") REFERENCES public."ChargeAndTax"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductTax_quotationProductId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductTax" ADD CONSTRAINT "QuotationProductTax_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductVariable_masterVariableId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductVariable" ADD CONSTRAINT "QuotationProductVariable_masterVariableId_fkey" FOREIGN KEY ("masterVariableId") REFERENCES public."MasterVariable"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductVariable_quotationProductId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductVariable" ADD CONSTRAINT "QuotationProductVariable_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProduct_prestadoraId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProduct" ADD CONSTRAINT "QuotationProduct_prestadoraId_fkey" FOREIGN KEY ("prestadoraId") REFERENCES public."Prestadora"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProduct_productId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProduct" ADD CONSTRAINT "QuotationProduct_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProduct_providerId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProduct" ADD CONSTRAINT "QuotationProduct_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES public."Provider"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProduct_quotationId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProduct" ADD CONSTRAINT "QuotationProduct_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationStateHistory_quotationId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationStateHistory" ADD CONSTRAINT "QuotationStateHistory_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationStateHistory_userId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationStateHistory" ADD CONSTRAINT "QuotationStateHistory_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_branchId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_clientId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES public."Client"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_implantId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_sellerId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_sellerId_fkey" FOREIGN KEY ("sellerId") REFERENCES public."Seller"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_ticketPrinterId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId") REFERENCES public."TicketPrinter"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_userId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportColumns_report_id_fkey') THEN
+            ALTER TABLE ONLY public."ReportColumns" ADD CONSTRAINT "ReportColumns_report_id_fkey" FOREIGN KEY (report_id) REFERENCES public."Report"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportFilters_report_id_fkey') THEN
+            ALTER TABLE ONLY public."ReportFilters" ADD CONSTRAINT "ReportFilters_report_id_fkey" FOREIGN KEY (report_id) REFERENCES public."Report"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportJoins_report_id_fkey') THEN
+            ALTER TABLE ONLY public."ReportJoins" ADD CONSTRAINT "ReportJoins_report_id_fkey" FOREIGN KEY (report_id) REFERENCES public."Report"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportSorts_report_id_fkey') THEN
+            ALTER TABLE ONLY public."ReportSorts" ADD CONSTRAINT "ReportSorts_report_id_fkey" FOREIGN KEY (report_id) REFERENCES public."Report"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SystemLog_userId_fkey') THEN
+            ALTER TABLE ONLY public."SystemLog" ADD CONSTRAINT "SystemLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_branchId_fkey') THEN
+            ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_implantId_fkey') THEN
+            ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_roleId_fkey') THEN
+            ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES public."Role"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_ticketPrinterId_fkey') THEN
+            ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId") REFERENCES public."TicketPrinter"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+
 END $$;

@@ -1,176 +1,1691 @@
--- Script para actualizar las columnas nuevas en base de datos existentes de clientes.
--- Agrega columnas faltantes de manera segura en Branch, Implant, InvoicesProduct e InvoicesProductItinerary.
-
 DO $$
 BEGIN
-    -- 1. Alteraciones para InvoicesProduct
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'servicios') THEN
-        ALTER TABLE public."InvoicesProduct" ADD COLUMN "servicios" TEXT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'descripcion') THEN
-        ALTER TABLE public."InvoicesProduct" ADD COLUMN "descripcion" TEXT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'itinerary') THEN
-        ALTER TABLE public."InvoicesProduct" ADD COLUMN "itinerary" TEXT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'class') THEN
-        ALTER TABLE public."InvoicesProduct" ADD COLUMN "class" VARCHAR(100);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'ticketTypeId') THEN
-        ALTER TABLE public."InvoicesProduct" ADD COLUMN "ticketTypeId" INT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'airline') THEN
-        ALTER TABLE public."InvoicesProduct" ADD COLUMN "airline" VARCHAR(100);
-    END IF;
 
-    -- 2. Alteraciones para InvoicesProductItinerary
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'farebasis') THEN
-        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "farebasis" VARCHAR(255);
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'id') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "id" integer NOT NULL;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'Numflight') THEN
-        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "Numflight" VARCHAR(25);
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'code') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "code" text NOT NULL;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'Typeflight') THEN
-        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "Typeflight" VARCHAR(1);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'amount') THEN
-        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "amount" FLOAT;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'co2') THEN
-        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "co2" DECIMAL(10,4);
-    END IF;
-
-    -- 3. Alteraciones para Branch (Sucursales)
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'logo') THEN
-        ALTER TABLE public."Branch" ADD COLUMN "logo" BYTEA;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'name') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "name" text NOT NULL;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'template') THEN
-        ALTER TABLE public."Branch" ADD COLUMN "template" BYTEA;
+        ALTER TABLE public."Branch" ADD COLUMN "template" bytea;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'templateConfig') THEN
-        ALTER TABLE public."Branch" ADD COLUMN "templateConfig" JSONB;
+        ALTER TABLE public."Branch" ADD COLUMN "templateConfig" jsonb;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'htmlTemplate') THEN
-        ALTER TABLE public."Branch" ADD COLUMN "htmlTemplate" TEXT;
+        ALTER TABLE public."Branch" ADD COLUMN "htmlTemplate" text;
     END IF;
-
-    -- 4. Alteraciones para Implant
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'logo') THEN
-        ALTER TABLE public."Implant" ADD COLUMN "logo" BYTEA;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'logo') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "logo" bytea;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'id') THEN
+        ALTER TABLE public."Client" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'name') THEN
+        ALTER TABLE public."Client" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'document') THEN
+        ALTER TABLE public."Client" ADD COLUMN "document" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'contactInfo') THEN
+        ALTER TABLE public."Client" ADD COLUMN "contactInfo" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'address') THEN
+        ALTER TABLE public."Client" ADD COLUMN "address" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'mandatoryVariables') THEN
+        ALTER TABLE public."Client" ADD COLUMN "mandatoryVariables" jsonb;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'id') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'code') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'name') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'branchId') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "branchId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'Logo') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "Logo" bytea;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'template') THEN
-        ALTER TABLE public."Implant" ADD COLUMN "template" BYTEA;
+        ALTER TABLE public."Implant" ADD COLUMN "template" bytea;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'templateConfig') THEN
-        ALTER TABLE public."Implant" ADD COLUMN "templateConfig" JSONB;
+        ALTER TABLE public."Implant" ADD COLUMN "templateConfig" jsonb;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'htmlTemplate') THEN
-        ALTER TABLE public."Implant" ADD COLUMN "htmlTemplate" TEXT;
+        ALTER TABLE public."Implant" ADD COLUMN "htmlTemplate" text;
     END IF;
-    -- 5. Creación de tabla Menu si no existe
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Menu') THEN
-        CREATE TABLE public."Menu" (
-            id SERIAL PRIMARY KEY,
-            code VARCHAR(100) UNIQUE NOT NULL,
-            name VARCHAR(255) NOT NULL,
-            parent INT NULL,
-            action VARCHAR(500) NOT NULL,
-            activo BOOLEAN DEFAULT true
-        );
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'logo') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "logo" bytea;
     END IF;
-END $$;
-
--- Inserción de datos iniciales en Menu
-INSERT INTO public."Menu" (code, name, parent, action, activo)
-VALUES 
-    ('DASHBOARD', 'Dashboard', NULL, '/dashboard', true),
-    ('COTIZACIONES', 'Cotizaciones', NULL, '/dashboard/quotations/history', true),
-    ('FACTURACION', 'Facturación', NULL, '/dashboard/invoices/history', true),
-    ('MAESTROS', 'Maestros', NULL, '/dashboard/settings', true),
-    ('REPORTES', 'Reportes', NULL, '/dashboard/reports', true)
-ON CONFLICT (code) DO UPDATE SET 
-    name = EXCLUDED.name,
-    parent = EXCLUDED.parent,
-    action = EXCLUDED.action,
-    activo = EXCLUDED.activo;
-
--- Función fnMenu
-CREATE OR REPLACE FUNCTION public.fnMenu()
-RETURNS SETOF public."Menu"
-LANGUAGE plpgsql
-AS $$
-BEGIN
-    RETURN QUERY
-    SELECT * FROM public."Menu"
-    WHERE activo = true
-    ORDER BY id ASC;
-END;
--- 6. Columnas service/servicios en QuotationProduct y tabla QuotationProductPayment
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'service') THEN
-        ALTER TABLE public."QuotationProduct" ADD COLUMN "service" TEXT;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'id') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "id" integer NOT NULL;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'servicios') THEN
-        ALTER TABLE public."QuotationProduct" ADD COLUMN "servicios" TEXT;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'name') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "name" text NOT NULL;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment') THEN
-        CREATE TABLE public."QuotationProductPayment" (
-            "id" SERIAL PRIMARY KEY,
-            "quotationProductId" INT NOT NULL,
-            "amount" FLOAT NOT NULL,
-            "paymentMethod" VARCHAR(100),
-            "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            "reference" VARCHAR(255),
-            "creditCardId" INT,
-            "cardNumber" VARCHAR(20),
-            "authorizationCode" VARCHAR(50),
-            "voucher" VARCHAR(50),
-            "expirationDate" VARCHAR(10),
-            CONSTRAINT "QuotationProductPayment_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct" (id) ON UPDATE CASCADE ON DELETE CASCADE
-        );
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'type') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "type" text NOT NULL;
     END IF;
-END $$;
-
--- 7. Alteración para Product (campos obligatorios)
-DO $$
-BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'valueType') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "valueType" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'value') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "value" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'isEditable') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "isEditable" boolean DEFAULT true NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'code') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'id') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'code') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "code" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'name') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "name" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'parent') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "parent" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'action') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "action" character varying(500) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'activo') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "activo" boolean DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemParameter' AND column_name = 'id') THEN
+        ALTER TABLE public."SystemParameter" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemParameter' AND column_name = 'code') THEN
+        ALTER TABLE public."SystemParameter" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemParameter' AND column_name = 'name') THEN
+        ALTER TABLE public."SystemParameter" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemParameter' AND column_name = 'value') THEN
+        ALTER TABLE public."SystemParameter" ADD COLUMN "value" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'id') THEN
+        ALTER TABLE public."Product" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'type') THEN
+        ALTER TABLE public."Product" ADD COLUMN "type" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'description') THEN
+        ALTER TABLE public."Product" ADD COLUMN "description" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'basePrice') THEN
+        ALTER TABLE public."Product" ADD COLUMN "basePrice" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'billingConcept') THEN
+        ALTER TABLE public."Product" ADD COLUMN "billingConcept" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'serviceType') THEN
+        ALTER TABLE public."Product" ADD COLUMN "serviceType" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'code') THEN
+        ALTER TABLE public."Product" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'cost') THEN
+        ALTER TABLE public."Product" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'airlineItinerary') THEN
+        ALTER TABLE public."Product" ADD COLUMN "airlineItinerary" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'classItinerary') THEN
+        ALTER TABLE public."Product" ADD COLUMN "classItinerary" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'flightItinerary') THEN
+        ALTER TABLE public."Product" ADD COLUMN "flightItinerary" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'ticketTypeId') THEN
+        ALTER TABLE public."Product" ADD COLUMN "ticketTypeId" integer;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'mandatoryFields') THEN
-        ALTER TABLE public."Product" ADD COLUMN "mandatoryFields" JSONB;
+        ALTER TABLE public."Product" ADD COLUMN "mandatoryFields" jsonb;
     END IF;
-END $$;
-
--- 8. Alteración para Client (variables obligatorias)
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'mandatoryVariables') THEN
-        ALTER TABLE public."Client" ADD COLUMN "mandatoryVariables" JSONB;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Seller' AND column_name = 'id') THEN
+        ALTER TABLE public."Seller" ADD COLUMN "id" integer NOT NULL;
     END IF;
-END $$;
-
--- 9. Alteraciones para Quotation (historial de estados)
-DO $$
-BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Seller' AND column_name = 'code') THEN
+        ALTER TABLE public."Seller" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Seller' AND column_name = 'name') THEN
+        ALTER TABLE public."Seller" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Seller' AND column_name = 'email') THEN
+        ALTER TABLE public."Seller" ADD COLUMN "email" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketPrinter' AND column_name = 'id') THEN
+        ALTER TABLE public."TicketPrinter" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketPrinter' AND column_name = 'code') THEN
+        ALTER TABLE public."TicketPrinter" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketPrinter' AND column_name = 'name') THEN
+        ALTER TABLE public."TicketPrinter" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketPrinter' AND column_name = 'email') THEN
+        ALTER TABLE public."TicketPrinter" ADD COLUMN "email" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'MasterVariable' AND column_name = 'id') THEN
+        ALTER TABLE public."MasterVariable" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'MasterVariable' AND column_name = 'code') THEN
+        ALTER TABLE public."MasterVariable" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'MasterVariable' AND column_name = 'name') THEN
+        ALTER TABLE public."MasterVariable" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Airports' AND column_name = 'id') THEN
+        ALTER TABLE public."Airports" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Airports' AND column_name = 'code') THEN
+        ALTER TABLE public."Airports" ADD COLUMN "code" character varying(10) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Airports' AND column_name = 'name') THEN
+        ALTER TABLE public."Airports" ADD COLUMN "name" character varying(150) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Airports' AND column_name = 'citiesId') THEN
+        ALTER TABLE public."Airports" ADD COLUMN "citiesId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'id') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'quotationId') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "quotationId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'fileName') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "fileName" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'fileType') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "fileType" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'fileSize') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "fileSize" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'fileContent') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "fileContent" bytea NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "code" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'type') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "type" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'blanch') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "blanch" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'implant') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "implant" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'external') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "external" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'gds') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "gds" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'date') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "date" timestamp without time zone DEFAULT now();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'currency') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "currency" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'exchangeRate') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "exchangeRate" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'tiquetPrinter') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "tiquetPrinter" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'seller') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "seller" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'client') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "client" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'booking') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "booking" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'typetransaction') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "typetransaction" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'iata') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "iata" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'description') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'observation') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "observation" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'state') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "state" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'Id') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "Id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'branchId') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "branchId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'implanteId') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "implanteId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'date') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "date" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'menssage') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "menssage" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'bookingCode') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "bookingCode" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'bookingId') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "bookingId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'error') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "error" boolean;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'file') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "file" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'userId') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "userId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "bookingProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'name') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'type') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "type" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'description') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "description" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'billigconcept') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "billigconcept" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'servicetype') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "servicetype" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'amount') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'tax') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "tax" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'other') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "other" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'total') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "total" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'bookingId') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "bookingId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "code" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'type') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "type" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'service') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "service" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'description') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'prestadoracode') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "prestadoracode" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'prestadorainitials') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "prestadorainitials" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'prestadoradist') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "prestadoradist" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'provider') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "provider" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'quantity') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "quantity" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'price') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "price" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'cost') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "checkInDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "checkOutDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'nights') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "nights" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'paxAdults') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "paxAdults" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'paxChildren') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "paxChildren" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'serviceType') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "serviceType" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'billingConcept') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "billingConcept" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'destination') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "destination" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'reservationCode') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "reservationCode" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'sellerCom') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "sellerCom" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'ticketPrinterCom') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "ticketPrinterCom" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'inNationality') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "inNationality" integer DEFAULT 1;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'state') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "state" character varying(25) DEFAULT 'NUEVO'::character varying;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'conjunction') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "conjunction" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'revised') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "revised" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'typeproduct') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "typeproduct" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'consecutive') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "consecutive" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'penalty') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "penalty" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "bookingProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'orden') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "orden" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'origin') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "origin" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'destination') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "destination" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'class') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "class" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "checkInDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "checkOutDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'terminal') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "terminal" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'prestadoraCode') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "prestadoraCode" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'farebasis') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "farebasis" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'Numflight') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "Numflight" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'Typeflight') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "Typeflight" character varying(1);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'amount') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "bookingProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "code" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'firstnm') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "firstnm" character varying(30);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'lastnm') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "lastnm" character varying(30);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'prefix') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "prefix" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'identification') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "identification" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'phone') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "phone" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'email') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "email" character varying(250);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "bookingProductId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'bookingProductFEEId') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "bookingProductFEEId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "code" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'name') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "name" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'type') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "type" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'typecreditcard') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "typecreditcard" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'numbercreditcard') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "numbercreditcard" character varying(16);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'vouchercreditcard') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "vouchercreditcard" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'expiredcreditcard') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "expiredcreditcard" character varying(5);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'authcreditcard') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "authcreditcard" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'quotas') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "quotas" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'bank') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "bank" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'square') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "square" character varying(30);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'reference') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "reference" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'policy') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "policy" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'policyannex') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "policyannex" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'amount') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "bookingProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "code" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'name') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "name" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'type') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "type" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'ismain') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "ismain" boolean DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'percentage') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "percentage" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'amount') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductVariableGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductVariableGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductVariableGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductVariableGDS" ADD COLUMN "bookingProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductVariableGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductVariableGDS" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductVariableGDS' AND column_name = 'name') THEN
+        ALTER TABLE public."BookingProductVariableGDS" ADD COLUMN "name" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductVariableGDS' AND column_name = 'value') THEN
+        ALTER TABLE public."BookingProductVariableGDS" ADD COLUMN "value" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDSInvoiceAuto' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingsGDSInvoiceAuto" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDSInvoiceAuto' AND column_name = 'Branch') THEN
+        ALTER TABLE public."BookingsGDSInvoiceAuto" ADD COLUMN "Branch" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDSInvoiceAuto' AND column_name = 'implant') THEN
+        ALTER TABLE public."BookingsGDSInvoiceAuto" ADD COLUMN "implant" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDSInvoiceAuto' AND column_name = 'bookingCode') THEN
+        ALTER TABLE public."BookingsGDSInvoiceAuto" ADD COLUMN "bookingCode" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDSInvoiceAuto' AND column_name = 'bookingId') THEN
+        ALTER TABLE public."BookingsGDSInvoiceAuto" ADD COLUMN "bookingId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'blanch') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "blanch" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'implant') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "implant" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'message') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "message" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'file') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "file" character varying(250);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'codebooking') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "codebooking" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'booking') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "booking" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'error') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "error" integer DEFAULT 0 NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BranchGDSInvoiceAuto' AND column_name = 'id') THEN
+        ALTER TABLE public."BranchGDSInvoiceAuto" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BranchGDSInvoiceAuto' AND column_name = 'branchId') THEN
+        ALTER TABLE public."BranchGDSInvoiceAuto" ADD COLUMN "branchId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BranchGDSInvoiceAuto' AND column_name = 'gdsId') THEN
+        ALTER TABLE public."BranchGDSInvoiceAuto" ADD COLUMN "gdsId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BranchGDSInvoiceAuto' AND column_name = 'EnvoiceAuto') THEN
+        ALTER TABLE public."BranchGDSInvoiceAuto" ADD COLUMN "EnvoiceAuto" boolean DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'id') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'code') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "code" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'name') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'value') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "value" character varying(10);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'branchId') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "branchId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'implantId') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "implantId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'id') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'code') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "code" character varying(10) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'name') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'countriesId') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "countriesId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'statecode') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "statecode" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'iata') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "iata" character varying(10);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'id') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'code') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'name') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'updatedAt') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "updatedAt" timestamp without time zone DEFAULT now();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'currencyId') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "currencyId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'cupos') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "cupos" integer DEFAULT 1;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'id') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'comboId') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "comboId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'productId') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "productId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'price') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "price" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "checkInDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "checkOutDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'prestadoraId') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "prestadoraId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'mainTaxId') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "mainTaxId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'paxAdults') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "paxAdults" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'paxChildren') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "paxChildren" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'providerId') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "providerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'inNationality') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "inNationality" integer DEFAULT 1;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'quantity') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "quantity" integer DEFAULT 1 NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'cost') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProductTax' AND column_name = 'id') THEN
+        ALTER TABLE public."ComboProductTax" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProductTax' AND column_name = 'comboProductId') THEN
+        ALTER TABLE public."ComboProductTax" ADD COLUMN "comboProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProductTax' AND column_name = 'chargeAndTaxId') THEN
+        ALTER TABLE public."ComboProductTax" ADD COLUMN "chargeAndTaxId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProductTax' AND column_name = 'amount') THEN
+        ALTER TABLE public."ComboProductTax" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProductTax' AND column_name = 'isMain') THEN
+        ALTER TABLE public."ComboProductTax" ADD COLUMN "isMain" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'id') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'code') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "code" character varying(10) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'name') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'dane') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "dane" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'region') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "region" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'prefix') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "prefix" character varying(10);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'curencyId') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "curencyId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CreditCard' AND column_name = 'id') THEN
+        ALTER TABLE public."CreditCard" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CreditCard' AND column_name = 'code') THEN
+        ALTER TABLE public."CreditCard" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CreditCard' AND column_name = 'name') THEN
+        ALTER TABLE public."CreditCard" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CreditCard' AND column_name = 'type') THEN
+        ALTER TABLE public."CreditCard" ADD COLUMN "type" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CreditCard' AND column_name = 'inactive') THEN
+        ALTER TABLE public."CreditCard" ADD COLUMN "inactive" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'id') THEN
+        ALTER TABLE public."Currency" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'code') THEN
+        ALTER TABLE public."Currency" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'name') THEN
+        ALTER TABLE public."Currency" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'exchangeRate') THEN
+        ALTER TABLE public."Currency" ADD COLUMN "exchangeRate" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'id') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'id_interfaces') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "id_interfaces" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'id_master') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "id_master" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'cd_maestro') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "cd_maestro" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'cd_codigo') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "cd_codigo" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'cd_codigointe') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "cd_codigointe" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'dt_fecha') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "dt_fecha" timestamp without time zone DEFAULT now();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'id') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'Id_Interfaces') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "Id_Interfaces" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'cd_maestro') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "cd_maestro" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'cd_codigo') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "cd_codigo" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'cd_codigoInte') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "cd_codigoInte" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'cd_operacion') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "cd_operacion" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'ds_xmlpeticion') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "ds_xmlpeticion" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'ds_xmlrespuesta') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "ds_xmlrespuesta" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'ds_xmlorg') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "ds_xmlorg" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'ds_Logpeticion') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "ds_Logpeticion" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'fecha_creacion') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "fecha_creacion" timestamp(6) without time zone DEFAULT now();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'GDS' AND column_name = 'id') THEN
+        ALTER TABLE public."GDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'GDS' AND column_name = 'name') THEN
+        ALTER TABLE public."GDS" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'id') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'name') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'location') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "location" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'category') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "category" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'providerId') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "providerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'code') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'type') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "type" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'initials') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "initials" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'nogds') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "nogds" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'id') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'code') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'name') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'inactivo') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "inactivo" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'bl_genera_archivoplano') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "bl_genera_archivoplano" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'ds_storedprocedure_archivoplano') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "ds_storedprocedure_archivoplano" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'bl_job') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "bl_job" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'ds_namejob') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "ds_namejob" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'bl_facturador') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "bl_facturador" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'id_gds') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "id_gds" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'id') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'internalNumber') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "internalNumber" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'date') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "date" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'clientId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "clientId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'currency') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "currency" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'exchangeRate') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "exchangeRate" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'branchId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "branchId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'implantId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "implantId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'sellerId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "sellerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'ticketPrinterId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "ticketPrinterId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'baseCommissionable') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "baseCommissionable" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'commissionPercentage') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "commissionPercentage" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'chargesAndTaxes') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "chargesAndTaxes" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'totalAmount') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "totalAmount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'userId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "userId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'state') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "state" character varying(25) DEFAULT 'NUEVO'::character varying;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'invoiceId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "invoiceId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'productId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "productId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'quantity') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "quantity" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'price') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "price" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'cost') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'providerId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "providerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'prestadoraId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "prestadoraId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "checkInDate" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "checkOutDate" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'nights') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "nights" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'paxAdults') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "paxAdults" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'paxChildren') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "paxChildren" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'serviceType') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "serviceType" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'destination') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "destination" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'reservationCode') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "reservationCode" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'sellerCommission') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "sellerCommission" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'ticketPrinterCommission') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "ticketPrinterCommission" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'comboId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "comboId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'mainTaxId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "mainTaxId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'inNationality') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "inNationality" integer DEFAULT 1;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'servicios') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "servicios" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'descripcion') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "descripcion" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'itinerary') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "itinerary" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'class') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "class" character varying(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'ticketTypeId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "ticketTypeId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'airline') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "airline" character varying(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductCombo' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductCombo" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductCombo' AND column_name = 'invoiceId') THEN
+        ALTER TABLE public."InvoicesProductCombo" ADD COLUMN "invoiceId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductCombo' AND column_name = 'comboId') THEN
+        ALTER TABLE public."InvoicesProductCombo" ADD COLUMN "comboId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'invoiceProductId') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "invoiceProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'orden') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "orden" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'origin') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "origin" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'destination') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "destination" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'class') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "class" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "checkInDate" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "checkOutDate" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'terminal') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "terminal" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'prestadoraCode') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "prestadoraCode" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'farebasis') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "farebasis" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'Numflight') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "Numflight" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'Typeflight') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "Typeflight" character varying(1);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'amount') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "amount" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductPasenger" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger' AND column_name = 'invoiceProductId') THEN
+        ALTER TABLE public."InvoicesProductPasenger" ADD COLUMN "invoiceProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger' AND column_name = 'name') THEN
+        ALTER TABLE public."InvoicesProductPasenger" ADD COLUMN "name" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger' AND column_name = 'document') THEN
+        ALTER TABLE public."InvoicesProductPasenger" ADD COLUMN "document" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'invoiceProductId') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "invoiceProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'amount') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'paymentMethod') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "paymentMethod" character varying(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'date') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "date" timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'reference') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "reference" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'authorizationCode') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "authorizationCode" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'cardNumber') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "cardNumber" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'creditCardId') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "creditCardId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'expirationDate') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "expirationDate" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'voucher') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "voucher" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'invoiceProductId') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "invoiceProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'chargeAndTaxId') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "chargeAndTaxId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'valueSnapshot') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "valueSnapshot" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'valueTypeSnapshot') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "valueTypeSnapshot" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'explicitAmount') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "explicitAmount" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'isMain') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "isMain" boolean DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductVariable" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable' AND column_name = 'invoiceProductId') THEN
+        ALTER TABLE public."InvoicesProductVariable" ADD COLUMN "invoiceProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable' AND column_name = 'masterVariableId') THEN
+        ALTER TABLE public."InvoicesProductVariable" ADD COLUMN "masterVariableId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable' AND column_name = 'value') THEN
+        ALTER TABLE public."InvoicesProductVariable" ADD COLUMN "value" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Master' AND column_name = 'id') THEN
+        ALTER TABLE public."Master" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Master' AND column_name = 'code') THEN
+        ALTER TABLE public."Master" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Master' AND column_name = 'name') THEN
+        ALTER TABLE public."Master" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Master' AND column_name = 'inactivo') THEN
+        ALTER TABLE public."Master" ADD COLUMN "inactivo" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'id') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'code') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'name') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'inactive') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "inactive" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'iscash') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "iscash" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'iscredit') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "iscredit" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Provider' AND column_name = 'id') THEN
+        ALTER TABLE public."Provider" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Provider' AND column_name = 'code') THEN
+        ALTER TABLE public."Provider" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Provider' AND column_name = 'name') THEN
+        ALTER TABLE public."Provider" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Provider' AND column_name = 'contactInfo') THEN
+        ALTER TABLE public."Provider" ADD COLUMN "contactInfo" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Provider' AND column_name = 'commissionConfig') THEN
+        ALTER TABLE public."Provider" ADD COLUMN "commissionConfig" jsonb;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'id') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'internalNumber') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "internalNumber" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'date') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "date" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'clientId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "clientId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'currency') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "currency" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'exchangeRate') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "exchangeRate" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'branchId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "branchId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'implantId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "implantId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'sellerId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "sellerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'ticketPrinterId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "ticketPrinterId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'baseCommissionable') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "baseCommissionable" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'commissionPercentage') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "commissionPercentage" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'chargesAndTaxes') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "chargesAndTaxes" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'totalAmount') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "totalAmount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'userId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "userId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'state') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "state" character varying(25) DEFAULT 'Nuevo'::character varying;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'stateDescription') THEN
-        ALTER TABLE public."Quotation" ADD COLUMN "stateDescription" TEXT;
+        ALTER TABLE public."Quotation" ADD COLUMN "stateDescription" text;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'stateUpdatedAt') THEN
-        ALTER TABLE public."Quotation" ADD COLUMN "stateUpdatedAt" TIMESTAMP WITHOUT TIME ZONE;
+        ALTER TABLE public."Quotation" ADD COLUMN "stateUpdatedAt" timestamp without time zone;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'costoTotal') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "costoTotal" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'valorBase') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "valorBase" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'utilidad') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "utilidad" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionTotalPercentage') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionTotalPercentage" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionFreelancePercentage') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionFreelancePercentage" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionFreelanceValue') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionFreelanceValue" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionPropiaPercentage') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionPropiaPercentage" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionPropiaValue') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionPropiaValue" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionUtilidadPercentage') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionUtilidadPercentage" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationCombo' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationCombo" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationCombo' AND column_name = 'quotationId') THEN
+        ALTER TABLE public."QuotationCombo" ADD COLUMN "quotationId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationCombo' AND column_name = 'comboId') THEN
+        ALTER TABLE public."QuotationCombo" ADD COLUMN "comboId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'quotationId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "quotationId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'productId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "productId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'quantity') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "quantity" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'price') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "price" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'providerId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "providerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'prestadoraId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "prestadoraId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "checkInDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "checkOutDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'nights') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "nights" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'paxAdults') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "paxAdults" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'paxChildren') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "paxChildren" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'serviceType') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "serviceType" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'destination') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "destination" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'reservationCode') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "reservationCode" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'sellerCommission') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "sellerCommission" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'ticketPrinterCommission') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "ticketPrinterCommission" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'comboId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "comboId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'mainTaxId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "mainTaxId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'inNationality') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "inNationality" integer DEFAULT 1;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'cost') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'service') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "service" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'description') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'servicios') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "servicios" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'descripcion') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "descripcion" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPassenger' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationProductPassenger" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPassenger' AND column_name = 'quotationProductId') THEN
+        ALTER TABLE public."QuotationProductPassenger" ADD COLUMN "quotationProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPassenger' AND column_name = 'name') THEN
+        ALTER TABLE public."QuotationProductPassenger" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPassenger' AND column_name = 'document') THEN
+        ALTER TABLE public."QuotationProductPassenger" ADD COLUMN "document" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'quotationProductId') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "quotationProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'amount') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'paymentMethod') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "paymentMethod" character varying(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'date') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "date" timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'reference') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "reference" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'creditCardId') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "creditCardId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'cardNumber') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "cardNumber" character varying(20);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'authorizationCode') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "authorizationCode" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'voucher') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "voucher" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'expirationDate') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "expirationDate" character varying(10);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'quotationProductId') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "quotationProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'chargeAndTaxId') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "chargeAndTaxId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'valueSnapshot') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "valueSnapshot" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'valueTypeSnapshot') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "valueTypeSnapshot" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'explicitAmount') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "explicitAmount" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'isMain') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "isMain" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductVariable' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationProductVariable" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductVariable' AND column_name = 'quotationProductId') THEN
+        ALTER TABLE public."QuotationProductVariable" ADD COLUMN "quotationProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductVariable' AND column_name = 'masterVariableId') THEN
+        ALTER TABLE public."QuotationProductVariable" ADD COLUMN "masterVariableId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductVariable' AND column_name = 'value') THEN
+        ALTER TABLE public."QuotationProductVariable" ADD COLUMN "value" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationState" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'name') THEN
+        ALTER TABLE public."QuotationState" ADD COLUMN "name" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'color') THEN
+        ALTER TABLE public."QuotationState" ADD COLUMN "color" character varying(20);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."QuotationState" ADD COLUMN "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'code') THEN
+        ALTER TABLE public."QuotationState" ADD COLUMN "code" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'quotationId') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "quotationId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'state') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "state" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'description') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'userId') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "userId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'id') THEN
+        ALTER TABLE public."Report" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'name') THEN
+        ALTER TABLE public."Report" ADD COLUMN "name" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'base_table') THEN
+        ALTER TABLE public."Report" ADD COLUMN "base_table" character varying(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'description') THEN
+        ALTER TABLE public."Report" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'custom_sql') THEN
+        ALTER TABLE public."Report" ADD COLUMN "custom_sql" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'created_at') THEN
+        ALTER TABLE public."Report" ADD COLUMN "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'id') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'report_id') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "report_id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'table_alias') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "table_alias" character varying(20);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'column_name') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "column_name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'alias') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "alias" character varying(150);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'is_calculated') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "is_calculated" boolean DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'is_visible') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "is_visible" boolean DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'formula_expression') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "formula_expression" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'sort_order') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "sort_order" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'id') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'report_id') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "report_id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'table_alias') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "table_alias" character varying(20);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'column_name') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "column_name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'filter_label') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "filter_label" character varying(150);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'filter_type') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "filter_type" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'operator') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "operator" character varying(20) DEFAULT '='::character varying;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'sort_order') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "sort_order" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'id') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'report_id') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "report_id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'table_name') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "table_name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'alias') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "alias" character varying(20) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'join_type') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "join_type" character varying(50) DEFAULT 'INNER JOIN'::character varying NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'join_condition') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "join_condition" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'sort_order') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "sort_order" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportSorts' AND column_name = 'id') THEN
+        ALTER TABLE public."ReportSorts" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportSorts' AND column_name = 'report_id') THEN
+        ALTER TABLE public."ReportSorts" ADD COLUMN "report_id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportSorts' AND column_name = 'column_expr') THEN
+        ALTER TABLE public."ReportSorts" ADD COLUMN "column_expr" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportSorts' AND column_name = 'direction') THEN
+        ALTER TABLE public."ReportSorts" ADD COLUMN "direction" character varying(10) DEFAULT 'ASC'::character varying;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportSorts' AND column_name = 'sort_order') THEN
+        ALTER TABLE public."ReportSorts" ADD COLUMN "sort_order" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Role' AND column_name = 'id') THEN
+        ALTER TABLE public."Role" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Role' AND column_name = 'name') THEN
+        ALTER TABLE public."Role" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'id') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'userId') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "userId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'action') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "action" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'module') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "module" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'description') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "description" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'metadata') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "metadata" jsonb;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketType' AND column_name = 'id') THEN
+        ALTER TABLE public."TicketType" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketType' AND column_name = 'code') THEN
+        ALTER TABLE public."TicketType" ADD COLUMN "code" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketType' AND column_name = 'name') THEN
+        ALTER TABLE public."TicketType" ADD COLUMN "name" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketType' AND column_name = 'description') THEN
+        ALTER TABLE public."TicketType" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketType' AND column_name = 'isActive') THEN
+        ALTER TABLE public."TicketType" ADD COLUMN "isActive" boolean DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'id') THEN
+        ALTER TABLE public."User" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'name') THEN
+        ALTER TABLE public."User" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'email') THEN
+        ALTER TABLE public."User" ADD COLUMN "email" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'passwordHash') THEN
+        ALTER TABLE public."User" ADD COLUMN "passwordHash" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'resetPasswordToken') THEN
+        ALTER TABLE public."User" ADD COLUMN "resetPasswordToken" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'resetPasswordExpires') THEN
+        ALTER TABLE public."User" ADD COLUMN "resetPasswordExpires" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'roleId') THEN
+        ALTER TABLE public."User" ADD COLUMN "roleId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'branchId') THEN
+        ALTER TABLE public."User" ADD COLUMN "branchId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'implantId') THEN
+        ALTER TABLE public."User" ADD COLUMN "implantId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'ticketPrinterId') THEN
+        ALTER TABLE public."User" ADD COLUMN "ticketPrinterId" integer;
+    END IF;
+
 END $$;
-
--- 10. Creación de tabla QuotationStateHistory (Historial completo de estados)
-CREATE SEQUENCE IF NOT EXISTS public."QuotationStateHistory_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-CREATE TABLE IF NOT EXISTS public."QuotationStateHistory" (
-    id integer NOT NULL DEFAULT nextval('"QuotationStateHistory_id_seq"'::regclass),
-    "quotationId" integer NOT NULL,
-    state varchar(25) NOT NULL,
-    description text,
-    "createdAt" timestamp(6) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "userId" integer,
-    CONSTRAINT "QuotationStateHistory_pkey" PRIMARY KEY (id),
-    CONSTRAINT "QuotationStateHistory_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation" (id) ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT "QuotationStateHistory_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User" (id) ON UPDATE CASCADE ON DELETE SET NULL
-);
-CREATE INDEX IF NOT EXISTS "QuotationStateHistory_quotationId_idx" ON public."QuotationStateHistory" ("quotationId");
-

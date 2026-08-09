@@ -6,6 +6,18 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
     try {
+        const { searchParams } = new URL(req.url)
+        const idParam = searchParams.get('id')
+        if (idParam) {
+            const client = await (prisma as any).client?.findUnique({
+                where: { id: parseInt(idParam) }
+            })
+            if (!client) {
+                return NextResponse.json({ message: 'Client not found' }, { status: 404 })
+            }
+            return NextResponse.json(client)
+        }
+
         const clients = await prisma.$queryRawUnsafe<any[]>(
             `SELECT * FROM public.fnClienteListar()`
         )

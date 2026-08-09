@@ -81,10 +81,10 @@ model Branch {
   id                   Int                    @id @default(autoincrement())
   code                 String                 @unique
   name                 String
+  logo                 Bytes?
   template             Bytes?
   templateConfig       Json?
   htmlTemplate         String?
-  logo                 Bytes?
   BranchGDSInvoiceAuto BranchGDSInvoiceAuto[]
   cellCustomizations   CellCustomization[]
   implants             Implant[]
@@ -97,11 +97,11 @@ model Implant {
   code               String              @unique
   name               String
   branchId           Int?
-  Logo               Bytes?
+  logo               Bytes?
   template           Bytes?
   templateConfig     Json?
   htmlTemplate       String?
-  logo               Bytes?
+  Logo               Bytes?
   cellCustomizations CellCustomization[]
   branch             Branch?             @relation(fields: [branchId], references: [id])
   quotations         Quotation[]
@@ -130,10 +130,10 @@ model Product {
   type              String
   description       String
   basePrice         Float
+  cost              Float?             @default(0)
   billingConcept    String?
   serviceType       String?
   code              String?            @unique
-  cost              Float?             @default(0)
   airlineItinerary  String?
   classItinerary    String?
   flightItinerary   String?
@@ -209,6 +209,7 @@ model QuotationProduct {
   productId               Int
   quantity                Int
   price                   Float
+  cost                    Float?                      @default(0)
   providerId              Int?
   prestadoraId            Int?
   checkInDate             DateTime?
@@ -224,7 +225,6 @@ model QuotationProduct {
   comboId                 Int?
   mainTaxId               Int?
   inNationality           Int?                        @default(1)
-  cost                    Float?                      @default(0)
   service                 String?
   description             String?
   servicios               String?
@@ -311,10 +311,10 @@ model Combo {
   id              Int              @id @default(autoincrement())
   code            String           @unique
   name            String
+  cupos           Int?             @default(0)
+  currencyId      Int?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime?        @default(now()) @updatedAt @db.Timestamp(6)
-  currencyId      Int?
-  cupos           Int?             @default(1)
   currency        Currency?        @relation(fields: [currencyId], references: [id])
   products        ComboProduct[]
   quotationCombos QuotationCombo[]
@@ -325,6 +325,7 @@ model ComboProduct {
   comboId       Int
   productId     Int
   price         Float
+  cost          Float?            @default(0)
   checkInDate   DateTime?
   checkOutDate  DateTime?
   prestadoraId  Int?
@@ -334,7 +335,6 @@ model ComboProduct {
   providerId    Int?
   inNationality Int?              @default(1)
   quantity      Int               @default(1)
-  cost          Float?            @default(0)
   combo         Combo             @relation(fields: [comboId], references: [id], onDelete: Cascade)
   prestadora    Prestadora?       @relation(fields: [prestadoraId], references: [id])
   product       Product           @relation(fields: [productId], references: [id])
@@ -879,10 +879,10 @@ model QuotationProductPayment {
 
 model QuotationState {
   id        Int      @id @default(autoincrement())
+  code      String   @unique @db.VarChar(25)
   name      String   @db.VarChar(50)
   color     String?  @db.VarChar(20)
   createdAt DateTime @default(now()) @db.Timestamp(6)
-  code      String   @unique @db.VarChar(25)
 }
 
 model QuotationStateHistory {

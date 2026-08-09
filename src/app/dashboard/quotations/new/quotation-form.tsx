@@ -441,6 +441,12 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                         const qData = await qRes.json()
                         setOriginalState(qData.state || 'Nuevo')
                         setStateHistoryList(qData.stateHistory || [])
+                        if (qData.client) {
+                            setData((prev: any) => ({
+                                ...prev,
+                                clients: [qData.client]
+                            }));
+                        }
                         setFormData({
                             clientId: qData.clientId?.toString() || '',
                             branchId: qData.branchId?.toString() || '',
@@ -781,6 +787,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                         onChange={(val) => setFormData({ ...formData, clientId: val })}
                                         placeholder="Seleccionar Cliente"
                                         secondaryKey="document"
+                                        remoteSearchEndpoint="/api/clients"
+                                        minSearchLength={2}
                                     />
                                 </div>
                                 <div className="space-y-2">

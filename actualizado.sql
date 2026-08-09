@@ -5,1854 +5,3744 @@
 
 -- >>> 1. CREACIÓN DE TABLAS E ÍNDICES (TABLEINI) <<<
 
-DO $$ 
+do $$
 BEGIN
-	CREATE SEQUENCE IF NOT EXISTS public."Attachment_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Attachment_id_seq"
-	    OWNER TO postgres;
 
-	CREATE SEQUENCE IF NOT EXISTS public."Branch_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-		
-	ALTER SEQUENCE public."Branch_id_seq"
-	    OWNER TO postgres;
+    CREATE TABLE IF NOT EXISTS public."Branch" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        template bytea,
+        "templateConfig" jsonb,
+        "htmlTemplate" text,
+        logo bytea
+    );
+    CREATE TABLE IF NOT EXISTS public."Client" (
+        id integer NOT NULL,
+        name text NOT NULL,
+        document text NOT NULL,
+        "contactInfo" text,
+        address text,
+        "mandatoryVariables" jsonb
+    );
+    CREATE TABLE IF NOT EXISTS public."Implant" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        "branchId" integer,
+        "Logo" bytea,
+        template bytea,
+        "templateConfig" jsonb,
+        "htmlTemplate" text,
+        logo bytea
+    );
+    CREATE TABLE IF NOT EXISTS public."ChargeAndTax" (
+        id integer NOT NULL,
+        name text NOT NULL,
+        type text NOT NULL,
+        "valueType" text NOT NULL,
+        value double precision NOT NULL,
+        "isEditable" boolean DEFAULT true NOT NULL,
+        code text
+    );
+    CREATE TABLE IF NOT EXISTS public."Menu" (
+        id integer NOT NULL,
+        code character varying(100) NOT NULL,
+        name character varying(255) NOT NULL,
+        parent integer,
+        action character varying(500) NOT NULL,
+        activo boolean DEFAULT true
+    );
+    CREATE TABLE IF NOT EXISTS public."SystemParameter" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        value text NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS public."Product" (
+        id integer NOT NULL,
+        type text NOT NULL,
+        description text NOT NULL,
+        "basePrice" double precision NOT NULL,
+        "billingConcept" text,
+        "serviceType" text,
+        code text,
+        cost double precision DEFAULT 0,
+        "airlineItinerary" text,
+        "classItinerary" text,
+        "flightItinerary" text,
+        "ticketTypeId" integer,
+        "mandatoryFields" jsonb
+    );
+    CREATE TABLE IF NOT EXISTS public."Seller" (
+        id integer NOT NULL,
+        code text,
+        name text NOT NULL,
+        email text
+    );
+    CREATE TABLE IF NOT EXISTS public."TicketPrinter" (
+        id integer NOT NULL,
+        code text,
+        name text NOT NULL,
+        email text
+    );
+    CREATE TABLE IF NOT EXISTS public."MasterVariable" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS public."Airports" (
+        id integer NOT NULL,
+        code character varying(10) NOT NULL,
+        name character varying(150) NOT NULL,
+        "citiesId" integer NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Airports_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Airports_id_seq" OWNED BY public."Airports".id;
+    CREATE TABLE IF NOT EXISTS public."Attachment" (
+        id integer NOT NULL,
+        "quotationId" integer NOT NULL,
+        "fileName" text NOT NULL,
+        "fileType" text NOT NULL,
+        "fileSize" integer NOT NULL,
+        "fileContent" bytea NOT NULL,
+        "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Attachment_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Attachment_id_seq" OWNED BY public."Attachment".id;
+    CREATE TABLE IF NOT EXISTS public."BookingGDS" (
+        id integer NOT NULL,
+        code character varying(25) NOT NULL,
+        type character varying(25) NOT NULL,
+        blanch character varying(25) NOT NULL,
+        implant character varying(25),
+        external boolean DEFAULT false NOT NULL,
+        gds integer,
+        date timestamp without time zone DEFAULT now(),
+        currency text NOT NULL,
+        "exchangeRate" double precision NOT NULL,
+        "tiquetPrinter" character varying(25) NOT NULL,
+        seller character varying(25) NOT NULL,
+        client character varying(25) NOT NULL,
+        booking text,
+        typetransaction character varying(25),
+        iata character varying(25),
+        description text,
+        observation text,
+        state character varying(25)
+    );
+    CREATE TABLE IF NOT EXISTS public."BookingGDSInvoiceAutoLog" (
+        "Id" integer NOT NULL,
+        "branchId" integer,
+        "implanteId" integer,
+        date timestamp without time zone,
+        menssage text,
+        "bookingCode" character varying(25),
+        "bookingId" integer,
+        error boolean,
+        file text,
+        "userId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingGDSInvoiceAutoLog_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingGDSInvoiceAutoLog_id_seq" OWNED BY public."BookingGDSInvoiceAutoLog"."Id";
+    CREATE SEQUENCE IF NOT EXISTS public."BookingGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingGDS_id_seq" OWNED BY public."BookingGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductFEEGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        type text NOT NULL,
+        description text NOT NULL,
+        billigconcept text NOT NULL,
+        servicetype text NOT NULL,
+        amount double precision NOT NULL,
+        tax double precision NOT NULL,
+        other double precision NOT NULL,
+        total double precision NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductFEEGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductFEEGDS_id_seq" OWNED BY public."BookingProductFEEGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductGDS" (
+        id integer NOT NULL,
+        "bookingId" integer NOT NULL,
+        code character varying(25) NOT NULL,
+        type character varying(25),
+        service text,
+        description text,
+        prestadoracode character varying(25),
+        prestadorainitials character varying(25),
+        prestadoradist character varying(25),
+        provider character varying(25),
+        quantity integer NOT NULL,
+        price double precision NOT NULL,
+        cost double precision DEFAULT 0,
+        "checkInDate" timestamp(3) without time zone,
+        "checkOutDate" timestamp(3) without time zone,
+        nights integer,
+        "paxAdults" integer,
+        "paxChildren" integer,
+        "serviceType" text,
+        "billingConcept" text,
+        destination text,
+        "reservationCode" text,
+        "sellerCom" double precision,
+        "ticketPrinterCom" double precision,
+        "inNationality" integer DEFAULT 1,
+        state character varying(25) DEFAULT 'NUEVO'::character varying,
+        conjunction integer DEFAULT 0,
+        revised character varying(25),
+        typeproduct character varying(25),
+        consecutive character varying(25),
+        penalty character varying(25)
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductGDS_id_seq" OWNED BY public."BookingProductGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductItineraryGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer NOT NULL,
+        orden integer,
+        origin text NOT NULL,
+        destination text NOT NULL,
+        class text NOT NULL,
+        "checkInDate" timestamp(3) without time zone,
+        "checkOutDate" timestamp(3) without time zone,
+        terminal text NOT NULL,
+        "prestadoraCode" text NOT NULL,
+        farebasis text NOT NULL,
+        "Numflight" character varying(25),
+        "Typeflight" character varying(1),
+        amount double precision NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductItineraryGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductItineraryGDS_id_seq" OWNED BY public."BookingProductItineraryGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductPassangerGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer NOT NULL,
+        code character varying(25),
+        firstnm character varying(30),
+        lastnm character varying(30),
+        prefix character varying(25),
+        identification character varying(25),
+        phone character varying(25),
+        email character varying(250)
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductPassangerGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductPassangerGDS_id_seq" OWNED BY public."BookingProductPassangerGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductPaymentGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer,
+        "bookingProductFEEId" integer,
+        code character varying(50) NOT NULL,
+        name character varying(50) NOT NULL,
+        type character varying(50) NOT NULL,
+        typecreditcard character varying(25),
+        numbercreditcard character varying(16),
+        vouchercreditcard character varying(25),
+        expiredcreditcard character varying(5),
+        authcreditcard character varying(25),
+        quotas integer,
+        bank character varying(25),
+        square character varying(30),
+        reference character varying(50),
+        policy character varying(25),
+        policyannex character varying(25),
+        amount double precision NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductPaymentGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductPaymentGDS_id_seq" OWNED BY public."BookingProductPaymentGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductTaxGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer NOT NULL,
+        code character varying(25) NOT NULL,
+        name character varying(50) NOT NULL,
+        type character varying(25) NOT NULL,
+        ismain boolean DEFAULT false,
+        percentage double precision NOT NULL,
+        amount double precision NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductTaxGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductTaxGDS_id_seq" OWNED BY public."BookingProductTaxGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingProductVariableGDS" (
+        id integer NOT NULL,
+        "bookingProductId" integer NOT NULL,
+        code text,
+        name text,
+        value text
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingProductVariableGDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingProductVariableGDS_id_seq" OWNED BY public."BookingProductVariableGDS".id;
+    CREATE TABLE IF NOT EXISTS public."BookingsGDSInvoiceAuto" (
+        id integer NOT NULL,
+        "Branch" character varying(25),
+        implant character varying(25),
+        "bookingCode" character varying(25),
+        "bookingId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingsGDSInvoiceAuto_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingsGDSInvoiceAuto_id_seq" OWNED BY public."BookingsGDSInvoiceAuto".id;
+    CREATE TABLE IF NOT EXISTS public."BookingsGDS_log" (
+        id integer NOT NULL,
+        blanch character varying(25),
+        implant character varying(25),
+        message text,
+        file character varying(250),
+        codebooking character varying(50),
+        booking text,
+        error integer DEFAULT 0 NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BookingsGDS_log_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BookingsGDS_log_id_seq" OWNED BY public."BookingsGDS_log".id;
+    CREATE TABLE IF NOT EXISTS public."BranchGDSInvoiceAuto" (
+        id integer NOT NULL,
+        "branchId" integer NOT NULL,
+        "gdsId" integer NOT NULL,
+        "EnvoiceAuto" boolean DEFAULT false
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."BranchGDSInvoiceAuto_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."BranchGDSInvoiceAuto_id_seq" OWNED BY public."BranchGDSInvoiceAuto".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Branch_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Branch_id_seq" OWNED BY public."Branch".id;
+    CREATE TABLE IF NOT EXISTS public."CellCustomization" (
+        id integer NOT NULL,
+        code character varying(50) NOT NULL,
+        name character varying(100) NOT NULL,
+        value character varying(10),
+        "branchId" integer,
+        "implantId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."CellCustomization_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."CellCustomization_id_seq" OWNED BY public."CellCustomization".id;
+    CREATE SEQUENCE IF NOT EXISTS public."ChargeAndTax_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."ChargeAndTax_id_seq" OWNED BY public."ChargeAndTax".id;
+    CREATE TABLE IF NOT EXISTS public."Cities" (
+        id integer NOT NULL,
+        code character varying(10) NOT NULL,
+        name character varying(100) NOT NULL,
+        "countriesId" integer NOT NULL,
+        statecode character varying(25),
+        iata character varying(10)
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Cities_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Cities_id_seq" OWNED BY public."Cities".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Client_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Client_id_seq" OWNED BY public."Client".id;
+    CREATE TABLE IF NOT EXISTS public."Combo" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" timestamp without time zone DEFAULT now(),
+        "currencyId" integer,
+        cupos integer DEFAULT 1
+    );
+    CREATE TABLE IF NOT EXISTS public."ComboProduct" (
+        id integer NOT NULL,
+        "comboId" integer NOT NULL,
+        "productId" integer NOT NULL,
+        price double precision NOT NULL,
+        "checkInDate" timestamp(3) without time zone,
+        "checkOutDate" timestamp(3) without time zone,
+        "prestadoraId" integer,
+        "mainTaxId" integer,
+        "paxAdults" integer,
+        "paxChildren" integer,
+        "providerId" integer,
+        "inNationality" integer DEFAULT 1,
+        quantity integer DEFAULT 1 NOT NULL,
+        cost double precision DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS public."ComboProductTax" (
+        id integer NOT NULL,
+        "comboProductId" integer NOT NULL,
+        "chargeAndTaxId" integer NOT NULL,
+        amount double precision NOT NULL,
+        "isMain" boolean DEFAULT false NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."ComboProductTax_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."ComboProductTax_id_seq" OWNED BY public."ComboProductTax".id;
+    CREATE SEQUENCE IF NOT EXISTS public."ComboProduct_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."ComboProduct_id_seq" OWNED BY public."ComboProduct".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Combo_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Combo_id_seq" OWNED BY public."Combo".id;
+    CREATE TABLE IF NOT EXISTS public."Countries" (
+        id integer NOT NULL,
+        code character varying(10) NOT NULL,
+        name character varying(100) NOT NULL,
+        dane character varying(25),
+        region character varying(50),
+        prefix character varying(10),
+        "curencyId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Countries_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Countries_id_seq" OWNED BY public."Countries".id;
+    CREATE TABLE IF NOT EXISTS public."CreditCard" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        type text NOT NULL,
+        inactive boolean DEFAULT false NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."CreditCard_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."CreditCard_id_seq" OWNED BY public."CreditCard".id;
+    CREATE TABLE IF NOT EXISTS public."Currency" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        "exchangeRate" double precision NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Currency_id_seq" OWNED BY public."Currency".id;
+    CREATE TABLE IF NOT EXISTS public."EquivalencesInterfaces" (
+        id integer NOT NULL,
+        id_interfaces integer NOT NULL,
+        id_master integer NOT NULL,
+        cd_maestro text NOT NULL,
+        cd_codigo text NOT NULL,
+        cd_codigointe text NOT NULL,
+        dt_fecha timestamp without time zone DEFAULT now()
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."EquivalencesInterfaces_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."EquivalencesInterfaces_id_seq" OWNED BY public."EquivalencesInterfaces".id;
+    CREATE TABLE IF NOT EXISTS public."EquivalenciasInterfaces_Log" (
+        id integer NOT NULL,
+        "Id_Interfaces" integer,
+        cd_maestro character varying(50),
+        cd_codigo character varying(50),
+        "cd_codigoInte" character varying(50),
+        cd_operacion character varying(50),
+        ds_xmlpeticion text,
+        ds_xmlrespuesta text,
+        ds_xmlorg text,
+        "ds_Logpeticion" text,
+        fecha_creacion timestamp(6) without time zone DEFAULT now()
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."EquivalenciasInterfaces_Log_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."EquivalenciasInterfaces_Log_id_seq" OWNED BY public."EquivalenciasInterfaces_Log".id;
+    CREATE TABLE IF NOT EXISTS public."GDS" (
+        id integer NOT NULL,
+        name text NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."GDS_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."GDS_id_seq" OWNED BY public."GDS".id;
+    CREATE TABLE IF NOT EXISTS public."Prestadora" (
+        id integer NOT NULL,
+        name text NOT NULL,
+        location text,
+        category text,
+        "providerId" integer,
+        code text,
+        type text,
+        initials text,
+        nogds text
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Hotel_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Hotel_id_seq" OWNED BY public."Prestadora".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Implant_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Implant_id_seq" OWNED BY public."Implant".id;
+    CREATE TABLE IF NOT EXISTS public."Interfaces" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        inactivo boolean DEFAULT false NOT NULL,
+        bl_genera_archivoplano boolean DEFAULT false NOT NULL,
+        ds_storedprocedure_archivoplano text,
+        bl_job boolean DEFAULT false NOT NULL,
+        ds_namejob text,
+        bl_facturador boolean DEFAULT false NOT NULL,
+        id_gds integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Interfaces_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Interfaces_id_seq" OWNED BY public."Interfaces".id;
+    CREATE TABLE IF NOT EXISTS public."Invoices" (
+        id integer NOT NULL,
+        "internalNumber" character varying(255) NOT NULL,
+        date timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "clientId" integer NOT NULL,
+        currency character varying(50) NOT NULL,
+        "exchangeRate" double precision NOT NULL,
+        "branchId" integer NOT NULL,
+        "implantId" integer,
+        "sellerId" integer,
+        "ticketPrinterId" integer,
+        "baseCommissionable" double precision NOT NULL,
+        "commissionPercentage" double precision NOT NULL,
+        "chargesAndTaxes" double precision NOT NULL,
+        "totalAmount" double precision NOT NULL,
+        "userId" integer,
+        state character varying(25) DEFAULT 'NUEVO'::character varying
+    );
+    CREATE TABLE IF NOT EXISTS public."InvoicesProduct" (
+        id integer NOT NULL,
+        "invoiceId" integer NOT NULL,
+        "productId" integer NOT NULL,
+        quantity integer NOT NULL,
+        price double precision NOT NULL,
+        cost double precision DEFAULT 0,
+        "providerId" integer,
+        "prestadoraId" integer,
+        "checkInDate" timestamp without time zone,
+        "checkOutDate" timestamp without time zone,
+        nights integer,
+        "paxAdults" integer,
+        "paxChildren" integer,
+        "serviceType" character varying(255),
+        destination character varying(255),
+        "reservationCode" character varying(255),
+        "sellerCommission" double precision,
+        "ticketPrinterCommission" double precision,
+        "comboId" integer,
+        "mainTaxId" integer,
+        "inNationality" integer DEFAULT 1,
+        servicios text,
+        descripcion text,
+        itinerary text,
+        class character varying(100),
+        "ticketTypeId" integer,
+        airline character varying(100)
+    );
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductCombo" (
+        id integer NOT NULL,
+        "invoiceId" integer NOT NULL,
+        "comboId" integer NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductCombo_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductCombo_id_seq" OWNED BY public."InvoicesProductCombo".id;
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductItinerary" (
+        id integer NOT NULL,
+        "invoiceProductId" integer NOT NULL,
+        orden integer,
+        origin character varying(255) NOT NULL,
+        destination character varying(255) NOT NULL,
+        class character varying(255),
+        "checkInDate" timestamp without time zone,
+        "checkOutDate" timestamp without time zone,
+        terminal character varying(255),
+        "prestadoraCode" character varying(255),
+        farebasis character varying(255),
+        "Numflight" character varying(25),
+        "Typeflight" character varying(1),
+        amount double precision
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductItinerary_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductItinerary_id_seq" OWNED BY public."InvoicesProductItinerary".id;
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductPasenger" (
+        id integer NOT NULL,
+        "invoiceProductId" integer NOT NULL,
+        name character varying(255) NOT NULL,
+        document character varying(255) NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductPasenger_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductPasenger_id_seq" OWNED BY public."InvoicesProductPasenger".id;
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductPayment" (
+        id integer NOT NULL,
+        "invoiceProductId" integer NOT NULL,
+        amount double precision NOT NULL,
+        "paymentMethod" character varying(100),
+        date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+        reference character varying(255),
+        "authorizationCode" text,
+        "cardNumber" text,
+        "creditCardId" integer,
+        "expirationDate" text,
+        voucher text
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductPayment_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductPayment_id_seq" OWNED BY public."InvoicesProductPayment".id;
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductTax" (
+        id integer NOT NULL,
+        "invoiceProductId" integer NOT NULL,
+        "chargeAndTaxId" integer NOT NULL,
+        "valueSnapshot" double precision NOT NULL,
+        "valueTypeSnapshot" character varying(50) NOT NULL,
+        "explicitAmount" double precision,
+        "isMain" boolean DEFAULT false
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductTax_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductTax_id_seq" OWNED BY public."InvoicesProductTax".id;
+    CREATE TABLE IF NOT EXISTS public."InvoicesProductVariable" (
+        id integer NOT NULL,
+        "invoiceProductId" integer NOT NULL,
+        "masterVariableId" integer NOT NULL,
+        value character varying(255) NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProductVariable_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProductVariable_id_seq" OWNED BY public."InvoicesProductVariable".id;
+    CREATE SEQUENCE IF NOT EXISTS public."InvoicesProduct_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."InvoicesProduct_id_seq" OWNED BY public."InvoicesProduct".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Invoices_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."Invoices_id_seq" OWNED BY public."Invoices".id;
+    CREATE TABLE IF NOT EXISTS public."Master" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        inactivo boolean DEFAULT false NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."MasterVariable_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."MasterVariable_id_seq" OWNED BY public."MasterVariable".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Master_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Master_id_seq" OWNED BY public."Master".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Menu_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."Menu_id_seq" OWNED BY public."Menu".id;
+    CREATE TABLE IF NOT EXISTS public."Payment" (
+        id integer NOT NULL,
+        code text NOT NULL,
+        name text NOT NULL,
+        inactive boolean DEFAULT false NOT NULL,
+        iscash boolean DEFAULT false NOT NULL,
+        iscredit boolean DEFAULT false NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Payment_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Payment_id_seq" OWNED BY public."Payment".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Product_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Product_id_seq" OWNED BY public."Product".id;
+    CREATE TABLE IF NOT EXISTS public."Provider" (
+        id integer NOT NULL,
+        code text,
+        name text NOT NULL,
+        "contactInfo" text,
+        "commissionConfig" jsonb
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Provider_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Provider_id_seq" OWNED BY public."Provider".id;
+    CREATE TABLE IF NOT EXISTS public."Quotation" (
+        id integer NOT NULL,
+        "internalNumber" text NOT NULL,
+        date timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "clientId" integer NOT NULL,
+        currency text NOT NULL,
+        "exchangeRate" double precision NOT NULL,
+        "branchId" integer NOT NULL,
+        "implantId" integer,
+        "sellerId" integer,
+        "ticketPrinterId" integer,
+        "baseCommissionable" double precision NOT NULL,
+        "commissionPercentage" double precision NOT NULL,
+        "chargesAndTaxes" double precision NOT NULL,
+        "totalAmount" double precision NOT NULL,
+        "userId" integer,
+        state character varying(25) DEFAULT 'Nuevo'::character varying,
+        "stateDescription" text,
+        "stateUpdatedAt" timestamp without time zone,
+        "costoTotal" double precision DEFAULT 0,
+        "valorBase" double precision DEFAULT 0,
+        utilidad double precision DEFAULT 0,
+        "comisionTotalPercentage" double precision DEFAULT 0,
+        "comisionFreelancePercentage" double precision DEFAULT 0,
+        "comisionFreelanceValue" double precision DEFAULT 0,
+        "comisionPropiaPercentage" double precision DEFAULT 0,
+        "comisionPropiaValue" double precision DEFAULT 0,
+        "comisionUtilidadPercentage" double precision DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS public."QuotationCombo" (
+        id integer NOT NULL,
+        "quotationId" integer NOT NULL,
+        "comboId" integer NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationCombo_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationCombo_id_seq" OWNED BY public."QuotationCombo".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationProduct" (
+        id integer NOT NULL,
+        "quotationId" integer NOT NULL,
+        "productId" integer NOT NULL,
+        quantity integer NOT NULL,
+        price double precision NOT NULL,
+        "providerId" integer,
+        "prestadoraId" integer,
+        "checkInDate" timestamp(3) without time zone,
+        "checkOutDate" timestamp(3) without time zone,
+        nights integer,
+        "paxAdults" integer,
+        "paxChildren" integer,
+        "serviceType" text,
+        destination text,
+        "reservationCode" text,
+        "sellerCommission" double precision,
+        "ticketPrinterCommission" double precision,
+        "comboId" integer,
+        "mainTaxId" integer,
+        "inNationality" integer DEFAULT 1,
+        cost double precision DEFAULT 0,
+        service text,
+        description text,
+        servicios text,
+        descripcion text
+    );
+    CREATE TABLE IF NOT EXISTS public."QuotationProductPassenger" (
+        id integer NOT NULL,
+        "quotationProductId" integer NOT NULL,
+        name text NOT NULL,
+        document text NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationProductPassenger_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationProductPassenger_id_seq" OWNED BY public."QuotationProductPassenger".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationProductPayment" (
+        id integer NOT NULL,
+        "quotationProductId" integer NOT NULL,
+        amount double precision NOT NULL,
+        "paymentMethod" character varying(100),
+        date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+        reference character varying(255),
+        "creditCardId" integer,
+        "cardNumber" character varying(20),
+        "authorizationCode" character varying(50),
+        voucher character varying(50),
+        "expirationDate" character varying(10)
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationProductPayment_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationProductPayment_id_seq" OWNED BY public."QuotationProductPayment".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationProductTax" (
+        id integer NOT NULL,
+        "quotationProductId" integer NOT NULL,
+        "chargeAndTaxId" integer NOT NULL,
+        "valueSnapshot" double precision NOT NULL,
+        "valueTypeSnapshot" text NOT NULL,
+        "explicitAmount" double precision,
+        "isMain" boolean DEFAULT false NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationProductTax_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationProductTax_id_seq" OWNED BY public."QuotationProductTax".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationProductVariable" (
+        id integer NOT NULL,
+        "quotationProductId" integer NOT NULL,
+        "masterVariableId" integer NOT NULL,
+        value text NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationProductVariable_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationProductVariable_id_seq" OWNED BY public."QuotationProductVariable".id;
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationProduct_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationProduct_id_seq" OWNED BY public."QuotationProduct".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationState" (
+        id integer NOT NULL,
+        name character varying(50) NOT NULL,
+        color character varying(20),
+        "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        code character varying(25) NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS public."QuotationStateHistory" (
+        id integer NOT NULL,
+        "quotationId" integer NOT NULL,
+        state character varying(25) NOT NULL,
+        description text,
+        "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "userId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationStateHistory_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationStateHistory_id_seq" OWNED BY public."QuotationStateHistory".id;
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationState_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationState_id_seq" OWNED BY public."QuotationState".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Quotation_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Quotation_id_seq" OWNED BY public."Quotation".id;
+    CREATE TABLE IF NOT EXISTS public."Report" (
+        id integer NOT NULL,
+        name character varying(255) NOT NULL,
+        base_table character varying(100),
+        description text,
+        custom_sql text,
+        created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS public."ReportColumns" (
+        id integer NOT NULL,
+        report_id integer NOT NULL,
+        table_alias character varying(20),
+        column_name character varying(100) NOT NULL,
+        alias character varying(150),
+        is_calculated boolean DEFAULT false,
+        is_visible boolean DEFAULT true,
+        formula_expression text,
+        sort_order integer DEFAULT 0
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."ReportColumns_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."ReportColumns_id_seq" OWNED BY public."ReportColumns".id;
+    CREATE TABLE IF NOT EXISTS public."ReportFilters" (
+        id integer NOT NULL,
+        report_id integer NOT NULL,
+        table_alias character varying(20),
+        column_name character varying(100) NOT NULL,
+        filter_label character varying(150),
+        filter_type character varying(50) NOT NULL,
+        operator character varying(20) DEFAULT '='::character varying,
+        sort_order integer DEFAULT 0
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."ReportFilters_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."ReportFilters_id_seq" OWNED BY public."ReportFilters".id;
+    CREATE TABLE IF NOT EXISTS public."ReportJoins" (
+        id integer NOT NULL,
+        report_id integer NOT NULL,
+        table_name character varying(100) NOT NULL,
+        alias character varying(20) NOT NULL,
+        join_type character varying(50) DEFAULT 'INNER JOIN'::character varying NOT NULL,
+        join_condition text NOT NULL,
+        sort_order integer DEFAULT 0
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."ReportJoins_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."ReportJoins_id_seq" OWNED BY public."ReportJoins".id;
+    CREATE TABLE IF NOT EXISTS public."ReportSorts" (
+        id integer NOT NULL,
+        report_id integer NOT NULL,
+        column_expr text NOT NULL,
+        direction character varying(10) DEFAULT 'ASC'::character varying,
+        sort_order integer DEFAULT 0
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."ReportSorts_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."ReportSorts_id_seq" OWNED BY public."ReportSorts".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Report_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."Report_id_seq" OWNED BY public."Report".id;
+    CREATE TABLE IF NOT EXISTS public."Role" (
+        id integer NOT NULL,
+        name text NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."Role_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Role_id_seq" OWNED BY public."Role".id;
+    CREATE SEQUENCE IF NOT EXISTS public."Seller_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."Seller_id_seq" OWNED BY public."Seller".id;
+    CREATE TABLE IF NOT EXISTS public."SystemLog" (
+        id integer NOT NULL,
+        "userId" integer,
+        action text NOT NULL,
+        module text NOT NULL,
+        description text NOT NULL,
+        metadata jsonb,
+        "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."SystemLog_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."SystemLog_id_seq" OWNED BY public."SystemLog".id;
+    CREATE SEQUENCE IF NOT EXISTS public."SystemParameter_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."SystemParameter_id_seq" OWNED BY public."SystemParameter".id;
+    CREATE SEQUENCE IF NOT EXISTS public."TicketPrinter_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."TicketPrinter_id_seq" OWNED BY public."TicketPrinter".id;
+    CREATE TABLE IF NOT EXISTS public."TicketType" (
+        id integer NOT NULL,
+        code character varying(50) NOT NULL,
+        name character varying(255) NOT NULL,
+        description text,
+        "isActive" boolean DEFAULT true
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."TicketType_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."TicketType_id_seq" OWNED BY public."TicketType".id;
+    CREATE TABLE IF NOT EXISTS public."User" (
+        id integer NOT NULL,
+        name text NOT NULL,
+        email text NOT NULL,
+        "passwordHash" text NOT NULL,
+        "resetPasswordToken" text,
+        "resetPasswordExpires" timestamp(3) without time zone,
+        "roleId" integer NOT NULL,
+        "branchId" integer,
+        "implantId" integer,
+        "ticketPrinterId" integer
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."User_id_seq"
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        MAXVALUE 2147483647
+        CACHE 1;
+    ALTER SEQUENCE public."User_id_seq" OWNED BY public."User".id;
+    ALTER TABLE ONLY public."Airports" ALTER COLUMN id SET DEFAULT nextval('public."Airports_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Attachment" ALTER COLUMN id SET DEFAULT nextval('public."Attachment_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingGDSInvoiceAutoLog" ALTER COLUMN "Id" SET DEFAULT nextval('public."BookingGDSInvoiceAutoLog_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductFEEGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductFEEGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductItineraryGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductItineraryGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductPassangerGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductPassangerGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductPaymentGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductPaymentGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductTaxGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductTaxGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingProductVariableGDS" ALTER COLUMN id SET DEFAULT nextval('public."BookingProductVariableGDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingsGDSInvoiceAuto" ALTER COLUMN id SET DEFAULT nextval('public."BookingsGDSInvoiceAuto_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BookingsGDS_log" ALTER COLUMN id SET DEFAULT nextval('public."BookingsGDS_log_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Branch" ALTER COLUMN id SET DEFAULT nextval('public."Branch_id_seq"'::regclass);
+    ALTER TABLE ONLY public."BranchGDSInvoiceAuto" ALTER COLUMN id SET DEFAULT nextval('public."BranchGDSInvoiceAuto_id_seq"'::regclass);
+    ALTER TABLE ONLY public."CellCustomization" ALTER COLUMN id SET DEFAULT nextval('public."CellCustomization_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ChargeAndTax" ALTER COLUMN id SET DEFAULT nextval('public."ChargeAndTax_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Cities" ALTER COLUMN id SET DEFAULT nextval('public."Cities_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Client" ALTER COLUMN id SET DEFAULT nextval('public."Client_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Combo" ALTER COLUMN id SET DEFAULT nextval('public."Combo_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ComboProduct" ALTER COLUMN id SET DEFAULT nextval('public."ComboProduct_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ComboProductTax" ALTER COLUMN id SET DEFAULT nextval('public."ComboProductTax_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Countries" ALTER COLUMN id SET DEFAULT nextval('public."Countries_id_seq"'::regclass);
+    ALTER TABLE ONLY public."CreditCard" ALTER COLUMN id SET DEFAULT nextval('public."CreditCard_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Currency" ALTER COLUMN id SET DEFAULT nextval('public."Currency_id_seq"'::regclass);
+    ALTER TABLE ONLY public."EquivalencesInterfaces" ALTER COLUMN id SET DEFAULT nextval('public."EquivalencesInterfaces_id_seq"'::regclass);
+    ALTER TABLE ONLY public."EquivalenciasInterfaces_Log" ALTER COLUMN id SET DEFAULT nextval('public."EquivalenciasInterfaces_Log_id_seq"'::regclass);
+    ALTER TABLE ONLY public."GDS" ALTER COLUMN id SET DEFAULT nextval('public."GDS_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Implant" ALTER COLUMN id SET DEFAULT nextval('public."Implant_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Interfaces" ALTER COLUMN id SET DEFAULT nextval('public."Interfaces_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Invoices" ALTER COLUMN id SET DEFAULT nextval('public."Invoices_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProduct" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProduct_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductCombo" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductCombo_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductItinerary" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductItinerary_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductPasenger" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductPasenger_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductPayment" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductPayment_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductTax" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductTax_id_seq"'::regclass);
+    ALTER TABLE ONLY public."InvoicesProductVariable" ALTER COLUMN id SET DEFAULT nextval('public."InvoicesProductVariable_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Master" ALTER COLUMN id SET DEFAULT nextval('public."Master_id_seq"'::regclass);
+    ALTER TABLE ONLY public."MasterVariable" ALTER COLUMN id SET DEFAULT nextval('public."MasterVariable_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Menu" ALTER COLUMN id SET DEFAULT nextval('public."Menu_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Payment" ALTER COLUMN id SET DEFAULT nextval('public."Payment_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Prestadora" ALTER COLUMN id SET DEFAULT nextval('public."Hotel_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Product" ALTER COLUMN id SET DEFAULT nextval('public."Product_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Provider" ALTER COLUMN id SET DEFAULT nextval('public."Provider_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Quotation" ALTER COLUMN id SET DEFAULT nextval('public."Quotation_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationCombo" ALTER COLUMN id SET DEFAULT nextval('public."QuotationCombo_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationProduct" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProduct_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationProductPassenger" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductPassenger_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationProductPayment" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductPayment_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationProductTax" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductTax_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationProductVariable" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductVariable_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationState" ALTER COLUMN id SET DEFAULT nextval('public."QuotationState_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationStateHistory" ALTER COLUMN id SET DEFAULT nextval('public."QuotationStateHistory_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Report" ALTER COLUMN id SET DEFAULT nextval('public."Report_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ReportColumns" ALTER COLUMN id SET DEFAULT nextval('public."ReportColumns_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ReportFilters" ALTER COLUMN id SET DEFAULT nextval('public."ReportFilters_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ReportJoins" ALTER COLUMN id SET DEFAULT nextval('public."ReportJoins_id_seq"'::regclass);
+    ALTER TABLE ONLY public."ReportSorts" ALTER COLUMN id SET DEFAULT nextval('public."ReportSorts_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Role" ALTER COLUMN id SET DEFAULT nextval('public."Role_id_seq"'::regclass);
+    ALTER TABLE ONLY public."Seller" ALTER COLUMN id SET DEFAULT nextval('public."Seller_id_seq"'::regclass);
+    ALTER TABLE ONLY public."SystemLog" ALTER COLUMN id SET DEFAULT nextval('public."SystemLog_id_seq"'::regclass);
+    ALTER TABLE ONLY public."SystemParameter" ALTER COLUMN id SET DEFAULT nextval('public."SystemParameter_id_seq"'::regclass);
+    ALTER TABLE ONLY public."TicketPrinter" ALTER COLUMN id SET DEFAULT nextval('public."TicketPrinter_id_seq"'::regclass);
+    ALTER TABLE ONLY public."TicketType" ALTER COLUMN id SET DEFAULT nextval('public."TicketType_id_seq"'::regclass);
+    ALTER TABLE ONLY public."User" ALTER COLUMN id SET DEFAULT nextval('public."User_id_seq"'::regclass);
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Airports_pkey') THEN
+            ALTER TABLE ONLY public."Airports" ADD CONSTRAINT "Airports_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Attachment_pkey') THEN
+            ALTER TABLE ONLY public."Attachment" ADD CONSTRAINT "Attachment_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingGDSInvoiceAutoLog_pkey') THEN
+            ALTER TABLE ONLY public."BookingGDSInvoiceAutoLog" ADD CONSTRAINT "BookingGDSInvoiceAutoLog_pkey" PRIMARY KEY ("Id");
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingGDS" ADD CONSTRAINT "BookingGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductFEEGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductFEEGDS" ADD CONSTRAINT "BookingProductFEEGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductGDS" ADD CONSTRAINT "BookingProductGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductItineraryGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductItineraryGDS" ADD CONSTRAINT "BookingProductItineraryGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductPassangerGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductPassangerGDS" ADD CONSTRAINT "BookingProductPassangerGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductPaymentGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductPaymentGDS" ADD CONSTRAINT "BookingProductPaymentGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductTaxGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductTaxGDS" ADD CONSTRAINT "BookingProductTaxGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductVariableGDS_pkey') THEN
+            ALTER TABLE ONLY public."BookingProductVariableGDS" ADD CONSTRAINT "BookingProductVariableGDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingsGDSInvoiceAuto_pkey') THEN
+            ALTER TABLE ONLY public."BookingsGDSInvoiceAuto" ADD CONSTRAINT "BookingsGDSInvoiceAuto_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingsGDS_log_pkey') THEN
+            ALTER TABLE ONLY public."BookingsGDS_log" ADD CONSTRAINT "BookingsGDS_log_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BranchGDSInvoiceAuto_pkey') THEN
+            ALTER TABLE ONLY public."BranchGDSInvoiceAuto" ADD CONSTRAINT "BranchGDSInvoiceAuto_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Branch_pkey') THEN
+            ALTER TABLE ONLY public."Branch" ADD CONSTRAINT "Branch_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CellCustomization_pkey') THEN
+            ALTER TABLE ONLY public."CellCustomization" ADD CONSTRAINT "CellCustomization_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ChargeAndTax_code_key') THEN
+            ALTER TABLE ONLY public."ChargeAndTax" ADD CONSTRAINT "ChargeAndTax_code_key" UNIQUE (code);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ChargeAndTax_pkey') THEN
+            ALTER TABLE ONLY public."ChargeAndTax" ADD CONSTRAINT "ChargeAndTax_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Cities_pkey') THEN
+            ALTER TABLE ONLY public."Cities" ADD CONSTRAINT "Cities_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Client_pkey') THEN
+            ALTER TABLE ONLY public."Client" ADD CONSTRAINT "Client_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProductTax_pkey') THEN
+            ALTER TABLE ONLY public."ComboProductTax" ADD CONSTRAINT "ComboProductTax_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProduct_pkey') THEN
+            ALTER TABLE ONLY public."ComboProduct" ADD CONSTRAINT "ComboProduct_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Combo_pkey') THEN
+            ALTER TABLE ONLY public."Combo" ADD CONSTRAINT "Combo_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Countries_pkey') THEN
+            ALTER TABLE ONLY public."Countries" ADD CONSTRAINT "Countries_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CreditCard_pkey') THEN
+            ALTER TABLE ONLY public."CreditCard" ADD CONSTRAINT "CreditCard_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Currency_pkey') THEN
+            ALTER TABLE ONLY public."Currency" ADD CONSTRAINT "Currency_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'EquivalencesInterfaces_pkey') THEN
+            ALTER TABLE ONLY public."EquivalencesInterfaces" ADD CONSTRAINT "EquivalencesInterfaces_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'EquivalenciasInterfaces_Log_pkey') THEN
+            ALTER TABLE ONLY public."EquivalenciasInterfaces_Log" ADD CONSTRAINT "EquivalenciasInterfaces_Log_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN
+            ALTER TABLE ONLY public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Implant_pkey') THEN
+            ALTER TABLE ONLY public."Implant" ADD CONSTRAINT "Implant_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductCombo_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductCombo" ADD CONSTRAINT "InvoicesProductCombo_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductItinerary_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductItinerary" ADD CONSTRAINT "InvoicesProductItinerary_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductPasenger_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductPasenger" ADD CONSTRAINT "InvoicesProductPasenger_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductPayment_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductPayment" ADD CONSTRAINT "InvoicesProductPayment_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductTax_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductTax" ADD CONSTRAINT "InvoicesProductTax_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductVariable_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductVariable" ADD CONSTRAINT "InvoicesProductVariable_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProduct_pkey') THEN
+            ALTER TABLE ONLY public."InvoicesProduct" ADD CONSTRAINT "InvoicesProduct_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Invoices_internalNumber_key') THEN
+            ALTER TABLE ONLY public."Invoices" ADD CONSTRAINT "Invoices_internalNumber_key" UNIQUE ("internalNumber");
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Invoices_pkey') THEN
+            ALTER TABLE ONLY public."Invoices" ADD CONSTRAINT "Invoices_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'MasterVariable_pkey') THEN
+            ALTER TABLE ONLY public."MasterVariable" ADD CONSTRAINT "MasterVariable_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Menu_code_key') THEN
+            ALTER TABLE ONLY public."Menu" ADD CONSTRAINT "Menu_code_key" UNIQUE (code);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Menu_pkey') THEN
+            ALTER TABLE ONLY public."Menu" ADD CONSTRAINT "Menu_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Payment_pkey') THEN
+            ALTER TABLE ONLY public."Payment" ADD CONSTRAINT "Payment_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Prestadora_pkey') THEN
+            ALTER TABLE ONLY public."Prestadora" ADD CONSTRAINT "Prestadora_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Product_pkey') THEN
+            ALTER TABLE ONLY public."Product" ADD CONSTRAINT "Product_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Provider_pkey') THEN
+            ALTER TABLE ONLY public."Provider" ADD CONSTRAINT "Provider_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationCombo_pkey') THEN
+            ALTER TABLE ONLY public."QuotationCombo" ADD CONSTRAINT "QuotationCombo_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductPassenger_pkey') THEN
+            ALTER TABLE ONLY public."QuotationProductPassenger" ADD CONSTRAINT "QuotationProductPassenger_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductPayment_pkey') THEN
+            ALTER TABLE ONLY public."QuotationProductPayment" ADD CONSTRAINT "QuotationProductPayment_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductTax_pkey') THEN
+            ALTER TABLE ONLY public."QuotationProductTax" ADD CONSTRAINT "QuotationProductTax_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductVariable_pkey') THEN
+            ALTER TABLE ONLY public."QuotationProductVariable" ADD CONSTRAINT "QuotationProductVariable_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProduct_pkey') THEN
+            ALTER TABLE ONLY public."QuotationProduct" ADD CONSTRAINT "QuotationProduct_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationStateHistory_pkey') THEN
+            ALTER TABLE ONLY public."QuotationStateHistory" ADD CONSTRAINT "QuotationStateHistory_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationState_pkey') THEN
+            ALTER TABLE ONLY public."QuotationState" ADD CONSTRAINT "QuotationState_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_pkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportColumns_pkey') THEN
+            ALTER TABLE ONLY public."ReportColumns" ADD CONSTRAINT "ReportColumns_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportFilters_pkey') THEN
+            ALTER TABLE ONLY public."ReportFilters" ADD CONSTRAINT "ReportFilters_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportJoins_pkey') THEN
+            ALTER TABLE ONLY public."ReportJoins" ADD CONSTRAINT "ReportJoins_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportSorts_pkey') THEN
+            ALTER TABLE ONLY public."ReportSorts" ADD CONSTRAINT "ReportSorts_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Report_pkey') THEN
+            ALTER TABLE ONLY public."Report" ADD CONSTRAINT "Report_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Role_pkey') THEN
+            ALTER TABLE ONLY public."Role" ADD CONSTRAINT "Role_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Seller_pkey') THEN
+            ALTER TABLE ONLY public."Seller" ADD CONSTRAINT "Seller_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SystemLog_pkey') THEN
+            ALTER TABLE ONLY public."SystemLog" ADD CONSTRAINT "SystemLog_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SystemParameter_pkey') THEN
+            ALTER TABLE ONLY public."SystemParameter" ADD CONSTRAINT "SystemParameter_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'TicketPrinter_pkey') THEN
+            ALTER TABLE ONLY public."TicketPrinter" ADD CONSTRAINT "TicketPrinter_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'TicketType_code_key') THEN
+            ALTER TABLE ONLY public."TicketType" ADD CONSTRAINT "TicketType_code_key" UNIQUE (code);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'TicketType_pkey') THEN
+            ALTER TABLE ONLY public."TicketType" ADD CONSTRAINT "TicketType_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_pkey') THEN
+            ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'interfaces_pkey') THEN
+            ALTER TABLE ONLY public."Interfaces" ADD CONSTRAINT "interfaces_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'master_pkey') THEN
+            ALTER TABLE ONLY public."Master" ADD CONSTRAINT "master_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    CREATE UNIQUE INDEX IF NOT EXISTS "Branch_code_key" ON public."Branch" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_branch_code_key" ON public."CellCustomization" USING btree ("branchId", code) WHERE ("branchId" IS NOT NULL);
+    CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_implant_code_key" ON public."CellCustomization" USING btree ("implantId", code) WHERE ("implantId" IS NOT NULL);
+    CREATE UNIQUE INDEX IF NOT EXISTS "Client_document_key" ON public."Client" USING btree (document) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Combo_code_key" ON public."Combo" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "CreditCard_code_key" ON public."CreditCard" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Currency_code_key" ON public."Currency" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Hotel_code_key" ON public."Prestadora" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Implant_code_key" ON public."Implant" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "MasterVariable_code_key" ON public."MasterVariable" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Payment_code_key" ON public."Payment" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Product_code_key" ON public."Product" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Provider_code_key" ON public."Provider" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE INDEX IF NOT EXISTS "QuotationStateHistory_quotationId_idx" ON public."QuotationStateHistory" USING btree ("quotationId");
+    CREATE UNIQUE INDEX IF NOT EXISTS "QuotationState_code_key" ON public."QuotationState" USING btree (code);
+    CREATE UNIQUE INDEX IF NOT EXISTS "Quotation_internalNumber_key" ON public."Quotation" USING btree ("internalNumber") WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Role_name_key" ON public."Role" USING btree (name) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "Seller_code_key" ON public."Seller" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "SystemParameter_code_key" ON public."SystemParameter" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "TicketPrinter_code_key" ON public."TicketPrinter" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON public."User" USING btree (email) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS "User_resetPasswordToken_key" ON public."User" USING btree ("resetPasswordToken") WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS airports_code_key ON public."Airports" USING btree (code);
+    CREATE UNIQUE INDEX IF NOT EXISTS bookingds_code_key ON public."BookingGDS" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS cities_code_key ON public."Cities" USING btree (code);
+    CREATE UNIQUE INDEX IF NOT EXISTS countries_code_key ON public."Countries" USING btree (code);
+    CREATE UNIQUE INDEX IF NOT EXISTS currency_code_key ON public."Currency" USING btree (code);
+    CREATE UNIQUE INDEX IF NOT EXISTS gds_name_key ON public."GDS" USING btree (name) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS interfaces_code_key ON public."Interfaces" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    CREATE UNIQUE INDEX IF NOT EXISTS master_code_key ON public."Master" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Airports_citiesId_fkey') THEN
+            ALTER TABLE ONLY public."Airports" ADD CONSTRAINT "Airports_citiesId_fkey" FOREIGN KEY ("citiesId") REFERENCES public."Cities"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Attachment_quotationId_fkey') THEN
+            ALTER TABLE ONLY public."Attachment" ADD CONSTRAINT "Attachment_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductFEEGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductFEEGDS" ADD CONSTRAINT "BookingProductFEEGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductGDS_bookingId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductGDS" ADD CONSTRAINT "BookingProductGDS_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES public."BookingGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductItineraryGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductItineraryGDS" ADD CONSTRAINT "BookingProductItineraryGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductPassangerGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductPassangerGDS" ADD CONSTRAINT "BookingProductPassangerGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductPaymentGDS_bookingProductFEEId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductPaymentGDS" ADD CONSTRAINT "BookingProductPaymentGDS_bookingProductFEEId_fkey" FOREIGN KEY ("bookingProductFEEId") REFERENCES public."BookingProductFEEGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductPaymentGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductPaymentGDS" ADD CONSTRAINT "BookingProductPaymentGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductTaxGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductTaxGDS" ADD CONSTRAINT "BookingProductTaxGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BookingProductVariableGDS_bookingProductId_fkey') THEN
+            ALTER TABLE ONLY public."BookingProductVariableGDS" ADD CONSTRAINT "BookingProductVariableGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'BranchGDSInvoiceAuto_branchId_fkey') THEN
+            ALTER TABLE ONLY public."BranchGDSInvoiceAuto" ADD CONSTRAINT "BranchGDSInvoiceAuto_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CellCustomization_branchId_fkey') THEN
+            ALTER TABLE ONLY public."CellCustomization" ADD CONSTRAINT "CellCustomization_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'CellCustomization_implantId_fkey') THEN
+            ALTER TABLE ONLY public."CellCustomization" ADD CONSTRAINT "CellCustomization_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Cities_countriesId_fkey') THEN
+            ALTER TABLE ONLY public."Cities" ADD CONSTRAINT "Cities_countriesId_fkey" FOREIGN KEY ("countriesId") REFERENCES public."Countries"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProductTax_chargeAndTaxId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProductTax" ADD CONSTRAINT "ComboProductTax_chargeAndTaxId_fkey" FOREIGN KEY ("chargeAndTaxId") REFERENCES public."ChargeAndTax"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProductTax_comboProductId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProductTax" ADD CONSTRAINT "ComboProductTax_comboProductId_fkey" FOREIGN KEY ("comboProductId") REFERENCES public."ComboProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProduct_comboId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProduct" ADD CONSTRAINT "ComboProduct_comboId_fkey" FOREIGN KEY ("comboId") REFERENCES public."Combo"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProduct_prestadoraId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProduct" ADD CONSTRAINT "ComboProduct_prestadoraId_fkey" FOREIGN KEY ("prestadoraId") REFERENCES public."Prestadora"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProduct_productId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProduct" ADD CONSTRAINT "ComboProduct_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ComboProduct_providerId_fkey') THEN
+            ALTER TABLE ONLY public."ComboProduct" ADD CONSTRAINT "ComboProduct_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES public."Provider"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Combo_currencyId_fkey') THEN
+            ALTER TABLE ONLY public."Combo" ADD CONSTRAINT "Combo_currencyId_fkey" FOREIGN KEY ("currencyId") REFERENCES public."Currency"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Countries_curencyId_fkey') THEN
+            ALTER TABLE ONLY public."Countries" ADD CONSTRAINT "Countries_curencyId_fkey" FOREIGN KEY ("curencyId") REFERENCES public."Currency"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'EquivalencesInterfaces_id_interfaces_fkey') THEN
+            ALTER TABLE ONLY public."EquivalencesInterfaces" ADD CONSTRAINT "EquivalencesInterfaces_id_interfaces_fkey" FOREIGN KEY (id_interfaces) REFERENCES public."Interfaces"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'EquivalencesInterfaces_id_master_fkey') THEN
+            ALTER TABLE ONLY public."EquivalencesInterfaces" ADD CONSTRAINT "EquivalencesInterfaces_id_master_fkey" FOREIGN KEY (id_master) REFERENCES public."Master"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Implant_branchId_fkey') THEN
+            ALTER TABLE ONLY public."Implant" ADD CONSTRAINT "Implant_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductItinerary_invoiceProductId_fkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductItinerary" ADD CONSTRAINT "InvoicesProductItinerary_invoiceProductId_fkey" FOREIGN KEY ("invoiceProductId") REFERENCES public."InvoicesProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'InvoicesProductPayment_creditCardId_fkey') THEN
+            ALTER TABLE ONLY public."InvoicesProductPayment" ADD CONSTRAINT "InvoicesProductPayment_creditCardId_fkey" FOREIGN KEY ("creditCardId") REFERENCES public."CreditCard"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Prestadora_providerId_fkey') THEN
+            ALTER TABLE ONLY public."Prestadora" ADD CONSTRAINT "Prestadora_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES public."Provider"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Product_ticketTypeId_fkey') THEN
+            ALTER TABLE ONLY public."Product" ADD CONSTRAINT "Product_ticketTypeId_fkey" FOREIGN KEY ("ticketTypeId") REFERENCES public."TicketType"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationCombo_comboId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationCombo" ADD CONSTRAINT "QuotationCombo_comboId_fkey" FOREIGN KEY ("comboId") REFERENCES public."Combo"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationCombo_quotationId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationCombo" ADD CONSTRAINT "QuotationCombo_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductPassenger_quotationProductId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductPassenger" ADD CONSTRAINT "QuotationProductPassenger_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductPayment_quotationProductId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductPayment" ADD CONSTRAINT "QuotationProductPayment_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductTax_chargeAndTaxId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductTax" ADD CONSTRAINT "QuotationProductTax_chargeAndTaxId_fkey" FOREIGN KEY ("chargeAndTaxId") REFERENCES public."ChargeAndTax"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductTax_quotationProductId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductTax" ADD CONSTRAINT "QuotationProductTax_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductVariable_masterVariableId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductVariable" ADD CONSTRAINT "QuotationProductVariable_masterVariableId_fkey" FOREIGN KEY ("masterVariableId") REFERENCES public."MasterVariable"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductVariable_quotationProductId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProductVariable" ADD CONSTRAINT "QuotationProductVariable_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProduct_prestadoraId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProduct" ADD CONSTRAINT "QuotationProduct_prestadoraId_fkey" FOREIGN KEY ("prestadoraId") REFERENCES public."Prestadora"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProduct_productId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProduct" ADD CONSTRAINT "QuotationProduct_productId_fkey" FOREIGN KEY ("productId") REFERENCES public."Product"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProduct_providerId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProduct" ADD CONSTRAINT "QuotationProduct_providerId_fkey" FOREIGN KEY ("providerId") REFERENCES public."Provider"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProduct_quotationId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationProduct" ADD CONSTRAINT "QuotationProduct_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationStateHistory_quotationId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationStateHistory" ADD CONSTRAINT "QuotationStateHistory_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationStateHistory_userId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationStateHistory" ADD CONSTRAINT "QuotationStateHistory_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_branchId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_clientId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES public."Client"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_implantId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_sellerId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_sellerId_fkey" FOREIGN KEY ("sellerId") REFERENCES public."Seller"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_ticketPrinterId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId") REFERENCES public."TicketPrinter"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Quotation_userId_fkey') THEN
+            ALTER TABLE ONLY public."Quotation" ADD CONSTRAINT "Quotation_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportColumns_report_id_fkey') THEN
+            ALTER TABLE ONLY public."ReportColumns" ADD CONSTRAINT "ReportColumns_report_id_fkey" FOREIGN KEY (report_id) REFERENCES public."Report"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportFilters_report_id_fkey') THEN
+            ALTER TABLE ONLY public."ReportFilters" ADD CONSTRAINT "ReportFilters_report_id_fkey" FOREIGN KEY (report_id) REFERENCES public."Report"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportJoins_report_id_fkey') THEN
+            ALTER TABLE ONLY public."ReportJoins" ADD CONSTRAINT "ReportJoins_report_id_fkey" FOREIGN KEY (report_id) REFERENCES public."Report"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ReportSorts_report_id_fkey') THEN
+            ALTER TABLE ONLY public."ReportSorts" ADD CONSTRAINT "ReportSorts_report_id_fkey" FOREIGN KEY (report_id) REFERENCES public."Report"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'SystemLog_userId_fkey') THEN
+            ALTER TABLE ONLY public."SystemLog" ADD CONSTRAINT "SystemLog_userId_fkey" FOREIGN KEY ("userId") REFERENCES public."User"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_branchId_fkey') THEN
+            ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_implantId_fkey') THEN
+            ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_roleId_fkey') THEN
+            ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId") REFERENCES public."Role"(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_ticketPrinterId_fkey') THEN
+            ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId") REFERENCES public."TicketPrinter"(id) ON UPDATE CASCADE ON DELETE SET NULL;
+        END IF;
+    END $con$;
+
+END $$; 
+
+
+-- >>> 1.1. ADICIÓN DE COLUMNAS A TABLAS EXISTENTES (ALTER COLUMNS) <<<
 
-	CREATE SEQUENCE IF NOT EXISTS public."ChargeAndTax_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-		
-	ALTER SEQUENCE public."ChargeAndTax_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Client_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Client_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Combo_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Combo_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Currency_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."ComboProduct_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-		
-	ALTER SEQUENCE public."ComboProduct_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."ComboProductTax_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."ComboProductTax_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Hotel_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Hotel_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Implant_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Implant_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."MasterVariable_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-
-	
-	ALTER SEQUENCE public."MasterVariable_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Product_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Product_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."Provider_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Provider_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationCombo_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."QuotationCombo_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationProductPassenger_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."QuotationProductPassenger_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationProductTax_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."QuotationProductTax_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationProductVariable_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."QuotationProductVariable_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."QuotationProduct_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."QuotationProduct_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE SEQUENCE IF NOT EXISTS public."Quotation_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Quotation_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Role_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Role_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Seller_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."Seller_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."SystemLog_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."SystemLog_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."SystemParameter_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."SystemParameter_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."TicketPrinter_id_seq"
-	    INCREMENT 1
-	    START 1
-	    MINVALUE 1
-	    MAXVALUE 2147483647
-	    CACHE 1;
-	
-	ALTER SEQUENCE public."TicketPrinter_id_seq"
-		OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."User_id_seq"
-		INCREMENT 1
-		START 1
-		MINVALUE 1
-		MAXVALUE 2147483647
-		CACHE 1;
-	
-	ALTER SEQUENCE public."User_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."GDS_id_seq"
-		INCREMENT 1
-		START 1
-		MINVALUE 1
-		MAXVALUE 2147483647
-		CACHE 1;
-	
-	ALTER SEQUENCE public."GDS_id_seq"
-	    OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Interfaces_id_seq"
-		INCREMENT 1
-		START 1
-		MINVALUE 1
-		MAXVALUE 2147483647
-		CACHE 1;
-	
-	ALTER SEQUENCE public."Interfaces_id_seq"
-	    OWNER TO postgres;	
-		
-	CREATE TABLE IF NOT EXISTS public."Role"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Role_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "Role_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-
-	ALTER TABLE IF EXISTS public."Role"
-	    OWNER to postgres;
-	-- Index: Role_name_key
-	
-	-- DROP INDEX IF EXISTS public."Role_name_key";
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Role_name_key"
-	    ON public."Role" USING btree
-	    (name COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Role_id_seq"
-	    OWNED BY public."Role".id;
-
-	CREATE TABLE IF NOT EXISTS public."Branch"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Branch_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "Branch_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-
-	ALTER TABLE IF EXISTS public."Branch"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Branch_code_key"
-	    ON public."Branch" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Branch_id_seq"
-	    OWNED BY public."Branch".id;
-
-	CREATE TABLE IF NOT EXISTS public."Implant"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Implant_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    "branchId" integer,
-	    CONSTRAINT "Implant_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Implant_branchId_fkey" FOREIGN KEY ("branchId")
-	        REFERENCES public."Branch" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Implant"
-	    OWNER to postgres;
-	-- Index: Implant_code_key
-	
-	-- DROP INDEX IF EXISTS public."Implant_code_key";
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Implant_code_key"
-	    ON public."Implant" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Implant_id_seq"
-	    OWNED BY public."Implant".id;
-
-
-	CREATE TABLE IF NOT EXISTS public."ChargeAndTax"
-	(
-	    id integer NOT NULL DEFAULT nextval('"ChargeAndTax_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    type text COLLATE pg_catalog."default" NOT NULL,
-	    "valueType" text COLLATE pg_catalog."default" NOT NULL,
-	    value double precision NOT NULL,
-	    "isEditable" boolean NOT NULL DEFAULT true,
-	    CONSTRAINT "ChargeAndTax_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."ChargeAndTax_id_seq"
-	    OWNED BY public."ChargeAndTax".id;
-
-	CREATE TABLE IF NOT EXISTS public."TicketPrinter"
-	(
-	    id integer NOT NULL DEFAULT nextval('"TicketPrinter_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default",
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    email text COLLATE pg_catalog."default",
-	    CONSTRAINT "TicketPrinter_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."TicketPrinter"
-	    OWNER to postgres;
-
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "TicketPrinter_code_key"
-	    ON public."TicketPrinter" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."TicketPrinter_id_seq"
-	    OWNED BY public."TicketPrinter".id;
-	
-	CREATE TABLE IF NOT EXISTS public."User"
-	(
-	    id integer NOT NULL DEFAULT nextval('"User_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    email text COLLATE pg_catalog."default" NOT NULL,
-	    "passwordHash" text COLLATE pg_catalog."default" NOT NULL,
-	    "resetPasswordToken" text COLLATE pg_catalog."default",
-	    "resetPasswordExpires" timestamp(3) without time zone,
-	    "roleId" integer NOT NULL,
-	    "branchId" integer,
-	    "implantId" integer,
-	    "ticketPrinterId" integer,
-	    CONSTRAINT "User_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "User_branchId_fkey" FOREIGN KEY ("branchId")
-	        REFERENCES public."Branch" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "User_implantId_fkey" FOREIGN KEY ("implantId")
-	        REFERENCES public."Implant" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "User_roleId_fkey" FOREIGN KEY ("roleId")
-	        REFERENCES public."Role" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "User_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId")
-	        REFERENCES public."TicketPrinter" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-
-	TABLESPACE pg_default;
-
-	ALTER TABLE IF EXISTS public."User"
-	    OWNER to postgres;
-
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key"
-	    ON public."User" USING btree
-	    (email COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;
-
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "User_resetPasswordToken_key"
-	    ON public."User" USING btree
-	    ("resetPasswordToken" COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."User_id_seq"
-	    OWNED BY public."User".id;
-	
-
-	CREATE TABLE IF NOT EXISTS public."Branch"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Branch_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "Branch_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	
-	ALTER TABLE IF EXISTS public."Branch"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."Branch_id_seq"
-	    OWNED BY public."Branch".id;	
-
-	CREATE TABLE IF NOT EXISTS public."Client"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Client_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    document text COLLATE pg_catalog."default" NOT NULL,
-	    "contactInfo" text COLLATE pg_catalog."default",
-	    address text COLLATE pg_catalog."default",
-	    CONSTRAINT "Client_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Client"
-	    OWNER to postgres;
-		
-	CREATE UNIQUE INDEX IF NOT EXISTS "Client_document_key"
-	    ON public."Client" USING btree
-	    (document COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Client_id_seq"
-	    OWNED BY public."Client".id;
-
-
-	CREATE TABLE IF NOT EXISTS public."Provider"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Provider_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default",
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    "contactInfo" text COLLATE pg_catalog."default",
-	    "commissionConfig" jsonb,
-	    CONSTRAINT "Provider_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Provider"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Provider_code_key"
-	    ON public."Provider" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	    
-	TABLESPACE pg_default;	
-
-	ALTER SEQUENCE public."Provider_id_seq"
-	    OWNED BY public."Provider".id;
-		
-
-	CREATE TABLE IF NOT EXISTS public."MasterVariable"
-	(
-	    id integer NOT NULL DEFAULT nextval('"MasterVariable_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "MasterVariable_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-
-	ALTER TABLE IF EXISTS public."MasterVariable"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "MasterVariable_code_key"
-	    ON public."MasterVariable" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-		
-	TABLESPACE pg_default;
-	
-	ALTER SEQUENCE public."MasterVariable_id_seq"
-	    OWNED BY public."MasterVariable".id;
-
-	CREATE TABLE IF NOT EXISTS public."Seller"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Seller_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default",
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    email text COLLATE pg_catalog."default",
-	    CONSTRAINT "Seller_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Seller"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Seller_code_key"
-	    ON public."Seller" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Seller_id_seq"
-	    OWNED BY public."Seller".id;
-	    
-	
-	CREATE TABLE IF NOT EXISTS public."Prestadora"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Hotel_id_seq"'::regclass),
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    location text COLLATE pg_catalog."default",
-	    category text COLLATE pg_catalog."default",
-	    "providerId" integer,
-	    code text COLLATE pg_catalog."default",
-	    type text COLLATE pg_catalog."default",
-	    CONSTRAINT "Prestadora_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Prestadora_providerId_fkey" FOREIGN KEY ("providerId")
-	        REFERENCES public."Provider" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT
-	)
-	TABLESPACE pg_default;
-
-	ALTER TABLE IF EXISTS public."Prestadora"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Hotel_code_key"
-	    ON public."Prestadora" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Hotel_id_seq"
-	    OWNED BY public."Prestadora".id;
-
-	CREATE TABLE IF NOT EXISTS public."SystemLog"
-	(
-	    id integer NOT NULL DEFAULT nextval('"SystemLog_id_seq"'::regclass),
-	    "userId" integer,
-	    action text COLLATE pg_catalog."default" NOT NULL,
-	    module text COLLATE pg_catalog."default" NOT NULL,
-	    description text COLLATE pg_catalog."default" NOT NULL,
-	    metadata jsonb,
-	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    CONSTRAINT "SystemLog_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "SystemLog_userId_fkey" FOREIGN KEY ("userId")
-	        REFERENCES public."User" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."SystemLog"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."SystemLog_id_seq"
-	    OWNED BY public."SystemLog".id;	
-
-	CREATE TABLE IF NOT EXISTS public."SystemParameter"
-	(
-	    id integer NOT NULL DEFAULT nextval('"SystemParameter_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    value text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "SystemParameter_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."SystemParameter"
-	    OWNER to postgres;
-
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "SystemParameter_code_key"
-	    ON public."SystemParameter" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;	
-
-	ALTER SEQUENCE public."SystemParameter_id_seq"
-	    OWNED BY public."SystemParameter".id;	
-
-	CREATE TABLE IF NOT EXISTS public."Product"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Product_id_seq"'::regclass),
-	    type text COLLATE pg_catalog."default" NOT NULL,
-	    description text COLLATE pg_catalog."default" NOT NULL,
-	    "basePrice" double precision NOT NULL,
-	    cost double precision DEFAULT 0,
-	    "billingConcept" text COLLATE pg_catalog."default",
-	    "serviceType" text COLLATE pg_catalog."default",
-	    code text COLLATE pg_catalog."default",
-	    CONSTRAINT "Product_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Product"
-	    OWNER to postgres;
-	-- Index: Product_code_key
-	
-	-- DROP INDEX IF EXISTS public."Product_code_key";
-	
-	CREATE UNIQUE INDEX IF NOT EXISTS "Product_code_key"
-	    ON public."Product" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;	
-
-	ALTER SEQUENCE public."Product_id_seq"
-	    OWNED BY public."Product".id;	
-
-	CREATE TABLE IF NOT EXISTS public."Currency"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Currency_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    "exchangeRate" double precision NOT NULL,
-	    CONSTRAINT "Currency_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Currency"
-	    OWNER to postgres;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Currency_code_key"
-	    ON public."Currency" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Currency_id_seq"
-	    OWNED BY public."Currency".id;
-
-	CREATE TABLE IF NOT EXISTS public."Combo"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Combo_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    cupos integer DEFAULT 0,
-	    "currencyId" integer,
-	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    "updatedAt" timestamp without time zone DEFAULT now(),
-	    CONSTRAINT "Combo_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Combo_currencyId_fkey" FOREIGN KEY ("currencyId")
-	        REFERENCES public."Currency" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Combo"
-	    OWNER to postgres;
-	-- Index: Combo_code_key
-
- 	--DROP INDEX IF EXISTS public."Combo_code_key";
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "Combo_code_key"
-		ON public."Combo" USING btree
-		(code COLLATE pg_catalog."default" ASC NULLS LAST)
-		WITH (fillfactor=100, deduplicate_items=True)
-	
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Combo_id_seq"
-	    OWNED BY public."Combo".id;		
-
-	CREATE TABLE IF NOT EXISTS public."ComboProduct"
-	(
-	    id integer NOT NULL DEFAULT nextval('"ComboProduct_id_seq"'::regclass),
-	    "comboId" integer NOT NULL,
-	    "productId" integer NOT NULL,
-	    price double precision NOT NULL,
-	    cost double precision DEFAULT 0,
-	    "checkInDate" timestamp(3) without time zone,
-	    "checkOutDate" timestamp(3) without time zone,
-	    "prestadoraId" integer,
-	    "mainTaxId" integer,
-	    "paxAdults" integer,
-	    "paxChildren" integer,
-	    "providerId" integer,
-	    "inNationality" integer DEFAULT 1,
-	    quantity integer NOT NULL DEFAULT 1,
-	    CONSTRAINT "ComboProduct_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "ComboProduct_comboId_fkey" FOREIGN KEY ("comboId")
-	        REFERENCES public."Combo" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE,
-	    CONSTRAINT "ComboProduct_prestadoraId_fkey" FOREIGN KEY ("prestadoraId")
-	        REFERENCES public."Prestadora" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "ComboProduct_productId_fkey" FOREIGN KEY ("productId")
-	        REFERENCES public."Product" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "ComboProduct_providerId_fkey" FOREIGN KEY ("providerId")
-	        REFERENCES public."Provider" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."ComboProduct"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."ComboProduct_id_seq"
-	    OWNED BY public."ComboProduct".id;		
-
-	CREATE TABLE IF NOT EXISTS public."ComboProductTax"
-	(
-	    id integer NOT NULL DEFAULT nextval('"ComboProductTax_id_seq"'::regclass),
-	    "comboProductId" integer NOT NULL,
-	    "chargeAndTaxId" integer NOT NULL,
-	    amount double precision NOT NULL,
-	    "isMain" boolean NOT NULL DEFAULT false,
-	    CONSTRAINT "ComboProductTax_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "ComboProductTax_chargeAndTaxId_fkey" FOREIGN KEY ("chargeAndTaxId")
-	        REFERENCES public."ChargeAndTax" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "ComboProductTax_comboProductId_fkey" FOREIGN KEY ("comboProductId")
-	        REFERENCES public."ComboProduct" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."ComboProductTax"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."ComboProductTax_id_seq"
-	    OWNED BY public."ComboProductTax".id;		
-
-	CREATE TABLE IF NOT EXISTS public."Quotation"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Quotation_id_seq"'::regclass),
-	    "internalNumber" text COLLATE pg_catalog."default" NOT NULL,
-	    date timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    "clientId" integer NOT NULL,
-	    currency text COLLATE pg_catalog."default" NOT NULL,
-	    "exchangeRate" double precision NOT NULL,
-	    "branchId" integer NOT NULL,
-	    "implantId" integer,
-	    "sellerId" integer,
-	    "ticketPrinterId" integer,
-	    "baseCommissionable" double precision NOT NULL,
-	    "commissionPercentage" double precision NOT NULL,
-	    "chargesAndTaxes" double precision NOT NULL,
-	    "totalAmount" double precision NOT NULL,
-	    "userId" integer,
-	    "state" varchar(25) DEFAULT 'NUEVO',
-	    CONSTRAINT "Quotation_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Quotation_branchId_fkey" FOREIGN KEY ("branchId")
-	        REFERENCES public."Branch" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "Quotation_clientId_fkey" FOREIGN KEY ("clientId")
-	        REFERENCES public."Client" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "Quotation_implantId_fkey" FOREIGN KEY ("implantId")
-	        REFERENCES public."Implant" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "Quotation_sellerId_fkey" FOREIGN KEY ("sellerId")
-	        REFERENCES public."Seller" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "Quotation_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId")
-	        REFERENCES public."TicketPrinter" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "Quotation_userId_fkey" FOREIGN KEY ("userId")
-	        REFERENCES public."User" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Quotation"
-	    OWNER to postgres;
-	-- Index: Quotation_internalNumber_key
-	
-	-- DROP INDEX IF EXISTS public."Quotation_internalNumber_key";
-	
-	CREATE UNIQUE INDEX IF NOT EXISTS "Quotation_internalNumber_key"
-	    ON public."Quotation" USING btree
-	    ("internalNumber" COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;	
-
-	ALTER SEQUENCE public."Quotation_id_seq"
-	    OWNED BY public."Quotation".id;
-	
-	CREATE TABLE IF NOT EXISTS public."QuotationCombo"
-	(
-	    id integer NOT NULL DEFAULT nextval('"QuotationCombo_id_seq"'::regclass),
-	    "quotationId" integer NOT NULL,
-	    "comboId" integer NOT NULL,
-	    CONSTRAINT "QuotationCombo_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationCombo_comboId_fkey" FOREIGN KEY ("comboId")
-	        REFERENCES public."Combo" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "QuotationCombo_quotationId_fkey" FOREIGN KEY ("quotationId")
-	        REFERENCES public."Quotation" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."QuotationCombo"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."QuotationCombo_id_seq"
-	    OWNED BY public."QuotationCombo".id;	
-
-	CREATE TABLE IF NOT EXISTS public."QuotationProduct"
-	(
-	    id integer NOT NULL DEFAULT nextval('"QuotationProduct_id_seq"'::regclass),
-	    "quotationId" integer NOT NULL,
-	    "productId" integer NOT NULL,
-	    quantity integer NOT NULL,
-	    price double precision NOT NULL,
-	    cost double precision DEFAULT 0,
-	    "providerId" integer,
-	    "prestadoraId" integer,
-	    "checkInDate" timestamp(3) without time zone,
-	    "checkOutDate" timestamp(3) without time zone,
-	    nights integer,
-	    "paxAdults" integer,
-	    "paxChildren" integer,
-	    "serviceType" text COLLATE pg_catalog."default",
-	    destination text COLLATE pg_catalog."default",
-	    "reservationCode" text COLLATE pg_catalog."default",
-	    "sellerCommission" double precision,
-	    "ticketPrinterCommission" double precision,
-	    "comboId" integer,
-	    "mainTaxId" integer,
-	    "inNationality" integer DEFAULT 1,
-	    CONSTRAINT "QuotationProduct_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationProduct_prestadoraId_fkey" FOREIGN KEY ("prestadoraId")
-	        REFERENCES public."Prestadora" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "QuotationProduct_productId_fkey" FOREIGN KEY ("productId")
-	        REFERENCES public."Product" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE,
-	    CONSTRAINT "QuotationProduct_providerId_fkey" FOREIGN KEY ("providerId")
-	        REFERENCES public."Provider" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE SET NULL,
-	    CONSTRAINT "QuotationProduct_quotationId_fkey" FOREIGN KEY ("quotationId")
-	        REFERENCES public."Quotation" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."QuotationProduct"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."QuotationProduct_id_seq"
-	    OWNED BY public."QuotationProduct".id;	
-	
-	CREATE TABLE IF NOT EXISTS public."QuotationProductPassenger"
-	(
-	    id integer NOT NULL DEFAULT nextval('"QuotationProductPassenger_id_seq"'::regclass),
-	    "quotationProductId" integer NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    document text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "QuotationProductPassenger_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationProductPassenger_quotationProductId_fkey" FOREIGN KEY ("quotationProductId")
-	        REFERENCES public."QuotationProduct" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."QuotationProductPassenger"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."QuotationProductPassenger_id_seq"
-	    OWNED BY public."QuotationProductPassenger".id;	
-
-	CREATE TABLE IF NOT EXISTS public."QuotationProductTax"
-	(
-	    id integer NOT NULL DEFAULT nextval('"QuotationProductTax_id_seq"'::regclass),
-	    "quotationProductId" integer NOT NULL,
-	    "chargeAndTaxId" integer NOT NULL,
-	    "valueSnapshot" double precision NOT NULL,
-	    "valueTypeSnapshot" text COLLATE pg_catalog."default" NOT NULL,
-	    "explicitAmount" double precision,
-	    "isMain" boolean NOT NULL DEFAULT false,
-	    CONSTRAINT "QuotationProductTax_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationProductTax_chargeAndTaxId_fkey" FOREIGN KEY ("chargeAndTaxId")
-	        REFERENCES public."ChargeAndTax" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "QuotationProductTax_quotationProductId_fkey" FOREIGN KEY ("quotationProductId")
-	        REFERENCES public."QuotationProduct" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."QuotationProductTax"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."QuotationProductTax_id_seq"
-	    OWNED BY public."QuotationProductTax".id;		
-
-	CREATE TABLE IF NOT EXISTS public."QuotationProductVariable"
-	(
-	    id integer NOT NULL DEFAULT nextval('"QuotationProductVariable_id_seq"'::regclass),
-	    "quotationProductId" integer NOT NULL,
-	    "masterVariableId" integer NOT NULL,
-	    value text COLLATE pg_catalog."default" NOT NULL,
-	    CONSTRAINT "QuotationProductVariable_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "QuotationProductVariable_masterVariableId_fkey" FOREIGN KEY ("masterVariableId")
-	        REFERENCES public."MasterVariable" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-	    CONSTRAINT "QuotationProductVariable_quotationProductId_fkey" FOREIGN KEY ("quotationProductId")
-	        REFERENCES public."QuotationProduct" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."QuotationProductVariable"
-	    OWNER to postgres;
-
-	ALTER SEQUENCE public."QuotationProductVariable_id_seq"
-	    OWNED BY public."QuotationProductVariable".id;
-
-	CREATE TABLE IF NOT EXISTS public."Attachment"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Attachment_id_seq"'::regclass),
-	    "quotationId" integer NOT NULL,
-	    "fileName" text COLLATE pg_catalog."default" NOT NULL,
-	    "fileType" text COLLATE pg_catalog."default" NOT NULL,
-	    "fileSize" integer NOT NULL,
-	    "fileContent" bytea NOT NULL,
-	    "createdAt" timestamp(3) without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	    CONSTRAINT "Attachment_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "Attachment_quotationId_fkey" FOREIGN KEY ("quotationId")
-	        REFERENCES public."Quotation" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE CASCADE
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Attachment" OWNER to postgres;
-
-	ALTER SEQUENCE public."Attachment_id_seq"
-	    OWNED BY public."Attachment".id;
-
-	ALTER TABLE public."ChargeAndTax" ADD COLUMN IF NOT EXISTS "isEditable" boolean NOT NULL DEFAULT true;
-	ALTER TABLE public."ComboProduct" ADD COLUMN IF NOT EXISTS "inNationality" integer DEFAULT 1;
-	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "inNationality" integer DEFAULT 1;
-	ALTER TABLE public."QuotationProductTax" ADD COLUMN IF NOT EXISTS "explicitAmount" double precision;
-	ALTER TABLE public."QuotationProductTax" ADD COLUMN IF NOT EXISTS "isMain" boolean NOT NULL DEFAULT false;
-	ALTER TABLE public."ComboProductTax" ADD COLUMN IF NOT EXISTS "isMain" boolean NOT NULL DEFAULT false;	
-	--ALTER TABLE public."ComboProduct" RENAME COLUMN "hotelId" TO "prestadoraId";
-	--ALTER TABLE public."QuotationProduct" RENAME COLUMN "hotelId" TO "prestadoraId";
-	ALTER TABLE public."ChargeAndTax" ADD COLUMN IF NOT EXISTS "code" text;
-	ALTER TABLE public."ChargeAndTax" DROP CONSTRAINT IF EXISTS "ChargeAndTax_code_key";
-	ALTER TABLE public."ChargeAndTax" ADD CONSTRAINT "ChargeAndTax_code_key" UNIQUE ("code");
-	-- Columnas de costo en productos
-	ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
-	ALTER TABLE public."ComboProduct" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
-	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "cost" double precision DEFAULT 0;
-	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "service" text;
-	ALTER TABLE public."QuotationProduct" ADD COLUMN IF NOT EXISTS "description" text;
-	ALTER TABLE public."Prestadora" ADD COLUMN IF NOT EXISTS "initials" text;
-	ALTER TABLE public."Prestadora" ADD COLUMN IF NOT EXISTS "nogds" text;
-	-- Tabla Currency ya incluida en la creación arriba, pero por si la BD es existente:
-	CREATE TABLE IF NOT EXISTS public."Currency"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Currency_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    name text COLLATE pg_catalog."default" NOT NULL,
-	    "exchangeRate" double precision NOT NULL,
-	    CONSTRAINT "Currency_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Currency" OWNER to postgres;
-	CREATE UNIQUE INDEX IF NOT EXISTS "Currency_code_key"
-	    ON public."Currency" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;
-	-- Columna currencyId en Combo para BDs existentes
-	ALTER TABLE public."Combo" ADD COLUMN IF NOT EXISTS "currencyId" integer;
-	ALTER TABLE public."Combo" DROP CONSTRAINT IF EXISTS "Combo_currencyId_fkey";
-	ALTER TABLE public."Combo" ADD CONSTRAINT "Combo_currencyId_fkey"
-	    FOREIGN KEY ("currencyId") REFERENCES public."Currency"(id)
-	    ON UPDATE CASCADE ON DELETE SET NULL;
-
-	-- Columna state en Quotation
-	ALTER TABLE public."Quotation" ADD COLUMN IF NOT EXISTS "state" varchar(25) DEFAULT 'Nuevo';
-
-	CREATE TABLE IF NOT EXISTS public."GDS"(
-		id integer NOT NULL DEFAULT nextval('"GDS_id_seq"'::regclass),
-		name text COLLATE pg_catalog."default" NOT NULL,
-		CONSTRAINT "GDS_pkey" PRIMARY KEY (id)
-	)	
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."GDS" OWNER to postgres;
-	
-	
-
-	--DROP INDEX IF EXISTS public."gds_name_key";
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "gds_name_key"
-	    ON public."GDS" USING btree
-	    (name COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."GDS_id_seq"
-	    OWNED BY public."GDS".id;	
-
-	CREATE TABLE IF NOT EXISTS public."Interfaces"(
-		id integer NOT NULL DEFAULT nextval('"Interfaces_id_seq"'::regclass),
-		code text COLLATE pg_catalog."default" NOT NULL,
-		name text COLLATE pg_catalog."default" NOT NULL,
-		inactivo boolean NOT NULL DEFAULT false,
-		bl_genera_archivoplano boolean NOT NULL DEFAULT false,
-		ds_storedprocedure_archivoplano text COLLATE pg_catalog."default",
-		bl_job boolean NOT NULL DEFAULT false,
-		ds_nameJob text COLLATE pg_catalog."default",
-		bl_facturador boolean NOT NULL DEFAULT false,
-		id_GDS integer,
-		CONSTRAINT "interfaces_pkey" PRIMARY KEY (id)
-	)
-	
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Interfaces" OWNER to postgres;
-
-	
-
-	-- DROP INDEX IF EXISTS public."interfaces_code_key";
-	
-	CREATE UNIQUE INDEX IF NOT EXISTS "interfaces_code_key"
-	    ON public."Interfaces" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Interfaces_id_seq"
-	    OWNED BY public."Interfaces".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Master_id_seq"
-		INCREMENT 1
-		START 1
-		MINVALUE 1
-		MAXVALUE 2147483647
-		CACHE 1;
-	
-	ALTER SEQUENCE public."Master_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE TABLE IF NOT EXISTS public."Master"(
-		id integer NOT NULL DEFAULT nextval('"Master_id_seq"'::regclass),
-		code text COLLATE pg_catalog."default" NOT NULL,
-		name text COLLATE pg_catalog."default" NOT NULL,
-		inactivo boolean NOT NULL DEFAULT false,
-		CONSTRAINT "master_pkey" PRIMARY KEY (id)
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."Master" OWNER to postgres;
-
-	
-
-	-- DROP INDEX IF EXISTS public."master_code_key";
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "master_code_key"
-	    ON public."Master" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-    
-	TABLESPACE pg_default;
-
-	ALTER SEQUENCE public."Master_id_seq"
-	    OWNED BY public."Master".id;
-
-
-	CREATE SEQUENCE IF NOT EXISTS public."EquivalencesInterfaces_id_seq"
-		INCREMENT 1
-		START 1
-		MINVALUE 1
-		MAXVALUE 2147483647
-		CACHE 1;
-	
-	ALTER SEQUENCE public."EquivalencesInterfaces_id_seq"
-	    OWNER TO postgres;	
-
-	CREATE TABLE IF NOT EXISTS public."EquivalencesInterfaces"(
-		id integer NOT NULL DEFAULT nextval('"EquivalencesInterfaces_id_seq"'::regclass),
-		id_interfaces integer NOT NULL,
-		id_master integer NOT NULL,
-		cd_maestro text COLLATE pg_catalog."default" NOT NULL,
-		cd_codigo text COLLATE pg_catalog."default" NOT NULL,
-		cd_codigoInte text COLLATE pg_catalog."default" NOT NULL,
-		dt_fecha timestamp without time zone DEFAULT now(),
-		CONSTRAINT "EquivalencesInterfaces_pkey" PRIMARY KEY (id),
-	    CONSTRAINT "EquivalencesInterfaces_id_interfaces_fkey" FOREIGN KEY ("id_interfaces")
-	        REFERENCES public."Interfaces" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT,
-		CONSTRAINT "EquivalencesInterfaces_id_master_fkey" FOREIGN KEY ("id_master")
-	        REFERENCES public."Master" (id) MATCH SIMPLE
-	        ON UPDATE CASCADE
-	        ON DELETE RESTRICT	
-	)
-
-	TABLESPACE pg_default;
-	
-	ALTER TABLE IF EXISTS public."EquivalencesInterfaces" OWNER to postgres;
-
-	ALTER SEQUENCE public."EquivalencesInterfaces_id_seq"
-		OWNED BY public."EquivalencesInterfaces".id;
-
-	CREATE TABLE IF NOT EXISTS public."Report" (
-	    id SERIAL PRIMARY KEY,
-	    name VARCHAR(255) NOT NULL,
-	    base_table VARCHAR(100), -- Puede ser NULL si es Custom SQL
-	    description TEXT,
-	    custom_sql TEXT, -- Para reportes definidos por script
-	    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
-	);
-
-	CREATE TABLE IF NOT EXISTS public."ReportSorts" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    column_expr TEXT NOT NULL,
-	    direction VARCHAR(10) DEFAULT 'ASC',
-	    sort_order INTEGER DEFAULT 0
-	);
-
-	CREATE TABLE IF NOT EXISTS public."ReportJoins" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    table_name VARCHAR(100) NOT NULL,
-	    alias VARCHAR(20) NOT NULL,
-	    join_type VARCHAR(50) NOT NULL DEFAULT 'INNER JOIN',
-	    join_condition TEXT NOT NULL,
-	    sort_order INTEGER DEFAULT 0
-	);
-
-	CREATE TABLE IF NOT EXISTS public."ReportColumns" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    table_alias VARCHAR(20),
-	    column_name VARCHAR(100) NOT NULL,
-	    alias VARCHAR(150),
-	    is_calculated BOOLEAN DEFAULT false,
-	    is_visible BOOLEAN DEFAULT true,
-	    formula_expression TEXT,
-	    sort_order INTEGER DEFAULT 0
-	);
-
-	CREATE TABLE IF NOT EXISTS public."ReportFilters" (
-	    id SERIAL PRIMARY KEY,
-	    report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
-	    table_alias VARCHAR(20),
-	    column_name VARCHAR(100) NOT NULL,
-	    filter_label VARCHAR(150),
-	    filter_type VARCHAR(50) NOT NULL, -- 'text', 'date', 'number', 'select'
-	    operator VARCHAR(20) DEFAULT '=',
-	    sort_order INTEGER DEFAULT 0
-	);
-		
-
-
-	-- SEQUENCES FOR BOOKING GDS
-	CREATE SEQUENCE IF NOT EXISTS public."BookingGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingGDS_id_seq" OWNER TO postgres;
-	
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductGDS_id_seq" OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductTaxGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductTaxGDS_id_seq" OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductPassangerGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductPassangerGDS_id_seq" OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductVariableGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductVariableGDS_id_seq" OWNER TO postgres;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductPaymentGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductPaymentGDS_id_seq" OWNER TO postgres;
-
-	-- TABLES FOR BOOKING GDS
-	CREATE TABLE IF NOT EXISTS public."BookingGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingGDS_id_seq"'::regclass),
-		code VARCHAR(25) NOT NULL,
-		type VARCHAR(25) NOT NULL,
-		"blanch" VARCHAR(25) NOT NULL,
-		"implant" VARCHAR(25) NULL,
-		"external" boolean NOT NULL DEFAULT false,
-		"gds" integer,
-		"date" timestamp without time zone DEFAULT now(),
-		"currency" text COLLATE pg_catalog."default" NOT NULL,
-	    "exchangeRate" double precision NOT NULL,
-		"tiquetPrinter" VARCHAR(25) NOT NULL,
-		"seller" VARCHAR(25) NOT NULL,
-		"client" VARCHAR(25) NOT NULL,
-		"booking" text NULL,
-		"typetransaction" VARCHAR(25),
-		"iata" VARCHAR(25),
-		"description" text,
-		"observation" text,
-		"state" VARCHAR(25),
-		CONSTRAINT "BookingGDS_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingGDS_id_seq" OWNED BY public."BookingGDS".id;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "bookingds_code_key"
-	    ON public."BookingGDS" USING btree
-	    (code COLLATE pg_catalog."default" ASC NULLS LAST)
-	    WITH (fillfactor=100, deduplicate_items=True)
-	TABLESPACE pg_default;	
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductGDS_id_seq"'::regclass),
-		"bookingId" integer NOT NULL,
-		code VARCHAR(25) NOT NULL,
-		type VARCHAR(25),
-		"service" text COLLATE pg_catalog."default",
-		"description" text COLLATE pg_catalog."default",
-		"prestadoracode" VARCHAR(25),
-		"prestadorainitials" VARCHAR(25),
-		"prestadoradist" VARCHAR(25),
-		"provider" VARCHAR(25),
-		"quantity" integer NOT NULL,
-	    price double precision NOT NULL,
-	    cost double precision DEFAULT 0,
-		"checkInDate" timestamp(3) without time zone,
-	    "checkOutDate" timestamp(3) without time zone,
-	    "nights" integer,
-	    "paxAdults" integer,
-	    "paxChildren" integer,
-	    "serviceType" text COLLATE pg_catalog."default",
-		"billingConcept" text COLLATE pg_catalog."default",
-	    "destination" text COLLATE pg_catalog."default",
-	    "reservationCode" text COLLATE pg_catalog."default",
-	    "sellerCom" double precision,
-	    "ticketPrinterCom" double precision,
-	    "inNationality" integer DEFAULT 1,
-		"state" VARCHAR(25) DEFAULT 'NUEVO',
-		"conjunction" integer DEFAULT 0,
-		"revised" VARCHAR(25),
-		"typeproduct" VARCHAR(25),
-		"consecutive" VARCHAR(25),
-		CONSTRAINT "BookingProductGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductGDS_bookingId_fkey" FOREIGN KEY ("bookingId") REFERENCES public."BookingGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductGDS_id_seq" OWNED BY public."BookingProductGDS".id;
-
-	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "conjunction" integer DEFAULT 0;
-	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "revised" VARCHAR(25);
-	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "penalty" VARCHAR(25);
-	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "typeproduct" VARCHAR(25);
-	ALTER TABLE public."BookingProductGDS" ADD COLUMN IF NOT EXISTS "consecutive" VARCHAR(25);
-	
-	CREATE TABLE IF NOT EXISTS public."BookingProductTaxGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductTaxGDS_id_seq"'::regclass),
-		"bookingProductId" integer NOT NULL,
-		code VARCHAR(25) NOT NULL,
-		name VARCHAR(50) NOT NULL,
-		type VARCHAR(25) NOT NULL,
-		"ismain" boolean DEFAULT false,
-		"percentage" double precision NOT NULL,
-		"amount" double precision NOT NULL, 
-		CONSTRAINT "BookingProductTaxGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductTaxGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductTaxGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductTaxGDS_id_seq" OWNED BY public."BookingProductTaxGDS".id;
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductPassangerGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductPassangerGDS_id_seq"'::regclass),
-		"bookingProductId" integer NOT NULL,
-		code VARCHAR(25),
-		"firstnm" VARCHAR(30),
-		"lastnm" VARCHAR(30),
-		"prefix" VARCHAR(25),
-		"identification" VARCHAR(25),
-		"phone" VARCHAR(25),
-		"email" VARCHAR(250),
-		CONSTRAINT "BookingProductPassangerGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductPassangerGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductPassangerGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductPassangerGDS_id_seq" OWNED BY public."BookingProductPassangerGDS".id;
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductVariableGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductVariableGDS_id_seq"'::regclass),
-		"bookingProductId" integer NOT NULL,
-		code text COLLATE pg_catalog."default",
-		name text COLLATE pg_catalog."default",
-		"value" text COLLATE pg_catalog."default",
-		CONSTRAINT "BookingProductVariableGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductVariableGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductVariableGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductVariableGDS_id_seq" OWNED BY public."BookingProductVariableGDS".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductFEEGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductFEEGDS_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductFEEGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductFEEGDS_id_seq"'::regclass),
-		"bookingProductId" integer NOT NULL,
-		code text COLLATE pg_catalog."default" NOT NULL,
-		name text COLLATE pg_catalog."default" NOT NULL,
-		type text COLLATE pg_catalog."default" NOT NULL,
-		"description" text COLLATE pg_catalog."default" NOT NULL,
-		"billigconcept" text COLLATE pg_catalog."default" NOT NULL,
-		"servicetype" text COLLATE pg_catalog."default" NOT NULL,
-		"amount" double precision NOT NULL,
-		"tax" double precision NOT NULL,
-		"other" double precision NOT NULL,
-		"total" double precision NOT NULL,
-		CONSTRAINT "BookingProductFEEGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductFEEGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductFEEGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductFEEGDS_id_seq" OWNED BY public."BookingProductFEEGDS".id;
-
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductPaymentGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductPaymentGDS_id_seq"'::regclass),
-		"bookingProductId" integer NULL,
-		"bookingProductFEEId" integer NULL,
-		code VARCHAR(50) NOT NULL,
-		name VARCHAR(50) NOT NULL,
-		type VARCHAR(50) NOT NULL,
-		"typecreditcard" VARCHAR(25),
-		"numbercreditcard" VARCHAR(16),
-		"vouchercreditcard" VARCHAR(25),
-		"expiredcreditcard" VARCHAR(5),
-		"authcreditcard" VARCHAR(25),
-		"quotas" integer,
-		"bank" VARCHAR(25),
-		"square" VARCHAR(30),
-		"reference" VARCHAR(50),
-		"policy" VARCHAR(25),
-		"policyannex" VARCHAR(25),
-		"amount" double precision NOT NULL, 
-		CONSTRAINT "BookingProductPaymentGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductPaymentGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE,
-		CONSTRAINT "BookingProductPaymentGDS_bookingProductFEEId_fkey" FOREIGN KEY ("bookingProductFEEId") REFERENCES public."BookingProductFEEGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductPaymentGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductPaymentGDS_id_seq" OWNED BY public."BookingProductPaymentGDS".id;
-
-	
-	CREATE SEQUENCE IF NOT EXISTS public."BookingProductItineraryGDS_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingProductItineraryGDS_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BookingProductItineraryGDS" (
-		id integer NOT NULL DEFAULT nextval('"BookingProductItineraryGDS_id_seq"'::regclass),
-		"bookingProductId" integer NOT NULL,
-		"orden" integer,
-		"origin" text COLLATE pg_catalog."default" NOT NULL,
-		"destination" text COLLATE pg_catalog."default" NOT NULL,
-		"class" text COLLATE pg_catalog."default" NOT NULL,
-		"checkInDate" timestamp(3) without time zone,
-		"checkOutDate" timestamp(3) without time zone,
-		"terminal" text COLLATE pg_catalog."default" NOT NULL,
-		"prestadoraCode" text COLLATE pg_catalog."default" NOT NULL,
-		"farebasis" text COLLATE pg_catalog."default" NOT NULL,
-		"Numflight" VARCHAR(25),
-		"Typeflight" VARCHAR(1),
-		"amount" double precision NOT NULL,
-		CONSTRAINT "BookingProductItineraryGDS_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BookingProductItineraryGDS_bookingProductId_fkey" FOREIGN KEY ("bookingProductId") REFERENCES public."BookingProductGDS" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingProductItineraryGDS" OWNER to postgres;
-	ALTER SEQUENCE public."BookingProductItineraryGDS_id_seq" OWNED BY public."BookingProductItineraryGDS".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BranchGDSInvoiceAuto_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BranchGDSInvoiceAuto_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BranchGDSInvoiceAuto" (
-		id integer NOT NULL DEFAULT nextval('"BranchGDSInvoiceAuto_id_seq"'::regclass),
-		"branchId" integer NOT NULL,
-		"gdsId" integer NOT NULL,
-		"EnvoiceAuto" boolean DEFAULT false,
-		CONSTRAINT "BranchGDSInvoiceAuto_pkey" PRIMARY KEY (id),
-		CONSTRAINT "BranchGDSInvoiceAuto_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BranchGDSInvoiceAuto" OWNER to postgres;
-	ALTER SEQUENCE public."BranchGDSInvoiceAuto_id_seq" OWNED BY public."BranchGDSInvoiceAuto".id;
-
-
-	CREATE SEQUENCE IF NOT EXISTS public."Payment_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."Payment_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."Payment"
-	(
-	    id integer NOT NULL DEFAULT nextval('"Payment_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    "name" text COLLATE pg_catalog."default" NOT NULL,
-	    "inactive" boolean NOT NULL DEFAULT false,
-	    "iscash" boolean NOT NULL DEFAULT false,
-		"iscredit" boolean NOT NULL DEFAULT false,
-	    CONSTRAINT "Payment_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Payment" OWNER to postgres;
-	CREATE UNIQUE INDEX IF NOT EXISTS "Payment_code_key" ON public."Payment" USING btree (code COLLATE pg_catalog."default" ASC NULLS LAST) WITH (fillfactor=100, deduplicate_items=True) TABLESPACE pg_default;
-	ALTER SEQUENCE public."Payment_id_seq" OWNED BY public."Payment".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."CreditCard_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."CreditCard_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."CreditCard"
-	(
-	    id integer NOT NULL DEFAULT nextval('"CreditCard_id_seq"'::regclass),
-	    code text COLLATE pg_catalog."default" NOT NULL,
-	    "name" text COLLATE pg_catalog."default" NOT NULL,
-		"type" text COLLATE pg_catalog."default" NOT NULL,
-	    "inactive" boolean NOT NULL DEFAULT false,
-	    CONSTRAINT "CreditCard_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."CreditCard" OWNER to postgres;
-	CREATE UNIQUE INDEX IF NOT EXISTS "CreditCard_code_key" ON public."CreditCard" USING btree (code COLLATE pg_catalog."default" ASC NULLS LAST) WITH (fillfactor=100, deduplicate_items=True) TABLESPACE pg_default;
-	ALTER SEQUENCE public."CreditCard_id_seq" OWNED BY public."CreditCard".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingsGDS_log_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingsGDS_log_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BookingsGDS_log"
-	(
-	    id integer NOT NULL DEFAULT nextval('"BookingsGDS_log_id_seq"'::regclass),
-	    blanch VARCHAR(25),
-	    implant VARCHAR(25),
-	    "message" TEXT,
-	    file VARCHAR(250),
-	    codebooking VARCHAR(50),
-	    booking TEXT,
-	    error integer NOT NULL DEFAULT 0,
-	    CONSTRAINT "BookingsGDS_log_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingsGDS_log" OWNER to postgres;
-	ALTER SEQUENCE public."BookingsGDS_log_id_seq" OWNED BY public."BookingsGDS_log".id;
-	CREATE SEQUENCE IF NOT EXISTS public."BookingsGDSInvoiceAuto_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingsGDSInvoiceAuto_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BookingsGDSInvoiceAuto"
-	(
-	    id integer NOT NULL DEFAULT nextval('"BookingsGDSInvoiceAuto_id_seq"'::regclass),
-	    "Branch" VARCHAR(25),
-	    implant VARCHAR(25),
-	    "bookingCode" VARCHAR(25),
-	    "bookingId" integer,
-	    CONSTRAINT "BookingsGDSInvoiceAuto_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingsGDSInvoiceAuto" OWNER to postgres;
-	ALTER SEQUENCE public."BookingsGDSInvoiceAuto_id_seq" OWNED BY public."BookingsGDSInvoiceAuto".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."BookingGDSInvoiceAutoLog_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."BookingGDSInvoiceAutoLog_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."BookingGDSInvoiceAutoLog"
-	(
-	    "Id" integer NOT NULL DEFAULT nextval('"BookingGDSInvoiceAutoLog_id_seq"'::regclass),
-	    "branchId" integer,
-	    "implanteId" integer,
-	    "date" TIMESTAMP,
-	    menssage text,
-	    "bookingCode" VARCHAR(25),
-	    "bookingId" integer,
-	    error boolean,
-	    file text,
-	    "userId" integer,
-	    CONSTRAINT "BookingGDSInvoiceAutoLog_pkey" PRIMARY KEY ("Id")
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."BookingGDSInvoiceAutoLog" OWNER to postgres;
-	ALTER SEQUENCE public."BookingGDSInvoiceAutoLog_id_seq" OWNED BY public."BookingGDSInvoiceAutoLog"."Id";
-
-	CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."Currency_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."Currency" (
-		id integer NOT NULL DEFAULT nextval('"Currency_id_seq"'::regclass),
-		code VARCHAR(10) NOT NULL,
-		name VARCHAR(50) NOT NULL,
-		"exchangeRate" double precision,
-		CONSTRAINT "Currency_pkey" PRIMARY KEY (id)
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Currency" OWNER to postgres;
-	ALTER SEQUENCE public."Currency_id_seq" OWNED BY public."Currency".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Countries_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."Countries_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."Countries" (
-		id integer NOT NULL DEFAULT nextval('"Countries_id_seq"'::regclass),
-		code VARCHAR(10) NOT NULL,
-		name VARCHAR(100) NOT NULL,
-		dane VARCHAR(25),
-		region VARCHAR(50),
-		prefix VARCHAR(10),
-		"curencyId" integer,
-		CONSTRAINT "Countries_pkey" PRIMARY KEY (id),
-		CONSTRAINT "Countries_curencyId_fkey" FOREIGN KEY ("curencyId") REFERENCES public."Currency" (id) ON UPDATE CASCADE ON DELETE SET NULL
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Countries" OWNER to postgres;
-	ALTER SEQUENCE public."Countries_id_seq" OWNED BY public."Countries".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Cities_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."Cities_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."Cities" (
-		id integer NOT NULL DEFAULT nextval('"Cities_id_seq"'::regclass),
-		code VARCHAR(10) NOT NULL,
-		name VARCHAR(100) NOT NULL,
-		"countriesId" integer NOT NULL,
-		statecode VARCHAR(25),
-		iata VARCHAR(10),
-		CONSTRAINT "Cities_pkey" PRIMARY KEY (id),
-		CONSTRAINT "Cities_countriesId_fkey" FOREIGN KEY ("countriesId") REFERENCES public."Countries" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Cities" OWNER to postgres;
-	ALTER SEQUENCE public."Cities_id_seq" OWNED BY public."Cities".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."Airports_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."Airports_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."Airports" (
-		id integer NOT NULL DEFAULT nextval('"Airports_id_seq"'::regclass),
-		code VARCHAR(10) NOT NULL,
-		name VARCHAR(150) NOT NULL,
-		"citiesId" integer NOT NULL,
-		CONSTRAINT "Airports_pkey" PRIMARY KEY (id),
-		CONSTRAINT "Airports_citiesId_fkey" FOREIGN KEY ("citiesId") REFERENCES public."Cities" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."Airports" OWNER to postgres;
-	ALTER SEQUENCE public."Airports_id_seq" OWNED BY public."Airports".id;
-
-	CREATE SEQUENCE IF NOT EXISTS public."CellCustomization_id_seq" INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1;
-	ALTER SEQUENCE public."CellCustomization_id_seq" OWNER TO postgres;
-
-	CREATE TABLE IF NOT EXISTS public."CellCustomization" (
-		id integer NOT NULL DEFAULT nextval('"CellCustomization_id_seq"'::regclass),
-		code VARCHAR(50) NOT NULL,
-		"name" VARCHAR(100) NOT NULL,
-		"value" VARCHAR(10),
-		"branchId" integer,
-		"implantId" integer,
-		CONSTRAINT "CellCustomization_pkey" PRIMARY KEY (id),
-		CONSTRAINT "CellCustomization_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch" (id) ON UPDATE CASCADE ON DELETE CASCADE,
-		CONSTRAINT "CellCustomization_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant" (id) ON UPDATE CASCADE ON DELETE CASCADE
-	) TABLESPACE pg_default;
-	ALTER TABLE IF EXISTS public."CellCustomization" OWNER to postgres;
-	ALTER SEQUENCE public."CellCustomization_id_seq" OWNED BY public."CellCustomization".id;
-
-	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_branch_code_key" ON public."CellCustomization" ("branchId", "code") WHERE "branchId" IS NOT NULL;
-	CREATE UNIQUE INDEX IF NOT EXISTS "CellCustomization_implant_code_key" ON public."CellCustomization" ("implantId", "code") WHERE "implantId" IS NOT NULL;
-
-	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "logo" bytea;
-	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "template" bytea;
-	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "templateConfig" jsonb;
-	ALTER TABLE public."Branch" ADD COLUMN IF NOT EXISTS "htmlTemplate" text;
-
-	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "logo" bytea;
-	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "template" bytea;
-	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "templateConfig" jsonb;
-	ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "htmlTemplate" text;
-END $$;
-
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN 
-        ALTER TABLE public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id); 
-    END IF; 
-END $$;
-
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'interfaces_pkey') THEN 
-        ALTER TABLE public."Interfaces" ADD CONSTRAINT "interfaces_pkey" PRIMARY KEY (id); 
-    END IF; 
-END $$;
-
-DO $$ 
-BEGIN 
-    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'master_pkey') THEN 
-        ALTER TABLE public."Master" ADD CONSTRAINT "master_pkey" PRIMARY KEY (id); 
-    END IF; 
-END $$;
--- Script para la tabla maestra TicketType
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'TicketType') THEN
-        CREATE TABLE public."TicketType" (
-            "id" SERIAL PRIMARY KEY,
-            "code" VARCHAR(50) UNIQUE NOT NULL,
-            "name" VARCHAR(255) NOT NULL,
-            "description" TEXT,
-            "isActive" BOOLEAN DEFAULT true
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Invoices') THEN
-        CREATE TABLE public."Invoices" (
-            "id" SERIAL PRIMARY KEY,
-            "internalNumber" VARCHAR(255) UNIQUE NOT NULL,
-            "date" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "clientId" INT NOT NULL,
-            "currency" VARCHAR(50) NOT NULL,
-            "exchangeRate" FLOAT NOT NULL,
-            "branchId" INT NOT NULL,
-            "implantId" INT,
-            "sellerId" INT,
-            "ticketPrinterId" INT,
-            "baseCommissionable" FLOAT NOT NULL,
-            "commissionPercentage" FLOAT NOT NULL,
-            "chargesAndTaxes" FLOAT NOT NULL,
-            "totalAmount" FLOAT NOT NULL,
-            "userId" INT,
-            "state" VARCHAR(25) DEFAULT 'NUEVO'
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProduct') THEN
-        CREATE TABLE public."InvoicesProduct" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceId" INT NOT NULL,
-            "productId" INT NOT NULL,
-            "quantity" INT NOT NULL,
-            "price" FLOAT NOT NULL,
-            "cost" FLOAT DEFAULT 0,
-            "providerId" INT,
-            "prestadoraId" INT,
-            "checkInDate" TIMESTAMP,
-            "checkOutDate" TIMESTAMP,
-            "nights" INT,
-            "paxAdults" INT,
-            "paxChildren" INT,
-            "serviceType" VARCHAR(255),
-            "destination" VARCHAR(255),
-            "reservationCode" VARCHAR(255),
-            "sellerCommission" FLOAT,
-            "ticketPrinterCommission" FLOAT,
-            "comboId" INT,
-            "mainTaxId" INT,
-            "inNationality" INT DEFAULT 1,
-            
-            -- Nuevos campos solicitados
-            "servicios" TEXT,
-            "descripcion" TEXT,
-            "itinerary" TEXT,
-            "class" VARCHAR(100),
-            "ticketTypeId" INT
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductCombo') THEN
-        CREATE TABLE public."InvoicesProductCombo" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceId" INT NOT NULL,
-            "comboId" INT NOT NULL
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax') THEN
-        CREATE TABLE public."InvoicesProductTax" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceProductId" INT NOT NULL,
-            "chargeAndTaxId" INT NOT NULL,
-            "valueSnapshot" FLOAT NOT NULL,
-            "valueTypeSnapshot" VARCHAR(50) NOT NULL,
-            "explicitAmount" FLOAT,
-            "isMain" BOOLEAN DEFAULT false
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger') THEN
-        CREATE TABLE public."InvoicesProductPasenger" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceProductId" INT NOT NULL,
-            "name" VARCHAR(255) NOT NULL,
-            "document" VARCHAR(255) NOT NULL
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable') THEN
-        CREATE TABLE public."InvoicesProductVariable" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceProductId" INT NOT NULL,
-            "masterVariableId" INT NOT NULL,
-            "value" VARCHAR(255) NOT NULL
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment') THEN
-        CREATE TABLE public."InvoicesProductPayment" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceProductId" INT NOT NULL,
-            "amount" FLOAT NOT NULL,
-            "paymentMethod" VARCHAR(100),
-            "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            "reference" VARCHAR(255)
-        );
-    END IF;
-END $$;
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'servicios') THEN
-        ALTER TABLE public."QuotationProduct" ADD COLUMN "servicios" TEXT;
-    END IF;
-    
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'descripcion') THEN
-        ALTER TABLE public."QuotationProduct" ADD COLUMN "descripcion" TEXT;
-    END IF;
 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'id') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'code') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'name') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'template') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "template" bytea;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'templateConfig') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "templateConfig" jsonb;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'htmlTemplate') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "htmlTemplate" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'logo') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "logo" bytea;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'id') THEN
+        ALTER TABLE public."Client" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'name') THEN
+        ALTER TABLE public."Client" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'document') THEN
+        ALTER TABLE public."Client" ADD COLUMN "document" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'contactInfo') THEN
+        ALTER TABLE public."Client" ADD COLUMN "contactInfo" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'address') THEN
+        ALTER TABLE public."Client" ADD COLUMN "address" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'mandatoryVariables') THEN
+        ALTER TABLE public."Client" ADD COLUMN "mandatoryVariables" jsonb;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'id') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'code') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'name') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'branchId') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "branchId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'Logo') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "Logo" bytea;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'template') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "template" bytea;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'templateConfig') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "templateConfig" jsonb;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'htmlTemplate') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "htmlTemplate" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'logo') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "logo" bytea;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'id') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'name') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'type') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "type" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'valueType') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "valueType" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'value') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "value" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'isEditable') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "isEditable" boolean DEFAULT true NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'code') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'id') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'code') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "code" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'name') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "name" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'parent') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "parent" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'action') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "action" character varying(500) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'activo') THEN
+        ALTER TABLE public."Menu" ADD COLUMN "activo" boolean DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemParameter' AND column_name = 'id') THEN
+        ALTER TABLE public."SystemParameter" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemParameter' AND column_name = 'code') THEN
+        ALTER TABLE public."SystemParameter" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemParameter' AND column_name = 'name') THEN
+        ALTER TABLE public."SystemParameter" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemParameter' AND column_name = 'value') THEN
+        ALTER TABLE public."SystemParameter" ADD COLUMN "value" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'id') THEN
+        ALTER TABLE public."Product" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'type') THEN
+        ALTER TABLE public."Product" ADD COLUMN "type" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'description') THEN
+        ALTER TABLE public."Product" ADD COLUMN "description" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'basePrice') THEN
+        ALTER TABLE public."Product" ADD COLUMN "basePrice" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'billingConcept') THEN
+        ALTER TABLE public."Product" ADD COLUMN "billingConcept" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'serviceType') THEN
+        ALTER TABLE public."Product" ADD COLUMN "serviceType" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'code') THEN
+        ALTER TABLE public."Product" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'cost') THEN
+        ALTER TABLE public."Product" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'airlineItinerary') THEN
+        ALTER TABLE public."Product" ADD COLUMN "airlineItinerary" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'classItinerary') THEN
+        ALTER TABLE public."Product" ADD COLUMN "classItinerary" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'flightItinerary') THEN
+        ALTER TABLE public."Product" ADD COLUMN "flightItinerary" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'ticketTypeId') THEN
+        ALTER TABLE public."Product" ADD COLUMN "ticketTypeId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'mandatoryFields') THEN
+        ALTER TABLE public."Product" ADD COLUMN "mandatoryFields" jsonb;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Seller' AND column_name = 'id') THEN
+        ALTER TABLE public."Seller" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Seller' AND column_name = 'code') THEN
+        ALTER TABLE public."Seller" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Seller' AND column_name = 'name') THEN
+        ALTER TABLE public."Seller" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Seller' AND column_name = 'email') THEN
+        ALTER TABLE public."Seller" ADD COLUMN "email" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketPrinter' AND column_name = 'id') THEN
+        ALTER TABLE public."TicketPrinter" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketPrinter' AND column_name = 'code') THEN
+        ALTER TABLE public."TicketPrinter" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketPrinter' AND column_name = 'name') THEN
+        ALTER TABLE public."TicketPrinter" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketPrinter' AND column_name = 'email') THEN
+        ALTER TABLE public."TicketPrinter" ADD COLUMN "email" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'MasterVariable' AND column_name = 'id') THEN
+        ALTER TABLE public."MasterVariable" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'MasterVariable' AND column_name = 'code') THEN
+        ALTER TABLE public."MasterVariable" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'MasterVariable' AND column_name = 'name') THEN
+        ALTER TABLE public."MasterVariable" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Airports' AND column_name = 'id') THEN
+        ALTER TABLE public."Airports" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Airports' AND column_name = 'code') THEN
+        ALTER TABLE public."Airports" ADD COLUMN "code" character varying(10) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Airports' AND column_name = 'name') THEN
+        ALTER TABLE public."Airports" ADD COLUMN "name" character varying(150) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Airports' AND column_name = 'citiesId') THEN
+        ALTER TABLE public."Airports" ADD COLUMN "citiesId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'id') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'quotationId') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "quotationId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'fileName') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "fileName" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'fileType') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "fileType" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'fileSize') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "fileSize" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'fileContent') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "fileContent" bytea NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Attachment' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."Attachment" ADD COLUMN "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "code" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'type') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "type" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'blanch') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "blanch" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'implant') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "implant" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'external') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "external" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'gds') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "gds" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'date') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "date" timestamp without time zone DEFAULT now();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'currency') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "currency" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'exchangeRate') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "exchangeRate" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'tiquetPrinter') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "tiquetPrinter" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'seller') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "seller" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'client') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "client" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'booking') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "booking" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'typetransaction') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "typetransaction" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'iata') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "iata" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'description') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'observation') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "observation" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDS' AND column_name = 'state') THEN
+        ALTER TABLE public."BookingGDS" ADD COLUMN "state" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'Id') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "Id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'branchId') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "branchId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'implanteId') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "implanteId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'date') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "date" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'menssage') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "menssage" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'bookingCode') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "bookingCode" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'bookingId') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "bookingId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'error') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "error" boolean;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'file') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "file" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingGDSInvoiceAutoLog' AND column_name = 'userId') THEN
+        ALTER TABLE public."BookingGDSInvoiceAutoLog" ADD COLUMN "userId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "bookingProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'name') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'type') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "type" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'description') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "description" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'billigconcept') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "billigconcept" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'servicetype') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "servicetype" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'amount') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'tax') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "tax" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'other') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "other" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductFEEGDS' AND column_name = 'total') THEN
+        ALTER TABLE public."BookingProductFEEGDS" ADD COLUMN "total" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'bookingId') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "bookingId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "code" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'type') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "type" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'service') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "service" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'description') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'prestadoracode') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "prestadoracode" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'prestadorainitials') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "prestadorainitials" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'prestadoradist') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "prestadoradist" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'provider') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "provider" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'quantity') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "quantity" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'price') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "price" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'cost') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "checkInDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "checkOutDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'nights') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "nights" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'paxAdults') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "paxAdults" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'paxChildren') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "paxChildren" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'serviceType') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "serviceType" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'billingConcept') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "billingConcept" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'destination') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "destination" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'reservationCode') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "reservationCode" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'sellerCom') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "sellerCom" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'ticketPrinterCom') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "ticketPrinterCom" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'inNationality') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "inNationality" integer DEFAULT 1;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'state') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "state" character varying(25) DEFAULT 'NUEVO'::character varying;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'conjunction') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "conjunction" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'revised') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "revised" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'typeproduct') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "typeproduct" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'consecutive') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "consecutive" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'penalty') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "penalty" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "bookingProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'orden') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "orden" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'origin') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "origin" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'destination') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "destination" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'class') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "class" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "checkInDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "checkOutDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'terminal') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "terminal" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'prestadoraCode') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "prestadoraCode" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'farebasis') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "farebasis" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'Numflight') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "Numflight" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'Typeflight') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "Typeflight" character varying(1);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS' AND column_name = 'amount') THEN
+        ALTER TABLE public."BookingProductItineraryGDS" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "bookingProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "code" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'firstnm') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "firstnm" character varying(30);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'lastnm') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "lastnm" character varying(30);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'prefix') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "prefix" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'identification') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "identification" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'phone') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "phone" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS' AND column_name = 'email') THEN
+        ALTER TABLE public."BookingProductPassangerGDS" ADD COLUMN "email" character varying(250);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "bookingProductId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'bookingProductFEEId') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "bookingProductFEEId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "code" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'name') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "name" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'type') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "type" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'typecreditcard') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "typecreditcard" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'numbercreditcard') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "numbercreditcard" character varying(16);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'vouchercreditcard') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "vouchercreditcard" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'expiredcreditcard') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "expiredcreditcard" character varying(5);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'authcreditcard') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "authcreditcard" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'quotas') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "quotas" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'bank') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "bank" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'square') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "square" character varying(30);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'reference') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "reference" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'policy') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "policy" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'policyannex') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "policyannex" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'amount') THEN
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "bookingProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "code" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'name') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "name" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'type') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "type" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'ismain') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "ismain" boolean DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'percentage') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "percentage" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS' AND column_name = 'amount') THEN
+        ALTER TABLE public."BookingProductTaxGDS" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductVariableGDS' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingProductVariableGDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductVariableGDS' AND column_name = 'bookingProductId') THEN
+        ALTER TABLE public."BookingProductVariableGDS" ADD COLUMN "bookingProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductVariableGDS' AND column_name = 'code') THEN
+        ALTER TABLE public."BookingProductVariableGDS" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductVariableGDS' AND column_name = 'name') THEN
+        ALTER TABLE public."BookingProductVariableGDS" ADD COLUMN "name" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductVariableGDS' AND column_name = 'value') THEN
+        ALTER TABLE public."BookingProductVariableGDS" ADD COLUMN "value" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDSInvoiceAuto' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingsGDSInvoiceAuto" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDSInvoiceAuto' AND column_name = 'Branch') THEN
+        ALTER TABLE public."BookingsGDSInvoiceAuto" ADD COLUMN "Branch" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDSInvoiceAuto' AND column_name = 'implant') THEN
+        ALTER TABLE public."BookingsGDSInvoiceAuto" ADD COLUMN "implant" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDSInvoiceAuto' AND column_name = 'bookingCode') THEN
+        ALTER TABLE public."BookingsGDSInvoiceAuto" ADD COLUMN "bookingCode" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDSInvoiceAuto' AND column_name = 'bookingId') THEN
+        ALTER TABLE public."BookingsGDSInvoiceAuto" ADD COLUMN "bookingId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'id') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'blanch') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "blanch" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'implant') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "implant" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'message') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "message" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'file') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "file" character varying(250);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'codebooking') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "codebooking" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'booking') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "booking" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingsGDS_log' AND column_name = 'error') THEN
+        ALTER TABLE public."BookingsGDS_log" ADD COLUMN "error" integer DEFAULT 0 NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BranchGDSInvoiceAuto' AND column_name = 'id') THEN
+        ALTER TABLE public."BranchGDSInvoiceAuto" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BranchGDSInvoiceAuto' AND column_name = 'branchId') THEN
+        ALTER TABLE public."BranchGDSInvoiceAuto" ADD COLUMN "branchId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BranchGDSInvoiceAuto' AND column_name = 'gdsId') THEN
+        ALTER TABLE public."BranchGDSInvoiceAuto" ADD COLUMN "gdsId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BranchGDSInvoiceAuto' AND column_name = 'EnvoiceAuto') THEN
+        ALTER TABLE public."BranchGDSInvoiceAuto" ADD COLUMN "EnvoiceAuto" boolean DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'id') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'code') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "code" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'name') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'value') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "value" character varying(10);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'branchId') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "branchId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CellCustomization' AND column_name = 'implantId') THEN
+        ALTER TABLE public."CellCustomization" ADD COLUMN "implantId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'id') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'code') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "code" character varying(10) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'name') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'countriesId') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "countriesId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'statecode') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "statecode" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Cities' AND column_name = 'iata') THEN
+        ALTER TABLE public."Cities" ADD COLUMN "iata" character varying(10);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'id') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'code') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'name') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'updatedAt') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "updatedAt" timestamp without time zone DEFAULT now();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'currencyId') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "currencyId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'cupos') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "cupos" integer DEFAULT 1;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'id') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'comboId') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "comboId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'productId') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "productId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'price') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "price" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "checkInDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "checkOutDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'prestadoraId') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "prestadoraId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'mainTaxId') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "mainTaxId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'paxAdults') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "paxAdults" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'paxChildren') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "paxChildren" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'providerId') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "providerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'inNationality') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "inNationality" integer DEFAULT 1;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'quantity') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "quantity" integer DEFAULT 1 NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'cost') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProductTax' AND column_name = 'id') THEN
+        ALTER TABLE public."ComboProductTax" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProductTax' AND column_name = 'comboProductId') THEN
+        ALTER TABLE public."ComboProductTax" ADD COLUMN "comboProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProductTax' AND column_name = 'chargeAndTaxId') THEN
+        ALTER TABLE public."ComboProductTax" ADD COLUMN "chargeAndTaxId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProductTax' AND column_name = 'amount') THEN
+        ALTER TABLE public."ComboProductTax" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProductTax' AND column_name = 'isMain') THEN
+        ALTER TABLE public."ComboProductTax" ADD COLUMN "isMain" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'id') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'code') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "code" character varying(10) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'name') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'dane') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "dane" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'region') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "region" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'prefix') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "prefix" character varying(10);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Countries' AND column_name = 'curencyId') THEN
+        ALTER TABLE public."Countries" ADD COLUMN "curencyId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CreditCard' AND column_name = 'id') THEN
+        ALTER TABLE public."CreditCard" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CreditCard' AND column_name = 'code') THEN
+        ALTER TABLE public."CreditCard" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CreditCard' AND column_name = 'name') THEN
+        ALTER TABLE public."CreditCard" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CreditCard' AND column_name = 'type') THEN
+        ALTER TABLE public."CreditCard" ADD COLUMN "type" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'CreditCard' AND column_name = 'inactive') THEN
+        ALTER TABLE public."CreditCard" ADD COLUMN "inactive" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'id') THEN
+        ALTER TABLE public."Currency" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'code') THEN
+        ALTER TABLE public."Currency" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'name') THEN
+        ALTER TABLE public."Currency" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'exchangeRate') THEN
+        ALTER TABLE public."Currency" ADD COLUMN "exchangeRate" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'id') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'id_interfaces') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "id_interfaces" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'id_master') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "id_master" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'cd_maestro') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "cd_maestro" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'cd_codigo') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "cd_codigo" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'cd_codigointe') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "cd_codigointe" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'dt_fecha') THEN
+        ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "dt_fecha" timestamp without time zone DEFAULT now();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'id') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'Id_Interfaces') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "Id_Interfaces" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'cd_maestro') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "cd_maestro" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'cd_codigo') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "cd_codigo" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'cd_codigoInte') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "cd_codigoInte" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'cd_operacion') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "cd_operacion" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'ds_xmlpeticion') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "ds_xmlpeticion" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'ds_xmlrespuesta') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "ds_xmlrespuesta" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'ds_xmlorg') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "ds_xmlorg" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'ds_Logpeticion') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "ds_Logpeticion" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'fecha_creacion') THEN
+        ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "fecha_creacion" timestamp(6) without time zone DEFAULT now();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'GDS' AND column_name = 'id') THEN
+        ALTER TABLE public."GDS" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'GDS' AND column_name = 'name') THEN
+        ALTER TABLE public."GDS" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'id') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'name') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'location') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "location" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'category') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "category" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'providerId') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "providerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'code') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'type') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "type" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'initials') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "initials" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Prestadora' AND column_name = 'nogds') THEN
+        ALTER TABLE public."Prestadora" ADD COLUMN "nogds" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'id') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'code') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'name') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'inactivo') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "inactivo" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'bl_genera_archivoplano') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "bl_genera_archivoplano" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'ds_storedprocedure_archivoplano') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "ds_storedprocedure_archivoplano" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'bl_job') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "bl_job" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'ds_namejob') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "ds_namejob" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'bl_facturador') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "bl_facturador" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Interfaces' AND column_name = 'id_gds') THEN
+        ALTER TABLE public."Interfaces" ADD COLUMN "id_gds" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'id') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'internalNumber') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "internalNumber" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'date') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "date" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'clientId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "clientId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'currency') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "currency" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'exchangeRate') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "exchangeRate" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'branchId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "branchId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'implantId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "implantId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'sellerId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "sellerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'ticketPrinterId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "ticketPrinterId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'baseCommissionable') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "baseCommissionable" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'commissionPercentage') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "commissionPercentage" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'chargesAndTaxes') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "chargesAndTaxes" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'totalAmount') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "totalAmount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'userId') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "userId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'state') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "state" character varying(25) DEFAULT 'NUEVO'::character varying;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'invoiceId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "invoiceId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'productId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "productId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'quantity') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "quantity" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'price') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "price" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'cost') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'providerId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "providerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'prestadoraId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "prestadoraId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "checkInDate" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "checkOutDate" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'nights') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "nights" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'paxAdults') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "paxAdults" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'paxChildren') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "paxChildren" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'serviceType') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "serviceType" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'destination') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "destination" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'reservationCode') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "reservationCode" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'sellerCommission') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "sellerCommission" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'ticketPrinterCommission') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "ticketPrinterCommission" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'comboId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "comboId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'mainTaxId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "mainTaxId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'inNationality') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "inNationality" integer DEFAULT 1;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'servicios') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "servicios" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'descripcion') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "descripcion" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'itinerary') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "itinerary" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'class') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "class" character varying(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'ticketTypeId') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "ticketTypeId" integer;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'airline') THEN
-        ALTER TABLE public."InvoicesProduct" ADD COLUMN "airline" VARCHAR(100);
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "airline" character varying(100);
     END IF;
-END $$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary') THEN
-        CREATE TABLE public."InvoicesProductItinerary" (
-            "id" SERIAL PRIMARY KEY,
-            "invoiceProductId" INT NOT NULL,
-            "orden" INT,
-            "origin" VARCHAR(255) NOT NULL,
-            "destination" VARCHAR(255) NOT NULL,
-            "class" VARCHAR(255),
-            "checkInDate" TIMESTAMP,
-            "checkOutDate" TIMESTAMP,
-            "terminal" VARCHAR(255),
-            "prestadoraCode" VARCHAR(255),
-            "farebasis" VARCHAR(255),
-            "Numflight" VARCHAR(25),
-            "Typeflight" VARCHAR(1),
-            "amount" FLOAT,
-            CONSTRAINT "InvoicesProductItinerary_invoiceProductId_fkey" FOREIGN KEY ("invoiceProductId") REFERENCES public."InvoicesProduct" (id) ON UPDATE CASCADE ON DELETE CASCADE
-        );
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductCombo' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductCombo" ADD COLUMN "id" integer NOT NULL;
     END IF;
-END $$;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductCombo' AND column_name = 'invoiceId') THEN
+        ALTER TABLE public."InvoicesProductCombo" ADD COLUMN "invoiceId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductCombo' AND column_name = 'comboId') THEN
+        ALTER TABLE public."InvoicesProductCombo" ADD COLUMN "comboId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'invoiceProductId') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "invoiceProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'orden') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "orden" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'origin') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "origin" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'destination') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "destination" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'class') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "class" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "checkInDate" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "checkOutDate" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'terminal') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "terminal" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'prestadoraCode') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "prestadoraCode" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'farebasis') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "farebasis" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'Numflight') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "Numflight" character varying(25);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'Typeflight') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "Typeflight" character varying(1);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'amount') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "amount" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductPasenger" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger' AND column_name = 'invoiceProductId') THEN
+        ALTER TABLE public."InvoicesProductPasenger" ADD COLUMN "invoiceProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger' AND column_name = 'name') THEN
+        ALTER TABLE public."InvoicesProductPasenger" ADD COLUMN "name" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger' AND column_name = 'document') THEN
+        ALTER TABLE public."InvoicesProductPasenger" ADD COLUMN "document" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'invoiceProductId') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "invoiceProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'amount') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'paymentMethod') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "paymentMethod" character varying(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'date') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "date" timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'reference') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "reference" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'authorizationCode') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "authorizationCode" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'cardNumber') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "cardNumber" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'creditCardId') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "creditCardId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'expirationDate') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "expirationDate" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment' AND column_name = 'voucher') THEN
+        ALTER TABLE public."InvoicesProductPayment" ADD COLUMN "voucher" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'invoiceProductId') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "invoiceProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'chargeAndTaxId') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "chargeAndTaxId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'valueSnapshot') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "valueSnapshot" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'valueTypeSnapshot') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "valueTypeSnapshot" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'explicitAmount') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "explicitAmount" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax' AND column_name = 'isMain') THEN
+        ALTER TABLE public."InvoicesProductTax" ADD COLUMN "isMain" boolean DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable' AND column_name = 'id') THEN
+        ALTER TABLE public."InvoicesProductVariable" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable' AND column_name = 'invoiceProductId') THEN
+        ALTER TABLE public."InvoicesProductVariable" ADD COLUMN "invoiceProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable' AND column_name = 'masterVariableId') THEN
+        ALTER TABLE public."InvoicesProductVariable" ADD COLUMN "masterVariableId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable' AND column_name = 'value') THEN
+        ALTER TABLE public."InvoicesProductVariable" ADD COLUMN "value" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Master' AND column_name = 'id') THEN
+        ALTER TABLE public."Master" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Master' AND column_name = 'code') THEN
+        ALTER TABLE public."Master" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Master' AND column_name = 'name') THEN
+        ALTER TABLE public."Master" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Master' AND column_name = 'inactivo') THEN
+        ALTER TABLE public."Master" ADD COLUMN "inactivo" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'id') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'code') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "code" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'name') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'inactive') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "inactive" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'iscash') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "iscash" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Payment' AND column_name = 'iscredit') THEN
+        ALTER TABLE public."Payment" ADD COLUMN "iscredit" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Provider' AND column_name = 'id') THEN
+        ALTER TABLE public."Provider" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Provider' AND column_name = 'code') THEN
+        ALTER TABLE public."Provider" ADD COLUMN "code" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Provider' AND column_name = 'name') THEN
+        ALTER TABLE public."Provider" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Provider' AND column_name = 'contactInfo') THEN
+        ALTER TABLE public."Provider" ADD COLUMN "contactInfo" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Provider' AND column_name = 'commissionConfig') THEN
+        ALTER TABLE public."Provider" ADD COLUMN "commissionConfig" jsonb;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'id') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'internalNumber') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "internalNumber" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'date') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "date" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'clientId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "clientId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'currency') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "currency" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'exchangeRate') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "exchangeRate" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'branchId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "branchId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'implantId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "implantId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'sellerId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "sellerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'ticketPrinterId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "ticketPrinterId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'baseCommissionable') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "baseCommissionable" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'commissionPercentage') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "commissionPercentage" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'chargesAndTaxes') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "chargesAndTaxes" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'totalAmount') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "totalAmount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'userId') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "userId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'state') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "state" character varying(25) DEFAULT 'Nuevo'::character varying;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'stateDescription') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "stateDescription" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'stateUpdatedAt') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "stateUpdatedAt" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'costoTotal') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "costoTotal" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'valorBase') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "valorBase" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'utilidad') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "utilidad" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionTotalPercentage') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionTotalPercentage" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionFreelancePercentage') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionFreelancePercentage" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionFreelanceValue') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionFreelanceValue" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionPropiaPercentage') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionPropiaPercentage" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionPropiaValue') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionPropiaValue" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionUtilidadPercentage') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "comisionUtilidadPercentage" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationCombo' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationCombo" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationCombo' AND column_name = 'quotationId') THEN
+        ALTER TABLE public."QuotationCombo" ADD COLUMN "quotationId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationCombo' AND column_name = 'comboId') THEN
+        ALTER TABLE public."QuotationCombo" ADD COLUMN "comboId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'quotationId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "quotationId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'productId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "productId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'quantity') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "quantity" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'price') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "price" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'providerId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "providerId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'prestadoraId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "prestadoraId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'checkInDate') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "checkInDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'checkOutDate') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "checkOutDate" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'nights') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "nights" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'paxAdults') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "paxAdults" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'paxChildren') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "paxChildren" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'serviceType') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "serviceType" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'destination') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "destination" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'reservationCode') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "reservationCode" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'sellerCommission') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "sellerCommission" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'ticketPrinterCommission') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "ticketPrinterCommission" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'comboId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "comboId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'mainTaxId') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "mainTaxId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'inNationality') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "inNationality" integer DEFAULT 1;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'cost') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'service') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "service" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'description') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'servicios') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "servicios" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'descripcion') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "descripcion" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPassenger' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationProductPassenger" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPassenger' AND column_name = 'quotationProductId') THEN
+        ALTER TABLE public."QuotationProductPassenger" ADD COLUMN "quotationProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPassenger' AND column_name = 'name') THEN
+        ALTER TABLE public."QuotationProductPassenger" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPassenger' AND column_name = 'document') THEN
+        ALTER TABLE public."QuotationProductPassenger" ADD COLUMN "document" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'quotationProductId') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "quotationProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'amount') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "amount" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'paymentMethod') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "paymentMethod" character varying(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'date') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "date" timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'reference') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "reference" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'creditCardId') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "creditCardId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'cardNumber') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "cardNumber" character varying(20);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'authorizationCode') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "authorizationCode" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'voucher') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "voucher" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment' AND column_name = 'expirationDate') THEN
+        ALTER TABLE public."QuotationProductPayment" ADD COLUMN "expirationDate" character varying(10);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'quotationProductId') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "quotationProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'chargeAndTaxId') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "chargeAndTaxId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'valueSnapshot') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "valueSnapshot" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'valueTypeSnapshot') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "valueTypeSnapshot" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'explicitAmount') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "explicitAmount" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductTax' AND column_name = 'isMain') THEN
+        ALTER TABLE public."QuotationProductTax" ADD COLUMN "isMain" boolean DEFAULT false NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductVariable' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationProductVariable" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductVariable' AND column_name = 'quotationProductId') THEN
+        ALTER TABLE public."QuotationProductVariable" ADD COLUMN "quotationProductId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductVariable' AND column_name = 'masterVariableId') THEN
+        ALTER TABLE public."QuotationProductVariable" ADD COLUMN "masterVariableId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductVariable' AND column_name = 'value') THEN
+        ALTER TABLE public."QuotationProductVariable" ADD COLUMN "value" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationState" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'name') THEN
+        ALTER TABLE public."QuotationState" ADD COLUMN "name" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'color') THEN
+        ALTER TABLE public."QuotationState" ADD COLUMN "color" character varying(20);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."QuotationState" ADD COLUMN "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'code') THEN
+        ALTER TABLE public."QuotationState" ADD COLUMN "code" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'quotationId') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "quotationId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'state') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "state" character varying(25) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'description') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'userId') THEN
+        ALTER TABLE public."QuotationStateHistory" ADD COLUMN "userId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'id') THEN
+        ALTER TABLE public."Report" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'name') THEN
+        ALTER TABLE public."Report" ADD COLUMN "name" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'base_table') THEN
+        ALTER TABLE public."Report" ADD COLUMN "base_table" character varying(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'description') THEN
+        ALTER TABLE public."Report" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'custom_sql') THEN
+        ALTER TABLE public."Report" ADD COLUMN "custom_sql" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Report' AND column_name = 'created_at') THEN
+        ALTER TABLE public."Report" ADD COLUMN "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'id') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'report_id') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "report_id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'table_alias') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "table_alias" character varying(20);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'column_name') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "column_name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'alias') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "alias" character varying(150);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'is_calculated') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "is_calculated" boolean DEFAULT false;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'is_visible') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "is_visible" boolean DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'formula_expression') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "formula_expression" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportColumns' AND column_name = 'sort_order') THEN
+        ALTER TABLE public."ReportColumns" ADD COLUMN "sort_order" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'id') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'report_id') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "report_id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'table_alias') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "table_alias" character varying(20);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'column_name') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "column_name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'filter_label') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "filter_label" character varying(150);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'filter_type') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "filter_type" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'operator') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "operator" character varying(20) DEFAULT '='::character varying;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportFilters' AND column_name = 'sort_order') THEN
+        ALTER TABLE public."ReportFilters" ADD COLUMN "sort_order" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'id') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'report_id') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "report_id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'table_name') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "table_name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'alias') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "alias" character varying(20) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'join_type') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "join_type" character varying(50) DEFAULT 'INNER JOIN'::character varying NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'join_condition') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "join_condition" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportJoins' AND column_name = 'sort_order') THEN
+        ALTER TABLE public."ReportJoins" ADD COLUMN "sort_order" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportSorts' AND column_name = 'id') THEN
+        ALTER TABLE public."ReportSorts" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportSorts' AND column_name = 'report_id') THEN
+        ALTER TABLE public."ReportSorts" ADD COLUMN "report_id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportSorts' AND column_name = 'column_expr') THEN
+        ALTER TABLE public."ReportSorts" ADD COLUMN "column_expr" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportSorts' AND column_name = 'direction') THEN
+        ALTER TABLE public."ReportSorts" ADD COLUMN "direction" character varying(10) DEFAULT 'ASC'::character varying;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ReportSorts' AND column_name = 'sort_order') THEN
+        ALTER TABLE public."ReportSorts" ADD COLUMN "sort_order" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Role' AND column_name = 'id') THEN
+        ALTER TABLE public."Role" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Role' AND column_name = 'name') THEN
+        ALTER TABLE public."Role" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'id') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'userId') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "userId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'action') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "action" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'module') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "module" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'description') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "description" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'metadata') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "metadata" jsonb;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'SystemLog' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."SystemLog" ADD COLUMN "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketType' AND column_name = 'id') THEN
+        ALTER TABLE public."TicketType" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketType' AND column_name = 'code') THEN
+        ALTER TABLE public."TicketType" ADD COLUMN "code" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketType' AND column_name = 'name') THEN
+        ALTER TABLE public."TicketType" ADD COLUMN "name" character varying(255) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketType' AND column_name = 'description') THEN
+        ALTER TABLE public."TicketType" ADD COLUMN "description" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'TicketType' AND column_name = 'isActive') THEN
+        ALTER TABLE public."TicketType" ADD COLUMN "isActive" boolean DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'id') THEN
+        ALTER TABLE public."User" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'name') THEN
+        ALTER TABLE public."User" ADD COLUMN "name" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'email') THEN
+        ALTER TABLE public."User" ADD COLUMN "email" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'passwordHash') THEN
+        ALTER TABLE public."User" ADD COLUMN "passwordHash" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'resetPasswordToken') THEN
+        ALTER TABLE public."User" ADD COLUMN "resetPasswordToken" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'resetPasswordExpires') THEN
+        ALTER TABLE public."User" ADD COLUMN "resetPasswordExpires" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'roleId') THEN
+        ALTER TABLE public."User" ADD COLUMN "roleId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'branchId') THEN
+        ALTER TABLE public."User" ADD COLUMN "branchId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'implantId') THEN
+        ALTER TABLE public."User" ADD COLUMN "implantId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'ticketPrinterId') THEN
+        ALTER TABLE public."User" ADD COLUMN "ticketPrinterId" integer;
+    END IF;
 
+END $$;
 
 -- >>> 2. FUNCIONES <<<
 
@@ -1990,9 +3880,130 @@ END;
 $$;
 
 
--- Archivo: fnCotizacionHistorial.sql
-DROP FUNCTION IF EXISTS public.fnCotizacionHistorial();
+-- Archivo: fnCotizacion.sql
+CREATE OR REPLACE FUNCTION public.fnCotizacion(p_quotation_id INT)
+RETURNS JSONB
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_result JSONB;
+BEGIN
+    SELECT 
+        jsonb_build_object(
+            'id', q.id,
+            'internalNumber', q."internalNumber",
+            'date', q.date,
+            'clientId', q."clientId",
+            'currency', q.currency,
+            'exchangeRate', q."exchangeRate",
+            'branchId', q."branchId",
+            'implantId', q."implantId",
+            'sellerId', q."sellerId",
+            'ticketPrinterId', q."ticketPrinterId",
+            'commissionPercentage', q."commissionPercentage",
+            'chargesAndTaxes', q."chargesAndTaxes",
+            'totalAmount', q."totalAmount",
+            'state', q.state,
+            'stateDescription', q."stateDescription",
+            'stateUpdatedAt', q."stateUpdatedAt",
+            'client', jsonb_build_object(
+                'id', c.id,
+                'name', c.name,
+                'document', c.document
+            ),
+            'combos', COALESCE((
+                SELECT jsonb_agg(jsonb_build_object('id', qc."comboId", 'comboId', qc."comboId", 'name', cb.name))
+                FROM public."QuotationCombo" qc
+                JOIN public."Combo" cb ON qc."comboId" = cb.id
+                WHERE qc."quotationId" = q.id
+            ), '[]'::jsonb),
+            'products', COALESCE(
+                (
+                    SELECT jsonb_agg(
+                        jsonb_build_object(
+                            'id', qp.id,
+                            'productId', qp."productId",
+                            'product', jsonb_build_object(
+                                'id', p.id,
+                                'description', p.description,
+                                'code', p.code
+                            ),
+                            'provider', CASE WHEN prov.id IS NOT NULL THEN jsonb_build_object('id', prov.id, 'name', prov.name) ELSE NULL END,
+                            'prestadora', CASE WHEN h.id IS NOT NULL THEN jsonb_build_object('id', h.id, 'name', h.name) ELSE NULL END,
+                            'providerId', qp."providerId",
+                            'prestadoraId', qp."prestadoraId",
+                            'quantity', qp.quantity,
+                            'price', qp.price,
+                            'cost', qp.cost,
+                            'checkInDate', qp."checkInDate",
+                            'checkOutDate', qp."checkOutDate",
+                            'nights', qp.nights,
+                            'paxAdults', qp."paxAdults",
+                            'paxChildren', qp."paxChildren",
+                            'serviceType', qp."serviceType",
+                            'destination', qp.destination,
+                            'reservationCode', qp."reservationCode",
+                            'sellerCommission', qp."sellerCommission",
+                            'ticketPrinterCommission', qp."ticketPrinterCommission",
+                            'comboId', qp."comboId",
+                            'mainTaxId', qp."mainTaxId",
+                            'inNationality', COALESCE(qp."inNationality", 1),
+                            'service', COALESCE(qp.service, qp.servicios),
+                            'servicios', COALESCE(qp.servicios, qp.service),
+                            'descripcion', qp.descripcion,
+                            'passengers', COALESCE((
+                                SELECT jsonb_agg(jsonb_build_object('id', qpax.id, 'name', qpax.name, 'document', qpax.document))
+                                FROM public."QuotationProductPassenger" qpax
+                                WHERE qpax."quotationProductId" = qp.id
+                            ), '[]'::jsonb),
+                            'variables', COALESCE((
+                                SELECT jsonb_agg(jsonb_build_object('id', qvar.id, 'masterVariableId', qvar."masterVariableId", 'value', qvar.value))
+                                FROM public."QuotationProductVariable" qvar
+                                WHERE qvar."quotationProductId" = qp.id
+                            ), '[]'::jsonb),
+                            'appliedTaxes', COALESCE((
+                                SELECT jsonb_agg(jsonb_build_object('id', qpt."chargeAndTaxId", 'chargeAndTaxId', qpt."chargeAndTaxId", 'explicitAmount', qpt."explicitAmount", 'valueSnapshot', qpt."valueSnapshot", 'valueTypeSnapshot', qpt."valueTypeSnapshot", 'isMain', qpt."isMain"))
+                                FROM public."QuotationProductTax" qpt
+                                WHERE qpt."quotationProductId" = qp.id
+                            ), '[]'::jsonb),
+                            'payments', COALESCE((
+                                SELECT jsonb_agg(jsonb_build_object(
+                                    'id', qpmt.id,
+                                    'amount', qpmt.amount,
+                                    'paymentMethod', qpmt."paymentMethod",
+                                    'date', qpmt.date,
+                                    'reference', qpmt.reference,
+                                    'creditCardId', qpmt."creditCardId",
+                                    'cardNumber', qpmt."cardNumber",
+                                    'authorizationCode', qpmt."authorizationCode",
+                                    'voucher', qpmt.voucher,
+                                    'expirationDate', qpmt."expirationDate"
+                                ))
+                                FROM public."QuotationProductPayment" qpmt
+                                WHERE qpmt."quotationProductId" = qp.id
+                            ), '[]'::jsonb)
+                        )
+                    )
+                    FROM public."QuotationProduct" qp
+                    LEFT JOIN public."Product" p ON qp."productId" = p.id
+                    LEFT JOIN public."Provider" prov ON qp."providerId" = prov.id
+                    LEFT JOIN public."Prestadora" h ON qp."prestadoraId" = h.id
+                    WHERE qp."quotationId" = q.id
+                ),
+                '[]'::jsonb
+            )
+        )
+    INTO v_result
+    FROM public."Quotation" q
+    JOIN public."Client" c ON q."clientId" = c.id
+    WHERE q.id = p_quotation_id;
 
+    RETURN v_result;
+END;
+$$;
+
+
+-- Archivo: fnCotizacionHistorial.sql
 DROP FUNCTION IF EXISTS public.fnCotizacionHistorial();
 
 CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial(
@@ -2006,7 +4017,7 @@ CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial(
 )
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
-AS $
+AS $$
 BEGIN
     RETURN QUERY
     SELECT 
@@ -2056,8 +4067,220 @@ BEGIN
         AND (p_estado IS NULL OR q.state ILIKE '%' || p_estado || '%')
     ORDER BY q.date DESC;
 END;
-$;
+$$;
 
+
+-- Archivo: fnCotizacionListar.sql
+DROP FUNCTION IF EXISTS public.fnCotizacionListar();
+
+CREATE OR REPLACE FUNCTION public.fnCotizacionListar(
+    p_referencia VARCHAR DEFAULT NULL,
+    p_fecha_desde DATE DEFAULT NULL,
+    p_fecha_hasta DATE DEFAULT NULL,
+    p_cliente VARCHAR DEFAULT NULL,
+    p_elaborado_por VARCHAR DEFAULT NULL,
+    p_monto_total NUMERIC DEFAULT NULL,
+    p_estado VARCHAR DEFAULT NULL
+)
+RETURNS SETOF JSONB
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        jsonb_build_object(
+            'id', q.id,
+            'internalNumber', q."internalNumber",
+            'date', q.date,
+            'clientId', q."clientId",
+            'currency', q.currency,
+            'exchangeRate', q."exchangeRate",
+            'totalAmount', q."totalAmount",
+            'state', q.state,
+            'stateDescription', q."stateDescription",
+            'stateUpdatedAt', q."stateUpdatedAt",
+            'user', CASE WHEN u.id IS NOT NULL THEN jsonb_build_object('id', u.id, 'name', u.name) ELSE NULL END,
+            'client', jsonb_build_object(
+                'id', c.id,
+                'name', c.name,
+                'document', c.document
+            ),
+            'products', COALESCE(
+                (
+                    SELECT jsonb_agg(
+                        jsonb_build_object(
+                            'id', qp.id,
+                            'productId', qp."productId",
+                            'product', jsonb_build_object(
+                                'id', p.id,
+                                'description', p.description
+                            ),
+                            'provider', CASE WHEN prov.id IS NOT NULL THEN jsonb_build_object('id', prov.id, 'name', prov.name) ELSE NULL END,
+                            'prestadora', CASE WHEN h.id IS NOT NULL THEN jsonb_build_object('id', h.id, 'name', h.name) ELSE NULL END,
+                            'quantity', qp.quantity,
+                            'price', qp.price,
+                            'checkInDate', qp."checkInDate",
+                            'checkOutDate', qp."checkOutDate",
+                            'inNationality', COALESCE(qp."inNationality", 1),
+                            'mainTaxId', qp."mainTaxId",
+                            'passengers', COALESCE((
+                                SELECT jsonb_agg(jsonb_build_object('id', qpax.id, 'name', qpax.name, 'document', qpax.document))
+                                FROM public."QuotationProductPassenger" qpax
+                                WHERE qpax."quotationProductId" = qp.id
+                            ), '[]'::jsonb),
+                            'variables', COALESCE((
+                                SELECT jsonb_agg(jsonb_build_object('id', qvar.id, 'masterVariableId', qvar."masterVariableId", 'value', qvar.value))
+                                FROM public."QuotationProductVariable" qvar
+                                WHERE qvar."quotationProductId" = qp.id
+                            ), '[]'::jsonb),
+                            'appliedTaxes', COALESCE((
+                                SELECT jsonb_agg(jsonb_build_object('chargeAndTaxId', qpt."chargeAndTaxId", 'explicitAmount', qpt."explicitAmount", 'isMain', qpt."isMain"))
+                                FROM public."QuotationProductTax" qpt
+                                WHERE qpt."quotationProductId" = qp.id
+                            ), '[]'::jsonb)
+                        )
+                    )
+                    FROM public."QuotationProduct" qp
+                    LEFT JOIN public."Product" p ON qp."productId" = p.id
+                    LEFT JOIN public."Provider" prov ON qp."providerId" = prov.id
+                    LEFT JOIN public."Prestadora" h ON qp."prestadoraId" = h.id
+                    WHERE qp."quotationId" = q.id
+                ),
+                '[]'::jsonb
+            )
+        )
+    FROM public."Quotation" q
+    JOIN public."Client" c ON q."clientId" = c.id
+    LEFT JOIN public."User" u ON q."userId" = u.id
+    WHERE 
+        (p_referencia IS NULL OR q.id::text ILIKE '%' || p_referencia || '%')
+        AND (p_fecha_desde IS NULL OR q.date::date >= p_fecha_desde)
+        AND (p_fecha_hasta IS NULL OR q.date::date <= p_fecha_hasta)
+        AND (p_cliente IS NULL OR c.name ILIKE '%' || p_cliente || '%')
+        AND (p_elaborado_por IS NULL OR u.name ILIKE '%' || p_elaborado_por || '%')
+        AND (p_monto_total IS NULL OR q."totalAmount" = p_monto_total)
+        AND (p_estado IS NULL OR q.state ILIKE '%' || p_estado || '%')
+    ORDER BY q.date DESC;
+END;
+$$;
+
+
+-- Archivo: fnCountryListar.sql
+CREATE OR REPLACE FUNCTION public."fnCountryListar"()
+RETURNS TABLE(id integer, code text, name text, dane text, region text, prefix text, "curencyId" integer)
+LANGUAGE plpgsql AS $function$
+BEGIN
+    RETURN QUERY SELECT c.id, c.code::text, c.name::text, c.dane::text, c.region::text, c.prefix::text, c."curencyId" FROM public."Countries" c ORDER BY c.id ASC;
+END; $function$;
+
+-- Archivo: fnCreditCardListar.sql
+CREATE OR REPLACE FUNCTION public."fnCreditCardListar"()
+RETURNS TABLE(
+    id integer,
+    code text,
+    name text,
+    type text,
+    inactive boolean
+)
+LANGUAGE plpgsql
+AS $function$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        c.id,
+        c.code,
+        c.name,
+        c.type,
+        c.inactive
+    FROM public."CreditCard" c
+    ORDER BY c.id ASC;
+END;
+$function$;
+
+
+-- Archivo: fnEquivalenceInterface.sql
+CREATE OR REPLACE FUNCTION public."fnEquivalenceInterface"(
+	p_id_interface integer,
+	p_id_master integer,
+	p_value text
+)
+RETURNS text
+LANGUAGE 'plpgsql'
+COST 100
+VOLATILE PARALLEL UNSAFE
+AS $BODY$
+DECLARE
+    v_equivalence TEXT;
+BEGIN
+    -- Si el valor es nulo o vacío, retornamos el mismo valor
+    IF p_value IS NULL OR p_value = '' THEN
+        RETURN p_value;
+    END IF;
+
+    -- Buscamos el equivalente en la tabla EquivalencesInterfaces
+    SELECT cd_codigo 
+    INTO v_equivalence
+    FROM public."EquivalencesInterfaces"
+    WHERE id_interfaces = p_id_interface
+      AND id_master = p_id_master
+      AND cd_codigoInte = p_value
+    LIMIT 1;
+
+    -- Si no se encuentra equivalencia, retornamos el valor original
+    IF v_equivalence IS NULL OR v_equivalence = '' THEN
+        RETURN p_value;
+    ELSE
+        RETURN v_equivalence;
+    END IF;
+END;
+$BODY$;
+
+ALTER FUNCTION public."fnEquivalenceInterface"(integer, integer, text) OWNER TO postgres;
+
+
+-- Archivo: fnGetSQLServerConfig.sql
+CREATE OR REPLACE FUNCTION "fnGetSQLServerConfig"()
+RETURNS TABLE (
+    servidor TEXT,
+    usuario TEXT,
+    clave TEXT,
+    base_datos TEXT,
+    puerto TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        (SELECT value FROM "SystemParameter" WHERE code = 'ServidorSQLServer') as servidor,
+        (SELECT value FROM "SystemParameter" WHERE code = 'UsuarioSQLServer') as usuario,
+        (SELECT value FROM "SystemParameter" WHERE code = 'ClaveSQLServer') as clave,
+        (SELECT value FROM "SystemParameter" WHERE code = 'BaseSQLServer') as base_datos,
+        (SELECT value FROM "SystemParameter" WHERE code = 'PuertoSQLServer') as puerto;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Archivo: fnImplantListar.sql
+CREATE OR REPLACE FUNCTION public.fnImplantListar()
+RETURNS SETOF public."Implant"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."Implant" ORDER BY name ASC;
+END;
+$$;
+
+
+-- Archivo: fnImpuestoListar.sql
+CREATE OR REPLACE FUNCTION public.fnImpuestoListar()
+RETURNS SETOF public."ChargeAndTax"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."ChargeAndTax" ORDER BY name ASC;
+END;
+$$;
 
 
 -- Archivo: fnInterfacesList.sql
@@ -2122,6 +4345,20 @@ END;
 $BODY$;
 
 ALTER FUNCTION public."fnMasterList"() OWNER TO postgres;
+
+
+-- Archivo: fnMenu.sql
+CREATE OR REPLACE FUNCTION public.fnMenu()
+RETURNS SETOF public."Menu"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."Menu"
+    WHERE activo = true
+    ORDER BY id ASC;
+END;
+$$;
 
 
 -- Archivo: fnMonedaListar.sql
@@ -2235,6 +4472,16 @@ BEGIN
     ORDER BY p.name ASC;
 END;
 $$;
+
+
+-- Archivo: fnQuotationStateListar.sql
+
+CREATE OR REPLACE FUNCTION public."fnQuotationStateListar"()
+RETURNS TABLE(id integer, code text, name text, color text, "createdAt" timestamp)
+LANGUAGE plpgsql AS $function$
+BEGIN
+    RETURN QUERY SELECT t.id, t.code::text, t.name::text, t.color::text, t."createdAt"::timestamp FROM public."QuotationState" t ORDER BY t.name ASC;
+END; $function$;
 
 
 -- Archivo: fnReportDinamic.sql
@@ -2658,6 +4905,34 @@ END;
 $$;
 
 
+-- Archivo: fn_obtener_historial_estados.sql
+-- Crear función para obtener el historial de estados de una cotización
+CREATE OR REPLACE FUNCTION public.fn_obtener_historial_estados(p_quotation_id INT)
+RETURNS TABLE (
+    id INT,
+    state VARCHAR(25),
+    description TEXT,
+    "createdAt" TIMESTAMP,
+    "userId" INT,
+    "userName" TEXT
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        qsh.id,
+        qsh.state,
+        qsh.description,
+        qsh."createdAt",
+        qsh."userId",
+        COALESCE(u.name, 'Sistema'::TEXT) AS "userName"
+    FROM public."QuotationStateHistory" qsh
+    LEFT JOIN public."User" u ON qsh."userId" = u.id
+    WHERE qsh."quotationId" = p_quotation_id
+    ORDER BY qsh."createdAt" DESC;
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- >>> 3. PROCEDIMIENTOS ALMACENADOS (SP) <<<
 
 -- Archivo: spAirportActualizar.sql
@@ -2862,6 +5137,7 @@ CREATE OR REPLACE PROCEDURE public.spClienteActualizar(
     p_document TEXT,
     p_contact_info TEXT,
     p_address TEXT,
+    p_mandatory_variables JSONB,
     p_acting_user_id INT,
     INOUT p_mensaje_resultado TEXT
 )
@@ -2877,7 +5153,8 @@ BEGIN
         "name" = p_name,
         "document" = p_document,
         "contactInfo" = p_contact_info,
-        "address" = p_address
+        "address" = p_address,
+        "mandatoryVariables" = p_mandatory_variables
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Cliente ' || p_id || ' actualizado.';
@@ -2895,6 +5172,7 @@ CREATE OR REPLACE PROCEDURE public.spClienteCrear(
     p_document TEXT,
     p_contact_info TEXT,
     p_address TEXT,
+    p_mandatory_variables JSONB,
     p_acting_user_id INT,
     INOUT p_client_id INT,
     INOUT p_mensaje_resultado TEXT
@@ -2907,8 +5185,8 @@ BEGIN
         RETURN;
     END IF;
 
-    INSERT INTO public."Client" ("name", "document", "contactInfo", "address")
-    VALUES (p_name, p_document, p_contact_info, p_address)
+    INSERT INTO public."Client" ("name", "document", "contactInfo", "address", "mandatoryVariables")
+    VALUES (p_name, p_document, p_contact_info, p_address, p_mandatory_variables)
     RETURNING id INTO p_client_id;
 
     p_mensaje_resultado := 'SUCCESS: Cliente creado con ID ' || p_client_id;
@@ -3109,14 +5387,47 @@ DECLARE
     v_tax RECORD;
     v_pax RECORD;
     v_var RECORD;
+    v_pmt RECORD;
     v_combo RECORD;
     v_quotation_product_id INT;
+    -- Variables para validación de campos obligatorios dinámicos
+    v_val_item JSONB;
+    v_val_prod_id INT;
+    v_mandatory_fields JSONB;
+    v_field_key TEXT;
+    v_model TEXT;
+    v_field_name TEXT;
+    v_prod_desc TEXT;
+    v_has_passengers BOOLEAN;
+    v_has_empty_pax_name BOOLEAN;
+    v_has_payments BOOLEAN;
+    v_json_field_name TEXT;
+    -- Variables para validación de variables obligatorias específicas del cliente
+    v_client_id INT;
+    v_client_mandatory_vars JSONB;
+    v_client_var_id_text TEXT;
+    v_req_var_id INT;
+    v_req_var_name TEXT;
+    v_item_json JSONB;
+    v_item_prod_id INT;
+    v_item_prod_desc TEXT;
+    v_has_var BOOLEAN;
+    v_old_state TEXT;
+    -- Variables para cálculos financieros
+    v_mostrar_totalizacion BOOLEAN;
+    v_comision_utilidad DOUBLE PRECISION;
+    v_comision_freelance DOUBLE PRECISION;
+    v_comision_propia DOUBLE PRECISION;
+    v_costo_total DOUBLE PRECISION;
+    v_valor_base DOUBLE PRECISION;
 BEGIN
     -- Validaciones
     IF NOT EXISTS (SELECT 1 FROM public."Quotation" WHERE id = p_id) THEN
         p_mensaje_resultado := 'ERROR: La cotización con ID ' || p_id || ' no existe.';
         RETURN;
     END IF;
+
+    SELECT "state" INTO v_old_state FROM public."Quotation" WHERE id = p_id;
 
     IF NULLIF(p_data->>'clientId', '') IS NULL THEN
         p_mensaje_resultado := 'ERROR: El campo Cliente es obligatorio.';
@@ -3136,6 +5447,109 @@ BEGIN
         RETURN;
     END IF;
 
+    -- Validación de campos obligatorios dinámicos por producto
+    FOR v_val_item IN SELECT jsonb_array_elements(p_data->'items')
+    LOOP
+        v_val_prod_id := (v_val_item->>'productId')::INT;
+        
+        SELECT "mandatoryFields", "description" 
+        INTO v_mandatory_fields, v_prod_desc 
+        FROM public."Product" 
+        WHERE id = v_val_prod_id;
+
+        v_prod_desc := COALESCE(v_prod_desc, 'Producto #' || v_val_prod_id);
+
+        IF v_mandatory_fields IS NOT NULL AND jsonb_typeof(v_mandatory_fields) = 'array' THEN
+            FOR v_field_key IN SELECT jsonb_array_elements_text(v_mandatory_fields)
+            LOOP
+                v_model := split_part(v_field_key, '.', 1);
+                v_field_name := split_part(v_field_key, '.', 2);
+
+                IF v_model = 'Quotation' THEN
+                    IF NULLIF(p_data->>v_field_name, '') IS NULL THEN
+                        p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere completar el campo general "' || v_field_name || '".';
+                        RETURN;
+                    END IF;
+                ELSIF v_model = 'QuotationProduct' THEN
+                    v_json_field_name := v_field_name;
+                    IF v_field_name = 'checkInDate' THEN
+                        v_json_field_name := 'checkIn';
+                    ELSIF v_field_name = 'checkOutDate' THEN
+                        v_json_field_name := 'checkOut';
+                    END IF;
+
+                    IF v_field_name = 'passengers' THEN
+                        v_has_passengers := FALSE;
+                        v_has_empty_pax_name := FALSE;
+                        
+                        IF v_val_item->'passengers' IS NOT NULL AND jsonb_typeof(v_val_item->'passengers') = 'array' THEN
+                            SELECT COALESCE(jsonb_array_length(v_val_item->'passengers') > 0, FALSE) INTO v_has_passengers;
+                            SELECT EXISTS (
+                                SELECT 1 FROM jsonb_to_recordset(v_val_item->'passengers') AS p(name TEXT)
+                                WHERE p.name IS NULL OR trim(p.name) = ''
+                            ) INTO v_has_empty_pax_name;
+                        END IF;
+
+                        IF NOT v_has_passengers OR v_has_empty_pax_name THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere registrar al menos un pasajero con su nombre.';
+                            RETURN;
+                        END IF;
+                    ELSIF v_field_name = 'payments' THEN
+                        v_has_payments := FALSE;
+                        IF v_val_item->'payments' IS NOT NULL AND jsonb_typeof(v_val_item->'payments') = 'array' THEN
+                            SELECT COALESCE(jsonb_array_length(v_val_item->'payments') > 0, FALSE) INTO v_has_payments;
+                        END IF;
+
+                        IF NOT v_has_payments THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere registrar al menos un pago.';
+                            RETURN;
+                        END IF;
+                    ELSE
+                        IF NULLIF(v_val_item->>v_json_field_name, '') IS NULL THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere completar el campo "' || v_field_name || '".';
+                            RETURN;
+                        END IF;
+                    END IF;
+                END IF;
+            END LOOP;
+        END IF;
+    END LOOP;
+
+    -- Validación de variables obligatorias específicas del cliente
+    v_client_id := NULLIF(p_data->>'clientId', '')::INT;
+    IF v_client_id IS NOT NULL THEN
+        SELECT "mandatoryVariables" INTO v_client_mandatory_vars
+        FROM public."Client"
+        WHERE id = v_client_id;
+
+        IF v_client_mandatory_vars IS NOT NULL AND jsonb_typeof(v_client_mandatory_vars) = 'array' AND jsonb_array_length(v_client_mandatory_vars) > 0 THEN
+            FOR v_client_var_id_text IN SELECT jsonb_array_elements_text(v_client_mandatory_vars)
+            LOOP
+                v_req_var_id := v_client_var_id_text::INT;
+                
+                SELECT "name" INTO v_req_var_name FROM public."MasterVariable" WHERE id = v_req_var_id;
+                v_req_var_name := COALESCE(v_req_var_name, 'Variable #' || v_req_var_id);
+
+                FOR v_item_json IN SELECT jsonb_array_elements(p_data->'items')
+                LOOP
+                    v_item_prod_id := (v_item_json->>'productId')::INT;
+                    SELECT "description" INTO v_item_prod_desc FROM public."Product" WHERE id = v_item_prod_id;
+                    v_item_prod_desc := COALESCE(v_item_prod_desc, 'Producto #' || v_item_prod_id);
+
+                    SELECT EXISTS (
+                        SELECT 1 FROM jsonb_to_recordset(v_item_json->'variables') AS v("masterVariableId" INT, value TEXT)
+                        WHERE v."masterVariableId" = v_req_var_id AND NULLIF(trim(v.value), '') IS NOT NULL
+                    ) INTO v_has_var;
+
+                    IF NOT v_has_var THEN
+                        p_mensaje_resultado := 'ERROR: El cliente requiere completar la variable adicional "' || v_req_var_name || '" en el producto "' || v_item_prod_desc || '".';
+                        RETURN;
+                    END IF;
+                END LOOP;
+            END LOOP;
+        END IF;
+    END IF;
+
     UPDATE public."Quotation" SET
         "clientId" = NULLIF(p_data->>'clientId', '')::INT,
         "currency" = p_data->>'currency',
@@ -3148,8 +5562,16 @@ BEGIN
         "chargesAndTaxes" = NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
         "totalAmount" = NULLIF(p_data->>'totalAmount', '')::FLOAT,
         "state" = COALESCE(p_data->>'state', 'Nuevo'),
+        "stateDescription" = CASE WHEN COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN p_data->>'stateDescription' ELSE "stateDescription" END,
+        "stateUpdatedAt" = CASE WHEN COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN CURRENT_TIMESTAMP ELSE "stateUpdatedAt" END,
         "date" = CURRENT_TIMESTAMP
     WHERE id = p_id;
+
+    -- Insertar historial de estado si cambia
+    IF COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN
+        INSERT INTO public."QuotationStateHistory" ("quotationId", "state", "description", "createdAt", "userId")
+        VALUES (p_id, COALESCE(p_data->>'state', 'Nuevo'), p_data->>'stateDescription', CURRENT_TIMESTAMP, p_acting_user_id);
+    END IF;
 
     DELETE FROM public."QuotationCombo" WHERE "quotationId" = p_id;
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
@@ -3164,8 +5586,8 @@ BEGIN
                       "checkIn" TEXT, "checkOut" TEXT, "nights" INT, "mainTaxId" TEXT,
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
-                      "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "inNationality" INT,
-                      "servicios" TEXT, "descripcion" TEXT
+                      "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "payments" JSONB, "inNationality" INT,
+                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
@@ -3173,7 +5595,7 @@ BEGIN
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
-            "servicios", "descripcion"
+            "service", "servicios", "descripcion"
         ) VALUES (
             p_id, v_item."productId", v_item.quantity, v_item.price, v_item.cost, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
@@ -3181,7 +5603,7 @@ BEGIN
             v_item.nights, v_item."paxAdults", v_item."paxChildren",
             v_item."serviceType", v_item."destination", v_item."reservationCode", v_item."sellerCommission",
             v_item."ticketPrinterCommission", NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
-            v_item."servicios", v_item."descripcion"
+            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion"
         ) RETURNING id INTO v_quotation_product_id;
 
         IF v_item.passengers IS NOT NULL THEN
@@ -3212,16 +5634,68 @@ BEGIN
                 VALUES (v_quotation_product_id, v_var."masterVariableId", v_var.value);
             END LOOP;
         END IF;
+
+        IF v_item.payments IS NOT NULL THEN
+            FOR v_pmt IN SELECT * FROM jsonb_to_recordset(v_item.payments) AS x(
+                "amount" FLOAT, "paymentMethod" TEXT, "date" TEXT, "reference" TEXT,
+                "creditCardId" INT, "cardNumber" TEXT, "authorizationCode" TEXT, "voucher" TEXT, "expirationDate" TEXT
+            )
+            LOOP
+                INSERT INTO public."QuotationProductPayment" (
+                    "quotationProductId", "amount", "paymentMethod", "reference", "date",
+                    "creditCardId", "cardNumber", "authorizationCode", "voucher", "expirationDate"
+                ) VALUES (
+                    v_quotation_product_id, v_pmt."amount", v_pmt."paymentMethod", v_pmt."reference",
+                    CASE WHEN v_pmt."date" IS NOT NULL AND v_pmt."date" <> '' THEN v_pmt."date"::TIMESTAMP ELSE CURRENT_TIMESTAMP END,
+                    v_pmt."creditCardId", v_pmt."cardNumber", v_pmt."authorizationCode", v_pmt."voucher", v_pmt."expirationDate"
+                );
+            END LOOP;
+        END IF;
     END LOOP;
 
-    -- Calcular y actualizar el totalAmount basado en QuotationProductTax
+    -- Calcular y actualizar el totalAmount y los nuevos campos financieros
+    SELECT COALESCE(SUM(qp.cost * qp.quantity), 0.0), COALESCE(SUM(qp.price * qp.quantity), 0.0)
+    INTO v_costo_total, v_valor_base
+    FROM public."QuotationProduct" qp
+    WHERE qp."quotationId" = p_id;
+
+    SELECT COALESCE(value = 'true', FALSE) INTO v_mostrar_totalizacion
+    FROM public."SystemParameter"
+    WHERE code = 'MOSTRAR_TOTALIZACION_COTIZACION';
+
+    v_comision_freelance := COALESCE(NULLIF(p_data->>'comisionFreelancePercentage', '')::DOUBLE PRECISION, 0.0);
+
+    IF v_mostrar_totalizacion THEN
+        v_comision_utilidad := ROUND(public.fn_calcular_porcentaje_comision(public.fn_calcular_utilidad(v_valor_base, v_costo_total), v_valor_base)::NUMERIC, 2)::DOUBLE PRECISION;
+        v_comision_propia := v_comision_utilidad - v_comision_freelance;
+    ELSE
+        v_comision_propia := public.fn_calcular_comision_resta(
+            COALESCE(NULLIF(p_data->>'comisionTotalPercentage', '')::DOUBLE PRECISION, COALESCE(NULLIF(p_data->>'commissionPercentage', '')::DOUBLE PRECISION, 0.0)),
+            v_comision_freelance
+        );
+    END IF;
+
     UPDATE public."Quotation"
-    SET "totalAmount" = COALESCE("chargesAndTaxes", 0) + (
-        SELECT COALESCE(SUM(qpt."explicitAmount"), 0)
-        FROM public."QuotationProductTax" qpt
-        JOIN public."QuotationProduct" qp ON qpt."quotationProductId" = qp.id
-        WHERE qp."quotationId" = p_id
-    )
+    SET 
+        "totalAmount" = COALESCE("chargesAndTaxes", 0) + (
+            SELECT COALESCE(SUM(qpt."explicitAmount"), 0)
+            FROM public."QuotationProductTax" qpt
+            JOIN public."QuotationProduct" qp ON qpt."quotationProductId" = qp.id
+            WHERE qp."quotationId" = p_id
+        ),
+        "costoTotal" = v_costo_total,
+        "valorBase" = v_valor_base,
+        "comisionTotalPercentage" = COALESCE(NULLIF(p_data->>'comisionTotalPercentage', '')::DOUBLE PRECISION, COALESCE(NULLIF(p_data->>'commissionPercentage', '')::DOUBLE PRECISION, 0.0)),
+        "comisionFreelancePercentage" = v_comision_freelance,
+        "comisionPropiaPercentage" = v_comision_propia,
+        "commissionPercentage" = v_comision_propia,
+        "utilidad" = public.fn_calcular_utilidad(v_valor_base, v_costo_total),
+        "comisionUtilidadPercentage" = public.fn_calcular_porcentaje_comision(
+            public.fn_calcular_utilidad(v_valor_base, v_costo_total),
+            v_valor_base
+        ),
+        "comisionFreelanceValue" = public.fn_calcular_valor_comision(v_comision_freelance, v_valor_base),
+        "comisionPropiaValue" = public.fn_calcular_valor_comision(v_comision_propia, v_valor_base)
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Cotización ' || p_id || ' actualizada correctamente.';
@@ -3318,6 +5792,63 @@ END;
 $$;
 
 
+-- Archivo: spCotizacionActualizarEstadoManual.sql
+CREATE OR REPLACE PROCEDURE public.spCotizacionActualizarEstadoManual(
+    p_quotation_id INT,
+    p_state TEXT,
+    p_description TEXT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    -- Validaciones
+    IF p_state IS NULL OR p_state = '' THEN
+        p_mensaje_resultado := 'ERROR: El estado es obligatorio.';
+        RETURN;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM public."Quotation" WHERE id = p_quotation_id) THEN
+        p_mensaje_resultado := 'ERROR: La cotización con ID ' || p_quotation_id || ' no existe.';
+        RETURN;
+    END IF;
+
+    -- Validar si el estado existe en la tabla de estados
+    IF NOT EXISTS (SELECT 1 FROM public."QuotationState" WHERE code = p_state) THEN
+        p_mensaje_resultado := 'ERROR: El estado "' || p_state || '" no es válido.';
+        RETURN;
+    END IF;
+
+    UPDATE public."Quotation" SET
+        "state" = p_state,
+        "stateDescription" = p_description,
+        "stateUpdatedAt" = CURRENT_TIMESTAMP
+    WHERE id = p_quotation_id;
+
+    -- Insertar historial de estado
+    INSERT INTO public."QuotationStateHistory" ("quotationId", "state", "description", "createdAt", "userId")
+    VALUES (p_quotation_id, p_state, p_description, CURRENT_TIMESTAMP, p_acting_user_id);
+
+    p_mensaje_resultado := 'SUCCESS: Estado de cotización actualizado correctamente.';
+
+    -- Registrar en Auditoría
+    CALL public."spLogRegistrar"(
+        p_acting_user_id, 
+        'QUOTATION', 
+        'UPDATE_STATE', 
+        'Se cambió el estado de la cotización ID ' || p_quotation_id || ' a ' || p_state || '. Descripción: ' || COALESCE(p_description, ''), 
+        jsonb_build_object('quotationId', p_quotation_id, 'state', p_state, 'description', p_description), 
+        p_quotation_id
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
 -- Archivo: spCotizacionCrear.sql
 CREATE OR REPLACE PROCEDURE public.spCotizacionCrear(
     p_data JSONB,
@@ -3334,8 +5865,38 @@ DECLARE
     v_tax RECORD;
     v_pax RECORD;
     v_var RECORD;
+    v_pmt RECORD;
     v_combo RECORD;
     v_quotation_product_id INT;
+    -- Variables para validación de campos obligatorios dinámicos
+    v_val_item JSONB;
+    v_val_prod_id INT;
+    v_mandatory_fields JSONB;
+    v_field_key TEXT;
+    v_model TEXT;
+    v_field_name TEXT;
+    v_prod_desc TEXT;
+    v_has_passengers BOOLEAN;
+    v_has_empty_pax_name BOOLEAN;
+    v_has_payments BOOLEAN;
+    v_json_field_name TEXT;
+    -- Variables para validación de variables obligatorias específicas del cliente
+    v_client_id INT;
+    v_client_mandatory_vars JSONB;
+    v_client_var_id_text TEXT;
+    v_req_var_id INT;
+    v_req_var_name TEXT;
+    v_item_json JSONB;
+    v_item_prod_id INT;
+    v_item_prod_desc TEXT;
+    v_has_var BOOLEAN;
+    -- Variables para cálculos financieros
+    v_mostrar_totalizacion BOOLEAN;
+    v_comision_utilidad DOUBLE PRECISION;
+    v_comision_freelance DOUBLE PRECISION;
+    v_comision_propia DOUBLE PRECISION;
+    v_costo_total DOUBLE PRECISION;
+    v_valor_base DOUBLE PRECISION;
 BEGIN
     -- Validaciones
     IF NULLIF(p_data->>'clientId', '') IS NULL THEN
@@ -3356,19 +5917,126 @@ BEGIN
         RETURN;
     END IF;
 
+    -- Validación de campos obligatorios dinámicos por producto
+    FOR v_val_item IN SELECT jsonb_array_elements(p_data->'items')
+    LOOP
+        v_val_prod_id := (v_val_item->>'productId')::INT;
+        
+        SELECT "mandatoryFields", "description" 
+        INTO v_mandatory_fields, v_prod_desc 
+        FROM public."Product" 
+        WHERE id = v_val_prod_id;
+
+        v_prod_desc := COALESCE(v_prod_desc, 'Producto #' || v_val_prod_id);
+
+        IF v_mandatory_fields IS NOT NULL AND jsonb_typeof(v_mandatory_fields) = 'array' THEN
+            FOR v_field_key IN SELECT jsonb_array_elements_text(v_mandatory_fields)
+            LOOP
+                v_model := split_part(v_field_key, '.', 1);
+                v_field_name := split_part(v_field_key, '.', 2);
+
+                IF v_model = 'Quotation' THEN
+                    IF NULLIF(p_data->>v_field_name, '') IS NULL THEN
+                        p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere completar el campo general "' || v_field_name || '".';
+                        RETURN;
+                    END IF;
+                ELSIF v_model = 'QuotationProduct' THEN
+                    v_json_field_name := v_field_name;
+                    IF v_field_name = 'checkInDate' THEN
+                        v_json_field_name := 'checkIn';
+                    ELSIF v_field_name = 'checkOutDate' THEN
+                        v_json_field_name := 'checkOut';
+                    END IF;
+
+                    IF v_field_name = 'passengers' THEN
+                        v_has_passengers := FALSE;
+                        v_has_empty_pax_name := FALSE;
+                        
+                        IF v_val_item->'passengers' IS NOT NULL AND jsonb_typeof(v_val_item->'passengers') = 'array' THEN
+                            SELECT COALESCE(jsonb_array_length(v_val_item->'passengers') > 0, FALSE) INTO v_has_passengers;
+                            SELECT EXISTS (
+                                SELECT 1 FROM jsonb_to_recordset(v_val_item->'passengers') AS p(name TEXT)
+                                WHERE p.name IS NULL OR trim(p.name) = ''
+                            ) INTO v_has_empty_pax_name;
+                        END IF;
+
+                        IF NOT v_has_passengers OR v_has_empty_pax_name THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere registrar al menos un pasajero con su nombre.';
+                            RETURN;
+                        END IF;
+                    ELSIF v_field_name = 'payments' THEN
+                        v_has_payments := FALSE;
+                        IF v_val_item->'payments' IS NOT NULL AND jsonb_typeof(v_val_item->'payments') = 'array' THEN
+                            SELECT COALESCE(jsonb_array_length(v_val_item->'payments') > 0, FALSE) INTO v_has_payments;
+                        END IF;
+
+                        IF NOT v_has_payments THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere registrar al menos un pago.';
+                            RETURN;
+                        END IF;
+                    ELSE
+                        IF NULLIF(v_val_item->>v_json_field_name, '') IS NULL THEN
+                            p_mensaje_resultado := 'ERROR: El producto "' || v_prod_desc || '" requiere completar el campo "' || v_field_name || '".';
+                            RETURN;
+                        END IF;
+                    END IF;
+                END IF;
+            END LOOP;
+        END IF;
+    END LOOP;
+
+    -- Validación de variables obligatorias específicas del cliente
+    v_client_id := NULLIF(p_data->>'clientId', '')::INT;
+    IF v_client_id IS NOT NULL THEN
+        SELECT "mandatoryVariables" INTO v_client_mandatory_vars
+        FROM public."Client"
+        WHERE id = v_client_id;
+
+        IF v_client_mandatory_vars IS NOT NULL AND jsonb_typeof(v_client_mandatory_vars) = 'array' AND jsonb_array_length(v_client_mandatory_vars) > 0 THEN
+            FOR v_client_var_id_text IN SELECT jsonb_array_elements_text(v_client_mandatory_vars)
+            LOOP
+                v_req_var_id := v_client_var_id_text::INT;
+                
+                SELECT "name" INTO v_req_var_name FROM public."MasterVariable" WHERE id = v_req_var_id;
+                v_req_var_name := COALESCE(v_req_var_name, 'Variable #' || v_req_var_id);
+
+                FOR v_item_json IN SELECT jsonb_array_elements(p_data->'items')
+                LOOP
+                    v_item_prod_id := (v_item_json->>'productId')::INT;
+                    SELECT "description" INTO v_item_prod_desc FROM public."Product" WHERE id = v_item_prod_id;
+                    v_item_prod_desc := COALESCE(v_item_prod_desc, 'Producto #' || v_item_prod_id);
+
+                    SELECT EXISTS (
+                        SELECT 1 FROM jsonb_to_recordset(v_item_json->'variables') AS v("masterVariableId" INT, value TEXT)
+                        WHERE v."masterVariableId" = v_req_var_id AND NULLIF(trim(v.value), '') IS NOT NULL
+                    ) INTO v_has_var;
+
+                    IF NOT v_has_var THEN
+                        p_mensaje_resultado := 'ERROR: El cliente requiere completar la variable adicional "' || v_req_var_name || '" en el producto "' || v_item_prod_desc || '".';
+                        RETURN;
+                    END IF;
+                END LOOP;
+            END LOOP;
+        END IF;
+    END IF;
+
     v_internal_number := 'QUO-' || to_char(CURRENT_DATE, 'YYYYMMDD') || '-' || floor(random() * 1000)::text;
 
     INSERT INTO public."Quotation" (
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
         "branchId", "implantId", "sellerId", "ticketPrinterId", 
         "baseCommissionable", "commissionPercentage", "chargesAndTaxes", 
-        "totalAmount", "userId", "state"
+        "totalAmount", "userId", "state", "stateDescription", "stateUpdatedAt"
     ) VALUES (
         v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
         NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
         0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
-        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO'
+        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO', 'Creación de cotización', CURRENT_TIMESTAMP
     ) RETURNING id INTO v_quotation_id;
+
+    -- Insertar historial de estado inicial
+    INSERT INTO public."QuotationStateHistory" ("quotationId", "state", "description", "createdAt", "userId")
+    VALUES (v_quotation_id, 'NUEVO', 'Creación de cotización', CURRENT_TIMESTAMP, p_acting_user_id);
 
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
     LOOP
@@ -3398,8 +6066,8 @@ BEGIN
                       "checkIn" TEXT, "checkOut" TEXT, "nights" INT, "mainTaxId" TEXT,
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
-                      "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "inNationality" INT,
-                      "servicios" TEXT, "descripcion" TEXT
+                      "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "payments" JSONB, "inNationality" INT,
+                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
@@ -3407,7 +6075,7 @@ BEGIN
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
-            "servicios", "descripcion"
+            "service", "servicios", "descripcion"
         ) VALUES (
             v_quotation_id, v_item."productId", v_item.quantity, v_item.price, v_item.cost, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
@@ -3415,7 +6083,7 @@ BEGIN
             v_item.nights, v_item."paxAdults", v_item."paxChildren",
             v_item."serviceType", v_item."destination", v_item."reservationCode", v_item."sellerCommission",
             v_item."ticketPrinterCommission", NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
-            v_item."servicios", v_item."descripcion"
+            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion"
         ) RETURNING id INTO v_quotation_product_id;
 
         IF v_item.passengers IS NOT NULL THEN
@@ -3446,16 +6114,69 @@ BEGIN
                 VALUES (v_quotation_product_id, v_var."masterVariableId", v_var.value);
             END LOOP;
         END IF;
+
+        IF v_item.payments IS NOT NULL THEN
+            FOR v_pmt IN SELECT * FROM jsonb_to_recordset(v_item.payments) AS x(
+                "amount" FLOAT, "paymentMethod" TEXT, "date" TEXT, "reference" TEXT,
+                "creditCardId" INT, "cardNumber" TEXT, "authorizationCode" TEXT, "voucher" TEXT, "expirationDate" TEXT
+            )
+            LOOP
+                INSERT INTO public."QuotationProductPayment" (
+                    "quotationProductId", "amount", "paymentMethod", "reference", "date",
+                    "creditCardId", "cardNumber", "authorizationCode", "voucher", "expirationDate"
+                ) VALUES (
+                    v_quotation_product_id, v_pmt."amount", v_pmt."paymentMethod", v_pmt."reference",
+                    CASE WHEN v_pmt."date" IS NOT NULL AND v_pmt."date" <> '' THEN v_pmt."date"::TIMESTAMP ELSE CURRENT_TIMESTAMP END,
+                    v_pmt."creditCardId", v_pmt."cardNumber", v_pmt."authorizationCode", v_pmt."voucher", v_pmt."expirationDate"
+                );
+            END LOOP;
+        END IF;
     END LOOP;
 
-    -- Calcular y actualizar el totalAmount basado en QuotationProductTax
+
+    -- Calcular y actualizar el totalAmount y los nuevos campos financieros
+    SELECT COALESCE(SUM(qp.cost * qp.quantity), 0.0), COALESCE(SUM(qp.price * qp.quantity), 0.0)
+    INTO v_costo_total, v_valor_base
+    FROM public."QuotationProduct" qp
+    WHERE qp."quotationId" = v_quotation_id;
+
+    SELECT COALESCE(value = 'true', FALSE) INTO v_mostrar_totalizacion
+    FROM public."SystemParameter"
+    WHERE code = 'MOSTRAR_TOTALIZACION_COTIZACION';
+
+    v_comision_freelance := COALESCE(NULLIF(p_data->>'comisionFreelancePercentage', '')::DOUBLE PRECISION, 0.0);
+
+    IF v_mostrar_totalizacion THEN
+        v_comision_utilidad := ROUND(public.fn_calcular_porcentaje_comision(public.fn_calcular_utilidad(v_valor_base, v_costo_total), v_valor_base)::NUMERIC, 2)::DOUBLE PRECISION;
+        v_comision_propia := v_comision_utilidad - v_comision_freelance;
+    ELSE
+        v_comision_propia := public.fn_calcular_comision_resta(
+            COALESCE(NULLIF(p_data->>'comisionTotalPercentage', '')::DOUBLE PRECISION, COALESCE(NULLIF(p_data->>'commissionPercentage', '')::DOUBLE PRECISION, 0.0)),
+            v_comision_freelance
+        );
+    END IF;
+
     UPDATE public."Quotation"
-    SET "totalAmount" = COALESCE("chargesAndTaxes", 0) + (
-        SELECT COALESCE(SUM(qpt."explicitAmount"), 0)
-        FROM public."QuotationProductTax" qpt
-        JOIN public."QuotationProduct" qp ON qpt."quotationProductId" = qp.id
-        WHERE qp."quotationId" = v_quotation_id
-    )
+    SET 
+        "totalAmount" = COALESCE("chargesAndTaxes", 0) + (
+            SELECT COALESCE(SUM(qpt."explicitAmount"), 0)
+            FROM public."QuotationProductTax" qpt
+            JOIN public."QuotationProduct" qp ON qpt."quotationProductId" = qp.id
+            WHERE qp."quotationId" = v_quotation_id
+        ),
+        "costoTotal" = v_costo_total,
+        "valorBase" = v_valor_base,
+        "comisionTotalPercentage" = COALESCE(NULLIF(p_data->>'comisionTotalPercentage', '')::DOUBLE PRECISION, COALESCE(NULLIF(p_data->>'commissionPercentage', '')::DOUBLE PRECISION, 0.0)),
+        "comisionFreelancePercentage" = v_comision_freelance,
+        "comisionPropiaPercentage" = v_comision_propia,
+        "commissionPercentage" = v_comision_propia,
+        "utilidad" = public.fn_calcular_utilidad(v_valor_base, v_costo_total),
+        "comisionUtilidadPercentage" = public.fn_calcular_porcentaje_comision(
+            public.fn_calcular_utilidad(v_valor_base, v_costo_total),
+            v_valor_base
+        ),
+        "comisionFreelanceValue" = public.fn_calcular_valor_comision(v_comision_freelance, v_valor_base),
+        "comisionPropiaValue" = public.fn_calcular_valor_comision(v_comision_propia, v_valor_base)
     WHERE id = v_quotation_id;
 
     p_quotation_id := v_quotation_id;
@@ -3815,6 +6536,1742 @@ BEGIN
     END IF;
 END;
 $BODY$;
+
+
+-- Archivo: spExportInvoices (2).sql
+CREATE OR REPLACE PROCEDURE public."spExportInvoices"(
+    Envoices_id TEXT,
+	User_id INT,
+	INOUT mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+/*
+    AUTOR: Rubiel Gelis Guzman / Antigravity
+    DESCRIPCIÓN: Generación de XML para exportación de Facturas (Invoices). Restructurado según especificaciones del usuario.
+*/
+DECLARE
+    v_xml TEXT;
+    v_nombre_usuario TEXT;
+	v_state   TEXT;
+    v_msg     TEXT;
+    v_context TEXT;
+    v_line    TEXT;
+BEGIN
+    -- 1. Inicializar
+    mensaje_resultado := '';
+
+    Envoices_id := TRIM(BOTH ',' FROM TRIM(COALESCE(Envoices_id, '')));
+    IF Envoices_id = '' THEN
+        mensaje_resultado := 'ERROR: No se han proporcionado IDs de Facturacion válidos.';
+        RETURN;
+    END IF;
+
+    -- 2. Validación de usuario
+    SELECT "name" INTO v_nombre_usuario FROM public."User" WHERE id = User_id;
+    IF NOT FOUND THEN
+        mensaje_resultado := 'ERROR: El usuario ' || User_id || ' no existe.';
+        RETURN;
+    END IF;
+
+    -- 3. Crear Tablas Temporales
+    CREATE TEMP TABLE IF NOT EXISTS Facturacion (
+		id INTEGER GENERATED ALWAYS AS IDENTITY,
+		cd_fuente VARCHAR(2),
+		cd_serie VARCHAR(2),
+		cd_consecutivo VARCHAR(8),
+		cd_usuario INTEGER,  
+		cd_sucursal VARCHAR(3), 
+		cd_implante VARCHAR(3), 
+		dt_fechacont TIMESTAMP,
+		dt_vence TIMESTAMP,
+		cd_tercero_codigo VARCHAR(25),
+		ds_tercero_nombre VARCHAR(250),
+		cd_cliente_codigo VARCHAR(25), 
+		ds_cliente_nombre VARCHAR(250),
+		ds_cliente_dir VARCHAR(250),
+		ds_cliente_ciudad VARCHAR(40),
+		ds_cliente_tel VARCHAR(50),
+		ds_cliente_dirdesp VARCHAR(250),
+		ds_cliente_email VARCHAR(60),
+		ds_cliente_contacto VARCHAR(40),
+		ds_cliente_contacto_email VARCHAR(60),
+		id_monedas_iata INTEGER,
+		cd_vendedor CHAR(3),
+		id_tiqueteador INTEGER,
+		bn_anexo BYTEA,
+		Tcambio DECIMAL,
+		am_tcambiousd DECIMAL,
+		id_tipoventa INTEGER,
+		ds_num_resolucion VARCHAR(20), 
+		in_num_inicial NUMERIC(18,0), 
+		in_num_final NUMERIC(18,0), 
+		ds_numeracion_autorizada VARCHAR(50),
+		dt_fecha_resolucion TIMESTAMP,	
+		CodigoArchivoFisico VARCHAR(25),
+		ds_Observacion VARCHAR(8000),
+		ds_Campo_libre1 varchar(500),
+		ds_Campo_libre2 varchar(500),
+		cd_fuente_Reemplaza CHAR(2),
+		cd_serie_Reemplaza CHAR(2),
+		cd_consecutivo_Reemplaza CHAR(8),		
+		ds_Actividad_Economica VARCHAR(10),
+		ds_Tarifa_ICA VARCHAR(15),	
+		SqlStmt TEXT,
+		AnticiposSqlStmt TEXT,
+		TotalFactura DECIMAL,
+		TotalCupoCreditoCliente DECIMAL,
+		bl_BloqueoCupoCredito BIT(1),
+		bl_generadaauto BIT(1),
+		ds_CotizacionesId Varchar(500),
+		Id_Cierre INTEGER,
+		cd_TipoFact CHAR(2),
+		id_fac_remisionRelacionada INTEGER,
+		id_fac_facturaRelacionada INTEGER,
+		ds_DescripcionFac VARCHAR(500),
+		bl_nocont BIT(1),
+		ProductosSqlStmt TEXT,
+		cd_CF_TipoComprobante VARCHAR(15),
+		id_Licitacion INTEGER,
+		ValorFactura DECIMAL,
+		id_Especialista INTEGER,
+		id_tiqueteador_Facturador INTEGER,
+		id_TipoFormaPagoProveedor INTEGER,
+		id_MedioReservacion INTEGER,
+		bl_refacturacion BIT(1),
+		bl_comisiona BIT(1),
+		cd_fuente_factura VARCHAR(2),
+		cd_serie_factura VARCHAR(2),
+		cd_consecutivo_factura VARCHAR(8),
+		id_NotasAerolinea INTEGER,
+		bl_interface INTEGER,
+		id_evento INTEGER,
+		bl_NoEnviarFacElectronica BIT(1),
+		bl_FacturaComision BIT(1),
+		bl_DescontarComisionCxP BIT(1),
+		ds_num_resolucion_Adicional VARCHAR(20),
+		id_fac_facturaRefacturacion VARCHAR(8000),
+		bl_refacturacion_contabilizar_saldos BIT(1),
+		ZML_VariablesXML TEXT,
+		bl_FormatoResumidoFactElectro BIT(1),
+		bl_ExigeAdjuntoFactElectro BIT(1),
+		bl_omitir_Validar_IVA_facturacion BIT(1),
+		ds_Respuesta TEXT,
+        id_item INTEGER
+    ) ON COMMIT DROP;
+
+    CREATE TEMP TABLE IF NOT EXISTS Item (
+		id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+		tipo_item VARCHAR(10),
+		id_factura INTEGER,
+		in_tipoitem INTEGER,
+		id_referencia_origen INTEGER,             
+		cd_tiquete VARCHAR(50),
+		ds_descrip VARCHAR(500),
+		in_nacionalidad INTEGER,
+		cd_cencosto VARCHAR(50),
+		cd_auxiliar VARCHAR(50),
+		cd_item VARCHAR(50),
+		am_tarifa DECIMAL,
+		am_iva DECIMAL,
+		am_tua DECIMAL,
+		am_comb DECIMAL,
+		am_vat DECIMAL,
+		am_Comision DECIMAL,
+		ds_paxname VARCHAR(30),
+		ds_paxape VARCHAR(30),
+		ds_paxprefix CHAR(3),
+		cd_tourcode VARCHAR(25),
+		NumTktConj INTEGER,
+		cd_TipoTiquete CHAR(3),
+		id_air INTEGER,
+		ds_itinerario VARCHAR(250),
+		ds_itinerarioaerolinea VARCHAR(128),
+		ds_clases VARCHAR(61),
+		ds_Observaciones VARCHAR(8000),
+		am_highfare DECIMAL,
+		am_lowfare DECIMAL,
+		ds_solicita VARCHAR(200),
+		ds_lapsoviaje VARCHAR(50),
+		cd_tktrevisado VARCHAR(14),
+		cd_PasaportePax VARCHAR(25),
+		cd_pax_CC VARCHAR(20),
+		am_PorFacParcial DECIMAL,
+		in_cantpax INTEGER,
+		Id_Precompra INTEGER,
+		cd_FormaPagoTAO VARCHAR(3),
+		cd_TarjetaCreditoTAO VARCHAR(4),
+		cd_NumeroTarjetaTAO VARCHAR(25),
+		cd_VencimientoTarjetaTAO CHAR(6),
+		cd_NumeroPolizaTAO VARCHAR(50),
+		cd_AnexoPolizaTAO VARCHAR(50),
+		ds_AutorizacionTarjetaTAO VARCHAR(25),
+		in_cuotasTarjetaTAO INTEGER,
+		id_FormasPago INTEGER,
+		id_TarjetasCredito INTEGER,
+		am_fp1 DECIMAL,
+		ds_cc_code VARCHAR(2),
+		ds_cc_number VARCHAR(25),
+		ds_cc_vence VARCHAR(5),
+		ds_cc_autorizacion VARCHAR(25),
+		ds_cc_voucher VARCHAR(25),
+		in_cc_cuotas INTEGER,
+		am_fp2 DECIMAL,
+		ds_cc_code2 VARCHAR(2),
+		ds_cc_number2 VARCHAR(25),
+		ds_cc_vence2 VARCHAR(5),
+		ds_cc_autorizacion2 VARCHAR(25),
+		ds_cc_voucher2 VARCHAR(25),
+		in_cc_cuotas2 INTEGER,
+		id_monedas_iata INTEGER,
+		Tcambio DECIMAL,
+		id_sucursal INTEGER,
+		id_implante INTEGER,
+		bl_ahorro BIT(1),
+		cd_TipoTiqueteGDS VARCHAR(3),
+		id_TiposDocumento INTEGER,
+		id_entdist INTEGER,
+		id_entvend INTEGER,
+		cd_destino VARCHAR(3),
+		dt_fechaexped TIMESTAMP,
+		id_tiqueteadores INTEGER,
+		id_gds INTEGER,
+		iden_gds INTEGER,
+		am_comisionPNR DECIMAL,
+		ds_records VARCHAR(62),
+		bl_NoCalcComision BIT(1),
+		bl_NoCalcIvaComision BIT(1),
+		am_basecomisionable DECIMAL,
+		am_porcomision DECIMAL,
+		id_tiposconceptfac INTEGER,
+		id_conceptofacturacion INTEGER,
+		id_tiposservicio INTEGER,
+		cd_proveedores VARCHAR(25),
+		ds_servicio VARCHAR(250),
+		am_valorprov DECIMAL,
+		id_monedaprov INTEGER,
+		dt_llegada TIMESTAMP,
+		dt_salida TIMESTAMP,
+		am_pordescuento NUMERIC(8,4),
+		am_basedescuento DECIMAL,
+		Fecha_Salida TIMESTAMP,
+		Fecha_Llegada TIMESTAMP,
+		ColId VARCHAR(25),
+		cd_Consecutivo_depende VARCHAR(50),
+		CodigoReserva VARCHAR(50),
+		cd_Consecutivo_variablesadicionales VARCHAR(50),
+		am_valor_total DECIMAL,
+		ds_proveedores VARCHAR(250),
+		id_FormasPagoAirPlus INTEGER,
+		cd_FormasPagoAirPlus VARCHAR(3),
+		ds_FormasPagoAirPlus VARCHAR(100),
+		id_TarjetasCreditoAirPlus INTEGER,
+		cd_TarjetasCreditoAirPlus VARCHAR(4),
+		ds_numerotarjetaAirPlus VARCHAR(25),
+		id_reserva INTEGER,
+		OrdenGrabacion INTEGER
+    ) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS itinerarios(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		id_factura VARCHAR(25),
+		id_item VARCHAR(25),
+		id_tipoitem VARCHAR(25),
+		ds_itinerario VARCHAR(250),
+		ds_itinerarioaerolinea VARCHAR(128)
+	) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS Pasajeros(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		id_factura VARCHAR(25),
+		id_item VARCHAR(25),
+		id_tipoitem VARCHAR(25),
+		ds_paxape VARCHAR(30),
+		ds_paxname VARCHAR(30),
+		ds_paxprefix CHAR(3),
+		ds_paxClasificacion CHAR(25),
+		cd_voucherpax VARCHAR(25),
+		cd_paxidentificacion VARCHAR(25),
+		in_edad INT,
+		cd_tiquete CHAR(50)
+	) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS CargosImpuestos(
+		id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+		id_factura VARCHAR(25),
+		id_item VARCHAR(25),
+		id_tipoitem VARCHAR(25),
+		cd_codigo VARCHAR(20),
+		ds_nombre VARCHAR(100),
+		cd_tipo CHAR(1),
+		am_porcentaje NUMERIC(8,4),
+		am_valor DECIMAL,
+		am_contado DECIMAL,
+		am_credito DECIMAL,
+		id_carg INTEGER,
+		id_imp INTEGER,
+		bl_iva BIT(1),
+		in_orden INTEGER
+	) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS Formaspago(
+		id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+		id_factura VARCHAR(25),
+		id_item VARCHAR(25),
+		id_tipoitem VARCHAR(25),
+		id_formaspago INTEGER,
+		cd_codigo VARCHAR(10),
+		ds_nombre VARCHAR(50),
+		id_tarjetascredito INTEGER,
+		cd_tipotarjeta VARCHAR(10),
+		ds_numerotarjeta VARCHAR(50),
+		ds_vouchertarjeta VARCHAR(50),
+		ds_expiraciontarjeta VARCHAR(10),
+		ds_autorizaciontarjeta VARCHAR(50),
+		in_cuotas INTEGER,
+		cd_banco VARCHAR(50),
+		ds_cheque VARCHAR(50),
+		ds_plaza VARCHAR(50),
+		ds_referencia VARCHAR(50),
+		ds_Poliza VARCHAR(50),
+		ds_PolizaAnexo VARCHAR(50),
+		am_valor DECIMAL
+	) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS Variables(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		id_factura VARCHAR(25),
+		id_item VARCHAR(25),
+		id_tipoitem VARCHAR(25),
+		ds_maestro VARCHAR(25), 
+		ds_VariableAdicional VARCHAR(25),
+		ds_valor VARCHAR(500),
+		cd_codigo CHAR(25)
+	) ON COMMIT DROP;
+
+    -- 4. Poblar Tabla Facturacion
+    INSERT INTO Facturacion (
+		cd_fuente, cd_serie, cd_consecutivo, cd_usuario, cd_sucursal, cd_implante, 
+		dt_fechacont, dt_vence, cd_tercero_codigo, ds_tercero_nombre, cd_cliente_codigo, 
+		ds_cliente_nombre, ds_cliente_dir, ds_cliente_ciudad, ds_cliente_tel, ds_cliente_dirdesp, 
+		ds_cliente_email, ds_cliente_contacto, ds_cliente_contacto_email, id_monedas_iata, 
+		cd_vendedor, id_tiqueteador, bn_anexo, Tcambio, am_tcambiousd, id_tipoventa, 
+		ds_num_resolucion, in_num_inicial, in_num_final, ds_numeracion_autorizada, 
+		dt_fecha_resolucion, CodigoArchivoFisico, ds_Observacion, ds_Campo_libre1, 
+		ds_Campo_libre2, cd_fuente_Reemplaza, cd_serie_Reemplaza, cd_consecutivo_Reemplaza, 
+		ds_Actividad_Economica, ds_Tarifa_ICA, SqlStmt, AnticiposSqlStmt, TotalFactura, 
+		TotalCupoCreditoCliente, bl_BloqueoCupoCredito, bl_generadaauto, ds_CotizacionesId, 
+		Id_Cierre, cd_TipoFact, id_fac_remisionRelacionada, id_fac_facturaRelacionada, 
+		ds_DescripcionFac, bl_nocont, ProductosSqlStmt, cd_CF_TipoComprobante, id_Licitacion, 
+		ValorFactura, id_Especialista, id_tiqueteador_Facturador, id_TipoFormaPagoProveedor, 
+		id_MedioReservacion, bl_refacturacion, bl_comisiona, cd_fuente_factura, cd_serie_factura, 
+		cd_consecutivo_factura, id_NotasAerolinea, bl_interface, id_evento, bl_NoEnviarFacElectronica, 
+		bl_FacturaComision, bl_DescontarComisionCxP, ds_num_resolucion_Adicional, 
+		id_fac_facturaRefacturacion, bl_refacturacion_contabilizar_saldos, ZML_VariablesXML, 
+		bl_FormatoResumidoFactElectro, bl_ExigeAdjuntoFactElectro, bl_omitir_Validar_IVA_facturacion, 
+		ds_Respuesta, id_item
+    )
+    SELECT 
+        '' AS cd_fuente,
+        '' AS cd_serie,
+        SUBSTRING('I' || LPAD(e.id::text, 7, '0'), 1, 8) AS cd_consecutivo,
+        User_id AS cd_usuario,
+        SUBSTRING(COALESCE(b.code, ''), 1, 3) AS cd_sucursal,
+        SUBSTRING(COALESCE(i.code, ''), 1, 3) AS cd_implante,
+        e.date AS dt_fechacont,
+        e.date AS dt_vence,
+        SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_tercero_codigo,
+        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_tercero_nombre,
+        SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_cliente_codigo,
+        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_cliente_nombre,
+        SUBSTRING(COALESCE(c.address, ''), 1, 250) AS ds_cliente_dir,
+        '' AS ds_cliente_ciudad,
+        '' AS ds_cliente_tel,
+        '' AS ds_cliente_dirdesp,
+        SUBSTRING(COALESCE(u.email, ''), 1, 60) AS ds_cliente_email,
+        '' AS ds_cliente_contacto,
+        '' AS ds_cliente_contacto_email,
+        NULL AS id_monedas_iata,
+        SUBSTRING(COALESCE(s.code, ''), 1, 3)::char(3) AS cd_vendedor,
+        NULL AS id_tiqueteador,
+        NULL::bytea AS bn_anexo,
+        COALESCE(e."exchangeRate", 1.0) AS Tcambio,
+        1.0 AS am_tcambiousd,
+        NULL AS id_tipoventa,
+        '' AS ds_num_resolucion,
+        0 AS in_num_inicial,
+        0 AS in_num_final,
+        '' AS ds_numeracion_autorizada,
+        NULL AS dt_fecha_resolucion,
+        '' AS CodigoArchivoFisico,
+        '' AS ds_Observacion,
+        '' AS ds_Campo_libre1,
+        '' AS ds_Campo_libre2,
+        '' AS cd_fuente_Reemplaza,
+        '' AS cd_serie_Reemplaza,
+        '' AS cd_consecutivo_Reemplaza,
+        '' AS ds_Actividad_Economica,
+        '' AS ds_Tarifa_ICA,
+        '' AS SqlStmt,
+        NULL AS AnticiposSqlStmt,
+        COALESCE(e."totalAmount", 0) AS TotalFactura,
+        0 AS TotalCupoCreditoCliente,
+        B'0' AS bl_BloqueoCupoCredito,
+        B'0' AS bl_generadaauto,
+        NULL AS ds_CotizacionesId,
+        NULL AS Id_Cierre,
+        NULL AS cd_TipoFact,
+        NULL AS id_fac_remisionRelacionada,
+        NULL AS id_fac_facturaRelacionada,
+        NULL AS ds_DescripcionFac,
+        B'0' AS bl_nocont,
+        NULL AS ProductosSqlStmt,
+        NULL AS cd_CF_TipoComprobante,
+        NULL AS id_Licitacion,
+        COALESCE(e."totalAmount", 0) AS ValorFactura,
+        NULL AS id_Especialista,
+        NULL AS id_tiqueteador_Facturador,
+        NULL AS id_TipoFormaPagoProveedor,
+        NULL AS id_MedioReservacion,
+        B'0' AS bl_refacturacion,
+        B'0' AS bl_comisiona,
+        NULL AS cd_fuente_factura,
+        NULL AS cd_serie_factura,
+        NULL AS cd_consecutivo_factura,
+        NULL AS id_NotasAerolinea,
+        0 AS bl_interface,
+        NULL AS id_evento,
+        B'0' AS bl_NoEnviarFacElectronica,
+        B'0' AS bl_FacturaComision,
+        B'0' AS bl_DescontarComisionCxP,
+        '' AS ds_num_resolucion_Adicional,
+        NULL AS id_fac_facturaRefacturacion,
+        B'0' AS bl_refacturacion_contabilizar_saldos,
+        NULL AS ZML_VariablesXML,
+        B'0' AS bl_FormatoResumidoFactElectro,
+        B'0' AS bl_ExigeAdjuntoFactElectro,
+        B'0' AS bl_omitir_Validar_IVA_facturacion,
+        NULL AS ds_Respuesta,
+        e.id AS id_item
+    FROM public."Invoices" e
+    JOIN public."Client" c ON e."clientId" = c.id
+    JOIN public."Branch" b ON e."branchId" = b.id
+    LEFT JOIN public."Implant" i ON e."implantId" = i.id
+    LEFT JOIN public."Seller" s ON e."sellerId" = s.id
+    LEFT JOIN public."User" u ON e."userId" = u.id
+    WHERE e.id = ANY(string_to_array(Envoices_id, ',')::int[]);
+
+    -- 5. Poblar Tabla Item
+    INSERT INTO Item (
+		tipo_item, id_factura, in_tipoitem, id_referencia_origen, cd_tiquete, 
+		ds_descrip, in_nacionalidad, cd_cencosto, cd_auxiliar, cd_item, 
+		am_tarifa, am_iva, am_tua, am_comb, am_vat, am_Comision, 
+		ds_paxname, ds_paxape, ds_paxprefix, cd_tourcode, NumTktConj, 
+		cd_TipoTiquete, id_air, ds_itinerario, ds_itinerarioaerolinea, 
+		ds_clases, ds_Observaciones, am_highfare, am_lowfare, ds_solicita, 
+		ds_lapsoviaje, cd_tktrevisado, cd_PasaportePax, cd_pax_CC, 
+		am_PorFacParcial, in_cantpax, Id_Precompra, cd_FormaPagoTAO, 
+		cd_TarjetaCreditoTAO, cd_NumeroTarjetaTAO, cd_VencimientoTarjetaTAO, 
+		cd_NumeroPolizaTAO, cd_AnexoPolizaTAO, ds_AutorizacionTarjetaTAO, 
+		in_cuotasTarjetaTAO, id_FormasPago, id_TarjetasCredito, am_fp1, 
+		ds_cc_code, ds_cc_number, ds_cc_vence, ds_cc_autorizacion, 
+		ds_cc_voucher, in_cc_cuotas, am_fp2, ds_cc_code2, ds_cc_number2, 
+		ds_cc_vence2, ds_cc_autorizacion2, ds_cc_voucher2, in_cc_cuotas2, 
+		id_monedas_iata, Tcambio, id_sucursal, id_implante, bl_ahorro, 
+		cd_TipoTiqueteGDS, id_TiposDocumento, id_entdist, id_entvend, 
+		cd_destino, dt_fechaexped, id_tiqueteadores, id_gds, iden_gds, 
+		am_comisionPNR, ds_records, bl_NoCalcComision, bl_NoCalcIvaComision, 
+		am_basecomisionable, am_porcomision, id_tiposconceptfac, 
+		id_conceptofacturacion, id_tiposservicio, cd_proveedores, 
+		ds_servicio, am_valorprov, id_monedaprov, dt_llegada, dt_salida, 
+		am_pordescuento, am_basedescuento, Fecha_Salida, Fecha_Llegada, 
+		ColId, cd_Consecutivo_depende, CodigoReserva, 
+		cd_Consecutivo_variablesadicionales, am_valor_total, ds_proveedores, 
+		id_FormasPagoAirPlus, cd_FormasPagoAirPlus, ds_FormasPagoAirPlus, 
+		id_TarjetasCreditoAirPlus, cd_TarjetasCreditoAirPlus, 
+		ds_numerotarjetaAirPlus, id_reserva, OrdenGrabacion
+    )
+    SELECT 
+		CASE WHEN p.type='Tiquete' THEN 'Aire' 
+			 WHEN p.type='ALOJAMIENTO' THEN 'Hotel' 
+			 WHEN p.type='ALQUILER' THEN 'Auto'
+			 WHEN p.type='TAO' THEN 'TAO'
+			 ELSE 'SRV'
+		END AS tipo_item,
+        f.id_item AS id_factura,
+		CASE WHEN p.type='Tiquete' THEN 1 
+			 WHEN p.type='ALOJAMIENTO' THEN 3
+			 WHEN p.type='ALQUILER' THEN 3
+			 WHEN p.type='TAO' THEN 2
+			 ELSE 3
+		END AS in_tipoitem,
+        ep.id AS id_referencia_origen,
+        CASE WHEN p.type='Tiquete' THEN p.code ELSE '' END AS cd_tiquete,
+        SUBSTRING(COALESCE(ep.descripcion, ''), 1, 500) AS ds_descrip,
+        COALESCE(ep."inNationality", 1) AS in_nacionalidad,
+        '' AS cd_cencosto,
+        '' AS cd_auxiliar,
+        'I' || LPAD(ep.id::text, 7, '0') AS cd_item,
+        COALESCE((SELECT SUM("explicitAmount") FROM public."InvoicesProductTax" ipt WHERE ipt."invoiceProductId" = ep.id AND ipt."isMain" = true), 0) AS am_tarifa,
+        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'IVA'), 0) AS am_iva,
+        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'TUA'), 0) AS am_tua,
+        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'CMB'), 0) AS am_comb,
+        0 AS am_vat,
+        COALESCE(ep."sellerCommission", 0) AS am_Comision,
+		CASE WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN '' WHEN TRIM(epp.name) NOT LIKE '% %' THEN TRIM(epp.name) ELSE COALESCE(arr[1], '') END AS ds_paxname,
+		CASE WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN '' WHEN TRIM(epp.name) NOT LIKE '% %' THEN '' ELSE COALESCE(arr[2], '') END AS ds_paxape,
+		CASE WHEN TRIM(epp.name) LIKE '% %' THEN SUBSTRING(COALESCE(arr[3], ''), 1, 3)::char(3) ELSE ''::char(3) END AS ds_paxprefix,
+        '' AS cd_tourcode,
+        NULL AS NumTktConj,
+        ''::char(3) AS cd_TipoTiquete,
+        CASE WHEN p.type='Tiquete' THEN ep.id ELSE NULL END AS id_air,
+        SUBSTRING(COALESCE(ep.itinerary, ''), 1, 250) AS ds_itinerario,
+        SUBSTRING(COALESCE(ep.itinerary, ''), 1, 128) AS ds_itinerarioaerolinea,
+        SUBSTRING(COALESCE(ep.class, ''), 1, 61) AS ds_clases,
+        '' AS ds_Observaciones,
+        0 AS am_highfare,
+        0 AS am_lowfare,
+        '' AS ds_solicita,
+        '' AS ds_lapsoviaje,
+        '' AS cd_tktrevisado,
+        '' AS cd_PasaportePax,
+        '' AS cd_pax_CC,
+        0 AS am_PorFacParcial,
+        COALESCE(cardinality(arr), 1) AS in_cantpax,
+        NULL AS Id_Precompra,
+        '' AS cd_FormaPagoTAO,
+        '' AS cd_TarjetaCreditoTAO,
+        '' AS cd_NumeroTarjetaTAO,
+        '' AS cd_VencimientoTarjetaTAO,
+        '' AS cd_NumeroPolizaTAO,
+        '' AS cd_AnexoPolizaTAO,
+        '' AS ds_AutorizacionTarjetaTAO,
+        NULL AS in_cuotasTarjetaTAO,
+        NULL AS id_FormasPago,
+        NULL AS id_TarjetasCredito,
+        0 AS am_fp1,
+		COALESCE((SELECT cc.code FROM public."InvoicesProductPayment" ipp JOIN public."CreditCard" cc ON cc.id = ipp."creditCardId" WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_code,
+		COALESCE((SELECT ipp."cardNumber" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_number,
+		COALESCE((SELECT ipp."expirationDate" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_vence,
+		COALESCE((SELECT ipp."authorizationCode" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_autorizacion,
+		COALESCE((SELECT ipp."voucher" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_voucher,
+        NULL AS in_cc_cuotas,
+        0 AS am_fp2,
+        '' AS ds_cc_code2,
+        '' AS ds_cc_number2,
+        '' AS ds_cc_vence2,
+        '' AS ds_cc_autorizacion2,
+        '' AS ds_cc_voucher2,
+        NULL AS in_cc_cuotas2,
+        NULL AS id_monedas_iata,
+        COALESCE(e."exchangeRate", 1.0) AS Tcambio,
+        e."branchId" AS id_sucursal,
+        e."implantId" AS id_implante,
+        B'0' AS bl_ahorro,
+        '' AS cd_TipoTiqueteGDS,
+        NULL AS id_TiposDocumento,
+        NULL AS id_entdist,
+        NULL AS id_entvend,
+        SUBSTRING(COALESCE(ep.destination, ''), 1, 3) AS cd_destino,
+        e.date AS dt_fechaexped,
+        NULL AS id_tiqueteadores,
+        NULL AS id_gds,
+        1 AS iden_gds,
+        0 AS am_comisionPNR,
+        '' AS ds_records,
+        B'0' AS bl_NoCalcComision,
+        B'0' AS bl_NoCalcIvaComision,
+        0 AS am_basecomisionable,
+        0 AS am_porcomision,
+        NULL AS id_tiposconceptfac,
+        NULL AS id_conceptofacturacion,
+        NULL AS id_tiposservicio,
+        SUBSTRING(COALESCE(prov.code, prov.name, ''), 1, 25) AS cd_proveedores,
+        SUBSTRING(COALESCE(pr.description, ''), 1, 250) AS ds_servicio,
+        ep.price AS am_valorprov,
+        NULL AS id_monedaprov,
+        COALESCE(ep."checkInDate", e.date) AS dt_llegada,
+        COALESCE(ep."checkOutDate", e.date) AS dt_salida,
+        0 AS am_pordescuento,
+        0 AS am_basedescuento,
+        COALESCE(ep."checkInDate", e.date) AS Fecha_Salida,
+        COALESCE(ep."checkOutDate", e.date) AS Fecha_Llegada,
+        '' AS ColId,
+        '' AS cd_Consecutivo_depende,
+        SUBSTRING(COALESCE(ep."reservationCode", ''), 1, 50) AS CodigoReserva,
+        'I' || LPAD(ep.id::text, 7, '0') AS cd_Consecutivo_variablesadicionales,
+        (ep.price * ep.quantity) AS am_valor_total,
+        SUBSTRING(COALESCE(prov.name, prov.code, ''), 1, 250) AS ds_proveedores,
+        NULL AS id_FormasPagoAirPlus,
+        '' AS cd_FormasPagoAirPlus,
+        '' AS ds_FormasPagoAirPlus,
+        NULL AS id_TarjetasCreditoAirPlus,
+        '' AS cd_TarjetasCreditoAirPlus,
+        '' AS ds_numerotarjetaAirPlus,
+        NULL AS id_reserva,
+        NULL AS OrdenGrabacion
+    FROM public."InvoicesProduct" ep
+	JOIN public."Invoices" e ON ep."invoiceId" = e.id
+    JOIN public."Product" pr ON ep."productId" = pr.id
+    JOIN Facturacion f ON ep."invoiceId" = f.id_item
+    LEFT JOIN public."Provider" prov ON ep."providerId" = prov."id"
+	LEFT JOIN public."Prestadora" pre ON pre."id" = ep."prestadoraId"
+	LEFT JOIN LATERAL ( SELECT  pp.*,
+		        				regexp_split_to_array(TRIM(pp.name), 's+') AS arr
+		    			FROM public."InvoicesProductPasenger" pp 
+						WHERE pp."invoiceProductId" = ep.id
+    					ORDER BY pp.id
+    					LIMIT 1) epp ON true;
+
+    -- 6. Poblar Tabla itinerarios
+    INSERT INTO itinerarios (
+        id_factura, id_item, id_tipoitem, ds_itinerario, ds_itinerarioaerolinea
+    )
+    SELECT 
+        f.cd_consecutivo AS id_factura,
+        itm.cd_item AS id_item,
+        itm.tipo_item AS id_tipoitem,
+        ep.itinerary AS ds_itinerario,
+        ep.itinerary AS ds_itinerarioaerolinea
+    FROM public."InvoicesProduct" ep
+    JOIN Item itm ON ep.id = itm.id_referencia_origen
+    JOIN Facturacion f ON ep."invoiceId" = f.id_item
+    WHERE ep.itinerary IS NOT NULL AND ep.itinerary <> '';
+
+    -- 7. Poblar Tabla Pasajeros
+    INSERT INTO Pasajeros (
+        id_factura, id_item, id_tipoitem, ds_paxape, ds_paxname, ds_paxprefix,
+        ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion, in_edad, cd_tiquete
+    )
+    SELECT 
+        f.cd_consecutivo AS id_factura,
+        itm.cd_item AS id_item,
+        itm.tipo_item AS id_tipoitem,
+	    CASE WHEN p.name IS NULL OR TRIM(p.name) = '' THEN '' WHEN TRIM(p.name) NOT LIKE '% %' THEN '' ELSE COALESCE(arr[2], '') END AS ds_paxape,
+	    CASE WHEN p.name IS NULL OR TRIM(p.name) = '' THEN '' WHEN TRIM(p.name) NOT LIKE '% %' THEN TRIM(p.name) ELSE COALESCE(arr[1], '') END AS ds_paxname,
+	    CASE WHEN TRIM(p.name) LIKE '% %' THEN SUBSTRING(COALESCE(arr[3], ''), 1, 3)::char(3) ELSE ''::char(3) END AS ds_paxprefix,
+        '' AS ds_paxClasificacion,
+        '' AS cd_voucherpax,
+        p.document AS cd_paxidentificacion, 
+        0 AS in_edad, 
+        '' AS cd_tiquete
+	FROM (
+	    SELECT 
+	        p.*,
+	        regexp_split_to_array(TRIM(p.name), 's+') AS arr,
+	        ROW_NUMBER() OVER (
+	            PARTITION BY p."invoiceProductId"
+	            ORDER BY p.id
+	        ) AS rn
+	    FROM public."InvoicesProductPasenger" p
+	) p
+    JOIN Item itm ON p."invoiceProductId" = itm.id_referencia_origen
+    JOIN Facturacion f ON itm.id_factura = f.id_item
+    WHERE p.rn > 1;
+
+    -- 8. Poblar Tabla CargosImpuestos
+    INSERT INTO CargosImpuestos (
+        id_factura, id_item, id_tipoitem, cd_codigo, ds_nombre, cd_tipo,
+        am_porcentaje, am_valor, am_contado, am_credito, id_carg, id_imp, bl_iva, in_orden
+    )
+    SELECT 
+        f.cd_consecutivo AS id_factura,
+        itm.cd_item AS id_item,
+        itm.tipo_item AS id_tipoitem,
+        COALESCE(ct.code, 'TAR') AS cd_codigo,
+        COALESCE(ct.name, 'Tarifa') AS ds_nombre,
+        CASE WHEN t."isMain" = true THEN 'C' ELSE 'I' END AS cd_tipo,
+        COALESCE(ct.value, 0) AS am_porcentaje,
+        t."explicitAmount" AS am_valor,
+        t."explicitAmount" AS am_contado,
+        0 AS am_credito,
+        ct.id AS id_carg,
+        ct.id AS id_imp,
+        CASE WHEN ct.code = 'IVA' THEN B'1' ELSE B'0' END AS bl_iva,
+        1 AS in_orden
+    FROM public."InvoicesProductTax" t
+    JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
+    JOIN Item itm ON t."invoiceProductId" = itm.id_referencia_origen
+    JOIN Facturacion f ON itm.id_factura = f.id_item;
+
+    -- 9. Poblar Tabla Formaspago
+    INSERT INTO Formaspago (
+        id_factura, id_item, id_tipoitem, id_formaspago, cd_codigo, ds_nombre,
+        id_tarjetascredito, cd_tipotarjeta, ds_numerotarjeta, ds_vouchertarjeta,
+        ds_expiraciontarjeta, ds_autorizaciontarjeta, in_cuotas, cd_banco,
+        ds_cheque, ds_plaza, ds_referencia, ds_Poliza, ds_PolizaAnexo, am_valor
+    )
+    SELECT 
+        f.cd_consecutivo AS id_factura,
+        itm.cd_item AS id_item,
+        itm.tipo_item AS id_tipoitem,
+        ipp.id AS id_formaspago,
+        ipp."paymentMethod" AS cd_codigo,
+        ipp."paymentMethod" AS ds_nombre,
+        ipp."creditCardId" AS id_tarjetascredito,
+        COALESCE(cc.code, '') AS cd_tipotarjeta,
+        COALESCE(ipp."cardNumber", '') AS ds_numerotarjeta,
+        COALESCE(ipp.voucher, '') AS ds_vouchertarjeta,
+        COALESCE(ipp."expirationDate", '') AS ds_expiraciontarjeta,
+        COALESCE(ipp."authorizationCode", '') AS ds_autorizaciontarjeta,
+        NULL AS in_cuotas,
+        '' AS cd_banco,
+        '' AS ds_cheque,
+        '' AS ds_plaza,
+        COALESCE(ipp.reference, '') AS ds_referencia,
+        '' AS ds_Poliza,
+        '' AS ds_PolizaAnexo,
+        ipp.amount AS am_valor
+    FROM public."InvoicesProductPayment" ipp
+    JOIN Item itm ON ipp."invoiceProductId" = itm.id_referencia_origen
+    JOIN Facturacion f ON itm.id_factura = f.id_item
+    LEFT JOIN public."CreditCard" cc ON ipp."creditCardId" = cc.id;
+
+    -- 10. Poblar Tabla Variables
+    INSERT INTO Variables (
+        id_factura, id_item, id_tipoitem, ds_maestro, ds_VariableAdicional, ds_valor, cd_codigo
+    )
+    SELECT 
+        f.cd_consecutivo AS id_factura,
+        itm.cd_item AS id_item,
+        itm.tipo_item AS id_tipoitem,
+        'Item' AS ds_maestro,
+        COALESCE(mv.name, '') AS ds_VariableAdicional,
+        COALESCE(v.value, '') AS ds_valor,
+        COALESCE(mv.code, '') AS cd_codigo
+    FROM public."InvoicesProductVariable" v
+    JOIN public."MasterVariable" mv ON v."masterVariableId" = mv.id
+    JOIN Item itm ON v."invoiceProductId" = itm.id_referencia_origen
+    JOIN Facturacion f ON itm.id_factura = f.id_item;
+
+    -- 11. Generar XML
+    SELECT xmlroot(
+        xmlelement(name "Facturaciones",
+            xmlagg(
+                xmlelement(name "Facturacion",
+                    xmlforest(
+                        f.cd_fuente, f.cd_serie, f.cd_consecutivo, f.cd_usuario, f.cd_sucursal, f.cd_implante, 
+						f.dt_fechacont, f.dt_vence, f.cd_tercero_codigo, f.ds_tercero_nombre, f.cd_cliente_codigo, 
+						f.ds_cliente_nombre, f.ds_cliente_dir, f.ds_cliente_ciudad, f.ds_cliente_tel, f.ds_cliente_dirdesp, 
+						f.ds_cliente_email, f.ds_cliente_contacto, f.ds_cliente_contacto_email, f.id_monedas_iata, 
+						f.cd_vendedor, f.id_tiqueteador, f.bn_anexo, f.Tcambio, f.am_tcambiousd, f.id_tipoventa, 
+						f.ds_num_resolucion, f.in_num_inicial, f.in_num_final, f.ds_numeracion_autorizada, 
+						f.dt_fecha_resolucion, f.CodigoArchivoFisico, f.ds_Observacion, f.ds_Campo_libre1, 
+						f.ds_Campo_libre2, f.cd_fuente_Reemplaza, f.cd_serie_Reemplaza, f.cd_consecutivo_Reemplaza, 
+						f.ds_Actividad_Economica, f.ds_Tarifa_ICA, f.SqlStmt, f.AnticiposSqlStmt, f.TotalFactura, 
+						f.TotalCupoCreditoCliente, f.bl_BloqueoCupoCredito, f.bl_generadaauto, f.ds_CotizacionesId, 
+						f.Id_Cierre, f.cd_TipoFact, f.id_fac_remisionRelacionada, f.id_fac_facturaRelacionada, 
+						f.ds_DescripcionFac, f.bl_nocont, f.ProductosSqlStmt, f.cd_CF_TipoComprobante, f.id_Licitacion, 
+						f.ValorFactura, f.id_Especialista, f.id_tiqueteador_Facturador, f.id_TipoFormaPagoProveedor, 
+						f.id_MedioReservacion, f.bl_refacturacion, f.bl_comisiona, f.cd_fuente_factura, f.cd_serie_factura, 
+						f.cd_consecutivo_factura, f.id_NotasAerolinea, f.bl_interface, f.id_evento, f.bl_NoEnviarFacElectronica, 
+						f.bl_FacturaComision, f.bl_DescontarComisionCxP, f.ds_num_resolucion_Adicional, 
+						f.id_fac_facturaRefacturacion, f.bl_refacturacion_contabilizar_saldos, f.ZML_VariablesXML, 
+						f.bl_FormatoResumidoFactElectro, f.bl_ExigeAdjuntoFactElectro, f.bl_omitir_Validar_IVA_facturacion, 
+						f.ds_Respuesta
+                    ),
+                    (
+                        SELECT xmlagg(
+                            xmlelement(name "Item",
+                                xmlforest(
+									s.tipo_item, s.id_factura, s.in_tipoitem, s.id_referencia_origen, s.cd_tiquete, 
+									s.ds_descrip, s.in_nacionalidad, s.cd_cencosto, s.cd_auxiliar, s.cd_item, 
+									s.am_tarifa, s.am_iva, s.am_tua, s.am_comb, s.am_vat, s.am_Comision, 
+									s.ds_paxname, s.ds_paxape, s.ds_paxprefix, s.cd_tourcode, s.NumTktConj, 
+									s.cd_TipoTiquete, s.id_air, s.ds_itinerario, s.ds_itinerarioaerolinea, 
+									s.ds_clases, s.ds_Observaciones, s.am_highfare, s.am_lowfare, s.ds_solicita, 
+									s.ds_lapsoviaje, s.cd_tktrevisado, s.cd_PasaportePax, s.cd_pax_CC, 
+									s.am_PorFacParcial, s.in_cantpax, s.Id_Precompra, s.cd_FormaPagoTAO, 
+									s.cd_TarjetaCreditoTAO, s.cd_NumeroTarjetaTAO, s.cd_VencimientoTarjetaTAO, 
+									s.cd_NumeroPolizaTAO, s.cd_AnexoPolizaTAO, s.ds_AutorizacionTarjetaTAO, 
+									s.in_cuotasTarjetaTAO, s.id_FormasPago, s.id_TarjetasCredito, s.am_fp1, 
+									s.ds_cc_code, s.ds_cc_number, s.ds_cc_vence, s.ds_cc_autorizacion, 
+									s.ds_cc_voucher, s.in_cc_cuotas, s.am_fp2, s.ds_cc_code2, s.ds_cc_number2, 
+									s.ds_cc_vence2, s.ds_cc_autorizacion2, s.ds_cc_voucher2, s.in_cc_cuotas2, 
+									s.id_monedas_iata, s.Tcambio, s.id_sucursal, s.id_implante, s.bl_ahorro, 
+									s.cd_TipoTiqueteGDS, s.id_TiposDocumento, s.id_entdist, s.id_entvend, 
+									s.cd_destino, s.dt_fechaexped, s.id_tiqueteadores, s.id_gds, s.iden_gds, 
+									s.am_comisionPNR, s.ds_records, s.bl_NoCalcComision, s.bl_NoCalcIvaComision, 
+									s.am_basecomisionable, s.am_porcomision, s.id_tiposconceptfac, 
+									s.id_conceptofacturacion, s.id_tiposservicio, s.cd_proveedores, 
+									s.ds_servicio, s.am_valorprov, s.id_monedaprov, s.dt_llegada, s.dt_salida, 
+									s.am_pordescuento, s.am_basedescuento, s.Fecha_Salida, s.Fecha_Llegada, 
+									s.ColId, s.cd_Consecutivo_depende, s.CodigoReserva, 
+									s.cd_Consecutivo_variablesadicionales, s.am_valor_total, s.ds_proveedores, 
+									s.id_FormasPagoAirPlus, s.cd_FormasPagoAirPlus, s.ds_FormasPagoAirPlus, 
+									s.id_TarjetasCreditoAirPlus, s.cd_TarjetasCreditoAirPlus, 
+									s.ds_numerotarjetaAirPlus, s.id_reserva, s.OrdenGrabacion
+                                ),
+                                (
+                                    SELECT xmlagg(
+                                        xmlelement(name "itinerarios",
+                                            xmlforest(
+                                                iti.id_factura, iti.id_item, iti.id_tipoitem, iti.ds_itinerario, iti.ds_itinerarioaerolinea
+                                            )
+                                        )
+                                    )
+                                    FROM itinerarios iti
+                                    WHERE iti.id_item = s.cd_item
+                                ),
+                                (
+                                    SELECT xmlagg(
+                                        xmlelement(name "Pasajeros",
+                                            xmlforest(
+                                                p.id_factura, p.id_item, p.id_tipoitem, p.ds_paxape, p.ds_paxname, p.ds_paxprefix,
+                                                p.ds_paxClasificacion, p.cd_voucherpax, p.cd_paxidentificacion, p.in_edad, p.cd_tiquete
+                                            )
+                                        )
+                                    )
+                                    FROM Pasajeros p
+                                    WHERE p.id_item = s.cd_item
+                                ),
+                                (
+                                    SELECT xmlagg(
+                                        xmlelement(name "CargosImpuestos",
+                                            xmlforest(
+                                                ci.id_factura, ci.id_item, ci.id_tipoitem, ci.cd_codigo, ci.ds_nombre, ci.cd_tipo,
+                                                ci.am_porcentaje, ci.am_valor, ci.am_contado, ci.am_credito, ci.id_carg, ci.id_imp,
+                                                ci.bl_iva, ci.in_orden
+                                            )
+                                        )
+                                    )
+                                    FROM CargosImpuestos ci
+                                    WHERE ci.id_item = s.cd_item
+                                ),
+                                (
+                                    SELECT xmlagg(
+                                        xmlelement(name "Formaspago",
+                                            xmlforest(
+                                                fp.id_factura, fp.id_item, fp.id_tipoitem, fp.id_formaspago, fp.cd_codigo, fp.ds_nombre,
+                                                fp.id_tarjetascredito, fp.cd_tipotarjeta, fp.ds_numerotarjeta, fp.ds_vouchertarjeta,
+                                                fp.ds_expiraciontarjeta, fp.ds_autorizaciontarjeta, fp.in_cuotas, fp.cd_banco,
+                                                fp.ds_cheque, fp.ds_plaza, fp.ds_referencia, fp.ds_Poliza, fp.ds_PolizaAnexo, fp.am_valor
+                                            )
+                                        )
+                                    )
+                                    FROM Formaspago fp
+                                    WHERE fp.id_item = s.cd_item
+                                ),
+                                (
+                                    SELECT xmlagg(
+                                        xmlelement(name "Variables",
+                                            xmlforest(
+                                                v.id_factura, v.id_item, v.id_tipoitem, v.ds_maestro, v.ds_VariableAdicional, v.ds_valor, v.cd_codigo
+                                            )
+                                        )
+                                    )
+                                    FROM Variables v
+                                    WHERE v.id_item = s.cd_item
+                                )
+                            )
+                        )
+                        FROM Item s
+                        WHERE s.id_factura = f.id_item
+                    )
+                )
+            )
+        ),
+        version '1.0', standalone yes
+    )::text INTO v_xml
+    FROM Facturacion f;
+
+    mensaje_resultado := COALESCE(v_xml, '<?xml version="1.0" standalone="yes"?><Facturaciones />');
+
+EXCEPTION
+    WHEN OTHERS THEN
+        GET STACKED DIAGNOSTICS 
+            v_state   = RETURNED_SQLSTATE,
+            v_msg     = MESSAGE_TEXT,
+            v_context = PG_EXCEPTION_CONTEXT;
+		v_line := substring(v_context from 'line ([0-9]+)')::TEXT;
+        mensaje_resultado := format('ERROR: %s | EN LÍNEA: %s | ESTADO: %s', v_msg, v_line, v_state);
+END;
+$$;
+
+-- Archivo: spExportInvoices.sql
+CREATE OR REPLACE PROCEDURE public.spExportInvoices(
+    Envoices_id TEXT,
+	User_id INT,
+	INOUT mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+/*
+    AUTOR: Rubiel Gelis Guzman / Antigravity
+    DESCRIPCIÓN: Generación de XML para exportación de Facturas (Invoices). Restructurado según especificaciones del usuario.
+*/
+DECLARE
+    v_xml TEXT;
+    v_nombre_usuario TEXT;
+	v_state   TEXT;
+    v_msg     TEXT;
+    v_context TEXT;
+    v_line    TEXT;
+BEGIN
+    -- 1. Inicializar
+    mensaje_resultado := '';
+
+    Envoices_id := TRIM(BOTH ',' FROM TRIM(COALESCE(Envoices_id, '')));
+    IF Envoices_id = '' THEN
+        mensaje_resultado := 'ERROR: No se han proporcionado IDs de Facturacion válidos.';
+        RETURN;
+    END IF;
+
+    -- 2. Validación de usuario
+    SELECT "name" INTO v_nombre_usuario FROM public."User" WHERE id = User_id;
+    IF NOT FOUND THEN
+        mensaje_resultado := 'ERROR: El usuario ' || User_id || ' no existe.';
+        RETURN;
+    END IF;
+
+    -- 3. Crear Tablas Temporales
+    CREATE TEMP TABLE IF NOT EXISTS Facturacion (
+		id INTEGER GENERATED ALWAYS AS IDENTITY,
+		id_factura INTEGER,
+		cd_fuente VARCHAR(2),
+		cd_serie VARCHAR(2),
+		cd_consecutivo VARCHAR(8),
+		cd_usuario INTEGER,  
+		cd_sucursal VARCHAR(25), 
+		cd_implante VARCHAR(25), 
+		dt_fechacont TIMESTAMP,
+		dt_vence TIMESTAMP,
+		cd_tercero_codigo VARCHAR(25),
+		ds_tercero_nombre VARCHAR(250),
+		cd_cliente_codigo VARCHAR(25), 
+		ds_cliente_nombre VARCHAR(250),
+		ds_cliente_dir VARCHAR(250),
+		ds_cliente_ciudad VARCHAR(40),
+		ds_cliente_tel VARCHAR(50),
+		ds_cliente_dirdesp VARCHAR(250),
+		ds_cliente_email VARCHAR(60),
+		ds_cliente_contacto VARCHAR(40),
+		ds_cliente_contacto_email VARCHAR(60),
+		cd_monedas_iata VARCHAR(25),
+		cd_vendedor CHAR(3),
+		cd_tiqueteador VARCHAR(25),
+		bn_anexo BYTEA,
+		Tcambio DECIMAL,
+		am_tcambiousd DECIMAL,
+		id_tipoventa INTEGER,
+		ds_num_resolucion VARCHAR(20), 
+		in_num_inicial NUMERIC(18,0), 
+		in_num_final NUMERIC(18,0), 
+		ds_numeracion_autorizada VARCHAR(50),
+		dt_fecha_resolucion TIMESTAMP,	
+		CodigoArchivoFisico VARCHAR(25),
+		ds_Observacion VARCHAR(8000),
+		ds_Campo_libre1 varchar(500),
+		ds_Campo_libre2 varchar(500),
+		cd_fuente_Reemplaza CHAR(2),
+		cd_serie_Reemplaza CHAR(2),
+		cd_consecutivo_Reemplaza CHAR(8),		
+		ds_Actividad_Economica VARCHAR(10),
+		ds_Tarifa_ICA VARCHAR(15),	
+		SqlStmt TEXT,
+		AnticiposSqlStmt TEXT,
+		TotalFactura DECIMAL,
+		TotalCupoCreditoCliente DECIMAL,
+		bl_BloqueoCupoCredito BIT(1),
+		bl_generadaauto BIT(1),
+		ds_CotizacionesId Varchar(500),
+		Id_Cierre INTEGER,
+		cd_TipoFact CHAR(2),
+		id_fac_remisionRelacionada INTEGER,
+		id_fac_facturaRelacionada INTEGER,
+		ds_DescripcionFac VARCHAR(500),
+		bl_nocont BIT(1),
+		ProductosSqlStmt TEXT,
+		cd_CF_TipoComprobante VARCHAR(15),
+		id_Licitacion INTEGER,
+		ValorFactura DECIMAL,
+		id_Especialista INTEGER,
+		cd_tiqueteador_Facturador VARCHAR(25),
+		id_TipoFormaPagoProveedor INTEGER,
+		id_MedioReservacion INTEGER,
+		bl_refacturacion BIT(1),
+		bl_comisiona BIT(1),
+		cd_fuente_factura VARCHAR(2),
+		cd_serie_factura VARCHAR(2),
+		cd_consecutivo_factura VARCHAR(8),
+		id_NotasAerolinea INTEGER,
+		bl_interface INTEGER,
+		id_evento INTEGER,
+		bl_NoEnviarFacElectronica BIT(1),
+		bl_FacturaComision BIT(1),
+		bl_DescontarComisionCxP BIT(1),
+		ds_num_resolucion_Adicional VARCHAR(20),
+		id_fac_facturaRefacturacion VARCHAR(8000),
+		bl_refacturacion_contabilizar_saldos BIT(1),
+		ZML_VariablesXML TEXT,
+		bl_FormatoResumidoFactElectro BIT(1),
+		bl_ExigeAdjuntoFactElectro BIT(1),
+		bl_omitir_Validar_IVA_facturacion BIT(1),
+		ds_Respuesta TEXT
+    ) ON COMMIT DROP;
+
+    CREATE TEMP TABLE IF NOT EXISTS Item (
+		id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+		tipo_item VARCHAR(10),
+		id_factura INTEGER,
+		id_item INTEGER,
+		in_tipoitem INTEGER,
+		id_referencia_origen INTEGER,             
+		cd_tiquete VARCHAR(50),
+		ds_descrip VARCHAR(500),
+		in_nacionalidad INTEGER,
+		cd_cencosto VARCHAR(50),
+		cd_auxiliar VARCHAR(50),
+		cd_item VARCHAR(50),
+		am_tarifa DECIMAL,
+		am_iva DECIMAL,
+		am_tua DECIMAL,
+		am_comb DECIMAL,
+		am_vat DECIMAL,
+		am_Comision DECIMAL,
+		ds_paxname VARCHAR(30),
+		ds_paxape VARCHAR(30),
+		ds_paxprefix CHAR(3),
+		cd_tourcode VARCHAR(25),
+		NumTktConj INTEGER,
+		cd_TipoTiquete CHAR(3),
+		id_air INTEGER,
+		ds_itinerario VARCHAR(250),
+		ds_itinerarioaerolinea VARCHAR(128),
+		ds_clases VARCHAR(61),
+		ds_Observaciones VARCHAR(8000),
+		am_highfare DECIMAL,
+		am_lowfare DECIMAL,
+		ds_solicita VARCHAR(200),
+		ds_lapsoviaje VARCHAR(50),
+		cd_tktrevisado VARCHAR(14),
+		cd_PasaportePax VARCHAR(25),
+		cd_pax_CC VARCHAR(20),
+		am_PorFacParcial DECIMAL,
+		in_cantpax INTEGER,
+		Id_Precompra INTEGER,
+		cd_FormaPagoTAO VARCHAR(3),
+		cd_TarjetaCreditoTAO VARCHAR(4),
+		cd_NumeroTarjetaTAO VARCHAR(25),
+		cd_VencimientoTarjetaTAO CHAR(6),
+		cd_NumeroPolizaTAO VARCHAR(50),
+		cd_AnexoPolizaTAO VARCHAR(50),
+		ds_AutorizacionTarjetaTAO VARCHAR(25),
+		in_cuotasTarjetaTAO INTEGER,
+		cd_FormasPago VARCHAR(25),
+		cd_TarjetasCredito VARCHAR(25),
+		am_fp1 DECIMAL,
+		ds_cc_code VARCHAR(2),
+		ds_cc_number VARCHAR(25),
+		ds_cc_vence VARCHAR(25),
+		ds_cc_autorizacion VARCHAR(25),
+		ds_cc_voucher VARCHAR(25),
+		in_cc_cuotas INTEGER,
+		am_fp2 DECIMAL,
+		ds_cc_code2 VARCHAR(2),
+		ds_cc_number2 VARCHAR(25),
+		ds_cc_vence2 VARCHAR(25),
+		ds_cc_autorizacion2 VARCHAR(25),
+		ds_cc_voucher2 VARCHAR(25),
+		in_cc_cuotas2 INTEGER,
+		cd_monedas_iata VARCHAR(25),
+		Tcambio DECIMAL,
+		cd_sucursal VARCHAR(25),
+		cd_implante VARCHAR(25),
+		bl_ahorro BIT(1),
+		cd_TipoTiqueteGDS VARCHAR(3),
+		cd_TiposDocumento VARCHAR(25),
+		cd_entdist VARCHAR(25),
+		cd_entvend VARCHAR(25),
+		cd_destino VARCHAR(3),
+		dt_fechaexped TIMESTAMP,
+		cd_tiqueteadores VARCHAR(25),
+		id_gds INTEGER,
+		iden_gds INTEGER,
+		am_comisionPNR DECIMAL,
+		ds_records VARCHAR(62),
+		bl_NoCalcComision BIT(1),
+		bl_NoCalcIvaComision BIT(1),
+		am_basecomisionable DECIMAL,
+		am_porcomision DECIMAL,
+		cd_tiposconceptfac VARCHAR(25),
+		cd_conceptofacturacion VARCHAR(25),
+		cd_tiposservicio VARCHAR(25),
+		cd_proveedores VARCHAR(25),
+		ds_servicio VARCHAR(250),
+		am_valorprov DECIMAL,
+		cd_monedaprov VARCHAR(25),
+		dt_llegada TIMESTAMP,
+		dt_salida TIMESTAMP,
+		am_pordescuento NUMERIC(8,4),
+		am_basedescuento DECIMAL,
+		Fecha_Salida TIMESTAMP,
+		Fecha_Llegada TIMESTAMP,
+		ColId VARCHAR(25),
+		cd_Consecutivo_depende VARCHAR(50),
+		CodigoReserva VARCHAR(50),
+		cd_Consecutivo_variablesadicionales VARCHAR(50),
+		am_valor_total DECIMAL,
+		ds_proveedores VARCHAR(250),
+		id_FormasPagoAirPlus INTEGER,
+		cd_FormasPagoAirPlus VARCHAR(3),
+		ds_FormasPagoAirPlus VARCHAR(100),
+		id_TarjetasCreditoAirPlus INTEGER,
+		cd_TarjetasCreditoAirPlus VARCHAR(4),
+		ds_numerotarjetaAirPlus VARCHAR(25),
+		id_reserva INTEGER,
+		OrdenGrabacion INTEGER
+    ) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS itinerarios(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		id_factura INTEGER,
+		id_item INTEGER,
+		in_tipoitem INTEGER,
+		in_orden INTEGER,
+		ds_origen VARCHAR(25),
+		ds_destino VARCHAR(25),
+		ds_clase VARCHAR(25),
+		dt_llegada TIMESTAMP,
+		dt_salida TIMESTAMP,
+		ds_terminal VARCHAR(25),
+		cd_aerolinea VARCHAR(25),
+		cd_farebasis VARCHAR(25),
+		ds_numerovuelo VARCHAR(25),
+		ds_tipovuelo VARCHAR(25),
+		am_valor DECIMAL,
+		am_co2 DECIMAL
+	) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS Pasajeros(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		id_factura INTEGER,
+		id_item INTEGER,
+		in_tipoitem INTEGER,
+		ds_paxape VARCHAR(30),
+		ds_paxname VARCHAR(30),
+		ds_paxprefix CHAR(3),
+		ds_paxClasificacion CHAR(25),
+		cd_voucherpax VARCHAR(25),
+		cd_paxidentificacion VARCHAR(25),
+		in_edad INT,
+		cd_tiquete CHAR(50)
+	) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS CargosImpuestos(
+		id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+		id_factura INTEGER,
+		id_item INTEGER,
+		in_tipoitem INTEGER,
+		cd_codigo VARCHAR(20),
+		ds_nombre VARCHAR(100),
+		cd_tipo CHAR(1),
+		am_porcentaje NUMERIC(8,4),
+		am_valor DECIMAL,
+		am_contado DECIMAL,
+		am_credito DECIMAL,
+		id_carg INTEGER,
+		id_imp INTEGER,
+		bl_iva BIT(1),
+		in_orden INTEGER
+	) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS Formaspago(
+		id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+		id_factura INTEGER,
+		id_item INTEGER,
+		in_tipoitem INTEGER,
+		id_formaspago INTEGER,
+		cd_codigo VARCHAR(10),
+		ds_nombre VARCHAR(50),
+		id_tarjetascredito INTEGER,
+		cd_tipotarjeta VARCHAR(10),
+		ds_numerotarjeta VARCHAR(50),
+		ds_vouchertarjeta VARCHAR(50),
+		ds_expiraciontarjeta VARCHAR(10),
+		ds_autorizaciontarjeta VARCHAR(50),
+		in_cuotas INTEGER,
+		cd_banco VARCHAR(50),
+		ds_cheque VARCHAR(50),
+		ds_plaza VARCHAR(50),
+		ds_referencia VARCHAR(50),
+		ds_Poliza VARCHAR(50),
+		ds_PolizaAnexo VARCHAR(50),
+		am_valor DECIMAL
+	) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS Variables(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		id_factura INTEGER,
+		id_item INTEGER,
+		in_tipoitem INTEGER,
+		ds_maestro VARCHAR(25), 
+		ds_VariableAdicional VARCHAR(25),
+		ds_valor VARCHAR(500),
+		cd_codigo CHAR(25)
+	) ON COMMIT DROP;
+
+    -- 4. Poblar Tabla Facturacion
+    INSERT INTO Facturacion (
+		id_factura, cd_fuente, cd_serie, cd_consecutivo, cd_usuario, cd_sucursal, cd_implante, 
+		dt_fechacont, dt_vence, cd_tercero_codigo, ds_tercero_nombre, cd_cliente_codigo, 
+		ds_cliente_nombre, ds_cliente_dir, ds_cliente_ciudad, ds_cliente_tel, ds_cliente_dirdesp, 
+		ds_cliente_email, ds_cliente_contacto, ds_cliente_contacto_email, cd_monedas_iata, 
+		cd_vendedor, cd_tiqueteador, bn_anexo, Tcambio, am_tcambiousd, id_tipoventa, 
+		ds_num_resolucion, in_num_inicial, in_num_final, ds_numeracion_autorizada, 
+		dt_fecha_resolucion, CodigoArchivoFisico, ds_Observacion, ds_Campo_libre1, 
+		ds_Campo_libre2, cd_fuente_Reemplaza, cd_serie_Reemplaza, cd_consecutivo_Reemplaza, 
+		ds_Actividad_Economica, ds_Tarifa_ICA, SqlStmt, AnticiposSqlStmt, TotalFactura, 
+		TotalCupoCreditoCliente, bl_BloqueoCupoCredito, bl_generadaauto, ds_CotizacionesId, 
+		Id_Cierre, cd_TipoFact, id_fac_remisionRelacionada, id_fac_facturaRelacionada, 
+		ds_DescripcionFac, bl_nocont, ProductosSqlStmt, cd_CF_TipoComprobante, id_Licitacion, 
+		ValorFactura, id_Especialista, cd_tiqueteador_Facturador, id_TipoFormaPagoProveedor, 
+		id_MedioReservacion, bl_refacturacion, bl_comisiona, cd_fuente_factura, cd_serie_factura, 
+		cd_consecutivo_factura, id_NotasAerolinea, bl_interface, id_evento, bl_NoEnviarFacElectronica, 
+		bl_FacturaComision, bl_DescontarComisionCxP, ds_num_resolucion_Adicional, 
+		id_fac_facturaRefacturacion, bl_refacturacion_contabilizar_saldos, ZML_VariablesXML, 
+		bl_FormatoResumidoFactElectro, bl_ExigeAdjuntoFactElectro, bl_omitir_Validar_IVA_facturacion, 
+		ds_Respuesta
+    )
+    SELECT
+		e.id AS id_factura,
+        SUBSTRING(COALESCE(e.fuente, '55'), 1, 2) AS cd_fuente,
+        SUBSTRING(COALESCE(e.serie, '00'), 1, 2) AS cd_serie,
+        SUBSTRING(COALESCE(e.consecutivo, 'I' || LPAD(e.id::text, 7, '0')), 1, 8) AS cd_consecutivo,
+        User_id AS cd_usuario,
+        SUBSTRING(COALESCE(b.code, 'OFP'), 1, 3) AS cd_sucursal,
+        SUBSTRING(COALESCE(i.code, ''), 1, 3) AS cd_implante,
+        e.date AS dt_fechacont,
+        e.date AS dt_vence,
+        SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_tercero_codigo,
+        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_tercero_nombre,
+        SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_cliente_codigo,
+        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_cliente_nombre,
+        SUBSTRING(COALESCE(c.address, ''), 1, 250) AS ds_cliente_dir,
+        '' AS ds_cliente_ciudad,
+        '' AS ds_cliente_tel,
+        '' AS ds_cliente_dirdesp,
+        SUBSTRING(COALESCE(u.email, ''), 1, 60) AS ds_cliente_email,
+        '' AS ds_cliente_contacto,
+        '' AS ds_cliente_contacto_email,
+        COALESCE(e."currency", 'COP') AS cd_monedas_iata,
+        SUBSTRING(COALESCE(s.code, ''), 1, 3)::char(3) AS cd_vendedor,
+        SUBSTRING(COALESCE(tp.code, ''), 1, 25) AS cd_tiqueteador,
+        NULL::bytea AS bn_anexo,
+        COALESCE(e."exchangeRate", 1.0) AS Tcambio,
+        1.0 AS am_tcambiousd,
+        NULL AS id_tipoventa,
+        '' AS ds_num_resolucion,
+        0 AS in_num_inicial,
+        0 AS in_num_final,
+        '' AS ds_numeracion_autorizada,
+        NULL AS dt_fecha_resolucion,
+        '' AS CodigoArchivoFisico,
+        '' AS ds_Observacion,
+        '' AS ds_Campo_libre1,
+        '' AS ds_Campo_libre2,
+        '' AS cd_fuente_Reemplaza,
+        '' AS cd_serie_Reemplaza,
+        '' AS cd_consecutivo_Reemplaza,
+        '' AS ds_Actividad_Economica,
+        '' AS ds_Tarifa_ICA,
+        '' AS SqlStmt,
+        NULL AS AnticiposSqlStmt,
+        COALESCE(e."totalAmount", 0) AS TotalFactura,
+        0 AS TotalCupoCreditoCliente,
+        B'0' AS bl_BloqueoCupoCredito,
+        B'0' AS bl_generadaauto,
+        NULL AS ds_CotizacionesId,
+        NULL AS Id_Cierre,
+        NULL AS cd_TipoFact,
+        NULL AS id_fac_remisionRelacionada,
+        NULL AS id_fac_facturaRelacionada,
+        NULL AS ds_DescripcionFac,
+        B'0' AS bl_nocont,
+        NULL AS ProductosSqlStmt,
+        NULL AS cd_CF_TipoComprobante,
+        NULL AS id_Licitacion,
+        COALESCE(e."totalAmount", 0) AS ValorFactura,
+        NULL AS id_Especialista,
+        NULL AS cd_tiqueteador_Facturador,
+        NULL AS id_TipoFormaPagoProveedor,
+        NULL AS id_MedioReservacion,
+        B'0' AS bl_refacturacion,
+        B'0' AS bl_comisiona,
+        NULL AS cd_fuente_factura,
+        NULL AS cd_serie_factura,
+        NULL AS cd_consecutivo_factura,
+        NULL AS id_NotasAerolinea,
+        0 AS bl_interface,
+        NULL AS id_evento,
+        B'0' AS bl_NoEnviarFacElectronica,
+        B'0' AS bl_FacturaComision,
+        B'0' AS bl_DescontarComisionCxP,
+        '' AS ds_num_resolucion_Adicional,
+        NULL AS id_fac_facturaRefacturacion,
+        B'0' AS bl_refacturacion_contabilizar_saldos,
+        NULL AS ZML_VariablesXML,
+        B'0' AS bl_FormatoResumidoFactElectro,
+        B'0' AS bl_ExigeAdjuntoFactElectro,
+        B'0' AS bl_omitir_Validar_IVA_facturacion,
+        NULL AS ds_Respuesta
+    FROM public."Invoices" e
+    JOIN public."Client" c ON e."clientId" = c.id
+    JOIN public."Branch" b ON e."branchId" = b.id
+    LEFT JOIN public."Implant" i ON e."implantId" = i.id
+    LEFT JOIN public."Seller" s ON e."sellerId" = s.id
+    LEFT JOIN public."User" u ON e."userId" = u.id
+    LEFT JOIN public."TicketPrinter" tp ON e."ticketPrinterId" = tp.id
+    WHERE e.id = ANY(string_to_array(Envoices_id, ',')::int[]);
+
+    -- 5. Poblar Tabla Item
+    INSERT INTO Item (
+		id_factura, id_item, tipo_item, in_tipoitem, id_referencia_origen, cd_tiquete, 
+		ds_descrip, in_nacionalidad, cd_cencosto, cd_auxiliar, cd_item, 
+		am_tarifa, am_iva, am_tua, am_comb, am_vat, am_Comision, 
+		ds_paxname, ds_paxape, ds_paxprefix, cd_tourcode, NumTktConj, 
+		cd_TipoTiquete, id_air, ds_itinerario, ds_itinerarioaerolinea, 
+		ds_clases, ds_Observaciones, am_highfare, am_lowfare, ds_solicita, 
+		ds_lapsoviaje, cd_tktrevisado, cd_PasaportePax, cd_pax_CC, 
+		am_PorFacParcial, in_cantpax, Id_Precompra, cd_FormaPagoTAO, 
+		cd_TarjetaCreditoTAO, cd_NumeroTarjetaTAO, cd_VencimientoTarjetaTAO, 
+		cd_NumeroPolizaTAO, cd_AnexoPolizaTAO, ds_AutorizacionTarjetaTAO, 
+		in_cuotasTarjetaTAO, cd_FormasPago, cd_TarjetasCredito, am_fp1, 
+		ds_cc_code, ds_cc_number, ds_cc_vence, ds_cc_autorizacion, 
+		ds_cc_voucher, in_cc_cuotas, am_fp2, ds_cc_code2, ds_cc_number2, 
+		ds_cc_vence2, ds_cc_autorizacion2, ds_cc_voucher2, in_cc_cuotas2, 
+		cd_monedas_iata, Tcambio, cd_sucursal, cd_implante, bl_ahorro, 
+		cd_TipoTiqueteGDS, cd_TiposDocumento, cd_entdist, cd_entvend, 
+		cd_destino, dt_fechaexped, cd_tiqueteadores, id_gds, iden_gds, 
+		am_comisionPNR, ds_records, bl_NoCalcComision, bl_NoCalcIvaComision, 
+		am_basecomisionable, am_porcomision, cd_tiposconceptfac, 
+		cd_conceptofacturacion, cd_tiposservicio, cd_proveedores, 
+		ds_servicio, am_valorprov, cd_monedaprov, dt_llegada, dt_salida, 
+		am_pordescuento, am_basedescuento, Fecha_Salida, Fecha_Llegada, 
+		ColId, cd_Consecutivo_depende, CodigoReserva, 
+		cd_Consecutivo_variablesadicionales, am_valor_total, ds_proveedores, 
+		id_FormasPagoAirPlus, cd_FormasPagoAirPlus, ds_FormasPagoAirPlus, 
+		id_TarjetasCreditoAirPlus, cd_TarjetasCreditoAirPlus, 
+		ds_numerotarjetaAirPlus, id_reserva, OrdenGrabacion
+    )
+    SELECT
+		e.id AS id_factura,
+		ep.id AS id_item,
+		CASE WHEN pr.type='Tiquete' THEN 'Aire' 
+			 WHEN pr.type='ALOJAMIENTO' THEN 'Hotel' 
+			 WHEN pr.type='ALQUILER' THEN 'Auto'
+			 WHEN pr.type='TAO' THEN 'TAO'
+			 ELSE 'SRV'
+		END AS tipo_item,
+		CASE WHEN pr.type='Tiquete' THEN 1 
+			 WHEN pr.type='ALOJAMIENTO' THEN 3
+			 WHEN pr.type='ALQUILER' THEN 3
+			 WHEN pr.type='TAO' THEN 2
+			 ELSE 3
+		END AS in_tipoitem,
+        ep.id AS id_referencia_origen,
+        CASE WHEN pr.type='Tiquete' THEN pr.code ELSE '' END AS cd_tiquete,
+        SUBSTRING(COALESCE(ep.descripcion, ''), 1, 500) AS ds_descrip,
+        COALESCE(ep."inNationality", 1) AS in_nacionalidad,
+        '' AS cd_cencosto,
+        '' AS cd_auxiliar,
+        '' AS cd_item,
+        COALESCE((SELECT SUM("explicitAmount") FROM public."InvoicesProductTax" ipt WHERE ipt."invoiceProductId" = ep.id AND ipt."isMain" = true), 0) AS am_tarifa,
+        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'IVA'), 0) AS am_iva,
+        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'TUA'), 0) AS am_tua,
+        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'CMB'), 0) AS am_comb,
+        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ipt."isMain" = false AND ct.code NOT IN('CMB','TUA','IVA')), 0) AS am_vat,
+        COALESCE(ep."sellerCommission", 0) AS am_Comision,
+		CASE WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN '' WHEN TRIM(epp.name) NOT LIKE '% %' THEN TRIM(epp.name) ELSE COALESCE(arr[1], '') END AS ds_paxname,
+		CASE WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN '' WHEN TRIM(epp.name) NOT LIKE '% %' THEN '' ELSE COALESCE(arr[2], '') END AS ds_paxape,
+		CASE WHEN TRIM(epp.name) LIKE '% %' THEN SUBSTRING(COALESCE(arr[3], ''), 1, 3)::char(3) ELSE ''::char(3) END AS ds_paxprefix,
+        '' AS cd_tourcode,
+        0 AS NumTktConj,
+        COALESCE(tt.code,'') AS cd_TipoTiquete,
+        CASE WHEN pr.type='Tiquete' THEN ep.id ELSE NULL END AS id_air,
+        SUBSTRING(COALESCE(ep.itinerary, ''), 1, 250) AS ds_itinerario,
+        SUBSTRING(COALESCE(ep.airline, ''), 1, 128) AS ds_itinerarioaerolinea,
+        SUBSTRING(COALESCE(ep.class, ''), 1, 61) AS ds_clases,
+        '' AS ds_Observaciones,
+        0 AS am_highfare,
+        0 AS am_lowfare,
+        '' AS ds_solicita,
+        '' AS ds_lapsoviaje,
+        '' AS cd_tktrevisado,
+        '' AS cd_PasaportePax,
+        '' AS cd_pax_CC,
+        0 AS am_PorFacParcial,
+        COALESCE(cardinality(arr), 1) AS in_cantpax,
+        NULL AS Id_Precompra,
+        '' AS cd_FormaPagoTAO,
+        '' AS cd_TarjetaCreditoTAO,
+        '' AS cd_NumeroTarjetaTAO,
+        '' AS cd_VencimientoTarjetaTAO,
+        '' AS cd_NumeroPolizaTAO,
+        '' AS cd_AnexoPolizaTAO,
+        '' AS ds_AutorizacionTarjetaTAO,
+        0 AS in_cuotasTarjetaTAO,
+        COALESCE((SELECT pp.code FROM public."InvoicesProductPayment" ipp JOIN public."Payment" pp ON LOWER(pp."name") = LOWER(ipp."paymentMethod") WHERE ipp."invoiceProductId" = ep.id LIMIT 1), '') AS cd_FormasPago,
+        COALESCE((SELECT cc.code FROM public."InvoicesProductPayment" ipp JOIN public."CreditCard" cc ON cc.id = ipp."creditCardId" WHERE ipp."invoiceProductId" = ep.id AND UPPER(ipp."paymentMethod") = 'TARJETA' LIMIT 1), '') AS cd_TarjetasCredito,
+        (ep.price * ep.quantity) AS am_fp1,
+		COALESCE((SELECT cc.code FROM public."InvoicesProductPayment" ipp JOIN public."CreditCard" cc ON cc.id = ipp."creditCardId" WHERE ipp."invoiceProductId" = ep.id AND UPPER(ipp."paymentMethod") = 'TARJETA' LIMIT 1), '') AS ds_cc_code,
+		COALESCE((SELECT ipp."cardNumber" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND UPPER(ipp."paymentMethod") = 'TARJETA' LIMIT 1), '') AS ds_cc_number,
+		COALESCE((SELECT ipp."expirationDate" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_vence,
+		COALESCE((SELECT ipp."authorizationCode" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND UPPER(ipp."paymentMethod") = 'TARJETA' LIMIT 1), '') AS ds_cc_autorizacion,
+		COALESCE((SELECT ipp."voucher" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND UPPER(ipp."paymentMethod") = 'TARJETA' LIMIT 1), '') AS ds_cc_voucher,
+        0 AS in_cc_cuotas,
+        0 AS am_fp2,
+        '' AS ds_cc_code2,
+        '' AS ds_cc_number2,
+        '' AS ds_cc_vence2,
+        '' AS ds_cc_autorizacion2,
+        '' AS ds_cc_voucher2,
+        0 AS in_cc_cuotas2,
+        COALESCE(e."currency", 'COP') AS cd_monedas_iata,
+        COALESCE(e."exchangeRate", 1.0) AS Tcambio,
+        b."code" AS cd_sucursal,
+        i."code" AS cd_implante,
+        B'0' AS bl_ahorro,
+        '' AS cd_TipoTiqueteGDS,
+        COALESCE(tt.code,'') AS cd_TiposDocumento,
+        CASE WHEN COALESCE(pre."nogds",'')<>'' THEN COALESCE(pre.code,'') ELSE 'BSP' END AS cd_entdist,
+        COALESCE(pre.code,'') AS cd_entvend,
+        SUBSTRING(COALESCE(ep.destination, ''), 1, 3) AS cd_destino,
+        COALESCE(ep."checkInDate", e.date) AS dt_fechaexped,
+        COALESCE(tp.code, '') AS cd_tiqueteadores,
+        NULL AS id_gds,
+        1 AS iden_gds,
+        0 AS am_comisionPNR,
+        COALESCE(ep."reservationCode", '') AS ds_records,
+        B'0' AS bl_NoCalcComision,
+        B'0' AS bl_NoCalcIvaComision,
+        0 AS am_basecomisionable,
+        0 AS am_porcomision,
+        '' AS cd_tiposconceptfac,
+        COALESCE(pr."billingConcept", '') AS cd_conceptofacturacion,
+        COALESCE(pr."serviceType", '') AS cd_tiposservicio,
+        SUBSTRING(COALESCE(prov.code, prov.name, ''), 1, 25) AS cd_proveedores,
+        SUBSTRING(COALESCE(ep."servicios", ''), 1, 250) AS ds_servicio,
+        ep.price AS am_valorprov,
+        '' AS cd_monedaprov,
+        COALESCE(ep."checkInDate", e.date) AS dt_llegada,
+        COALESCE(ep."checkOutDate", e.date) AS dt_salida,
+        0 AS am_pordescuento,
+        0 AS am_basedescuento,
+        COALESCE(ep."checkInDate", e.date) AS Fecha_Salida,
+        COALESCE(ep."checkOutDate", e.date) AS Fecha_Llegada,
+        '' AS ColId,
+        '' AS cd_Consecutivo_depende,
+        SUBSTRING(COALESCE(ep."reservationCode", ''), 1, 50) AS CodigoReserva,
+        'I' || LPAD(ep.id::text, 7, '0') AS cd_Consecutivo_variablesadicionales,
+        COALESCE(e."totalAmount", 0) AS am_valor_total,
+        SUBSTRING(COALESCE(prov.code, ''), 1, 250) AS ds_proveedores,
+        NULL AS id_FormasPagoAirPlus,
+        '' AS cd_FormasPagoAirPlus,
+        '' AS ds_FormasPagoAirPlus,
+        NULL AS id_TarjetasCreditoAirPlus,
+        '' AS cd_TarjetasCreditoAirPlus,
+        '' AS ds_numerotarjetaAirPlus,
+        NULL AS id_reserva,
+        NULL AS OrdenGrabacion
+    FROM public."InvoicesProduct" ep
+	JOIN public."Invoices" e ON ep."invoiceId" = e.id
+	JOIN public."Branch" b ON e."branchId" = b.id
+    LEFT JOIN public."Implant" i ON e."implantId" = i.id
+    JOIN public."Product" pr ON ep."productId" = pr.id
+	LEFT JOIN public."TicketType" tt ON tt.id = ep."ticketTypeId"
+    JOIN Facturacion f ON ep."invoiceId" = f.id_factura
+    LEFT JOIN public."Provider" prov ON ep."providerId" = prov."id"
+	LEFT JOIN public."Prestadora" pre ON pre."id" = ep."prestadoraId"
+	LEFT JOIN public."TicketPrinter" tp ON tp."id" = e."ticketPrinterId"
+	LEFT JOIN LATERAL ( SELECT  pp.*,
+		        				regexp_split_to_array(TRIM(pp.name), E'\\s+') AS arr
+		    			FROM public."InvoicesProductPasenger" pp 
+						WHERE pp."invoiceProductId" = ep.id
+    					ORDER BY pp.id
+    					LIMIT 1) epp ON true;
+
+    -- 6. Poblar Tabla itinerarios
+    INSERT INTO itinerarios (
+		id_factura,	id_item, in_tipoitem, in_orden, ds_origen, ds_destino, ds_clase, 
+		dt_llegada,	dt_salida, ds_terminal, cd_aerolinea, cd_farebasis,	ds_numerovuelo,	
+		ds_tipovuelo, am_valor, am_co2 
+    )
+    SELECT
+		ep."invoiceId" AS id_factura,	
+		ep."id" AS id_item, 
+		itm.in_tipoitem AS in_tipoitem,
+		COALESCE(epi."orden",0) AS in_orden,
+		COALESCE(epi."origin",'') AS ds_origen, 
+		COALESCE(epi."destination",'') AS ds_destino, 
+		COALESCE(epi."class",'') AS ds_clase,
+		COALESCE(epi."checkInDate", CURRENT_DATE) AS dt_llegada,
+		COALESCE(epi."checkOutDate",CURRENT_DATE) AS dt_salida,
+		COALESCE(epi."terminal",'') AS ds_terminal,
+		COALESCE(epi."prestadoraCode",'') AS cd_aerolinea,
+		COALESCE(epi."farebasis",'') AS cd_farebasis,
+		COALESCE(epi."Numflight",'') AS ds_numerovuelo,
+		COALESCE(epi."Typeflight",'') AS ds_tipovuelo,
+		COALESCE(epi."amount",0) AS am_valor,
+		COALESCE(epi."co2",0) AS am_co2
+    FROM public."InvoicesProduct" ep
+    JOIN public."InvoicesProductItinerary" epi ON epi."invoiceProductId" = ep.id
+	JOIN Item itm ON ep.id = itm.id_item
+    JOIN Facturacion f ON ep."invoiceId" = f.id_factura
+    WHERE ep.itinerary IS NOT NULL AND ep.itinerary <> '';
+
+    -- 7. Poblar Tabla Pasajeros
+    INSERT INTO Pasajeros (
+        id_factura, id_item, in_tipoitem, ds_paxape, ds_paxname, ds_paxprefix,
+        ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion, in_edad, cd_tiquete
+    )
+    SELECT 
+        f.id_factura AS id_factura,
+        itm.id_item AS id_item,
+        itm.in_tipoitem AS in_tipoitem,
+	    CASE WHEN p.name IS NULL OR TRIM(p.name) = '' THEN '' WHEN TRIM(p.name) NOT LIKE '% %' THEN '' ELSE COALESCE(arr[2], '') END AS ds_paxape,
+	    CASE WHEN p.name IS NULL OR TRIM(p.name) = '' THEN '' WHEN TRIM(p.name) NOT LIKE '% %' THEN TRIM(p.name) ELSE COALESCE(arr[1], '') END AS ds_paxname,
+	    CASE WHEN TRIM(p.name) LIKE '% %' THEN SUBSTRING(COALESCE(arr[3], ''), 1, 3)::char(3) ELSE ''::char(3) END AS ds_paxprefix,
+        '' AS ds_paxClasificacion,
+        '' AS cd_voucherpax,
+        COALESCE(p.document,'') AS cd_paxidentificacion, 
+        0 AS in_edad, 
+        '' AS cd_tiquete
+	FROM (
+	    SELECT 
+	        p.*,
+	        regexp_split_to_array(TRIM(p.name), E'\\s+') AS arr,
+	        ROW_NUMBER() OVER (
+	            PARTITION BY p."invoiceProductId"
+	            ORDER BY p.id
+	        ) AS rn
+	    FROM public."InvoicesProductPasenger" p
+	) p
+    JOIN Item itm ON p."invoiceProductId" = itm.id_referencia_origen
+    JOIN Facturacion f ON itm.id_factura = f.id_factura
+    WHERE p.rn > 1;
+
+    -- 8. Poblar Tabla CargosImpuestos
+    INSERT INTO CargosImpuestos (
+        id_factura, id_item, in_tipoitem, cd_codigo, ds_nombre, cd_tipo,
+        am_porcentaje, am_valor, am_contado, am_credito, id_carg, id_imp, bl_iva, in_orden
+    )
+    SELECT 
+        f.id_factura AS id_factura,
+        itm.id_item AS id_item,
+        itm.in_tipoitem AS in_tipoitem,
+        COALESCE(ct.code, 'TAR') AS cd_codigo,
+        COALESCE(ct.name, 'Tarifa') AS ds_nombre,
+        CASE WHEN t."isMain" = true THEN 'C' ELSE 'I' END AS cd_tipo,
+        COALESCE(ct.value, 0) AS am_porcentaje,
+        t."explicitAmount" AS am_valor,
+        CASE WHEN itm.cd_FormasPago='EFE' THEN t."explicitAmount" ELSE 0 END AS am_contado,
+        CASE WHEN itm.cd_FormasPago='TC' THEN t."explicitAmount" ELSE 0 END AS am_credito,
+        ct.id AS id_carg,
+        ct.id AS id_imp,
+        CASE WHEN ct.code = 'IVA' THEN B'1' ELSE B'0' END AS bl_iva,
+        1 AS in_orden
+    FROM public."InvoicesProductTax" t
+    JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
+    JOIN Item itm ON t."invoiceProductId" = itm.id_referencia_origen
+    JOIN Facturacion f ON itm.id_factura = f.id_factura;
+
+    -- 9. Poblar Tabla Formaspago
+    INSERT INTO Formaspago (
+        id_factura, id_item, in_tipoitem, id_formaspago, cd_codigo, ds_nombre,
+        id_tarjetascredito, cd_tipotarjeta, ds_numerotarjeta, ds_vouchertarjeta,
+        ds_expiraciontarjeta, ds_autorizaciontarjeta, in_cuotas, cd_banco,
+        ds_cheque, ds_plaza, ds_referencia, ds_Poliza, ds_PolizaAnexo, am_valor
+    )
+    SELECT 
+        f.id_factura AS id_factura,
+        itm.id_item AS id_item,
+        itm.in_tipoitem AS in_tipoitem,
+        COALESCE(pp.id,ipp.id) AS id_formaspago,
+        COALESCE(pp.code, '') AS cd_codigo,
+        ipp."paymentMethod" AS ds_nombre,
+        ipp."creditCardId" AS id_tarjetascredito,
+        COALESCE(cc.code, '') AS cd_tipotarjeta,
+        COALESCE(ipp."cardNumber", '') AS ds_numerotarjeta,
+        COALESCE(ipp.voucher, '') AS ds_vouchertarjeta,
+        COALESCE(ipp."expirationDate", '') AS ds_expiraciontarjeta,
+        COALESCE(ipp."authorizationCode", '') AS ds_autorizaciontarjeta,
+        0 AS in_cuotas,
+        '' AS cd_banco,
+        '' AS ds_cheque,
+        '' AS ds_plaza,
+        COALESCE(ipp.reference, '') AS ds_referencia,
+        '' AS ds_Poliza,
+        '' AS ds_PolizaAnexo,
+        ipp.amount AS am_valor
+    FROM public."InvoicesProductPayment" ipp
+    JOIN Item itm ON ipp."invoiceProductId" = itm.id_item
+    JOIN Facturacion f ON itm.id_factura = f.id_factura
+    LEFT JOIN public."Payment" pp ON LOWER(pp."name") LIKE ('%' || LOWER(ipp."paymentMethod") || '%') 
+	LEFT JOIN public."CreditCard" cc ON ipp."creditCardId" = cc.id;
+
+    -- 10. Poblar Tabla Variables
+    INSERT INTO Variables (
+        id_factura, id_item, in_tipoitem, ds_maestro, ds_VariableAdicional, ds_valor, cd_codigo
+    )
+    SELECT 
+        f.id_factura AS id_factura,
+        itm.id_item AS id_item,
+        itm.in_tipoitem AS in_tipoitem,
+        CASE WHEN itm.in_tipoitem=1 THEN itm.cd_tiquete ELSE itm.cd_Consecutivo_variablesadicionales END AS ds_maestro,
+        COALESCE(mv.name, '') AS ds_VariableAdicional,
+        COALESCE(v.value, '') AS ds_valor,
+        COALESCE(mv.code, '') AS cd_codigo
+    FROM public."InvoicesProductVariable" v
+    JOIN public."MasterVariable" mv ON v."masterVariableId" = mv.id
+    JOIN Item itm ON v."invoiceProductId" = itm.id_referencia_origen
+    JOIN Facturacion f ON itm.id_factura = f.id_factura;
+
+    -- 11. Generar XML
+    SELECT xmlroot(
+        xmlelement(name "Facturaciones",
+            xmlagg(
+                xmlelement(name "Facturacion",
+                    xmlforest(
+                        f.id,f.id_factura, f.cd_fuente, f.cd_serie, f.cd_consecutivo, f.cd_usuario, f.cd_sucursal, f.cd_implante, 
+						f.dt_fechacont, f.dt_vence, f.cd_tercero_codigo, f.ds_tercero_nombre, f.cd_cliente_codigo, 
+						f.ds_cliente_nombre, f.ds_cliente_dir, f.ds_cliente_ciudad, f.ds_cliente_tel, f.ds_cliente_dirdesp, 
+						f.ds_cliente_email, f.ds_cliente_contacto, f.ds_cliente_contacto_email, f.cd_monedas_iata, 
+						f.cd_vendedor, f.cd_tiqueteador, f.bn_anexo, f.Tcambio, f.am_tcambiousd, f.id_tipoventa, 
+						f.ds_num_resolucion, f.in_num_inicial, f.in_num_final, f.ds_numeracion_autorizada, 
+						f.dt_fecha_resolucion, f.CodigoArchivoFisico, f.ds_Observacion, f.ds_Campo_libre1, 
+						f.ds_Campo_libre2, f.cd_fuente_Reemplaza, f.cd_serie_Reemplaza, f.cd_consecutivo_Reemplaza, 
+						f.ds_Actividad_Economica, f.ds_Tarifa_ICA, f.SqlStmt, f.AnticiposSqlStmt, f.TotalFactura, 
+						f.TotalCupoCreditoCliente, f.bl_BloqueoCupoCredito, f.bl_generadaauto, f.ds_CotizacionesId, 
+						f.Id_Cierre, f.cd_TipoFact, f.id_fac_remisionRelacionada, f.id_fac_facturaRelacionada, 
+						f.ds_DescripcionFac, f.bl_nocont, f.ProductosSqlStmt, f.cd_CF_TipoComprobante, f.id_Licitacion, 
+						f.ValorFactura, f.id_Especialista, f.cd_tiqueteador_Facturador, f.id_TipoFormaPagoProveedor, 
+						f.id_MedioReservacion, f.bl_refacturacion, f.bl_comisiona, f.cd_fuente_factura, f.cd_serie_factura, 
+						f.cd_consecutivo_factura, f.id_NotasAerolinea, f.bl_interface, f.id_evento, f.bl_NoEnviarFacElectronica, 
+						f.bl_FacturaComision, f.bl_DescontarComisionCxP, f.ds_num_resolucion_Adicional, 
+						f.id_fac_facturaRefacturacion, f.bl_refacturacion_contabilizar_saldos, f.ZML_VariablesXML, 
+						f.bl_FormatoResumidoFactElectro, f.bl_ExigeAdjuntoFactElectro, f.bl_omitir_Validar_IVA_facturacion, 
+						f.ds_Respuesta
+                    ),
+                    (
+                        SELECT xmlagg(
+                            xmlelement(name "Item",
+                                xmlforest(
+									s.tipo_item, s.id_factura, s.id_item, s.in_tipoitem, s.id_referencia_origen, s.cd_tiquete, 
+									s.ds_descrip, s.in_nacionalidad, s.cd_cencosto, s.cd_auxiliar, s.cd_item, 
+									s.am_tarifa, s.am_iva, s.am_tua, s.am_comb, s.am_vat, s.am_Comision, 
+									s.ds_paxname, s.ds_paxape, s.ds_paxprefix, s.cd_tourcode, s.NumTktConj, 
+									s.cd_TipoTiquete, s.id_air, s.ds_itinerario, s.ds_itinerarioaerolinea, 
+									s.ds_clases, s.ds_Observaciones, s.am_highfare, s.am_lowfare, s.ds_solicita, 
+									s.ds_lapsoviaje, s.cd_tktrevisado, s.cd_PasaportePax, s.cd_pax_CC, 
+									s.am_PorFacParcial, s.in_cantpax, s.Id_Precompra, s.cd_FormaPagoTAO, 
+									s.cd_TarjetaCreditoTAO, s.cd_NumeroTarjetaTAO, s.cd_VencimientoTarjetaTAO, 
+									s.cd_NumeroPolizaTAO, s.cd_AnexoPolizaTAO, s.ds_AutorizacionTarjetaTAO, 
+									s.in_cuotasTarjetaTAO, s.cd_FormasPago, s.cd_TarjetasCredito, s.am_fp1, 
+									s.ds_cc_code, s.ds_cc_number, s.ds_cc_vence, s.ds_cc_autorizacion, 
+									s.ds_cc_voucher, s.in_cc_cuotas, s.am_fp2, s.ds_cc_code2, s.ds_cc_number2, 
+									s.ds_cc_vence2, s.ds_cc_autorizacion2, s.ds_cc_voucher2, s.in_cc_cuotas2, 
+									s.cd_monedas_iata, s.Tcambio, s.cd_sucursal, s.cd_implante, s.bl_ahorro, 
+									s.cd_TipoTiqueteGDS, s.cd_TiposDocumento, s.cd_entdist, s.cd_entvend, 
+									s.cd_destino, s.dt_fechaexped, s.cd_tiqueteadores, s.id_gds, s.iden_gds, 
+									s.am_comisionPNR, s.ds_records, s.bl_NoCalcComision, s.bl_NoCalcIvaComision, 
+									s.am_basecomisionable, s.am_porcomision, s.cd_tiposconceptfac, 
+									s.cd_conceptofacturacion, s.cd_tiposservicio, s.cd_proveedores, 
+									s.ds_servicio, s.am_valorprov, s.cd_monedaprov, s.dt_llegada, s.dt_salida, 
+									s.am_pordescuento, s.am_basedescuento, s.Fecha_Salida, s.Fecha_Llegada, 
+									s.ColId, s.cd_Consecutivo_depende, s.CodigoReserva, 
+									s.cd_Consecutivo_variablesadicionales, s.am_valor_total, s.ds_proveedores, 
+									s.id_FormasPagoAirPlus, s.cd_FormasPagoAirPlus, s.ds_FormasPagoAirPlus, 
+									s.id_TarjetasCreditoAirPlus, s.cd_TarjetasCreditoAirPlus, 
+									s.ds_numerotarjetaAirPlus, s.id_reserva, s.OrdenGrabacion
+                                ),
+                                (
+                                    SELECT xmlagg(
+                                        xmlelement(name "itinerarios",
+                                            xmlforest(
+                                                id_factura,	id_item, in_tipoitem, ds_origen, ds_destino, ds_clase, 
+												dt_llegada,	dt_salida, ds_terminal, cd_aerolinea, cd_farebasis,	ds_numerovuelo,	
+												ds_tipovuelo, am_valor, am_co2 
+                                            )
+                                        )
+                                    )
+                                    FROM itinerarios iti
+                                    WHERE iti.id_item = s.id_item
+                                ),
+                                (
+                                    SELECT xmlagg(
+                                        xmlelement(name "Pasajeros",
+                                            xmlforest(
+                                                p.id_factura, p.id_item, p.in_tipoitem, p.ds_paxape, p.ds_paxname, p.ds_paxprefix,
+                                                p.ds_paxClasificacion, p.cd_voucherpax, p.cd_paxidentificacion, p.in_edad, p.cd_tiquete
+                                            )
+                                        )
+                                    )
+                                    FROM Pasajeros p
+                                    WHERE p.id_item = s.id_item
+                                ),
+                                (
+                                    SELECT xmlagg(
+                                        xmlelement(name "CargosImpuestos",
+                                            xmlforest(
+                                                ci.id_factura, ci.id_item, ci.in_tipoitem, ci.cd_codigo, ci.ds_nombre, ci.cd_tipo,
+                                                ci.am_porcentaje, ci.am_valor, ci.am_contado, ci.am_credito, ci.id_carg, ci.id_imp,
+                                                ci.bl_iva, ci.in_orden
+                                            )
+                                        )
+                                    )
+                                    FROM CargosImpuestos ci
+                                    WHERE ci.id_item = s.id_item
+                                ),
+                                (
+                                    SELECT xmlagg(
+                                        xmlelement(name "Formaspago",
+                                            xmlforest(
+                                                fp.id_factura, fp.id_item, fp.in_tipoitem, fp.id_formaspago, fp.cd_codigo, fp.ds_nombre,
+                                                fp.id_tarjetascredito, fp.cd_tipotarjeta, fp.ds_numerotarjeta, fp.ds_vouchertarjeta,
+                                                fp.ds_expiraciontarjeta, fp.ds_autorizaciontarjeta, fp.in_cuotas, fp.cd_banco,
+                                                fp.ds_cheque, fp.ds_plaza, fp.ds_referencia, fp.ds_Poliza, fp.ds_PolizaAnexo, fp.am_valor
+                                            )
+                                        )
+                                    )
+                                    FROM Formaspago fp
+                                    WHERE fp.id_item = s.id_item AND fp.in_tipoitem = s.in_tipoitem
+                                ),
+                                (
+                                    SELECT xmlagg(
+                                        xmlelement(name "Variables",
+                                            xmlforest(
+                                                v.id_factura, v.id_item, v.in_tipoitem, v.ds_maestro, v.ds_VariableAdicional, v.ds_valor, v.cd_codigo
+                                            )
+                                        )
+                                    )
+                                    FROM Variables v
+                                    WHERE v.id_item = s.id_item AND v.in_tipoitem = s.in_tipoitem
+                                )
+                            )
+                        )
+                        FROM Item s
+                        WHERE s.id_factura = f.id_factura 
+                    )
+                )
+            )
+        ),
+        version '1.0', standalone yes
+    )::text INTO v_xml
+    FROM Facturacion f;
+
+    mensaje_resultado := COALESCE(v_xml, '<?xml version="1.0" standalone="yes"?><Facturaciones />');
+
+EXCEPTION
+    WHEN OTHERS THEN
+        GET STACKED DIAGNOSTICS 
+            v_state   = RETURNED_SQLSTATE,
+            v_msg     = MESSAGE_TEXT,
+            v_context = PG_EXCEPTION_CONTEXT;
+		v_line := substring(v_context from 'line ([0-9]+)')::TEXT;
+        mensaje_resultado := format('ERROR: %s | EN LÍNEA: %s | ESTADO: %s', v_msg, v_line, v_state);
+END;
+$$;
 
 
 -- Archivo: spExportQuotation.sql
@@ -4735,6 +9192,32 @@ EXCEPTION
 END;
 $$;
 
+-- Archivo: spFacturaActualizarEstado.sql
+CREATE OR REPLACE PROCEDURE public."spFacturaActualizarEstado"(
+    IN p_results JSONB
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_item RECORD;
+BEGIN
+    FOR v_item IN SELECT * FROM jsonb_to_recordset(p_results) AS x("invoiceId" INT, "success" INT, "message" TEXT)
+    LOOP
+        -- success = 1 (true) maps to EXPORTADO, success = 0 (false) maps to ERROR_EXPORTACION
+        IF v_item."success" = 1 THEN
+            UPDATE public."Invoices"
+            SET "state" = 'EXPORTADO'
+            WHERE id = v_item."invoiceId";
+        ELSE
+            UPDATE public."Invoices"
+            SET "state" = 'ERROR_EXPORTACION'
+            WHERE id = v_item."invoiceId";
+        END IF;
+    END LOOP;
+END;
+$$;
+
+
 -- Archivo: spImplantActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spImplantActualizar(
     p_id INT,
@@ -4825,857 +9308,540 @@ END;
 $$;
 
 
-
-
--- Archivo: spExportEnvoices.sql
-CREATE OR REPLACE PROCEDURE public.spExportEnvoices(
-    Envoices_id TEXT,
-	User_id INT,
-	INOUT mensaje_resultado TEXT
+-- Archivo: spImportInvoices.sql
+CREATE OR REPLACE PROCEDURE public."spImportInvoices"(
+    IN p_text_data TEXT,
+    IN p_user_id INT,
+    INOUT p_mensaje_resultado TEXT
 )
 LANGUAGE plpgsql
 AS $$
 /*
     AUTOR: Rubiel Gelis Guzman / Antigravity
-    DESCRIPCIÓN: Generación de XML para exportación de Facturas (Invoices). Restructurado según especificaciones del usuario.
+    DESCRIPCIÓN: Importación masiva de facturas desde TEXTO PLANO DELIMITADO con soporte para pagos e itinerarios.
+    Formato esperado: 40 Columnas separadas por '^' y Filas por salto de línea.
 */
 DECLARE
-    v_xml TEXT;
-    v_nombre_usuario TEXT;
-	v_state   TEXT;
-    v_msg     TEXT;
-    v_context TEXT;
-    v_line    TEXT;
+    v_row_text TEXT;
+    v_cols TEXT[];
+    v_invoice_record RECORD;
+    v_product_record RECORD;
+    v_invoice_id INT;
+    v_ip_id INT;
+    v_internal_number TEXT;
+    v_client_id INT;
+    v_branch_id INT;
+    v_implant_id INT;
+    v_seller_id INT;
+    v_ticket_printer_id INT;
+    v_product_id INT;
+    v_provider_id INT;
+    v_prestadora_id INT;
+    v_tax_id INT;
+    v_main_tax_id INT;
+    v_variable_id INT;
+    v_ticket_type_id INT;
+    v_tax_item TEXT;
+    v_tax_parts TEXT[];
+    v_pass_item TEXT;
+    v_pass_parts TEXT[];
+    v_var_item TEXT;
+    v_var_parts TEXT[];
+    v_pay_item TEXT;
+    v_pay_parts TEXT[];
+    v_pay_method TEXT;
+    v_pay_ref TEXT;
+    v_pay_date TIMESTAMP;
+    v_pay_card_id INT;
+    v_pay_card_num TEXT;
+    v_pay_auth TEXT;
+    v_pay_voucher TEXT;
+    v_pay_exp TEXT;
+    v_itin_item TEXT;
+    v_itin_parts TEXT[];
+    v_itin_origin TEXT;
+    v_itin_dest TEXT;
+    v_itin_class TEXT;
+    v_itin_check_in TIMESTAMP;
+    v_itin_check_out TIMESTAMP;
+    v_itin_orden INT;
+    v_total_amount DECIMAL := 0;
+    v_imported_count INT := 0;
+    v_created_ids TEXT := '';
 BEGIN
-    -- 1. Inicializar
-    mensaje_resultado := '';
-
-    Envoices_id := TRIM(BOTH ',' FROM TRIM(COALESCE(Envoices_id, '')));
-    IF Envoices_id = '' THEN
-        mensaje_resultado := 'ERROR: No se han proporcionado IDs de Facturacion válidos.';
-        RETURN;
-    END IF;
-
-    -- 2. Validación de usuario
-    SELECT "name" INTO v_nombre_usuario FROM public."User" WHERE id = User_id;
-    IF NOT FOUND THEN
-        mensaje_resultado := 'ERROR: El usuario ' || User_id || ' no existe.';
-        RETURN;
-    END IF;
-
-    -- 3. Crear Tablas Temporales
-    CREATE TEMP TABLE IF NOT EXISTS Facturacion (
-		id INTEGER GENERATED ALWAYS AS IDENTITY,
-		cd_fuente VARCHAR(2),
-		cd_serie VARCHAR(2),
-		cd_consecutivo VARCHAR(8),
-		cd_usuario INTEGER,  
-		cd_sucursal VARCHAR(3), 
-		cd_implante VARCHAR(3), 
-		dt_fechacont TIMESTAMP,
-		dt_vence TIMESTAMP,
-		cd_tercero_codigo VARCHAR(25),
-		ds_tercero_nombre VARCHAR(250),
-		cd_cliente_codigo VARCHAR(25), 
-		ds_cliente_nombre VARCHAR(250),
-		ds_cliente_dir VARCHAR(250),
-		ds_cliente_ciudad VARCHAR(40),
-		ds_cliente_tel VARCHAR(50),
-		ds_cliente_dirdesp VARCHAR(250),
-		ds_cliente_email VARCHAR(60),
-		ds_cliente_contacto VARCHAR(40),
-		ds_cliente_contacto_email VARCHAR(60),
-		id_monedas_iata INTEGER,
-		cd_vendedor CHAR(3),
-		id_tiqueteador INTEGER,
-		bn_anexo BYTEA,
-		Tcambio DECIMAL,
-		am_tcambiousd DECIMAL,
-		id_tipoventa INTEGER,
-		ds_num_resolucion VARCHAR(20), 
-		in_num_inicial NUMERIC(18,0), 
-		in_num_final NUMERIC(18,0), 
-		ds_numeracion_autorizada VARCHAR(50),
-		dt_fecha_resolucion TIMESTAMP,	
-		CodigoArchivoFisico VARCHAR(25),
-		ds_Observacion VARCHAR(8000),
-		ds_Campo_libre1 varchar(500),
-		ds_Campo_libre2 varchar(500),
-		cd_fuente_Reemplaza CHAR(2),
-		cd_serie_Reemplaza CHAR(2),
-		cd_consecutivo_Reemplaza CHAR(8),		
-		ds_Actividad_Economica VARCHAR(10),
-		ds_Tarifa_ICA VARCHAR(15),	
-		SqlStmt TEXT,
-		AnticiposSqlStmt TEXT,
-		TotalFactura DECIMAL,
-		TotalCupoCreditoCliente DECIMAL,
-		bl_BloqueoCupoCredito BIT(1),
-		bl_generadaauto BIT(1),
-		ds_CotizacionesId Varchar(500),
-		Id_Cierre INTEGER,
-		cd_TipoFact CHAR(2),
-		id_fac_remisionRelacionada INTEGER,
-		id_fac_facturaRelacionada INTEGER,
-		ds_DescripcionFac VARCHAR(500),
-		bl_nocont BIT(1),
-		ProductosSqlStmt TEXT,
-		cd_CF_TipoComprobante VARCHAR(15),
-		id_Licitacion INTEGER,
-		ValorFactura DECIMAL,
-		id_Especialista INTEGER,
-		id_tiqueteador_Facturador INTEGER,
-		id_TipoFormaPagoProveedor INTEGER,
-		id_MedioReservacion INTEGER,
-		bl_refacturacion BIT(1),
-		bl_comisiona BIT(1),
-		cd_fuente_factura VARCHAR(2),
-		cd_serie_factura VARCHAR(2),
-		cd_consecutivo_factura VARCHAR(8),
-		id_NotasAerolinea INTEGER,
-		bl_interface INTEGER,
-		id_evento INTEGER,
-		bl_NoEnviarFacElectronica BIT(1),
-		bl_FacturaComision BIT(1),
-		bl_DescontarComisionCxP BIT(1),
-		ds_num_resolucion_Adicional VARCHAR(20),
-		id_fac_facturaRefacturacion VARCHAR(8000),
-		bl_refacturacion_contabilizar_saldos BIT(1),
-		ZML_VariablesXML TEXT,
-		bl_FormatoResumidoFactElectro BIT(1),
-		bl_ExigeAdjuntoFactElectro BIT(1),
-		bl_omitir_Validar_IVA_facturacion BIT(1),
-		ds_Respuesta TEXT,
-        id_item INTEGER
+    -- 1. Crear tabla temporal
+    CREATE TEMP TABLE IF NOT EXISTS tmp_import_invoice_rows (
+        row_id INT GENERATED ALWAYS AS IDENTITY, --0
+        grupo TEXT, --1
+        cliente_doc TEXT, --2
+        sucursal_cd TEXT, --3
+        implant_cd TEXT, --4
+        vendedor_cd TEXT, --5
+        tiqueteador_cd TEXT, --6
+        moneda TEXT, --7
+        tasa_cambio DECIMAL, -- 8
+        comision_global DECIMAL, -- 9
+        cargos_global DECIMAL, --10
+        producto_cd TEXT, --11
+        proveedor_nm TEXT, --12 
+        proveedor_cd TEXT, --13
+        prestadora_cd TEXT, --14
+        impuestos_str TEXT, --15
+        variables_str TEXT, --16
+        pasajeros_str TEXT, --17
+        precio DECIMAL, --18
+        cantidad INT, --19
+        check_in TIMESTAMP, --20
+        check_out TIMESTAMP, --21
+        pax_adultos INT, --22
+        pax_ninos INT, --23
+        destino TEXT, --24
+        tipo_servicio TEXT, --25
+        reserva TEXT, --26
+        com_vendedor DECIMAL, --27
+        com_tiqueteador DECIMAL, --28
+        combos_str TEXT, --29
+        nacionalidad INT DEFAULT 1, --30
+        cargo_principal_cd TEXT, --31
+        costo DECIMAL DEFAULT 0, --32
+        servicios TEXT, --33
+        descripcion TEXT, --34
+        itinerary TEXT, --35
+        class TEXT, --36
+        airline TEXT, --37
+        tipo_tiquete_cd TEXT, --38
+        pagos_str TEXT, --39
+        itinerarios_str TEXT, --40
+        fuente TEXT, --41
+        serie TEXT, --42
+        consecutivo TEXT --43
     ) ON COMMIT DROP;
 
-    CREATE TEMP TABLE IF NOT EXISTS Item (
-		id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-		tipo_item VARCHAR(10),
-		id_factura INTEGER,
-		in_tipoitem INTEGER,
-		id_referencia_origen INTEGER,             
-		cd_tiquete VARCHAR(50),
-		ds_descrip VARCHAR(500),
-		in_nacionalidad INTEGER,
-		cd_cencosto VARCHAR(50),
-		cd_auxiliar VARCHAR(50),
-		cd_item VARCHAR(50),
-		am_tarifa DECIMAL,
-		am_iva DECIMAL,
-		am_tua DECIMAL,
-		am_comb DECIMAL,
-		am_vat DECIMAL,
-		am_Comision DECIMAL,
-		ds_paxname VARCHAR(30),
-		ds_paxape VARCHAR(30),
-		ds_paxprefix CHAR(3),
-		cd_tourcode VARCHAR(25),
-		NumTktConj INTEGER,
-		cd_TipoTiquete CHAR(3),
-		id_air INTEGER,
-		ds_itinerario VARCHAR(250),
-		ds_itinerarioaerolinea VARCHAR(128),
-		ds_clases VARCHAR(61),
-		ds_Observaciones VARCHAR(8000),
-		am_highfare DECIMAL,
-		am_lowfare DECIMAL,
-		ds_solicita VARCHAR(200),
-		ds_lapsoviaje VARCHAR(50),
-		cd_tktrevisado VARCHAR(14),
-		cd_PasaportePax VARCHAR(25),
-		cd_pax_CC VARCHAR(20),
-		am_PorFacParcial DECIMAL,
-		in_cantpax INTEGER,
-		Id_Precompra INTEGER,
-		cd_FormaPagoTAO VARCHAR(3),
-		cd_TarjetaCreditoTAO VARCHAR(4),
-		cd_NumeroTarjetaTAO VARCHAR(25),
-		cd_VencimientoTarjetaTAO CHAR(6),
-		cd_NumeroPolizaTAO VARCHAR(50),
-		cd_AnexoPolizaTAO VARCHAR(50),
-		ds_AutorizacionTarjetaTAO VARCHAR(25),
-		in_cuotasTarjetaTAO INTEGER,
-		id_FormasPago INTEGER,
-		id_TarjetasCredito INTEGER,
-		am_fp1 DECIMAL,
-		ds_cc_code VARCHAR(2),
-		ds_cc_number VARCHAR(25),
-		ds_cc_vence VARCHAR(5),
-		ds_cc_autorizacion VARCHAR(25),
-		ds_cc_voucher VARCHAR(25),
-		in_cc_cuotas INTEGER,
-		am_fp2 DECIMAL,
-		ds_cc_code2 VARCHAR(2),
-		ds_cc_number2 VARCHAR(25),
-		ds_cc_vence2 VARCHAR(5),
-		ds_cc_autorizacion2 VARCHAR(25),
-		ds_cc_voucher2 VARCHAR(25),
-		in_cc_cuotas2 INTEGER,
-		id_monedas_iata INTEGER,
-		Tcambio DECIMAL,
-		id_sucursal INTEGER,
-		id_implante INTEGER,
-		bl_ahorro BIT(1),
-		cd_TipoTiqueteGDS VARCHAR(3),
-		id_TiposDocumento INTEGER,
-		id_entdist INTEGER,
-		id_entvend INTEGER,
-		cd_destino VARCHAR(3),
-		dt_fechaexped TIMESTAMP,
-		id_tiqueteadores INTEGER,
-		id_gds INTEGER,
-		iden_gds INTEGER,
-		am_comisionPNR DECIMAL,
-		ds_records VARCHAR(62),
-		bl_NoCalcComision BIT(1),
-		bl_NoCalcIvaComision BIT(1),
-		am_basecomisionable DECIMAL,
-		am_porcomision DECIMAL,
-		id_tiposconceptfac INTEGER,
-		id_conceptofacturacion INTEGER,
-		id_tiposservicio INTEGER,
-		cd_proveedores VARCHAR(25),
-		ds_servicio VARCHAR(250),
-		am_valorprov DECIMAL,
-		id_monedaprov INTEGER,
-		dt_llegada TIMESTAMP,
-		dt_salida TIMESTAMP,
-		am_pordescuento NUMERIC(8,4),
-		am_basedescuento DECIMAL,
-		Fecha_Salida TIMESTAMP,
-		Fecha_Llegada TIMESTAMP,
-		ColId VARCHAR(25),
-		cd_Consecutivo_depende VARCHAR(50),
-		CodigoReserva VARCHAR(50),
-		cd_Consecutivo_variablesadicionales VARCHAR(50),
-		am_valor_total DECIMAL,
-		ds_proveedores VARCHAR(250),
-		id_FormasPagoAirPlus INTEGER,
-		cd_FormasPagoAirPlus VARCHAR(3),
-		ds_FormasPagoAirPlus VARCHAR(100),
-		id_TarjetasCreditoAirPlus INTEGER,
-		cd_TarjetasCreditoAirPlus VARCHAR(4),
-		ds_numerotarjetaAirPlus VARCHAR(25),
-		id_reserva INTEGER,
-		OrdenGrabacion INTEGER
-    ) ON COMMIT DROP;
+    DELETE FROM tmp_import_invoice_rows;
 
-	CREATE TEMP TABLE IF NOT EXISTS itinerarios(
-		id INT GENERATED ALWAYS AS IDENTITY,
-		id_factura VARCHAR(25),
-		id_item VARCHAR(25),
-		id_tipoitem VARCHAR(25),
-		ds_itinerario VARCHAR(250),
-		ds_itinerarioaerolinea VARCHAR(128)
-	) ON COMMIT DROP;
+    -- 2. "Split" del Texto a Tabla Temporal
+    FOR v_row_text IN SELECT unnest(string_to_array(p_text_data, E'\n')) LOOP
+        v_imported_count := v_imported_count + 1;
+        IF TRIM(v_row_text) = '' THEN CONTINUE; END IF;
+        
+        BEGIN
+            v_cols := string_to_array(v_row_text, '^');
 
-	CREATE TEMP TABLE IF NOT EXISTS Pasajeros(
-		id INT GENERATED ALWAYS AS IDENTITY,
-		id_factura VARCHAR(25),
-		id_item VARCHAR(25),
-		id_tipoitem VARCHAR(25),
-		ds_paxape VARCHAR(30),
-		ds_paxname VARCHAR(30),
-		ds_paxprefix CHAR(3),
-		ds_paxClasificacion CHAR(25),
-		cd_voucherpax VARCHAR(25),
-		cd_paxidentificacion VARCHAR(25),
-		in_edad INT,
-		cd_tiquete CHAR(50)
-	) ON COMMIT DROP;
+            -- Validar formato de Check-In (Acepta YYYY-MM-DD y opcionalmente YYYY-MM-DD HH:MM:SS)
+            IF TRIM(v_cols[20]) <> '' AND TRIM(v_cols[20]) !~ '^\d{4}-\d{2}-\d{2}' THEN
+                p_mensaje_resultado := 'ERROR en FILA ' || v_imported_count || ': Formato incorrecto en la fecha de Check-In. Se esperaba YYYY-MM-DD. Valor: ' || TRIM(v_cols[20]);
+                RETURN;
+            END IF;
 
-	CREATE TEMP TABLE IF NOT EXISTS CargosImpuestos(
-		id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-		id_factura VARCHAR(25),
-		id_item VARCHAR(25),
-		id_tipoitem VARCHAR(25),
-		cd_codigo VARCHAR(20),
-		ds_nombre VARCHAR(100),
-		cd_tipo CHAR(1),
-		am_porcentaje NUMERIC(8,4),
-		am_valor DECIMAL,
-		am_contado DECIMAL,
-		am_credito DECIMAL,
-		id_carg INTEGER,
-		id_imp INTEGER,
-		bl_iva BIT(1),
-		in_orden INTEGER
-	) ON COMMIT DROP;
+            -- Validar formato de Check-Out (Acepta YYYY-MM-DD y opcionalmente YYYY-MM-DD HH:MM:SS)
+            IF TRIM(v_cols[21]) <> '' AND TRIM(v_cols[21]) !~ '^\d{4}-\d{2}-\d{2}' THEN
+                p_mensaje_resultado := 'ERROR en FILA ' || v_imported_count || ': Formato incorrecto en la fecha de Check-Out. Se esperaba YYYY-MM-DD. Valor: ' || TRIM(v_cols[21]);
+                RETURN;
+            END IF;
+            
+            INSERT INTO tmp_import_invoice_rows (
+                grupo, cliente_doc, sucursal_cd, implant_cd, vendedor_cd, tiqueteador_cd,
+                moneda, tasa_cambio, comision_global, cargos_global, producto_cd,
+                proveedor_nm, proveedor_cd, prestadora_cd, impuestos_str, variables_str,
+                pasajeros_str, precio, cantidad, check_in, check_out, pax_adultos, pax_ninos,
+                destino, tipo_servicio, reserva, com_vendedor, com_tiqueteador, combos_str,
+                nacionalidad, cargo_principal_cd, costo, servicios, descripcion, itinerary,
+                class, airline, tipo_tiquete_cd, pagos_str, itinerarios_str,
+                fuente, serie, consecutivo
+            ) VALUES (
+                TRIM(v_cols[1]), -- grupo 
+                TRIM(v_cols[2]), -- cliente_doc 
+                TRIM(v_cols[3]), -- sucursal_cd
+                TRIM(v_cols[4]), -- implant_cd
+                TRIM(v_cols[5]), -- vendedor_cd
+                TRIM(v_cols[6]), -- tiqueteador_cd
+                TRIM(v_cols[7]), -- moneda
+                NULLIF(TRIM(v_cols[8]), '')::DECIMAL, -- tasa_cambio
+                NULLIF(TRIM(v_cols[9]), '')::DECIMAL, -- comision_global
+                NULLIF(TRIM(v_cols[10]), '')::DECIMAL, -- cargos_global
+                TRIM(v_cols[11]), -- Producto Codigo
+                TRIM(v_cols[12]), -- Prov Nombre
+                TRIM(v_cols[13]), -- Prov Codigo
+                TRIM(v_cols[14]), -- Prestadora Codigo
+                TRIM(v_cols[15]), -- Impuestos
+                TRIM(v_cols[16]), -- Variables
+                TRIM(v_cols[17]), -- Pasajeros
+                NULLIF(TRIM(v_cols[18]), '')::DECIMAL, -- precio
+                NULLIF(TRIM(v_cols[19]), '')::INT, -- cantidad
+                CASE WHEN TRIM(v_cols[20]) <> '' THEN TRIM(v_cols[20])::TIMESTAMP ELSE NULL END, -- check_in
+                CASE WHEN TRIM(v_cols[21]) <> '' THEN TRIM(v_cols[21])::TIMESTAMP ELSE NULL END, -- check_out
+                NULLIF(TRIM(v_cols[22]), '')::INT, -- pax_adultos
+                NULLIF(TRIM(v_cols[23]), '')::INT, -- pax_ninos
+                TRIM(v_cols[24]), -- destino
+                TRIM(v_cols[25]), -- tipo_servicio
+                TRIM(v_cols[26]), -- reserva 
+                NULLIF(TRIM(v_cols[27]), '')::DECIMAL, -- comision vendedor
+                NULLIF(TRIM(v_cols[28]), '')::DECIMAL, -- comision tiqueteador
+                TRIM(v_cols[29]), -- codigo combos
+                COALESCE(NULLIF(TRIM(v_cols[30]), '')::INT, 1), -- nacionalidad
+                TRIM(v_cols[31]), -- cargo_principal_cd
+                NULLIF(TRIM(v_cols[32]), '')::DECIMAL, -- costo
+                TRIM(v_cols[33]), -- servicios
+                TRIM(v_cols[34]), -- descripcion
+                TRIM(v_cols[35]), -- itinerary
+                TRIM(v_cols[36]), -- class
+                TRIM(v_cols[37]), -- airline
+                TRIM(v_cols[38]),  -- tipo_tiquete_cd
+                TRIM(v_cols[39]),  -- pagos_str
+                TRIM(v_cols[40]),  -- itinerarios_str
+                TRIM(v_cols[41]),  -- fuente
+                TRIM(v_cols[42]),  -- serie
+                TRIM(v_cols[43])   -- consecutivo
+            );
+        EXCEPTION WHEN OTHERS THEN
+            p_mensaje_resultado := 'ERROR en FILA ' || v_imported_count || ': ' || SQLERRM || ' (Valor: ' || v_row_text || ')';
+            RETURN;
+        END;
+    END LOOP;
 
-	CREATE TEMP TABLE IF NOT EXISTS Formaspago(
-		id INT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-		id_factura VARCHAR(25),
-		id_item VARCHAR(25),
-		id_tipoitem VARCHAR(25),
-		id_formaspago INTEGER,
-		cd_codigo VARCHAR(10),
-		ds_nombre VARCHAR(50),
-		id_tarjetascredito INTEGER,
-		cd_tipotarjeta VARCHAR(10),
-		ds_numerotarjeta VARCHAR(50),
-		ds_vouchertarjeta VARCHAR(50),
-		ds_expiraciontarjeta VARCHAR(10),
-		ds_autorizaciontarjeta VARCHAR(50),
-		in_cuotas INTEGER,
-		cd_banco VARCHAR(50),
-		ds_cheque VARCHAR(50),
-		ds_plaza VARCHAR(50),
-		ds_referencia VARCHAR(50),
-		ds_Poliza VARCHAR(50),
-		ds_PolizaAnexo VARCHAR(50),
-		am_valor DECIMAL
-	) ON COMMIT DROP;
+    v_imported_count := 0;
 
-	CREATE TEMP TABLE IF NOT EXISTS Variables(
-		id INT GENERATED ALWAYS AS IDENTITY,
-		id_factura VARCHAR(25),
-		id_item VARCHAR(25),
-		id_tipoitem VARCHAR(25),
-		ds_maestro VARCHAR(25), 
-		ds_VariableAdicional VARCHAR(25),
-		ds_valor VARCHAR(500),
-		cd_codigo CHAR(25)
-	) ON COMMIT DROP;
+    -- 3. Procesar Grupos de Facturas
+    FOR v_invoice_record IN (
+        SELECT grupo, 
+               MAX(cliente_doc) as cliente_doc, 
+               MAX(sucursal_cd) as sucursal_cd, 
+               MAX(implant_cd) as implant_cd, 
+               MAX(vendedor_cd) as vendedor_cd, 
+               MAX(tiqueteador_cd) as tiqueteador_cd, 
+               MAX(moneda) as moneda, 
+               MAX(tasa_cambio) as tasa_cambio, 
+               MAX(comision_global) as comision_global, 
+               MAX(cargos_global) as cargos_global,
+               MAX(combos_str) as combos_str,
+               MAX(fuente) as fuente,
+               MAX(serie) as serie,
+               MAX(consecutivo) as consecutivo
+        FROM tmp_import_invoice_rows
+        GROUP BY grupo
+    ) LOOP
+        -- Resolución de Maestros
+        SELECT id INTO v_client_id FROM public."Client" WHERE document = v_invoice_record.cliente_doc;
+        IF v_client_id IS NULL THEN 
+            p_mensaje_resultado := 'ERROR: Cliente con documento o código "' || v_invoice_record.cliente_doc || '" no encontrado en el sistema.';
+            RETURN;
+        END IF;
 
-    -- 4. Poblar Tabla Facturacion
-    INSERT INTO Facturacion (
-		cd_fuente, cd_serie, cd_consecutivo, cd_usuario, cd_sucursal, cd_implante, 
-		dt_fechacont, dt_vence, cd_tercero_codigo, ds_tercero_nombre, cd_cliente_codigo, 
-		ds_cliente_nombre, ds_cliente_dir, ds_cliente_ciudad, ds_cliente_tel, ds_cliente_dirdesp, 
-		ds_cliente_email, ds_cliente_contacto, ds_cliente_contacto_email, id_monedas_iata, 
-		cd_vendedor, id_tiqueteador, bn_anexo, Tcambio, am_tcambiousd, id_tipoventa, 
-		ds_num_resolucion, in_num_inicial, in_num_final, ds_numeracion_autorizada, 
-		dt_fecha_resolucion, CodigoArchivoFisico, ds_Observacion, ds_Campo_libre1, 
-		ds_Campo_libre2, cd_fuente_Reemplaza, cd_serie_Reemplaza, cd_consecutivo_Reemplaza, 
-		ds_Actividad_Economica, ds_Tarifa_ICA, SqlStmt, AnticiposSqlStmt, TotalFactura, 
-		TotalCupoCreditoCliente, bl_BloqueoCupoCredito, bl_generadaauto, ds_CotizacionesId, 
-		Id_Cierre, cd_TipoFact, id_fac_remisionRelacionada, id_fac_facturaRelacionada, 
-		ds_DescripcionFac, bl_nocont, ProductosSqlStmt, cd_CF_TipoComprobante, id_Licitacion, 
-		ValorFactura, id_Especialista, id_tiqueteador_Facturador, id_TipoFormaPagoProveedor, 
-		id_MedioReservacion, bl_refacturacion, bl_comisiona, cd_fuente_factura, cd_serie_factura, 
-		cd_consecutivo_factura, id_NotasAerolinea, bl_interface, id_evento, bl_NoEnviarFacElectronica, 
-		bl_FacturaComision, bl_DescontarComisionCxP, ds_num_resolucion_Adicional, 
-		id_fac_facturaRefacturacion, bl_refacturacion_contabilizar_saldos, ZML_VariablesXML, 
-		bl_FormatoResumidoFactElectro, bl_ExigeAdjuntoFactElectro, bl_omitir_Validar_IVA_facturacion, 
-		ds_Respuesta, id_item
-    )
-    SELECT 
-        '' AS cd_fuente,
-        '' AS cd_serie,
-        SUBSTRING('I' || LPAD(e.id::text, 7, '0'), 1, 8) AS cd_consecutivo,
-        User_id AS cd_usuario,
-        SUBSTRING(COALESCE(b.code, ''), 1, 3) AS cd_sucursal,
-        SUBSTRING(COALESCE(i.code, ''), 1, 3) AS cd_implante,
-        e.date AS dt_fechacont,
-        e.date AS dt_vence,
-        SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_tercero_codigo,
-        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_tercero_nombre,
-        SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_cliente_codigo,
-        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_cliente_nombre,
-        SUBSTRING(COALESCE(c.address, ''), 1, 250) AS ds_cliente_dir,
-        '' AS ds_cliente_ciudad,
-        '' AS ds_cliente_tel,
-        '' AS ds_cliente_dirdesp,
-        SUBSTRING(COALESCE(u.email, ''), 1, 60) AS ds_cliente_email,
-        '' AS ds_cliente_contacto,
-        '' AS ds_cliente_contacto_email,
-        NULL AS id_monedas_iata,
-        SUBSTRING(COALESCE(s.code, ''), 1, 3)::char(3) AS cd_vendedor,
-        NULL AS id_tiqueteador,
-        NULL::bytea AS bn_anexo,
-        COALESCE(e."exchangeRate", 1.0) AS Tcambio,
-        1.0 AS am_tcambiousd,
-        NULL AS id_tipoventa,
-        '' AS ds_num_resolucion,
-        0 AS in_num_inicial,
-        0 AS in_num_final,
-        '' AS ds_numeracion_autorizada,
-        NULL AS dt_fecha_resolucion,
-        '' AS CodigoArchivoFisico,
-        '' AS ds_Observacion,
-        '' AS ds_Campo_libre1,
-        '' AS ds_Campo_libre2,
-        '' AS cd_fuente_Reemplaza,
-        '' AS cd_serie_Reemplaza,
-        '' AS cd_consecutivo_Reemplaza,
-        '' AS ds_Actividad_Economica,
-        '' AS ds_Tarifa_ICA,
-        '' AS SqlStmt,
-        NULL AS AnticiposSqlStmt,
-        COALESCE(e."totalAmount", 0) AS TotalFactura,
-        0 AS TotalCupoCreditoCliente,
-        B'0' AS bl_BloqueoCupoCredito,
-        B'0' AS bl_generadaauto,
-        NULL AS ds_CotizacionesId,
-        NULL AS Id_Cierre,
-        NULL AS cd_TipoFact,
-        NULL AS id_fac_remisionRelacionada,
-        NULL AS id_fac_facturaRelacionada,
-        NULL AS ds_DescripcionFac,
-        B'0' AS bl_nocont,
-        NULL AS ProductosSqlStmt,
-        NULL AS cd_CF_TipoComprobante,
-        NULL AS id_Licitacion,
-        COALESCE(e."totalAmount", 0) AS ValorFactura,
-        NULL AS id_Especialista,
-        NULL AS id_tiqueteador_Facturador,
-        NULL AS id_TipoFormaPagoProveedor,
-        NULL AS id_MedioReservacion,
-        B'0' AS bl_refacturacion,
-        B'0' AS bl_comisiona,
-        NULL AS cd_fuente_factura,
-        NULL AS cd_serie_factura,
-        NULL AS cd_consecutivo_factura,
-        NULL AS id_NotasAerolinea,
-        0 AS bl_interface,
-        NULL AS id_evento,
-        B'0' AS bl_NoEnviarFacElectronica,
-        B'0' AS bl_FacturaComision,
-        B'0' AS bl_DescontarComisionCxP,
-        '' AS ds_num_resolucion_Adicional,
-        NULL AS id_fac_facturaRefacturacion,
-        B'0' AS bl_refacturacion_contabilizar_saldos,
-        NULL AS ZML_VariablesXML,
-        B'0' AS bl_FormatoResumidoFactElectro,
-        B'0' AS bl_ExigeAdjuntoFactElectro,
-        B'0' AS bl_omitir_Validar_IVA_facturacion,
-        NULL AS ds_Respuesta,
-        e.id AS id_item
-    FROM public."Invoices" e
-    JOIN public."Client" c ON e."clientId" = c.id
-    JOIN public."Branch" b ON e."branchId" = b.id
-    LEFT JOIN public."Implant" i ON e."implantId" = i.id
-    LEFT JOIN public."Seller" s ON e."sellerId" = s.id
-    LEFT JOIN public."User" u ON e."userId" = u.id
-    WHERE e.id = ANY(string_to_array(Envoices_id, ',')::int[]);
+        SELECT id INTO v_branch_id FROM public."Branch" WHERE LOWER(code) = LOWER(v_invoice_record.sucursal_cd);
+        IF v_branch_id IS NULL THEN 
+            p_mensaje_resultado := 'ERROR: Sucursal con código "' || v_invoice_record.sucursal_cd || '" no encontrada en el sistema.';
+            RETURN;
+        END IF;
 
-    -- 5. Poblar Tabla Item
-    INSERT INTO Item (
-		tipo_item, id_factura, in_tipoitem, id_referencia_origen, cd_tiquete, 
-		ds_descrip, in_nacionalidad, cd_cencosto, cd_auxiliar, cd_item, 
-		am_tarifa, am_iva, am_tua, am_comb, am_vat, am_Comision, 
-		ds_paxname, ds_paxape, ds_paxprefix, cd_tourcode, NumTktConj, 
-		cd_TipoTiquete, id_air, ds_itinerario, ds_itinerarioaerolinea, 
-		ds_clases, ds_Observaciones, am_highfare, am_lowfare, ds_solicita, 
-		ds_lapsoviaje, cd_tktrevisado, cd_PasaportePax, cd_pax_CC, 
-		am_PorFacParcial, in_cantpax, Id_Precompra, cd_FormaPagoTAO, 
-		cd_TarjetaCreditoTAO, cd_NumeroTarjetaTAO, cd_VencimientoTarjetaTAO, 
-		cd_NumeroPolizaTAO, cd_AnexoPolizaTAO, ds_AutorizacionTarjetaTAO, 
-		in_cuotasTarjetaTAO, id_FormasPago, id_TarjetasCredito, am_fp1, 
-		ds_cc_code, ds_cc_number, ds_cc_vence, ds_cc_autorizacion, 
-		ds_cc_voucher, in_cc_cuotas, am_fp2, ds_cc_code2, ds_cc_number2, 
-		ds_cc_vence2, ds_cc_autorizacion2, ds_cc_voucher2, in_cc_cuotas2, 
-		id_monedas_iata, Tcambio, id_sucursal, id_implante, bl_ahorro, 
-		cd_TipoTiqueteGDS, id_TiposDocumento, id_entdist, id_entvend, 
-		cd_destino, dt_fechaexped, id_tiqueteadores, id_gds, iden_gds, 
-		am_comisionPNR, ds_records, bl_NoCalcComision, bl_NoCalcIvaComision, 
-		am_basecomisionable, am_porcomision, id_tiposconceptfac, 
-		id_conceptofacturacion, id_tiposservicio, cd_proveedores, 
-		ds_servicio, am_valorprov, id_monedaprov, dt_llegada, dt_salida, 
-		am_pordescuento, am_basedescuento, Fecha_Salida, Fecha_Llegada, 
-		ColId, cd_Consecutivo_depende, CodigoReserva, 
-		cd_Consecutivo_variablesadicionales, am_valor_total, ds_proveedores, 
-		id_FormasPagoAirPlus, cd_FormasPagoAirPlus, ds_FormasPagoAirPlus, 
-		id_TarjetasCreditoAirPlus, cd_TarjetasCreditoAirPlus, 
-		ds_numerotarjetaAirPlus, id_reserva, OrdenGrabacion
-    )
-    SELECT 
-		CASE WHEN p.type='Tiquete' THEN 'Aire' 
-			 WHEN p.type='ALOJAMIENTO' THEN 'Hotel' 
-			 WHEN p.type='ALQUILER' THEN 'Auto'
-			 WHEN p.type='TAO' THEN 'TAO'
-			 ELSE 'SRV'
-		END AS tipo_item,
-        f.id_item AS id_factura,
-		CASE WHEN p.type='Tiquete' THEN 1 
-			 WHEN p.type='ALOJAMIENTO' THEN 3
-			 WHEN p.type='ALQUILER' THEN 3
-			 WHEN p.type='TAO' THEN 2
-			 ELSE 3
-		END AS in_tipoitem,
-        ep.id AS id_referencia_origen,
-        CASE WHEN p.type='Tiquete' THEN p.code ELSE '' END AS cd_tiquete,
-        SUBSTRING(COALESCE(ep.descripcion, ''), 1, 500) AS ds_descrip,
-        COALESCE(ep."inNationality", 1) AS in_nacionalidad,
-        '' AS cd_cencosto,
-        '' AS cd_auxiliar,
-        'I' || LPAD(ep.id::text, 7, '0') AS cd_item,
-        COALESCE((SELECT SUM("explicitAmount") FROM public."InvoicesProductTax" ipt WHERE ipt."invoiceProductId" = ep.id AND ipt."isMain" = true), 0) AS am_tarifa,
-        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'IVA'), 0) AS am_iva,
-        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'TUA'), 0) AS am_tua,
-        COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'CMB'), 0) AS am_comb,
-        0 AS am_vat,
-        COALESCE(ep."sellerCommission", 0) AS am_Comision,
-		CASE WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN '' WHEN TRIM(epp.name) NOT LIKE '% %' THEN TRIM(epp.name) ELSE COALESCE(arr[1], '') END AS ds_paxname,
-		CASE WHEN epp.name IS NULL OR TRIM(epp.name) = '' THEN '' WHEN TRIM(epp.name) NOT LIKE '% %' THEN '' ELSE COALESCE(arr[2], '') END AS ds_paxape,
-		CASE WHEN TRIM(epp.name) LIKE '% %' THEN SUBSTRING(COALESCE(arr[3], ''), 1, 3)::char(3) ELSE ''::char(3) END AS ds_paxprefix,
-        '' AS cd_tourcode,
-        NULL AS NumTktConj,
-        ''::char(3) AS cd_TipoTiquete,
-        CASE WHEN p.type='Tiquete' THEN ep.id ELSE NULL END AS id_air,
-        SUBSTRING(COALESCE(ep.itinerary, ''), 1, 250) AS ds_itinerario,
-        SUBSTRING(COALESCE(ep.itinerary, ''), 1, 128) AS ds_itinerarioaerolinea,
-        SUBSTRING(COALESCE(ep.class, ''), 1, 61) AS ds_clases,
-        '' AS ds_Observaciones,
-        0 AS am_highfare,
-        0 AS am_lowfare,
-        '' AS ds_solicita,
-        '' AS ds_lapsoviaje,
-        '' AS cd_tktrevisado,
-        '' AS cd_PasaportePax,
-        '' AS cd_pax_CC,
-        0 AS am_PorFacParcial,
-        COALESCE(cardinality(arr), 1) AS in_cantpax,
-        NULL AS Id_Precompra,
-        '' AS cd_FormaPagoTAO,
-        '' AS cd_TarjetaCreditoTAO,
-        '' AS cd_NumeroTarjetaTAO,
-        '' AS cd_VencimientoTarjetaTAO,
-        '' AS cd_NumeroPolizaTAO,
-        '' AS cd_AnexoPolizaTAO,
-        '' AS ds_AutorizacionTarjetaTAO,
-        NULL AS in_cuotasTarjetaTAO,
-        NULL AS id_FormasPago,
-        NULL AS id_TarjetasCredito,
-        0 AS am_fp1,
-		COALESCE((SELECT cc.code FROM public."InvoicesProductPayment" ipp JOIN public."CreditCard" cc ON cc.id = ipp."creditCardId" WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_code,
-		COALESCE((SELECT ipp."cardNumber" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_number,
-		COALESCE((SELECT ipp."expirationDate" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_vence,
-		COALESCE((SELECT ipp."authorizationCode" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_autorizacion,
-		COALESCE((SELECT ipp."voucher" FROM public."InvoicesProductPayment" ipp WHERE ipp."invoiceProductId" = ep.id AND ipp."paymentMethod" = 'TARJETA' LIMIT 1), '') AS ds_cc_voucher,
-        NULL AS in_cc_cuotas,
-        0 AS am_fp2,
-        '' AS ds_cc_code2,
-        '' AS ds_cc_number2,
-        '' AS ds_cc_vence2,
-        '' AS ds_cc_autorizacion2,
-        '' AS ds_cc_voucher2,
-        NULL AS in_cc_cuotas2,
-        NULL AS id_monedas_iata,
-        COALESCE(e."exchangeRate", 1.0) AS Tcambio,
-        e."branchId" AS id_sucursal,
-        e."implantId" AS id_implante,
-        B'0' AS bl_ahorro,
-        '' AS cd_TipoTiqueteGDS,
-        NULL AS id_TiposDocumento,
-        NULL AS id_entdist,
-        NULL AS id_entvend,
-        SUBSTRING(COALESCE(ep.destination, ''), 1, 3) AS cd_destino,
-        e.date AS dt_fechaexped,
-        NULL AS id_tiqueteadores,
-        NULL AS id_gds,
-        1 AS iden_gds,
-        0 AS am_comisionPNR,
-        '' AS ds_records,
-        B'0' AS bl_NoCalcComision,
-        B'0' AS bl_NoCalcIvaComision,
-        0 AS am_basecomisionable,
-        0 AS am_porcomision,
-        NULL AS id_tiposconceptfac,
-        NULL AS id_conceptofacturacion,
-        NULL AS id_tiposservicio,
-        SUBSTRING(COALESCE(prov.code, prov.name, ''), 1, 25) AS cd_proveedores,
-        SUBSTRING(COALESCE(pr.description, ''), 1, 250) AS ds_servicio,
-        ep.price AS am_valorprov,
-        NULL AS id_monedaprov,
-        COALESCE(ep."checkInDate", e.date) AS dt_llegada,
-        COALESCE(ep."checkOutDate", e.date) AS dt_salida,
-        0 AS am_pordescuento,
-        0 AS am_basedescuento,
-        COALESCE(ep."checkInDate", e.date) AS Fecha_Salida,
-        COALESCE(ep."checkOutDate", e.date) AS Fecha_Llegada,
-        '' AS ColId,
-        '' AS cd_Consecutivo_depende,
-        SUBSTRING(COALESCE(ep."reservationCode", ''), 1, 50) AS CodigoReserva,
-        'I' || LPAD(ep.id::text, 7, '0') AS cd_Consecutivo_variablesadicionales,
-        (ep.price * ep.quantity) AS am_valor_total,
-        SUBSTRING(COALESCE(prov.name, prov.code, ''), 1, 250) AS ds_proveedores,
-        NULL AS id_FormasPagoAirPlus,
-        '' AS cd_FormasPagoAirPlus,
-        '' AS ds_FormasPagoAirPlus,
-        NULL AS id_TarjetasCreditoAirPlus,
-        '' AS cd_TarjetasCreditoAirPlus,
-        '' AS ds_numerotarjetaAirPlus,
-        NULL AS id_reserva,
-        NULL AS OrdenGrabacion
-    FROM public."InvoicesProduct" ep
-	JOIN public."Invoices" e ON ep."invoiceId" = e.id
-    JOIN public."Product" pr ON ep."productId" = pr.id
-    JOIN Facturacion f ON ep."invoiceId" = f.id_item
-    LEFT JOIN public."Provider" prov ON ep."providerId" = prov."id"
-	LEFT JOIN public."Prestadora" pre ON pre."id" = ep."prestadoraId"
-	LEFT JOIN LATERAL ( SELECT  pp.*,
-		        				regexp_split_to_array(TRIM(pp.name), 's+') AS arr
-		    			FROM public."InvoicesProductPasenger" pp 
-						WHERE pp."invoiceProductId" = ep.id
-    					ORDER BY pp.id
-    					LIMIT 1) epp ON true;
+        SELECT id INTO v_implant_id FROM public."Implant" WHERE LOWER(code) = LOWER(v_invoice_record.implant_cd);
+        SELECT id INTO v_seller_id FROM public."Seller" WHERE LOWER(code) = LOWER(v_invoice_record.vendedor_cd);
+        SELECT id INTO v_ticket_printer_id FROM public."TicketPrinter" WHERE LOWER(code) = LOWER(v_invoice_record.tiqueteador_cd);
 
-    -- 6. Poblar Tabla itinerarios
-    INSERT INTO itinerarios (
-        id_factura, id_item, id_tipoitem, ds_itinerario, ds_itinerarioaerolinea
-    )
-    SELECT 
-        f.cd_consecutivo AS id_factura,
-        itm.cd_item AS id_item,
-        itm.tipo_item AS id_tipoitem,
-        ep.itinerary AS ds_itinerario,
-        ep.itinerary AS ds_itinerarioaerolinea
-    FROM public."InvoicesProduct" ep
-    JOIN Item itm ON ep.id = itm.id_referencia_origen
-    JOIN Facturacion f ON ep."invoiceId" = f.id_item
-    WHERE ep.itinerary IS NOT NULL AND ep.itinerary <> '';
+        v_internal_number := 'INV-SP-' || to_char(now(), 'YYYYMMDD') || '-' || floor(random() * 10000)::TEXT;
 
-    -- 7. Poblar Tabla Pasajeros
-    INSERT INTO Pasajeros (
-        id_factura, id_item, id_tipoitem, ds_paxape, ds_paxname, ds_paxprefix,
-        ds_paxClasificacion, cd_voucherpax, cd_paxidentificacion, in_edad, cd_tiquete
-    )
-    SELECT 
-        f.cd_consecutivo AS id_factura,
-        itm.cd_item AS id_item,
-        itm.tipo_item AS id_tipoitem,
-	    CASE WHEN p.name IS NULL OR TRIM(p.name) = '' THEN '' WHEN TRIM(p.name) NOT LIKE '% %' THEN '' ELSE COALESCE(arr[2], '') END AS ds_paxape,
-	    CASE WHEN p.name IS NULL OR TRIM(p.name) = '' THEN '' WHEN TRIM(p.name) NOT LIKE '% %' THEN TRIM(p.name) ELSE COALESCE(arr[1], '') END AS ds_paxname,
-	    CASE WHEN TRIM(p.name) LIKE '% %' THEN SUBSTRING(COALESCE(arr[3], ''), 1, 3)::char(3) ELSE ''::char(3) END AS ds_paxprefix,
-        '' AS ds_paxClasificacion,
-        '' AS cd_voucherpax,
-        p.document AS cd_paxidentificacion, 
-        0 AS in_edad, 
-        '' AS cd_tiquete
-	FROM (
-	    SELECT 
-	        p.*,
-	        regexp_split_to_array(TRIM(p.name), 's+') AS arr,
-	        ROW_NUMBER() OVER (
-	            PARTITION BY p."invoiceProductId"
-	            ORDER BY p.id
-	        ) AS rn
-	    FROM public."InvoicesProductPasenger" p
-	) p
-    JOIN Item itm ON p."invoiceProductId" = itm.id_referencia_origen
-    JOIN Facturacion f ON itm.id_factura = f.id_item
-    WHERE p.rn > 1;
+        INSERT INTO public."Invoices" (
+            "internalNumber", "date", "clientId", "currency", "exchangeRate", 
+            "branchId", "implantId", "sellerId", "ticketPrinterId", 
+            "baseCommissionable", "commissionPercentage", "chargesAndTaxes", "totalAmount", "userId", "state",
+            "fuente", "serie", "consecutivo"
+        ) VALUES (
+            v_internal_number, now(), v_client_id, COALESCE(v_invoice_record.moneda, 'COP'), 
+            COALESCE(v_invoice_record.tasa_cambio, 1), v_branch_id, v_implant_id, v_seller_id, 
+            v_ticket_printer_id, 0, COALESCE(v_invoice_record.comision_global, 0), 
+            COALESCE(v_invoice_record.cargos_global, 0), 0, p_user_id, 'NUEVO',
+            v_invoice_record.fuente, v_invoice_record.serie, v_invoice_record.consecutivo
+        ) RETURNING id INTO v_invoice_id;
 
-    -- 8. Poblar Tabla CargosImpuestos
-    INSERT INTO CargosImpuestos (
-        id_factura, id_item, id_tipoitem, cd_codigo, ds_nombre, cd_tipo,
-        am_porcentaje, am_valor, am_contado, am_credito, id_carg, id_imp, bl_iva, in_orden
-    )
-    SELECT 
-        f.cd_consecutivo AS id_factura,
-        itm.cd_item AS id_item,
-        itm.tipo_item AS id_tipoitem,
-        COALESCE(ct.code, 'TAR') AS cd_codigo,
-        COALESCE(ct.name, 'Tarifa') AS ds_nombre,
-        CASE WHEN t."isMain" = true THEN 'C' ELSE 'I' END AS cd_tipo,
-        COALESCE(ct.value, 0) AS am_porcentaje,
-        t."explicitAmount" AS am_valor,
-        t."explicitAmount" AS am_contado,
-        0 AS am_credito,
-        ct.id AS id_carg,
-        ct.id AS id_imp,
-        CASE WHEN ct.code = 'IVA' THEN B'1' ELSE B'0' END AS bl_iva,
-        1 AS in_orden
-    FROM public."InvoicesProductTax" t
-    JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
-    JOIN Item itm ON t."invoiceProductId" = itm.id_referencia_origen
-    JOIN Facturacion f ON itm.id_factura = f.id_item;
+        v_created_ids := v_created_ids || v_invoice_id || ',';
 
-    -- 9. Poblar Tabla Formaspago
-    INSERT INTO Formaspago (
-        id_factura, id_item, id_tipoitem, id_formaspago, cd_codigo, ds_nombre,
-        id_tarjetascredito, cd_tipotarjeta, ds_numerotarjeta, ds_vouchertarjeta,
-        ds_expiraciontarjeta, ds_autorizaciontarjeta, in_cuotas, cd_banco,
-        ds_cheque, ds_plaza, ds_referencia, ds_Poliza, ds_PolizaAnexo, am_valor
-    )
-    SELECT 
-        f.cd_consecutivo AS id_factura,
-        itm.cd_item AS id_item,
-        itm.tipo_item AS id_tipoitem,
-        ipp.id AS id_formaspago,
-        ipp."paymentMethod" AS cd_codigo,
-        ipp."paymentMethod" AS ds_nombre,
-        ipp."creditCardId" AS id_tarjetascredito,
-        COALESCE(cc.code, '') AS cd_tipotarjeta,
-        COALESCE(ipp."cardNumber", '') AS ds_numerotarjeta,
-        COALESCE(ipp.voucher, '') AS ds_vouchertarjeta,
-        COALESCE(ipp."expirationDate", '') AS ds_expiraciontarjeta,
-        COALESCE(ipp."authorizationCode", '') AS ds_autorizaciontarjeta,
-        NULL AS in_cuotas,
-        '' AS cd_banco,
-        '' AS ds_cheque,
-        '' AS ds_plaza,
-        COALESCE(ipp.reference, '') AS ds_referencia,
-        '' AS ds_Poliza,
-        '' AS ds_PolizaAnexo,
-        ipp.amount AS am_valor
-    FROM public."InvoicesProductPayment" ipp
-    JOIN Item itm ON ipp."invoiceProductId" = itm.id_referencia_origen
-    JOIN Facturacion f ON itm.id_factura = f.id_item
-    LEFT JOIN public."CreditCard" cc ON ipp."creditCardId" = cc.id;
+        v_total_amount := COALESCE(v_invoice_record.cargos_global, 0);
 
-    -- 10. Poblar Tabla Variables
-    INSERT INTO Variables (
-        id_factura, id_item, id_tipoitem, ds_maestro, ds_VariableAdicional, ds_valor, cd_codigo
-    )
-    SELECT 
-        f.cd_consecutivo AS id_factura,
-        itm.cd_item AS id_item,
-        itm.tipo_item AS id_tipoitem,
-        'Item' AS ds_maestro,
-        COALESCE(mv.name, '') AS ds_VariableAdicional,
-        COALESCE(v.value, '') AS ds_valor,
-        COALESCE(mv.code, '') AS cd_codigo
-    FROM public."InvoicesProductVariable" v
-    JOIN public."MasterVariable" mv ON v."masterVariableId" = mv.id
-    JOIN Item itm ON v."invoiceProductId" = itm.id_referencia_origen
-    JOIN Facturacion f ON itm.id_factura = f.id_item;
+        -- Procesar Combos (Expandir productos del combo)
+        IF v_invoice_record.combos_str IS NOT NULL AND v_invoice_record.combos_str <> '' THEN
+            FOR v_var_item IN SELECT unnest(string_to_array(v_invoice_record.combos_str, '|')) LOOP
+                DECLARE
+                    v_combo_id INT;
+                    v_cp_record RECORD;
+                BEGIN
+                    SELECT id INTO v_combo_id FROM public."Combo" WHERE LOWER(code) = LOWER(TRIM(v_var_item));
+                    IF v_combo_id IS NOT NULL THEN
+                        INSERT INTO public."InvoicesProductCombo" ("invoiceId", "comboId") VALUES (v_invoice_id, v_combo_id);
+                        
+                        -- Insertar productos del combo
+                        FOR v_cp_record IN (SELECT * FROM public."ComboProduct" WHERE "comboId" = v_combo_id) LOOP
+                            INSERT INTO public."InvoicesProduct" (
+                                "invoiceId", "productId", "quantity", "price", "comboId", "mainTaxId", "inNationality", "cost"
+                            ) VALUES (
+                                v_invoice_id, v_cp_record."productId", v_cp_record.quantity, v_cp_record.price, v_combo_id, v_cp_record."mainTaxId", v_cp_record."inNationality", v_cp_record."cost"
+                            ) RETURNING id INTO v_ip_id;
 
-    -- 11. Generar XML
-    SELECT xmlroot(
-        xmlelement(name "Facturaciones",
-            xmlagg(
-                xmlelement(name "Facturacion",
-                    xmlforest(
-                        f.cd_fuente, f.cd_serie, f.cd_consecutivo, f.cd_usuario, f.cd_sucursal, f.cd_implante, 
-						f.dt_fechacont, f.dt_vence, f.cd_tercero_codigo, f.ds_tercero_nombre, f.cd_cliente_codigo, 
-						f.ds_cliente_nombre, f.ds_cliente_dir, f.ds_cliente_ciudad, f.ds_cliente_tel, f.ds_cliente_dirdesp, 
-						f.ds_cliente_email, f.ds_cliente_contacto, f.ds_cliente_contacto_email, f.id_monedas_iata, 
-						f.cd_vendedor, f.id_tiqueteador, f.bn_anexo, f.Tcambio, f.am_tcambiousd, f.id_tipoventa, 
-						f.ds_num_resolucion, f.in_num_inicial, f.in_num_final, f.ds_numeracion_autorizada, 
-						f.dt_fecha_resolucion, f.CodigoArchivoFisico, f.ds_Observacion, f.ds_Campo_libre1, 
-						f.ds_Campo_libre2, f.cd_fuente_Reemplaza, f.cd_serie_Reemplaza, f.cd_consecutivo_Reemplaza, 
-						f.ds_Actividad_Economica, f.ds_Tarifa_ICA, f.SqlStmt, f.AnticiposSqlStmt, f.TotalFactura, 
-						f.TotalCupoCreditoCliente, f.bl_BloqueoCupoCredito, f.bl_generadaauto, f.ds_CotizacionesId, 
-						f.Id_Cierre, f.cd_TipoFact, f.id_fac_remisionRelacionada, f.id_fac_facturaRelacionada, 
-						f.ds_DescripcionFac, f.bl_nocont, f.ProductosSqlStmt, f.cd_CF_TipoComprobante, f.id_Licitacion, 
-						f.ValorFactura, f.id_Especialista, f.id_tiqueteador_Facturador, f.id_TipoFormaPagoProveedor, 
-						f.id_MedioReservacion, f.bl_refacturacion, f.bl_comisiona, f.cd_fuente_factura, f.cd_serie_factura, 
-						f.cd_consecutivo_factura, f.id_NotasAerolinea, f.bl_interface, f.id_evento, f.bl_NoEnviarFacElectronica, 
-						f.bl_FacturaComision, f.bl_DescontarComisionCxP, f.ds_num_resolucion_Adicional, 
-						f.id_fac_facturaRefacturacion, f.bl_refacturacion_contabilizar_saldos, f.ZML_VariablesXML, 
-						f.bl_FormatoResumidoFactElectro, f.bl_ExigeAdjuntoFactElectro, f.bl_omitir_Validar_IVA_facturacion, 
-						f.ds_Respuesta
-                    ),
-                    (
-                        SELECT xmlagg(
-                            xmlelement(name "Item",
-                                xmlforest(
-									s.tipo_item, s.id_factura, s.in_tipoitem, s.id_referencia_origen, s.cd_tiquete, 
-									s.ds_descrip, s.in_nacionalidad, s.cd_cencosto, s.cd_auxiliar, s.cd_item, 
-									s.am_tarifa, s.am_iva, s.am_tua, s.am_comb, s.am_vat, s.am_Comision, 
-									s.ds_paxname, s.ds_paxape, s.ds_paxprefix, s.cd_tourcode, s.NumTktConj, 
-									s.cd_TipoTiquete, s.id_air, s.ds_itinerario, s.ds_itinerarioaerolinea, 
-									s.ds_clases, s.ds_Observaciones, s.am_highfare, s.am_lowfare, s.ds_solicita, 
-									s.ds_lapsoviaje, s.cd_tktrevisado, s.cd_PasaportePax, s.cd_pax_CC, 
-									s.am_PorFacParcial, s.in_cantpax, s.Id_Precompra, s.cd_FormaPagoTAO, 
-									s.cd_TarjetaCreditoTAO, s.cd_NumeroTarjetaTAO, s.cd_VencimientoTarjetaTAO, 
-									s.cd_NumeroPolizaTAO, s.cd_AnexoPolizaTAO, s.ds_AutorizacionTarjetaTAO, 
-									s.in_cuotasTarjetaTAO, s.id_FormasPago, s.id_TarjetasCredito, s.am_fp1, 
-									s.ds_cc_code, s.ds_cc_number, s.ds_cc_vence, s.ds_cc_autorizacion, 
-									s.ds_cc_voucher, s.in_cc_cuotas, s.am_fp2, s.ds_cc_code2, s.ds_cc_number2, 
-									s.ds_cc_vence2, s.ds_cc_autorizacion2, s.ds_cc_voucher2, s.in_cc_cuotas2, 
-									s.id_monedas_iata, s.Tcambio, s.id_sucursal, s.id_implante, s.bl_ahorro, 
-									s.cd_TipoTiqueteGDS, s.id_TiposDocumento, s.id_entdist, s.id_entvend, 
-									s.cd_destino, s.dt_fechaexped, s.id_tiqueteadores, s.id_gds, s.iden_gds, 
-									s.am_comisionPNR, s.ds_records, s.bl_NoCalcComision, s.bl_NoCalcIvaComision, 
-									s.am_basecomisionable, s.am_porcomision, s.id_tiposconceptfac, 
-									s.id_conceptofacturacion, s.id_tiposservicio, s.cd_proveedores, 
-									s.ds_servicio, s.am_valorprov, s.id_monedaprov, s.dt_llegada, s.dt_salida, 
-									s.am_pordescuento, s.am_basedescuento, s.Fecha_Salida, s.Fecha_Llegada, 
-									s.ColId, s.cd_Consecutivo_depende, s.CodigoReserva, 
-									s.cd_Consecutivo_variablesadicionales, s.am_valor_total, s.ds_proveedores, 
-									s.id_FormasPagoAirPlus, s.cd_FormasPagoAirPlus, s.ds_FormasPagoAirPlus, 
-									s.id_TarjetasCreditoAirPlus, s.cd_TarjetasCreditoAirPlus, 
-									s.ds_numerotarjetaAirPlus, s.id_reserva, s.OrdenGrabacion
-                                ),
-                                (
-                                    SELECT xmlagg(
-                                        xmlelement(name "itinerarios",
-                                            xmlforest(
-                                                iti.id_factura, iti.id_item, iti.id_tipoitem, iti.ds_itinerario, iti.ds_itinerarioaerolinea
-                                            )
-                                        )
-                                    )
-                                    FROM itinerarios iti
-                                    WHERE iti.id_item = s.cd_item
-                                ),
-                                (
-                                    SELECT xmlagg(
-                                        xmlelement(name "Pasajeros",
-                                            xmlforest(
-                                                p.id_factura, p.id_item, p.id_tipoitem, p.ds_paxape, p.ds_paxname, p.ds_paxprefix,
-                                                p.ds_paxClasificacion, p.cd_voucherpax, p.cd_paxidentificacion, p.in_edad, p.cd_tiquete
-                                            )
-                                        )
-                                    )
-                                    FROM Pasajeros p
-                                    WHERE p.id_item = s.cd_item
-                                ),
-                                (
-                                    SELECT xmlagg(
-                                        xmlelement(name "CargosImpuestos",
-                                            xmlforest(
-                                                ci.id_factura, ci.id_item, ci.id_tipoitem, ci.cd_codigo, ci.ds_nombre, ci.cd_tipo,
-                                                ci.am_porcentaje, ci.am_valor, ci.am_contado, ci.am_credito, ci.id_carg, ci.id_imp,
-                                                ci.bl_iva, ci.in_orden
-                                            )
-                                        )
-                                    )
-                                    FROM CargosImpuestos ci
-                                    WHERE ci.id_item = s.cd_item
-                                ),
-                                (
-                                    SELECT xmlagg(
-                                        xmlelement(name "Formaspago",
-                                            xmlforest(
-                                                fp.id_factura, fp.id_item, fp.id_tipoitem, fp.id_formaspago, fp.cd_codigo, fp.ds_nombre,
-                                                fp.id_tarjetascredito, fp.cd_tipotarjeta, fp.ds_numerotarjeta, fp.ds_vouchertarjeta,
-                                                fp.ds_expiraciontarjeta, fp.ds_autorizaciontarjeta, fp.in_cuotas, fp.cd_banco,
-                                                fp.ds_cheque, fp.ds_plaza, fp.ds_referencia, fp.ds_Poliza, fp.ds_PolizaAnexo, fp.am_valor
-                                            )
-                                        )
-                                    )
-                                    FROM Formaspago fp
-                                    WHERE fp.id_item = s.cd_item
-                                ),
-                                (
-                                    SELECT xmlagg(
-                                        xmlelement(name "Variables",
-                                            xmlforest(
-                                                v.id_factura, v.id_item, v.id_tipoitem, v.ds_maestro, v.ds_VariableAdicional, v.ds_valor, v.cd_codigo
-                                            )
-                                        )
-                                    )
-                                    FROM Variables v
-                                    WHERE v.id_item = s.cd_item
-                                )
+                            v_total_amount := v_total_amount + (v_cp_record.price * v_cp_record.quantity);
+
+                            -- Insertar impuestos del combo product
+                            INSERT INTO public."InvoicesProductTax" (
+                                "invoiceProductId", "chargeAndTaxId", "valueSnapshot", "valueTypeSnapshot", "explicitAmount", "isMain"
                             )
-                        )
-                        FROM Item s
-                        WHERE s.id_factura = f.id_item
-                    )
-                )
-            )
-        ),
-        version '1.0', standalone yes
-    )::text INTO v_xml
-    FROM Facturacion f;
+                            SELECT v_ip_id, cpt."chargeAndTaxId", ct.value, ct."valueType", cpt.amount, cpt."isMain"
+                            FROM public."ComboProductTax" cpt
+                            JOIN public."ChargeAndTax" ct ON cpt."chargeAndTaxId" = ct.id
+                            WHERE cpt."comboProductId" = v_cp_record.id;
+                            
+                            -- Sumar impuestos al total
+                            v_total_amount := v_total_amount + COALESCE((SELECT SUM(amount) FROM public."ComboProductTax" WHERE "comboProductId" = v_cp_record.id), 0);
+                        END LOOP;
+                    END IF;
+                END;
+            END LOOP;
+        END IF;
 
-    mensaje_resultado := COALESCE(v_xml, '<?xml version="1.0" standalone="yes"?><Facturaciones />');
+        -- Procesar Productos Individuales
+        FOR v_product_record IN (SELECT * FROM tmp_import_invoice_rows WHERE grupo = v_invoice_record.grupo) LOOP
+            SELECT id INTO v_product_id FROM public."Product" WHERE LOWER(code) = LOWER(v_product_record.producto_cd);
+            IF v_product_id IS NULL THEN 
+                DECLARE
+                    v_temp_msg TEXT;
+                BEGIN
+                    CALL public.spProductoCrear(
+                        v_product_record.producto_cd,
+                        COALESCE(v_product_record.tipo_servicio, 'Tiquete'),
+                        COALESCE(v_product_record.descripcion, 'Tiquete ' || v_product_record.producto_cd),
+                        COALESCE(v_product_record.precio, 0),
+                        COALESCE(v_product_record.costo, 0),
+                        NULL, 
+                        COALESCE(v_product_record.tipo_servicio, 'Aire'),
+                        p_user_id,
+                        v_product_id,
+                        v_temp_msg
+                    );
+                    IF v_temp_msg LIKE 'ERROR%' THEN
+                        p_mensaje_resultado := v_temp_msg;
+                        RETURN;
+                    END IF;
+                END;
+            END IF; 
+
+            -- Resolución de Proveedor por Código
+            v_provider_id := NULL;
+            IF v_product_record.proveedor_cd <> '' THEN
+                SELECT id INTO v_provider_id FROM public."Provider" WHERE LOWER(code) = LOWER(v_product_record.proveedor_cd);
+            END IF;
+
+            SELECT id INTO v_prestadora_id FROM public."Prestadora" WHERE LOWER(code) = LOWER(v_product_record.prestadora_cd);
+
+            v_main_tax_id := NULL;
+            IF v_product_record.cargo_principal_cd <> '' THEN
+                SELECT id INTO v_main_tax_id FROM public."ChargeAndTax" WHERE LOWER(code) = LOWER(v_product_record.cargo_principal_cd);
+            END IF;
+
+            v_ticket_type_id := NULL;
+            IF v_product_record.tipo_tiquete_cd <> '' THEN
+                SELECT id INTO v_ticket_type_id FROM public."TicketType" WHERE LOWER(code) = LOWER(v_product_record.tipo_tiquete_cd);
+            END IF;
+
+            v_ip_id := NULL;
+            SELECT id INTO v_ip_id FROM public."InvoicesProduct" 
+            WHERE "invoiceId" = v_invoice_id AND "productId" = v_product_id AND "comboId" IS NOT NULL
+            LIMIT 1;
+
+            IF v_ip_id IS NOT NULL THEN
+                UPDATE public."InvoicesProduct" SET
+                    "quantity" = COALESCE(v_product_record.cantidad, "quantity"),
+                    "price" = COALESCE(v_product_record.precio, "price"),
+                    "cost" = COALESCE(v_product_record.costo, "cost"),
+                    "providerId" = COALESCE(v_provider_id, "providerId"),
+                    "prestadoraId" = COALESCE(v_prestadora_id, "prestadoraId"),
+                    "checkInDate" = COALESCE(v_product_record.check_in, "checkInDate"),
+                    "checkOutDate" = COALESCE(v_product_record.check_out, "checkOutDate"),
+                    "nights" = CASE WHEN v_product_record.check_in IS NOT NULL AND v_product_record.check_out IS NOT NULL 
+                                 THEN EXTRACT(DAY FROM (v_product_record.check_out - v_product_record.check_in))::INT 
+                                 ELSE "nights" END,
+                    "paxAdults" = COALESCE(v_product_record.pax_adultos, "paxAdults"),
+                    "paxChildren" = COALESCE(v_product_record.pax_ninos, "paxChildren"),
+                    "serviceType" = COALESCE(v_product_record.tipo_servicio, "serviceType"),
+                    "destination" = COALESCE(v_product_record.destino, "destination"),
+                    "reservationCode" = COALESCE(v_product_record.reserva, "reservationCode"),
+                    "sellerCommission" = COALESCE(v_product_record.com_vendedor, "sellerCommission"),
+                    "ticketPrinterCommission" = COALESCE(v_product_record.com_tiqueteador, "ticketPrinterCommission"),
+                    "inNationality" = COALESCE(v_product_record.nacionalidad, "inNationality"),
+                    "mainTaxId" = COALESCE(v_main_tax_id, "mainTaxId"),
+                    "servicios" = COALESCE(v_product_record.servicios, "servicios"),
+                    "descripcion" = COALESCE(v_product_record.descripcion, "descripcion"),
+                    "itinerary" = COALESCE(v_product_record.itinerary, "itinerary"),
+                    "class" = COALESCE(v_product_record.class, "class"),
+                    "airline" = COALESCE(v_product_record.airline, "airline"),
+                    "ticketTypeId" = COALESCE(v_ticket_type_id, "ticketTypeId")
+                WHERE id = v_ip_id;
+
+                -- Eliminar impuestos base del combo si hay overrides en Excel
+                IF v_product_record.impuestos_str IS NOT NULL AND v_product_record.impuestos_str <> '' THEN
+                    DELETE FROM public."InvoicesProductTax" WHERE "invoiceProductId" = v_ip_id;
+                END IF;
+            ELSE
+                IF v_invoice_record.combos_str IS NOT NULL AND v_invoice_record.combos_str <> '' THEN
+                    CONTINUE; -- No crear productos diferentes a los del combo
+                END IF;
+
+                INSERT INTO public."InvoicesProduct" (
+                    "invoiceId", "productId", "quantity", "price", "cost", "providerId", "prestadoraId", 
+                    "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren", 
+                    "serviceType", "destination", "reservationCode", "sellerCommission", "ticketPrinterCommission",
+                    "comboId", "mainTaxId", "inNationality", "servicios", "descripcion", "itinerary", "class", "airline", "ticketTypeId"
+                ) VALUES (
+                    v_invoice_id, v_product_id, COALESCE(v_product_record.cantidad, 1), 
+                    COALESCE(v_product_record.precio, 0), COALESCE(v_product_record.costo, 0), v_provider_id, v_prestadora_id, 
+                    v_product_record.check_in, v_product_record.check_out, 
+                    CASE WHEN v_product_record.check_in IS NOT NULL AND v_product_record.check_out IS NOT NULL 
+                         THEN EXTRACT(DAY FROM (v_product_record.check_out - v_product_record.check_in))::INT 
+                         ELSE 1 END,
+                    COALESCE(v_product_record.pax_adultos, 1), COALESCE(v_product_record.pax_ninos, 0),
+                    v_product_record.tipo_servicio, v_product_record.destino, v_product_record.reserva,
+                    v_product_record.com_vendedor, v_product_record.com_tiqueteador,
+                    NULL, v_main_tax_id, COALESCE(v_product_record.nacionalidad, 1),
+                    v_product_record.servicios, v_product_record.descripcion, v_product_record.itinerary, v_product_record.class, v_product_record.airline, v_ticket_type_id
+                ) RETURNING id INTO v_ip_id;
+            END IF;
+
+            v_total_amount := v_total_amount + (COALESCE(v_product_record.precio, 0) * COALESCE(v_product_record.cantidad, 1));
+
+            -- Split para Impuestos
+            IF v_product_record.impuestos_str IS NOT NULL AND v_product_record.impuestos_str <> '' THEN
+                FOREACH v_tax_item IN ARRAY string_to_array(v_product_record.impuestos_str, '|') LOOP
+                    v_tax_parts := string_to_array(v_tax_item, ':');
+                    SELECT id INTO v_tax_id FROM public."ChargeAndTax" WHERE LOWER(code) = LOWER(TRIM(v_tax_parts[1]));
+                    IF v_tax_id IS NOT NULL THEN
+                        INSERT INTO public."InvoicesProductTax" (
+                            "invoiceProductId", "chargeAndTaxId", "valueSnapshot", "valueTypeSnapshot", "explicitAmount", "isMain"
+                        ) 
+                        SELECT v_ip_id, id, value, "valueType", NULLIF(TRIM(v_tax_parts[2]), '')::DECIMAL,
+                               CASE WHEN v_main_tax_id = id THEN TRUE ELSE FALSE END
+                        FROM public."ChargeAndTax" WHERE id = v_tax_id;
+                        v_total_amount := v_total_amount + NULLIF(TRIM(v_tax_parts[2]), '')::DECIMAL;
+                    END IF;
+                END LOOP;
+            END IF;
+
+            -- Split para Pasajeros (spelled Pasenger with one 's' in the database/prisma model)
+            IF v_product_record.pasajeros_str IS NOT NULL AND v_product_record.pasajeros_str <> '' THEN
+                FOREACH v_pass_item IN ARRAY string_to_array(v_product_record.pasajeros_str, '|') LOOP
+                    v_pass_parts := string_to_array(v_pass_item, ':');
+                    INSERT INTO public."InvoicesProductPasenger" ("invoiceProductId", "name", "document")
+                    VALUES (v_ip_id, COALESCE(v_pass_parts[1], ''), COALESCE(v_pass_parts[2], ''));
+                END LOOP;
+            END IF;
+
+            -- Split para Variables
+            IF v_product_record.variables_str IS NOT NULL AND v_product_record.variables_str <> '' THEN
+                FOREACH v_var_item IN ARRAY string_to_array(v_product_record.variables_str, '|') LOOP
+                    v_var_parts := string_to_array(v_var_item, ':');
+                    SELECT id INTO v_variable_id FROM public."MasterVariable" WHERE LOWER(code) = LOWER(TRIM(v_var_parts[1]));
+                    IF v_variable_id IS NOT NULL THEN
+                        INSERT INTO public."InvoicesProductVariable" ("invoiceProductId", "masterVariableId", "value")
+                        VALUES (v_ip_id, v_variable_id, COALESCE(v_var_parts[2], ''));
+                    END IF;
+                END LOOP;
+            END IF;
+
+            -- Split para Pagos
+            IF v_product_record.pagos_str IS NOT NULL AND v_product_record.pagos_str <> '' THEN
+                FOREACH v_pay_item IN ARRAY string_to_array(v_product_record.pagos_str, '|') LOOP
+                    v_pay_parts := string_to_array(v_pay_item, ':');
+                    
+                    v_pay_method := NULLIF(TRIM(v_pay_parts[2]), '');
+                    v_pay_ref := NULLIF(TRIM(v_pay_parts[3]), '');
+                    
+                    v_pay_date := CURRENT_TIMESTAMP;
+                    IF v_pay_parts[4] IS NOT NULL AND TRIM(v_pay_parts[4]) <> '' THEN
+                        v_pay_date := TRIM(v_pay_parts[4])::TIMESTAMP;
+                    END IF;
+
+                    v_pay_card_id := NULL;
+                    IF v_pay_parts[5] IS NOT NULL AND TRIM(v_pay_parts[5]) <> '' THEN
+                        v_pay_card_id := TRIM(v_pay_parts[5])::INT;
+                    END IF;
+
+                    v_pay_card_num := NULLIF(TRIM(v_pay_parts[6]), '');
+                    v_pay_auth := NULLIF(TRIM(v_pay_parts[7]), '');
+                    v_pay_voucher := NULLIF(TRIM(v_pay_parts[8]), '');
+                    v_pay_exp := NULLIF(TRIM(v_pay_parts[9]), '');
+
+                    INSERT INTO public."InvoicesProductPayment" (
+                        "invoiceProductId", "amount", "paymentMethod", "reference", "date", 
+                        "creditCardId", "cardNumber", "authorizationCode", "voucher", "expirationDate"
+                    ) VALUES (
+                        v_ip_id, 
+                        NULLIF(TRIM(v_pay_parts[1]), '')::DECIMAL, 
+                        v_pay_method, 
+                        v_pay_ref, 
+                        v_pay_date, 
+                        v_pay_card_id, 
+                        v_pay_card_num, 
+                        v_pay_auth, 
+                        v_pay_voucher, 
+                        v_pay_exp
+                    );
+                END LOOP;
+            END IF;
+
+            -- Split para Itinerarios
+            IF v_product_record.itinerarios_str IS NOT NULL AND v_product_record.itinerarios_str <> '' THEN
+                FOREACH v_itin_item IN ARRAY string_to_array(v_product_record.itinerarios_str, '|') LOOP
+                    v_itin_parts := string_to_array(v_itin_item, ':');
+                    
+                    v_itin_origin := NULLIF(TRIM(v_itin_parts[1]), '');
+                    v_itin_dest := NULLIF(TRIM(v_itin_parts[2]), '');
+                    v_itin_class := NULLIF(TRIM(v_itin_parts[3]), '');
+                    
+                    v_itin_check_in := NULL;
+                    IF v_itin_parts[4] IS NOT NULL AND TRIM(v_itin_parts[4]) <> '' THEN
+                        v_itin_check_in := TRIM(v_itin_parts[4])::TIMESTAMP;
+                    END IF;
+
+                    v_itin_check_out := NULL;
+                    IF v_itin_parts[5] IS NOT NULL AND TRIM(v_itin_parts[5]) <> '' THEN
+                        v_itin_check_out := TRIM(v_itin_parts[5])::TIMESTAMP;
+                    END IF;
+
+                    v_itin_orden := NULL;
+                    IF v_itin_parts[6] IS NOT NULL AND TRIM(v_itin_parts[6]) <> '' THEN
+                        v_itin_orden := TRIM(v_itin_parts[6])::INT;
+                    END IF;
+
+                    INSERT INTO public."InvoicesProductItinerary" (
+                        "invoiceProductId", "origin", "destination", "class", "checkInDate", "checkOutDate", "orden"
+                    ) VALUES (
+                        v_ip_id, 
+                        v_itin_origin, 
+                        v_itin_dest, 
+                        v_itin_class, 
+                        v_itin_check_in, 
+                        v_itin_check_out, 
+                        v_itin_orden
+                    );
+                END LOOP;
+            END IF;
+        END LOOP;
+
+        -- Calcular y actualizar el totalAmount basado en InvoicesProductTax
+        UPDATE public."Invoices"
+        SET "totalAmount" = (
+            SELECT COALESCE(SUM(ipt."explicitAmount"), 0) AS cargos_global
+            FROM public."InvoicesProductTax" ipt
+            JOIN public."InvoicesProduct" ip ON ipt."invoiceProductId" = ip.id
+            WHERE ip."invoiceId" = v_invoice_id
+        )
+        WHERE id = v_invoice_id;
+        
+        v_imported_count := v_imported_count + 1;
+    END LOOP;
+
+    p_mensaje_resultado := 'SUCCESS: ' || v_imported_count || ' facturas importadas. [' || RTRIM(v_created_ids, ',') || ']';
 
 EXCEPTION
     WHEN OTHERS THEN
-        GET STACKED DIAGNOSTICS 
-            v_state   = RETURNED_SQLSTATE,
-            v_msg     = MESSAGE_TEXT,
-            v_context = PG_EXCEPTION_CONTEXT;
-		v_line := substring(v_context from 'line ([0-9]+)')::TEXT;
-        mensaje_resultado := format('ERROR: %s | EN LÍNEA: %s | ESTADO: %s', v_msg, v_line, v_state);
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM || ' | ' || SQLSTATE;
 END;
 $$;
+
 
 -- Archivo: spImportQuotation.sql
 CREATE OR REPLACE PROCEDURE public."spImportQuotation"(
@@ -6206,7 +10372,10 @@ BEGIN
         "chargesAndTaxes" = NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
         "totalAmount" = NULLIF(p_data->>'totalAmount', '')::FLOAT,
         "state" = COALESCE(p_data->>'state', 'Nuevo'),
-        "date" = CURRENT_TIMESTAMP
+        "date" = CURRENT_TIMESTAMP,
+        "fuente" = NULLIF(p_data->>'fuente', ''),
+        "serie" = NULLIF(p_data->>'serie', ''),
+        "consecutivo" = NULLIF(p_data->>'consecutivo', '')
     WHERE id = p_id;
 
     DELETE FROM public."InvoicesProductCombo" WHERE "invoiceId" = p_id;
@@ -6226,7 +10395,7 @@ BEGIN
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
                       "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "inNationality" INT,
-                      "servicios" TEXT, "itemDescription" TEXT, "itinerary" TEXT, "class" TEXT, "ticketTypeId" TEXT, "payments" JSONB, "itinerariesItineraryList" JSONB
+                      "servicios" TEXT, "itemDescription" TEXT, "itinerary" TEXT, "class" TEXT, "airline" TEXT, "ticketTypeId" TEXT, "payments" JSONB, "itinerariesItineraryList" JSONB
                   )
     LOOP
         -- 1. Lógica de Producto Al Vuelo
@@ -6280,7 +10449,7 @@ BEGIN
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
-            "servicios", "descripcion", "itinerary", "class", "ticketTypeId"
+            "servicios", "descripcion", "itinerary", "class", "airline", "ticketTypeId"
         ) VALUES (
             p_id, v_real_product_id, v_item.quantity, v_item.price, v_item.cost, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
@@ -6288,7 +10457,7 @@ BEGIN
             v_item.nights, v_item."paxAdults", v_item."paxChildren",
             v_item."serviceType", v_item."destination", v_item."reservationCode", v_item."sellerCommission",
             v_item."ticketPrinterCommission", NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
-            v_item."servicios", COALESCE(v_item."itemDescription", v_item."description"), v_item."itinerary", v_item."class", NULLIF(v_item."ticketTypeId", '')::INT
+            v_item."servicios", COALESCE(v_item."itemDescription", v_item."description"), v_item."itinerary", v_item."class", v_item."airline", NULLIF(v_item."ticketTypeId", '')::INT
         ) RETURNING id INTO v_invoice_product_id;
 
         IF v_item.passengers IS NOT NULL THEN
@@ -6329,10 +10498,10 @@ BEGIN
         END IF;
 
         IF v_item."itinerariesItineraryList" IS NOT NULL THEN
-            FOR v_itinerary IN SELECT * FROM jsonb_to_recordset(v_item."itinerariesItineraryList") AS x(origin TEXT, destination TEXT, class TEXT, "checkInDate" TEXT, "checkOutDate" TEXT, orden INT)
+            FOR v_itinerary IN SELECT * FROM jsonb_to_recordset(v_item."itinerariesItineraryList") AS x(origin TEXT, destination TEXT, class TEXT, "checkInDate" TEXT, "checkOutDate" TEXT, "prestadoraCode" TEXT, "farebasis" TEXT, "Numflight" TEXT, "Typeflight" TEXT, "amount" FLOAT, "co2" NUMERIC, orden INT)
             LOOP
-                INSERT INTO public."InvoicesProductItinerary" ("invoiceProductId", "origin", "destination", "class", "checkInDate", "checkOutDate", "orden")
-                VALUES (v_invoice_product_id, v_itinerary.origin, v_itinerary.destination, v_itinerary.class, CASE WHEN v_itinerary."checkInDate" IS NOT NULL AND v_itinerary."checkInDate" <> '' THEN v_itinerary."checkInDate"::TIMESTAMP ELSE NULL END, CASE WHEN v_itinerary."checkOutDate" IS NOT NULL AND v_itinerary."checkOutDate" <> '' THEN v_itinerary."checkOutDate"::TIMESTAMP ELSE NULL END, v_itinerary.orden);
+                INSERT INTO public."InvoicesProductItinerary" ("invoiceProductId", "origin", "destination", "class", "checkInDate", "checkOutDate", "prestadoraCode", "farebasis", "Numflight", "Typeflight", "amount", "co2", "orden")
+                VALUES (v_invoice_product_id, v_itinerary.origin, v_itinerary.destination, v_itinerary.class, CASE WHEN v_itinerary."checkInDate" IS NOT NULL AND v_itinerary."checkInDate" <> '' THEN v_itinerary."checkInDate"::TIMESTAMP ELSE NULL END, CASE WHEN v_itinerary."checkOutDate" IS NOT NULL AND v_itinerary."checkOutDate" <> '' THEN v_itinerary."checkOutDate"::TIMESTAMP ELSE NULL END, COALESCE(v_itinerary."prestadoraCode", ''), COALESCE(v_itinerary."farebasis", ''), v_itinerary."Numflight", v_itinerary."Typeflight", COALESCE(v_itinerary."amount", 0), v_itinerary."co2", v_itinerary.orden);
             END LOOP;
         END IF;
 
@@ -6398,12 +10567,13 @@ BEGIN
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
         "branchId", "implantId", "sellerId", "ticketPrinterId", 
         "baseCommissionable", "commissionPercentage", "chargesAndTaxes", 
-        "totalAmount", "userId", "state"
+        "totalAmount", "userId", "state", "fuente", "serie", "consecutivo"
     ) VALUES (
         v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
         NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
         0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
-        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO'
+        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO',
+        NULLIF(p_data->>'fuente', ''), NULLIF(p_data->>'serie', ''), NULLIF(p_data->>'consecutivo', '')
     ) RETURNING id INTO v_invoice_id;
 
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
@@ -6522,10 +10692,10 @@ BEGIN
         END IF;
 
         IF v_item."itinerariesItineraryList" IS NOT NULL THEN
-            FOR v_itinerary IN SELECT * FROM jsonb_to_recordset(v_item."itinerariesItineraryList") AS x(origin TEXT, destination TEXT, class TEXT, "checkInDate" TEXT, "checkOutDate" TEXT, orden INT)
+            FOR v_itinerary IN SELECT * FROM jsonb_to_recordset(v_item."itinerariesItineraryList") AS x(origin TEXT, destination TEXT, class TEXT, "checkInDate" TEXT, "checkOutDate" TEXT, "prestadoraCode" TEXT, "farebasis" TEXT, "Numflight" TEXT, "Typeflight" TEXT, "amount" FLOAT, "co2" NUMERIC, orden INT)
             LOOP
-                INSERT INTO public."InvoicesProductItinerary" ("invoiceProductId", "origin", "destination", "class", "checkInDate", "checkOutDate", "orden")
-                VALUES (v_invoice_product_id, v_itinerary.origin, v_itinerary.destination, v_itinerary.class, CASE WHEN v_itinerary."checkInDate" IS NOT NULL AND v_itinerary."checkInDate" <> '' THEN v_itinerary."checkInDate"::TIMESTAMP ELSE NULL END, CASE WHEN v_itinerary."checkOutDate" IS NOT NULL AND v_itinerary."checkOutDate" <> '' THEN v_itinerary."checkOutDate"::TIMESTAMP ELSE NULL END, v_itinerary.orden);
+                INSERT INTO public."InvoicesProductItinerary" ("invoiceProductId", "origin", "destination", "class", "checkInDate", "checkOutDate", "prestadoraCode", "farebasis", "Numflight", "Typeflight", "amount", "co2", "orden")
+                VALUES (v_invoice_product_id, v_itinerary.origin, v_itinerary.destination, v_itinerary.class, CASE WHEN v_itinerary."checkInDate" IS NOT NULL AND v_itinerary."checkInDate" <> '' THEN v_itinerary."checkInDate"::TIMESTAMP ELSE NULL END, CASE WHEN v_itinerary."checkOutDate" IS NOT NULL AND v_itinerary."checkOutDate" <> '' THEN v_itinerary."checkOutDate"::TIMESTAMP ELSE NULL END, COALESCE(v_itinerary."prestadoraCode", ''), COALESCE(v_itinerary."farebasis", ''), v_itinerary."Numflight", v_itinerary."Typeflight", COALESCE(v_itinerary."amount", 0), v_itinerary."co2", v_itinerary.orden);
             END LOOP;
         END IF;
 
@@ -7302,6 +11472,73 @@ END;
 $$;
 
 
+-- Archivo: spQuotationStateActualizar.sql
+
+CREATE OR REPLACE PROCEDURE public."spQuotationStateActualizar"(
+    p_id INT,
+    p_code TEXT,
+    p_name TEXT,
+    p_color TEXT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    UPDATE public."QuotationState"
+    SET code = COALESCE(p_code, code),
+        name = COALESCE(p_name, name),
+        color = p_color
+    WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Estado de cotización actualizado correctamente.';
+EXCEPTION
+    WHEN unique_violation THEN
+        p_mensaje_resultado := 'ERROR: El código ya existe.';
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END; $$;
+
+
+-- Archivo: spQuotationStateCrear.sql
+
+CREATE OR REPLACE PROCEDURE public."spQuotationStateCrear"(
+    p_code TEXT,
+    p_name TEXT,
+    p_color TEXT,
+    p_acting_user_id INT,
+    INOUT p_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    INSERT INTO public."QuotationState" (code, name, color)
+    VALUES (p_code, p_name, p_color)
+    RETURNING id INTO p_id;
+    p_mensaje_resultado := 'SUCCESS: Estado de cotización creado correctamente.';
+EXCEPTION
+    WHEN unique_violation THEN
+        p_mensaje_resultado := 'ERROR: El código ya existe.';
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END; $$;
+
+
+-- Archivo: spQuotationStateEliminar.sql
+
+CREATE OR REPLACE PROCEDURE public."spQuotationStateEliminar"(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    DELETE FROM public."QuotationState" WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Estado de cotización eliminado correctamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END; $$;
+
+
 -- Archivo: spSellerActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spSellerActualizar(
     p_id INT,
@@ -7758,46 +11995,5 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
-
-
--- Unique Indexes required for ON CONFLICT in Inicial.sql
-CREATE UNIQUE INDEX IF NOT EXISTS countries_code_key ON public."Countries"(code);
-CREATE UNIQUE INDEX IF NOT EXISTS cities_code_key ON public."Cities"(code);
-CREATE UNIQUE INDEX IF NOT EXISTS airports_code_key ON public."Airports"(code);
-
-
--- 1. Table public."EquivalenciasInterfaces_Log"
-CREATE TABLE IF NOT EXISTS public."EquivalenciasInterfaces_Log" (
-    id SERIAL PRIMARY KEY,
-    "Id_Interfaces" integer,
-    cd_maestro varchar(50),
-    cd_codigo varchar(50),
-    "cd_codigoInte" varchar(50),
-    cd_operacion varchar(50),
-    ds_xmlpeticion text,
-    ds_xmlrespuesta text,
-    ds_xmlorg text,
-    "ds_Logpeticion" text,
-    fecha_creacion timestamp(6) DEFAULT now()
-);
-
--- 2. Implant.Logo
-ALTER TABLE public."Implant" ADD COLUMN IF NOT EXISTS "Logo" bytea;
-
--- 3. InvoicesProductPayment columns
-ALTER TABLE public."InvoicesProductPayment" ADD COLUMN IF NOT EXISTS "authorizationCode" text;
-ALTER TABLE public."InvoicesProductPayment" ADD COLUMN IF NOT EXISTS "cardNumber" text;
-ALTER TABLE public."InvoicesProductPayment" ADD COLUMN IF NOT EXISTS "creditCardId" integer REFERENCES public."CreditCard"(id) ON UPDATE CASCADE ON DELETE SET NULL;
-ALTER TABLE public."InvoicesProductPayment" ADD COLUMN IF NOT EXISTS "expirationDate" text;
-ALTER TABLE public."InvoicesProductPayment" ADD COLUMN IF NOT EXISTS "voucher" text;
-
--- 4. Product columns
-ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "airlineItinerary" text;
-ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "classItinerary" text;
-ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "flightItinerary" text;
-ALTER TABLE public."Product" ADD COLUMN IF NOT EXISTS "ticketTypeId" integer REFERENCES public."TicketType"(id) ON UPDATE CASCADE ON DELETE SET NULL;
-
-
 
 

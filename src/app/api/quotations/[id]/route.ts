@@ -12,6 +12,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
         const quotation = await prisma.quotation.findUnique({
             where: { id },
             include: {
+                client: true,
                 products: {
                     include: {
                         appliedTaxes: true,

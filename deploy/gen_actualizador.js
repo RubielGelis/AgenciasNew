@@ -17,6 +17,13 @@ try {
     const tableIni = fs.readFileSync(path.join(root, 'Table', 'TABLEINI.sql'), 'utf8');
     content += tableIni + '\n\n';
 
+    // 1.1 ALTER COLUMNS
+    content += '-- >>> 1.1. ADICIÓN DE COLUMNAS A TABLAS EXISTENTES (ALTER COLUMNS) <<<\n\n';
+    const alterFile = path.join(root, 'Table', 'Alter_New_Columns.sql');
+    if (fs.existsSync(alterFile)) {
+        content += fs.readFileSync(alterFile, 'utf8') + '\n\n';
+    }
+
     // 2. Functions
     content += '-- >>> 2. FUNCIONES <<<\n\n';
     const fnDir = path.join(root, 'Function');
@@ -30,17 +37,34 @@ try {
 
     // 3. Stored Procedures
     content += '-- >>> 3. PROCEDIMIENTOS ALMACENADOS (SP) <<<\n\n';
+    
+    let contentServer = '-- ==========================================================\n';
+    contentServer += '-- ARCHIVO ACTUALIZADOR COMPLETO: SPS (SQL SERVER)\n';
+    contentServer += '-- Generado Automáticamente\n';
+    contentServer += '-- ==========================================================\n\n';
+    contentServer += '-- >>> PROCEDIMIENTOS ALMACENADOS (SQL SERVER) <<<\n\n';
+
     const spDir = path.join(root, 'SP');
     if (fs.existsSync(spDir)) {
         const sps = fs.readdirSync(spDir).filter(f => f.endsWith('.sql'));
         for (const sp of sps) {
-            content += `-- Archivo: ${sp}\n`;
-            content += fs.readFileSync(path.join(spDir, sp), 'utf8') + '\n\n';
+            const fileContent = fs.readFileSync(path.join(spDir, sp), 'utf8');
+            if (fileContent.toLowerCase().includes('plpgsql')) {
+                content += `-- Archivo: ${sp}\n`;
+                content += fileContent + '\n\n';
+            } else {
+                contentServer += `-- Archivo: ${sp}\n`;
+                contentServer += fileContent + '\n\n';
+            }
         }
     }
 
     fs.writeFileSync(actFile, content, 'utf8');
-    console.log('Actualizador.SQL regenerado con éxito respetando tu TABLEINI.sql (' + content.length + ' bytes).');
+    console.log('Actualizador.SQL (PostgreSQL) regenerado con éxito (' + content.length + ' bytes).');
+
+    const serverActFile = path.join(root, 'Actualizador', 'ActualizadorSERVER.SQL');
+    fs.writeFileSync(serverActFile, contentServer, 'utf8');
+    console.log('ActualizadorSERVER.SQL (SQL Server) regenerado con éxito (' + contentServer.length + ' bytes).');
 } catch (e) {
     console.error("Error construyendo Actualizador:", e);
 }
