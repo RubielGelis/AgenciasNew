@@ -95,6 +95,102 @@ const DEFAULT_CONFIG = {
     logo: "A1"
 };
 
+function cleanString(str: string): string {
+    return str
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "");
+}
+
+const FIELD_KEYWORDS: Record<string, string[]> = {
+    asesor: ['asesor', 'ejecutivo', 'vendedor'],
+    fecha: ['fecha'],
+    clienteNombre: ['cliente', 'cliente facturar', 'nombre cliente', 'nombre/razon social'],
+    clienteIdentificacion: ['identificacion', 'nit', 'cedula', 'nit cedula', 'nit/cedula', 'documento', 'nit o cedula'],
+    clienteDireccion: ['direccion', 'dir'],
+    clienteTelefono: ['telefono', 'tel', 'contacto'],
+    centroCosto: ['centro de costo', 'centro costo', 'c. costo', 'centrocosto'],
+    solicita: ['solicita', 'solicitado por'],
+    tCambio: ['tasa de cambio', 'tasa cambio', 't. cambio', 'cambio', 'tasacambio'],
+    descripcionPlan: ['descripcion plan', 'plan', 'descripcion', 'descripcionplan'],
+    fechasViaje: ['fechas de viaje', 'fechas viaje', 'fecha viaje', 'fechasviaje'],
+    hotelesServicios: ['hoteles o servicios', 'hoteles/servicios', 'servicios', 'hoteles', 'detalle'],
+    pasajeros: ['pasajeros', 'pasajero', 'nombre pasajero'],
+    totalAdultos: ['total adultos', 'adultos', 'totaladultos'],
+    totalNinos: ['total ninos', 'ninos', 'totalninos'],
+    observaciones: ['observaciones', 'notas'],
+    idCotizacion: ['id cotizacion', 'cotizacion', 'numero cotizacion', 'num cotizacion']
+};
+
+function clearUnconfiguredFields(sheet: ExcelJS.Worksheet, config: any) {
+    if (!config || typeof config !== 'object') return;
+
+    const unconfiguredKeys = new Set<string>();
+    const allPossibleKeys = new Set([
+        ...Object.keys(FIELD_KEYWORDS),
+        ...Object.keys(config).filter(k => k !== '__customNames')
+    ]);
+
+    allPossibleKeys.forEach(key => {
+        const val = config[key];
+        if (val === null || val === undefined || val === '') {
+            unconfiguredKeys.add(key);
+        }
+    });
+
+    if (unconfiguredKeys.size === 0) return;
+
+    const keywordsToMatch = new Map<string, Set<string>>();
+    unconfiguredKeys.forEach(key => {
+        const words = new Set<string>();
+        
+        if (FIELD_KEYWORDS[key]) {
+            FIELD_KEYWORDS[key].forEach(w => words.add(cleanString(w)));
+        }
+
+        if (config.__customNames?.[key]) {
+            words.add(cleanString(config.__customNames[key]));
+        }
+
+        words.add(cleanString(key));
+        keywordsToMatch.set(key, words);
+    });
+
+    sheet.eachRow({ includeEmpty: true }, (row) => {
+        row.eachCell({ includeEmpty: true }, (cell) => {
+            const cellVal = cell.value;
+            if (cellVal && typeof cellVal === 'string') {
+                const cleanedVal = cleanString(cellVal);
+                
+                for (const [key, words] of keywordsToMatch.entries()) {
+                    if (words.has(cleanedVal)) {
+                        cell.value = null;
+
+                        const colNumber = cell.col as unknown as number;
+                        for (let offset = 1; offset <= 4; offset++) {
+                            const targetCell = row.getCell(colNumber + offset);
+                            if (targetCell) {
+                                targetCell.value = null;
+                            }
+                        }
+
+                        const rowNumber = row.number;
+                        const nextRow = sheet.getRow(rowNumber + 1);
+                        if (nextRow) {
+                            const cellBelow = nextRow.getCell(colNumber);
+                            if (cellBelow) {
+                                cellBelow.value = null;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        });
+    });
+}
+
 function colNameToIndex(colName: string): number {
     let index = 0;
     for (let i = 0; i < colName.length; i++) {
@@ -487,6 +583,9 @@ export async function GET(req: Request) {
             
             // Clone template sheet layout & styles
             copySheet(srcSheet, destSheet, tempWorkbook, outWorkbook);
+
+            // Clear any unconfigured labels/fields from the template sheet
+            clearUnconfiguredFields(destSheet, config);
 
             // Clear configuration JSON or metadata from cell A1 and the logo cell
             const a1Cell = destSheet.getCell('A1');
