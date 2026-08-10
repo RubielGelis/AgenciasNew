@@ -1149,8 +1149,6 @@ BEGIN
     SET XACT_ABORT ON;
 
     BEGIN TRY
-        BEGIN TRANSACTION;
-
         DECLARE @xmlData XML;
 
         DECLARE @Cotizacion TABLE(
@@ -1432,6 +1430,32 @@ BEGIN
 			ds_proveedores varchar(250) NULL
 		)
 
+		DECLARE @CotizacionServiciosFormasPago TABLE(
+			id INT IDENTITY(1,1) NOT NULL,
+			cd_Cotizacion VARCHAR(25) NULL,
+			cd_CotizacionServicios VARCHAR(25) NULL,
+			id_CotizacionServicios INT NULL,
+			Id_Cotizacion INT NULL,
+			id_FormasPago INT NULL,
+			ds_FPnm VARCHAR(50) NULL,
+			bl_FPrepresenta BIT NOT NULL DEFAULT 0,
+			id_TarjetasCredito INT NULL,
+			cd_tccode NCHAR(10) NULL,
+			ds_tcnumber CHAR(16) NULL,
+			ds_tcvoucher VARCHAR(25) NULL,
+			cd_idbanco CHAR(3) NULL,
+			ds_cheque VARCHAR(30) NULL,
+			ds_referencia VARCHAR(50) NULL,
+			am_valor MONEY NOT NULL DEFAULT 0,
+			ds_tcexp VARCHAR(7) NULL,
+			ds_plaza CHAR(3) NULL,
+			ds_Poliza VARCHAR(20) NULL,
+			ds_PolAnexo VARCHAR(20) NULL,
+			am_valor_ME MONEY NOT NULL DEFAULT 0,
+			ds_tcautorizacion VARCHAR(25) NULL,
+			in_tccuotas INT NULL
+		)
+
         -- Validar que el XML sea correcto
         IF @xml IS NULL OR LTRIM(RTRIM(@xml)) = ''
         BEGIN
@@ -1449,7 +1473,59 @@ BEGIN
 			RETURN 1;
         END
 
+        -- Extraer los principales códigos maestros del XML para validarlos
+        DECLARE @val_cd_cliente_codigo VARCHAR(25) = @xmlData.value('(Cotizaciones/Cotizacion/cd_cliente_codigo)[1]', 'VARCHAR(25)');
+        DECLARE @val_cd_sucursal VARCHAR(25) = @xmlData.value('(Cotizaciones/Cotizacion/cd_sucursal)[1]', 'VARCHAR(25)');
+        DECLARE @val_cd_vendedor VARCHAR(25) = @xmlData.value('(Cotizaciones/Cotizacion/cd_vendedor)[1]', 'VARCHAR(25)');
+        DECLARE @val_cd_tiqueteador VARCHAR(25) = @xmlData.value('(Cotizaciones/Cotizacion/cd_tiqueteador)[1]', 'VARCHAR(25)');
+
+        -- 1. Validar Cliente
+        IF @val_cd_cliente_codigo IS NOT NULL AND @val_cd_cliente_codigo <> '' AND NOT EXISTS (SELECT 1 FROM dbo.CLIENTES WHERE IDCLIENTE = @val_cd_cliente_codigo)
+        BEGIN
+            SELECT 'cliente ' + @val_cd_cliente_codigo + ' no existe' AS 'Respuesta', 1 AS 'Estado';
+            RETURN 1;
+        END
+
+        -- 2. Validar Sucursal
+        IF @val_cd_sucursal IS NOT NULL AND @val_cd_sucursal <> '' AND NOT EXISTS (SELECT 1 FROM dbo.Sucursales WHERE cd_codigo = @val_cd_sucursal)
+        BEGIN
+            SELECT 'sucursal ' + @val_cd_sucursal + ' no existe' AS 'Respuesta', 1 AS 'Estado';
+            RETURN 1;
+        END
+
+        -- 3. Validar Vendedor (dbo.MAEVENDE)
+        IF @val_cd_vendedor IS NOT NULL AND @val_cd_vendedor <> '' AND NOT EXISTS (SELECT 1 FROM dbo.MAEVENDE WHERE IDVENDE = @val_cd_vendedor)
+        BEGIN
+            SELECT 'vendedor ' + @val_cd_vendedor + ' no existe' AS 'Respuesta', 1 AS 'Estado';
+            RETURN 1;
+        END
+
+        -- 4. Validar Tiqueteador (dbo.Tiqueteadores)
+        IF @val_cd_tiqueteador IS NOT NULL AND @val_cd_tiqueteador <> '' AND NOT EXISTS (SELECT 1 FROM dbo.Tiqueteadores WHERE cd_codigo = @val_cd_tiqueteador)
+        BEGIN
+            SELECT 'tiqueteador ' + @val_cd_tiqueteador + ' no existe' AS 'Respuesta', 1 AS 'Estado';
+            RETURN 1;
+        END
+
+        -- 5. Validar Proveedores de Servicios
+        DECLARE @invalid_proveedor VARCHAR(25) = NULL;
+        
+        SELECT TOP 1 @invalid_proveedor = S.node.value('cd_proveedores[1]', 'VARCHAR(25)')
+        FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios') AS S(node)
+        WHERE S.node.value('cd_proveedores[1]', 'VARCHAR(25)') IS NOT NULL 
+          AND S.node.value('cd_proveedores[1]', 'VARCHAR(25)') <> ''
+          AND NOT EXISTS (
+              SELECT 1 FROM dbo.PROVEEDORES WHERE IDPROVE = S.node.value('cd_proveedores[1]', 'VARCHAR(25)')
+          );
+
+        IF @invalid_proveedor IS NOT NULL
+        BEGIN
+            SELECT 'proveedor ' + @invalid_proveedor + ' no existe' AS 'Respuesta', 1 AS 'Estado';
+            RETURN 1;
+        END
+
         -- Extraer datos del XML
+        BEGIN TRANSACTION;
 
 		INSERT INTO @Cotizacion(
 			id_sucursal,
@@ -1777,7 +1853,7 @@ BEGIN
 			id_TipoPlanSrv=NULL ,
 			in_habitaciones=0 ,
 			in_habitacionesSrv=0 ,
-			cd_Consecutivo_VariablesAdicionales=ISNULL(C.CotizacionServicios.value('cd_consecutivo_variablesadicionales[1]','VARCHAR(25)'),'') ,
+			cd_Consecutivo_VariablesAdicionales=ISNULL(C.CotizacionServicios.value('cd_Consecutivo_VARiablesAdicionales[1]','VARCHAR(25)'),'') ,
 			cd_confirmacion='',
 			ds_confirmadopor='',
 			cd_paxidentificacion='',
@@ -2338,7 +2414,6 @@ BEGIN
 		SET CCS.id_CotizacionServicios=CS.id
 		FROM @CotizacionServicios CCS
 		INNER JOIN dbo.CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales=CCS.cd_Consecutivo_VariablesAdicionales
-		INNER JOIN @Cotizacion C ON C.cd_consecutivo = CCS.cd_Cotizacion AND bl_existe=0
 
 		UPDATE CSP
 		SET CSP.id_Cotizacion=CS.id_Cotizacion,
@@ -2502,9 +2577,9 @@ BEGIN
 		WHERE Id_TiposFacturacionHoteles IS NOT NULL
 
 		UPDATE TP
-		SET TP.id_CotizacionServicios=CS.id_CotizacionServicios
+		SET TP.id_CotizacionServicios=CS.id
 		FROM @CotizacionServicios_TipoProv TP
-		INNER JOIN @CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales = TP.cd_CotizacionServicios
+		INNER JOIN dbo.CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales = TP.cd_CotizacionServicios
 
 		
 		INSERT INTO dbo.CotizacionServicios_TipoProv(
@@ -2524,6 +2599,92 @@ BEGIN
 			ds_proveedores
 		FROM @CotizacionServicios_TipoProv
 		WHERE ISNULL(cd_proveedores,'') <> ''  
+
+		-- Parsear formas de pago desde el XML
+		INSERT INTO @CotizacionServiciosFormasPago(
+			cd_Cotizacion,
+			cd_CotizacionServicios,
+			ds_FPnm,
+			bl_FPrepresenta,
+			ds_tcnumber,
+			ds_tcvoucher,
+			ds_referencia,
+			am_valor,
+			ds_tcexp,
+			am_valor_ME,
+			ds_tcautorizacion
+		)
+		SELECT
+			FP.FormasPago.value('cd_cotizacion[1]', 'VARCHAR(25)') AS cd_Cotizacion,
+			FP.FormasPago.value('cd_cotizacionservicios[1]', 'VARCHAR(25)') AS cd_CotizacionServicios,
+			ISNULL(FP.FormasPago.value('ds_fpnm[1]', 'VARCHAR(50)'), '') AS ds_FPnm,
+			ISNULL(FP.FormasPago.value('bl_fprepresenta[1]', 'BIT'), 0) AS bl_FPrepresenta,
+			ISNULL(FP.FormasPago.value('ds_tcnumber[1]', 'CHAR(16)'), '') AS ds_tcnumber,
+			ISNULL(FP.FormasPago.value('ds_tcvoucher[1]', 'VARCHAR(25)'), '') AS ds_tcvoucher,
+			ISNULL(FP.FormasPago.value('ds_referencia[1]', 'VARCHAR(50)'), '') AS ds_referencia,
+			ISNULL(FP.FormasPago.value('am_valor[1]', 'MONEY'), 0) AS am_valor,
+			ISNULL(FP.FormasPago.value('ds_tcexp[1]', 'VARCHAR(7)'), '') AS ds_tcexp,
+			ISNULL(FP.FormasPago.value('am_valor_me[1]', 'MONEY'), 0) AS am_valor_ME,
+			ISNULL(FP.FormasPago.value('ds_tcautorizacion[1]', 'VARCHAR(25)'), '') AS ds_tcautorizacion
+		FROM @xmlData.nodes('Cotizaciones/Cotizacion/CotizacionServicios/CotizacionServiciosFormasPago') AS FP(FormasPago);
+
+		-- Resolver FKs de formas de pago
+		-- ds_FPnm viene con el cd_codigo desde Postgres; se obtiene id y nombre real desde dbo.FormasPago
+		UPDATE FP
+		SET FP.id_CotizacionServicios = CS.id,
+		    FP.Id_Cotizacion          = CS.Id_Cotizacion,
+		    FP.id_FormasPago          = ISNULL(FPM.id, 1),
+		    FP.ds_FPnm                = ISNULL(FPM.ds_nombre, FP.ds_FPnm)
+		FROM @CotizacionServiciosFormasPago FP
+		LEFT JOIN dbo.FormasPago FPM ON FPM.cd_codigo = FP.ds_FPnm
+		INNER JOIN dbo.CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales = FP.cd_CotizacionServicios
+
+		-- Insertar en tabla real
+		INSERT INTO dbo.CotizacionServiciosFormasPago(
+			id_CotizacionServicios,
+			Id_Cotizacion,
+			id_FormasPago,
+			ds_FPnm,
+			bl_FPrepresenta,
+			id_TarjetasCredito,
+			cd_tccode,
+			ds_tcnumber,
+			ds_tcvoucher,
+			cd_idbanco,
+			ds_cheque,
+			ds_referencia,
+			am_valor,
+			ds_tcexp,
+			ds_plaza,
+			ds_Poliza,
+			ds_PolAnexo,
+			am_valor_ME,
+			ds_tcautorizacion,
+			in_tccuotas
+		)
+		SELECT 
+			id_CotizacionServicios,
+			Id_Cotizacion,
+			id_FormasPago,
+			ds_FPnm,
+			bl_FPrepresenta,
+			id_TarjetasCredito,
+			cd_tccode,
+			ds_tcnumber,
+			ds_tcvoucher,
+			cd_idbanco,
+			ds_cheque,
+			ds_referencia,
+			am_valor,
+			ds_tcexp,
+			ds_plaza,
+			ds_Poliza,
+			ds_PolAnexo,
+			am_valor_ME,
+			ds_tcautorizacion,
+			in_tccuotas
+		FROM @CotizacionServiciosFormasPago
+		WHERE id_CotizacionServicios IS NOT NULL
 
 		--ROLLBACK TRANSACTION;
         COMMIT TRANSACTION;

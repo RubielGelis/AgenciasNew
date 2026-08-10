@@ -8641,7 +8641,14 @@ BEGIN
         '' as cd_usuario_Bloqueo, 
         '' as ds_AlertaSolicitud, 
         B'0' as bl_comisiona, 
-        '' as ds_FormaDePago, 
+        COALESCE((
+            SELECT string_agg(DISTINCT qpmt."paymentMethod", ', ' ORDER BY qpmt."paymentMethod")
+            FROM public."QuotationProduct" qp2
+            JOIN public."QuotationProductPayment" qpmt ON qpmt."quotationProductId" = qp2.id
+            WHERE qp2."quotationId" = q.id
+              AND qpmt."paymentMethod" IS NOT NULL
+              AND qpmt."paymentMethod" <> ''
+        ), '') as ds_FormaDePago, 
         '' as ds_records, 
         B'0' as bl_entregadoCliente, 
         q.date as dt_entregadoCliente, 

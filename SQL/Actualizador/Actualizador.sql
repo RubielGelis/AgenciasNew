@@ -4932,6 +4932,21 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+
+-- Archivo: fnQuitarEspeciales.sql
+CREATE OR REPLACE FUNCTION public."fnQuitarEspeciales"(texto TEXT)
+RETURNS TEXT AS $$
+BEGIN
+    IF texto IS NULL THEN
+        RETURN NULL;
+    END IF;
+
+    -- Reemplaza cualquier carácter que NO sea letra, número o espacio por un espacio ' '
+    -- Incluye soporte para letras con tildes y ñ (a-zA-Z0-9áéíóúÁÉÍÓÚñÑ)
+    RETURN REGEXP_REPLACE(texto, '[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]', ' ', 'g');
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
 -- >>> 3. PROCEDIMIENTOS ALMACENADOS (SP) <<<
 
 -- Archivo: spAirportActualizar.sql
@@ -6596,7 +6611,7 @@ BEGIN
 		ds_cliente_contacto VARCHAR(40),
 		ds_cliente_contacto_email VARCHAR(60),
 		id_monedas_iata INTEGER,
-		cd_vendedor CHAR(3),
+		cd_vendedor VARCHAR(3),
 		id_tiqueteador INTEGER,
 		bn_anexo BYTEA,
 		Tcambio DECIMAL,
@@ -6611,9 +6626,9 @@ BEGIN
 		ds_Observacion VARCHAR(8000),
 		ds_Campo_libre1 varchar(500),
 		ds_Campo_libre2 varchar(500),
-		cd_fuente_Reemplaza CHAR(2),
-		cd_serie_Reemplaza CHAR(2),
-		cd_consecutivo_Reemplaza CHAR(8),		
+		cd_fuente_Reemplaza VARCHAR(2),
+		cd_serie_Reemplaza VARCHAR(2),
+		cd_consecutivo_Reemplaza VARCHAR(8),		
 		ds_Actividad_Economica VARCHAR(10),
 		ds_Tarifa_ICA VARCHAR(15),	
 		SqlStmt TEXT,
@@ -6624,7 +6639,7 @@ BEGIN
 		bl_generadaauto BIT(1),
 		ds_CotizacionesId Varchar(500),
 		Id_Cierre INTEGER,
-		cd_TipoFact CHAR(2),
+		cd_TipoFact VARCHAR(2),
 		id_fac_remisionRelacionada INTEGER,
 		id_fac_facturaRelacionada INTEGER,
 		ds_DescripcionFac VARCHAR(500),
@@ -6679,10 +6694,10 @@ BEGIN
 		am_Comision DECIMAL,
 		ds_paxname VARCHAR(30),
 		ds_paxape VARCHAR(30),
-		ds_paxprefix CHAR(3),
+		ds_paxprefix VARCHAR(3),
 		cd_tourcode VARCHAR(25),
 		NumTktConj INTEGER,
-		cd_TipoTiquete CHAR(3),
+		cd_TipoTiquete VARCHAR(3),
 		id_air INTEGER,
 		ds_itinerario VARCHAR(250),
 		ds_itinerarioaerolinea VARCHAR(128),
@@ -6701,7 +6716,7 @@ BEGIN
 		cd_FormaPagoTAO VARCHAR(3),
 		cd_TarjetaCreditoTAO VARCHAR(4),
 		cd_NumeroTarjetaTAO VARCHAR(25),
-		cd_VencimientoTarjetaTAO CHAR(6),
+		cd_VencimientoTarjetaTAO VARCHAR(6),
 		cd_NumeroPolizaTAO VARCHAR(50),
 		cd_AnexoPolizaTAO VARCHAR(50),
 		ds_AutorizacionTarjetaTAO VARCHAR(25),
@@ -6787,12 +6802,12 @@ BEGIN
 		id_tipoitem VARCHAR(25),
 		ds_paxape VARCHAR(30),
 		ds_paxname VARCHAR(30),
-		ds_paxprefix CHAR(3),
-		ds_paxClasificacion CHAR(25),
+		ds_paxprefix VARCHAR(3),
+		ds_paxClasificacion VARCHAR(25),
 		cd_voucherpax VARCHAR(25),
 		cd_paxidentificacion VARCHAR(25),
 		in_edad INT,
-		cd_tiquete CHAR(50)
+		cd_tiquete VARCHAR(50)
 	) ON COMMIT DROP;
 
 	CREATE TEMP TABLE IF NOT EXISTS CargosImpuestos(
@@ -6802,7 +6817,7 @@ BEGIN
 		id_tipoitem VARCHAR(25),
 		cd_codigo VARCHAR(20),
 		ds_nombre VARCHAR(100),
-		cd_tipo CHAR(1),
+		cd_tipo VARCHAR(1),
 		am_porcentaje NUMERIC(8,4),
 		am_valor DECIMAL,
 		am_contado DECIMAL,
@@ -6880,10 +6895,10 @@ BEGIN
         e.date AS dt_fechacont,
         e.date AS dt_vence,
         SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_tercero_codigo,
-        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_tercero_nombre,
+        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.name, '')), 1, 250) AS ds_tercero_nombre,
         SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_cliente_codigo,
-        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_cliente_nombre,
-        SUBSTRING(COALESCE(c.address, ''), 1, 250) AS ds_cliente_dir,
+        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.name, '')), 1, 250) AS ds_cliente_nombre,
+        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.address, '')), 1, 250) AS ds_cliente_dir,
         '' AS ds_cliente_ciudad,
         '' AS ds_cliente_tel,
         '' AS ds_cliente_dirdesp,
@@ -7447,7 +7462,7 @@ BEGIN
 		ds_cliente_contacto VARCHAR(40),
 		ds_cliente_contacto_email VARCHAR(60),
 		cd_monedas_iata VARCHAR(25),
-		cd_vendedor CHAR(3),
+		cd_vendedor VARCHAR(3),
 		cd_tiqueteador VARCHAR(25),
 		bn_anexo BYTEA,
 		Tcambio DECIMAL,
@@ -7462,9 +7477,9 @@ BEGIN
 		ds_Observacion VARCHAR(8000),
 		ds_Campo_libre1 varchar(500),
 		ds_Campo_libre2 varchar(500),
-		cd_fuente_Reemplaza CHAR(2),
-		cd_serie_Reemplaza CHAR(2),
-		cd_consecutivo_Reemplaza CHAR(8),		
+		cd_fuente_Reemplaza VARCHAR(2),
+		cd_serie_Reemplaza VARCHAR(2),
+		cd_consecutivo_Reemplaza VARCHAR(8),		
 		ds_Actividad_Economica VARCHAR(10),
 		ds_Tarifa_ICA VARCHAR(15),	
 		SqlStmt TEXT,
@@ -7475,7 +7490,7 @@ BEGIN
 		bl_generadaauto BIT(1),
 		ds_CotizacionesId Varchar(500),
 		Id_Cierre INTEGER,
-		cd_TipoFact CHAR(2),
+		cd_TipoFact VARCHAR(2),
 		id_fac_remisionRelacionada INTEGER,
 		id_fac_facturaRelacionada INTEGER,
 		ds_DescripcionFac VARCHAR(500),
@@ -7530,10 +7545,10 @@ BEGIN
 		am_Comision DECIMAL,
 		ds_paxname VARCHAR(30),
 		ds_paxape VARCHAR(30),
-		ds_paxprefix CHAR(3),
+		ds_paxprefix VARCHAR(3),
 		cd_tourcode VARCHAR(25),
 		NumTktConj INTEGER,
-		cd_TipoTiquete CHAR(3),
+		cd_TipoTiquete VARCHAR(3),
 		id_air INTEGER,
 		ds_itinerario VARCHAR(250),
 		ds_itinerarioaerolinea VARCHAR(128),
@@ -7552,7 +7567,7 @@ BEGIN
 		cd_FormaPagoTAO VARCHAR(3),
 		cd_TarjetaCreditoTAO VARCHAR(4),
 		cd_NumeroTarjetaTAO VARCHAR(25),
-		cd_VencimientoTarjetaTAO CHAR(6),
+		cd_VencimientoTarjetaTAO VARCHAR(6),
 		cd_NumeroPolizaTAO VARCHAR(50),
 		cd_AnexoPolizaTAO VARCHAR(50),
 		ds_AutorizacionTarjetaTAO VARCHAR(25),
@@ -7649,12 +7664,12 @@ BEGIN
 		in_tipoitem INTEGER,
 		ds_paxape VARCHAR(30),
 		ds_paxname VARCHAR(30),
-		ds_paxprefix CHAR(3),
-		ds_paxClasificacion CHAR(25),
+		ds_paxprefix VARCHAR(3),
+		ds_paxClasificacion VARCHAR(25),
 		cd_voucherpax VARCHAR(25),
 		cd_paxidentificacion VARCHAR(25),
 		in_edad INT,
-		cd_tiquete CHAR(50)
+		cd_tiquete VARCHAR(50)
 	) ON COMMIT DROP;
 
 	CREATE TEMP TABLE IF NOT EXISTS CargosImpuestos(
@@ -7664,7 +7679,7 @@ BEGIN
 		in_tipoitem INTEGER,
 		cd_codigo VARCHAR(20),
 		ds_nombre VARCHAR(100),
-		cd_tipo CHAR(1),
+		cd_tipo VARCHAR(1),
 		am_porcentaje NUMERIC(8,4),
 		am_valor DECIMAL,
 		am_contado DECIMAL,
@@ -7743,10 +7758,10 @@ BEGIN
         e.date AS dt_fechacont,
         e.date AS dt_vence,
         SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_tercero_codigo,
-        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_tercero_nombre,
+        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.name, '')), 1, 250) AS ds_tercero_nombre,
         SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_cliente_codigo,
-        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_cliente_nombre,
-        SUBSTRING(COALESCE(c.address, ''), 1, 250) AS ds_cliente_dir,
+        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.name, '')), 1, 250) AS ds_cliente_nombre,
+        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.address, '')), 1, 250) AS ds_cliente_dir,
         '' AS ds_cliente_ciudad,
         '' AS ds_cliente_tel,
         '' AS ds_cliente_dirdesp,
@@ -8332,12 +8347,12 @@ BEGIN
 		ds_cliente_contacto VARCHAR(40) ,
 		ds_cliente_contacto_email VARCHAR(60) ,
 		cd_monedas_IATA VARCHAR(25),
-		cd_vendedor CHAR(25) ,
+		cd_vendedor VARCHAR(25) ,
 		cd_tiqueteador VARCHAR(25) ,
 		bn_anexo BYTEA ,
 		am_tcambio DECIMAL ,
 		am_tcambiousd DECIMAL ,
-		cd_cencosto CHAR(16) ,
+		cd_cencosto VARCHAR(16) ,
 		ds_observacion VARCHAR(8000) ,
 		ds_Campo_libre1 VARCHAR(500) ,
 		ds_Campo_libre2 VARCHAR(500) ,
@@ -8386,15 +8401,15 @@ BEGIN
 		cd_fac_remision VARCHAR(25) ,
 		cd_proveedores VARCHAR(25) ,
 		ds_tiposervnm VARCHAR(50) ,
-		cd_prov_hotel CHAR(10) ,
-		cd_prov_car CHAR(10) ,
-		cd_prov_air CHAR(10) ,
+		cd_prov_hotel VARCHAR(10) ,
+		cd_prov_car VARCHAR(10) ,
+		cd_prov_air VARCHAR(10) ,
 		ds_destino VARCHAR(30) ,
 		ds_servicio VARCHAR(250) ,
 		ds_descrip VARCHAR(4000) ,
 		ds_paxname VARCHAR(20) ,
 		ds_paxape VARCHAR(20) ,
-		cd_paxtype CHAR(25) ,
+		cd_paxtype VARCHAR(25) ,
 		in_nacionalidad INT ,
 		cd_voucher VARCHAR(20) ,
 		in_cantpax INT ,
@@ -8409,10 +8424,10 @@ BEGIN
 		cd_carrental VARCHAR(25) ,
 		cd_hoteles VARCHAR(25) ,
 		bl_anulado BIT(1) DEFAULT B'0' ,
-		cd_tiquete CHAR(11) ,
-		cd_fuente_anul CHAR(2) ,
-		cd_serie_anul CHAR(2) ,
-		cd_consecutivo_anul CHAR(8) ,
+		cd_tiquete VARCHAR(11) ,
+		cd_fuente_anul VARCHAR(2) ,
+		cd_serie_anul VARCHAR(2) ,
+		cd_consecutivo_anul VARCHAR(8) ,
 		cd_usuario_anul VARCHAR(25),
 		cd_sucursal_anul VARCHAR(25) ,
 		cd_implante_anul VARCHAR(25) ,
@@ -8423,7 +8438,7 @@ BEGIN
 		Valor_Comision DECIMAL ,
 		Valor_Recaudo DECIMAL ,
 		dias_recaudo INT ,
-		ds_paxClasificacion CHAR(7) ,
+		ds_paxClasificacion VARCHAR(7) ,
 		cd_tipoplan VARCHAR(25) ,
 		cd_acomodacion VARCHAR(25) ,
 		in_dias INT ,
@@ -8499,11 +8514,11 @@ BEGIN
 		ds_paxape VARCHAR(30),
 		ds_paxname VARCHAR(30),
 		ds_paxprefix CHAR(25),
-		ds_paxClasificacion CHAR(25),
+		ds_paxClasificacion VARCHAR(25),
 		cd_voucherpax VARCHAR(25),
 		cd_paxidentificacion VARCHAR(25),
 		in_edad INT,
-		cd_tiquete CHAR(50)
+		cd_tiquete VARCHAR(50)
 	) ON COMMIT DROP;
 
 	CREATE TEMP TABLE IF NOT EXISTS CotizacionServicios_VariableAdicional(
@@ -8596,25 +8611,25 @@ BEGIN
         COALESCE(b.code, '') as cd_sucursal, 
         COALESCE(i.code, '') as cd_implante, 
         'Q' || LPAD(q."id"::text, 7, '0') as cd_consecutivo, 
-        v_nombre_usuario as cd_usuario, 
+        public."fnQuitarEspeciales"(v_nombre_usuario) as cd_usuario, 
         q.date as dt_fechacont, 
         q.date as dt_fecha,
-        v_nombre_usuario as cd_usuarioAct, 
+        public."fnQuitarEspeciales"(v_nombre_usuario) as cd_usuarioAct, 
         q.date as dt_fechaAct, 
         COALESCE(c.document, '') as cd_tercero_codigo, 
-        c.name as ds_tercero_nombre, 
+        public."fnQuitarEspeciales"(c.name) as ds_tercero_nombre, 
         COALESCE(c.document, '') as cd_cliente_codigo,
-        c.name as ds_cliente_nombre, 
-        COALESCE(c.address, '') as ds_cliente_dir, 
+        public."fnQuitarEspeciales"(c.name) as ds_cliente_nombre, 
+        public."fnQuitarEspeciales"(COALESCE(c.address, '')) as ds_cliente_dir, 
         '' as ds_cliente_ciudad, 
         '' as ds_cliente_tel, 
         '' as ds_cliente_dirdesp, 
         COALESCE(u.email, '') as ds_cliente_email, 
-        c.name as ds_cliente_contacto, 
+        public."fnQuitarEspeciales"(c.name) as ds_cliente_contacto, 
         '' as ds_cliente_contacto_email, 
         q.currency as cd_monedas_IATA,
         COALESCE(s.code, '') as cd_vendedor, 
-        COALESCE(t.code, '') as cd_tiqueteador, 
+        public."fnQuitarEspeciales"(COALESCE(t.code, '')) as cd_tiqueteador, 
         NULL as bn_anexo, 
         q."exchangeRate" as am_tcambio, 
         q."exchangeRate" as am_tcambiousd, 
@@ -8640,7 +8655,14 @@ BEGIN
         '' as cd_usuario_Bloqueo, 
         '' as ds_AlertaSolicitud, 
         B'0' as bl_comisiona, 
-        '' as ds_FormaDePago, 
+        COALESCE((
+            SELECT string_agg(DISTINCT qpmt."paymentMethod", ', ' ORDER BY qpmt."paymentMethod")
+            FROM public."QuotationProduct" qp2
+            JOIN public."QuotationProductPayment" qpmt ON qpmt."quotationProductId" = qp2.id
+            WHERE qp2."quotationId" = q.id
+              AND qpmt."paymentMethod" IS NOT NULL
+              AND qpmt."paymentMethod" <> ''
+        ), '') as ds_FormaDePago, 
         '' as ds_records, 
         B'0' as bl_entregadoCliente, 
         q.date as dt_entregadoCliente, 

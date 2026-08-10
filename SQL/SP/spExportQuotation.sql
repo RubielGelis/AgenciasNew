@@ -49,19 +49,19 @@ BEGIN
 		cd_cliente_codigo VARCHAR(25) ,
 		ds_cliente_nombre VARCHAR(250) ,
 		ds_cliente_dir VARCHAR(250) ,
-		ds_cliente_ciudad VARCHAR(40) ,
+		ds_cliente_ciudad VARCHAR(100) ,
 		ds_cliente_tel VARCHAR(25) ,
 		ds_cliente_dirdesp VARCHAR(250) ,
 		ds_cliente_email VARCHAR(60) ,
-		ds_cliente_contacto VARCHAR(40) ,
+		ds_cliente_contacto VARCHAR(100) ,
 		ds_cliente_contacto_email VARCHAR(60) ,
 		cd_monedas_IATA VARCHAR(25),
-		cd_vendedor CHAR(25) ,
+		cd_vendedor VARCHAR(25) ,
 		cd_tiqueteador VARCHAR(25) ,
 		bn_anexo BYTEA ,
 		am_tcambio DECIMAL ,
 		am_tcambiousd DECIMAL ,
-		cd_cencosto CHAR(16) ,
+		cd_cencosto VARCHAR(16) ,
 		ds_observacion VARCHAR(8000) ,
 		ds_Campo_libre1 VARCHAR(500) ,
 		ds_Campo_libre2 VARCHAR(500) ,
@@ -110,15 +110,15 @@ BEGIN
 		cd_fac_remision VARCHAR(25) ,
 		cd_proveedores VARCHAR(25) ,
 		ds_tiposervnm VARCHAR(50) ,
-		cd_prov_hotel CHAR(10) ,
-		cd_prov_car CHAR(10) ,
-		cd_prov_air CHAR(10) ,
+		cd_prov_hotel VARCHAR(10) ,
+		cd_prov_car VARCHAR(10) ,
+		cd_prov_air VARCHAR(10) ,
 		ds_destino VARCHAR(30) ,
 		ds_servicio VARCHAR(250) ,
 		ds_descrip VARCHAR(4000) ,
 		ds_paxname VARCHAR(20) ,
 		ds_paxape VARCHAR(20) ,
-		cd_paxtype CHAR(25) ,
+		cd_paxtype VARCHAR(25) ,
 		in_nacionalidad INT ,
 		cd_voucher VARCHAR(20) ,
 		in_cantpax INT ,
@@ -133,10 +133,10 @@ BEGIN
 		cd_carrental VARCHAR(25) ,
 		cd_hoteles VARCHAR(25) ,
 		bl_anulado BIT(1) DEFAULT B'0' ,
-		cd_tiquete CHAR(11) ,
-		cd_fuente_anul CHAR(2) ,
-		cd_serie_anul CHAR(2) ,
-		cd_consecutivo_anul CHAR(8) ,
+		cd_tiquete VARCHAR(11) ,
+		cd_fuente_anul VARCHAR(2) ,
+		cd_serie_anul VARCHAR(2) ,
+		cd_consecutivo_anul VARCHAR(8) ,
 		cd_usuario_anul VARCHAR(25),
 		cd_sucursal_anul VARCHAR(25) ,
 		cd_implante_anul VARCHAR(25) ,
@@ -147,7 +147,7 @@ BEGIN
 		Valor_Comision DECIMAL ,
 		Valor_Recaudo DECIMAL ,
 		dias_recaudo INT ,
-		ds_paxClasificacion CHAR(7) ,
+		ds_paxClasificacion VARCHAR(7) ,
 		cd_tipoplan VARCHAR(25) ,
 		cd_acomodacion VARCHAR(25) ,
 		in_dias INT ,
@@ -299,6 +299,30 @@ BEGIN
 		ds_proveedores varchar(250)
 	) ON COMMIT DROP;
 
+	CREATE TEMP TABLE IF NOT EXISTS CotizacionServiciosFormasPago(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		cd_Cotizacion VARCHAR(25),
+		cd_CotizacionServicios VARCHAR(25),
+		cd_codigo VARCHAR(3),
+		ds_FPnm VARCHAR(100),
+		bl_FPrepresenta BIT(1) DEFAULT B'0',
+		id_TarjetasCredito INT,
+		cd_tccode VARCHAR(10),
+		ds_tcnumber VARCHAR(16),
+		ds_tcvoucher VARCHAR(25),
+		cd_idbanco VARCHAR(3),
+		ds_cheque VARCHAR(30),
+		ds_referencia VARCHAR(50),
+		am_valor DECIMAL,
+		ds_tcexp VARCHAR(7),
+		ds_plaza VARCHAR(3),
+		ds_Poliza VARCHAR(20),
+		ds_PolAnexo VARCHAR(20),
+		am_valor_ME DECIMAL DEFAULT 0,
+		ds_tcautorizacion VARCHAR(25),
+		in_tccuotas INT
+	) ON COMMIT DROP;
+
     -- 4. Poblar Tablas Temporales (POBLANDO TODAS LAS COLUMNAS CON NOMBRES EXPLÍCITOS)
     
     INSERT INTO Cotizacion (
@@ -320,25 +344,25 @@ BEGIN
         COALESCE(b.code, '') as cd_sucursal, 
         COALESCE(i.code, '') as cd_implante, 
         'Q' || LPAD(q."id"::text, 7, '0') as cd_consecutivo, 
-        v_nombre_usuario as cd_usuario, 
+        public."fnQuitarEspeciales"(v_nombre_usuario) as cd_usuario, 
         q.date as dt_fechacont, 
         q.date as dt_fecha,
-        v_nombre_usuario as cd_usuarioAct, 
+        public."fnQuitarEspeciales"(v_nombre_usuario) as cd_usuarioAct, 
         q.date as dt_fechaAct, 
         COALESCE(c.document, '') as cd_tercero_codigo, 
-        c.name as ds_tercero_nombre, 
+        public."fnQuitarEspeciales"(c.name) as ds_tercero_nombre, 
         COALESCE(c.document, '') as cd_cliente_codigo,
-        c.name as ds_cliente_nombre, 
-        COALESCE(c.address, '') as ds_cliente_dir, 
+        public."fnQuitarEspeciales"(c.name) as ds_cliente_nombre, 
+        public."fnQuitarEspeciales"(COALESCE(c.address, '')) as ds_cliente_dir, 
         '' as ds_cliente_ciudad, 
         '' as ds_cliente_tel, 
         '' as ds_cliente_dirdesp, 
         COALESCE(u.email, '') as ds_cliente_email, 
-        c.name as ds_cliente_contacto, 
+        public."fnQuitarEspeciales"(c.name) as ds_cliente_contacto, 
         '' as ds_cliente_contacto_email, 
         q.currency as cd_monedas_IATA,
         COALESCE(s.code, '') as cd_vendedor, 
-        COALESCE(t.code, '') as cd_tiqueteador, 
+        public."fnQuitarEspeciales"(COALESCE(t.code, '')) as cd_tiqueteador, 
         NULL as bn_anexo, 
         q."exchangeRate" as am_tcambio, 
         q."exchangeRate" as am_tcambiousd, 
@@ -364,7 +388,14 @@ BEGIN
         '' as cd_usuario_Bloqueo, 
         '' as ds_AlertaSolicitud, 
         B'0' as bl_comisiona, 
-        '' as ds_FormaDePago, 
+        COALESCE((
+            SELECT string_agg(DISTINCT qpmt."paymentMethod", ', ' ORDER BY qpmt."paymentMethod")
+            FROM public."QuotationProduct" qp2
+            JOIN public."QuotationProductPayment" qpmt ON qpmt."quotationProductId" = qp2.id
+            WHERE qp2."quotationId" = q.id
+              AND qpmt."paymentMethod" IS NOT NULL
+              AND qpmt."paymentMethod" <> ''
+        ), '') as ds_FormaDePago, 
         '' as ds_records, 
         B'0' as bl_entregadoCliente, 
         q.date as dt_entregadoCliente, 
@@ -723,7 +754,40 @@ BEGIN
 	FROM public."QuotationProduct" qp
 	JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
 	LEFT JOIN public."Prestadora" pre ON pre."id" = qp."prestadoraId";
-	
+
+	-- Poblar formas de pago por servicio desde QuotationProductPayment
+	INSERT INTO CotizacionServiciosFormasPago(
+		cd_Cotizacion,
+		cd_CotizacionServicios,
+		cd_codigo,
+		ds_FPnm,
+		bl_FPrepresenta,
+		ds_tcnumber,
+		ds_tcvoucher,
+		ds_referencia,
+		am_valor,
+		ds_tcexp,
+		am_valor_ME,
+		ds_tcautorizacion
+	)
+	SELECT
+		cs.cd_Cotizacion,
+		cs.cd_Consecutivo_VARiablesAdicionales AS cd_CotizacionServicios,
+		COALESCE(p.code,'') AS cd_codigo,
+		COALESCE(qpmt."paymentMethod", '') AS ds_FPnm,
+		B'0' AS bl_FPrepresenta,
+		COALESCE(qpmt."cardNumber", '') AS ds_tcnumber,
+		COALESCE(qpmt."voucher", '') AS ds_tcvoucher,
+		COALESCE(qpmt."reference", '') AS ds_referencia,
+		COALESCE(qpmt."amount", 0) AS am_valor,
+		COALESCE(qpmt."expirationDate", '') AS ds_tcexp,
+		0 AS am_valor_ME,
+		COALESCE(qpmt."authorizationCode", '') AS ds_tcautorizacion
+	FROM CotizacionServicios cs
+	JOIN public."QuotationProductPayment" qpmt ON qpmt."quotationProductId" = cs.orig_id_ref
+	LEFT JOIN public."Payment" p ON LOWER(p.name)=LOWER(qpmt."paymentMethod")  
+	WHERE qpmt."paymentMethod" IS NOT NULL AND qpmt."paymentMethod" <> '';
+
     -- 5. Generar XML
     SELECT xmlroot(
         xmlelement(name "Cotizaciones",
@@ -882,6 +946,28 @@ BEGIN
                                     )				
 									FROM CotizacionServicios_TipoProv PRE
 									WHERE PRE.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales			
+								),
+								(
+									SELECT xmlagg(
+										xmlelement(name "CotizacionServiciosFormasPago",
+											xmlforest(
+												FP.cd_Cotizacion AS cd_Cotizacion,
+												FP.cd_CotizacionServicios AS cd_CotizacionServicios,
+												FP.cd_codigo AS cd_codigo,
+												FP.ds_FPnm AS ds_FPnm,
+												FP.bl_FPrepresenta::int AS bl_FPrepresenta,
+												FP.ds_tcnumber AS ds_tcnumber,
+												FP.ds_tcvoucher AS ds_tcvoucher,
+												FP.ds_referencia AS ds_referencia,
+												FP.am_valor AS am_valor,
+												FP.ds_tcexp AS ds_tcexp,
+												FP.am_valor_ME AS am_valor_ME,
+												FP.ds_tcautorizacion AS ds_tcautorizacion
+											)
+										)
+									)
+									FROM CotizacionServiciosFormasPago FP
+									WHERE FP.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
 								)
                             )
                         )
