@@ -82,7 +82,7 @@ function cleanString(str: string): string {
 }
 
 const FIELD_KEYWORDS: Record<string, string[]> = {
-    asesor: ['asesor', 'ejecutivo', 'vendedor'],
+    asesor: ['asesor', 'ejecutivo'],
     fecha: ['fecha'],
     clienteNombre: ['cliente', 'cliente facturar', 'nombre cliente', 'nombre/razon social'],
     clienteIdentificacion: ['identificacion', 'nit', 'cedula', 'nit cedula', 'nit/cedula', 'documento', 'nit o cedula'],
