@@ -94,6 +94,12 @@ BEGIN
                         v_json_field_name := 'checkIn';
                     ELSIF v_field_name = 'checkOutDate' THEN
                         v_json_field_name := 'checkOut';
+                    ELSIF v_field_name = 'description' THEN
+                        v_json_field_name := 'descripcion';
+                    ELSIF v_field_name = 'service' THEN
+                        IF NULLIF(v_val_item->>'service', '') IS NULL AND v_val_item->>'servicios' IS NOT NULL THEN
+                            v_json_field_name := 'servicios';
+                        END IF;
                     END IF;
 
                     IF v_field_name = 'passengers' THEN

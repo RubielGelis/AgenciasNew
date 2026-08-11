@@ -198,9 +198,84 @@ export async function generateHtmlTemplate(
     clearUnconfiguredFields(sheet, config);
 
     // Replace cell values with placeholders based on coordinates config
+    // 1. Identify product start row number from config.proveedorNombre
+    let productStartRow = 0;
+    if (config.proveedorNombre) {
+        productStartRow = parseInt(config.proveedorNombre.match(/\d+/)?.[0] || '0');
+    }
+
+    const productFields = [
+        'proveedorNombre', 'proveedorNIT', 'proveedorContacto',
+        'tarifaNeta', 'tarifaNetaPago', 'impuestos', 'impuestosPago',
+        'adicionalesServ', 'adicionalesServPago', 'comision', 'descuento',
+        'sobrecomision', 'fee', 'total', 'totalPago', 'fechasViaje',
+        'hotelesServicios', 'pasajeros', 'totalAdultos', 'totalNinos', 'vendedor'
+    ];
+
+    if (productStartRow > 0) {
+        // Insert additional product rows in template (prepare up to 10 rows in preview)
+        for (let idx = 1; idx < 10; idx++) {
+            const insertRowIndex = productStartRow + idx;
+            sheet.insertRow(insertRowIndex, []);
+            
+            // Copy row style from first product row
+            const srcRow = sheet.getRow(productStartRow);
+            const destRow = sheet.getRow(insertRowIndex);
+            destRow.height = srcRow.height;
+            srcRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                const destCell = destRow.getCell(colNumber);
+                destCell.style = cell.style;
+            });
+        }
+
+        // Map product tokens to their respective cells
+        for (let idx = 0; idx < 10; idx++) {
+            const currentRow = productStartRow + idx;
+            const pNum = idx + 1;
+
+            productFields.forEach(field => {
+                const cellKey = (config as any)[field];
+                if (cellKey && typeof cellKey === 'string') {
+                    const colName = cellKey.match(/[A-Z]+/)?.[0] || '';
+                    if (colName) {
+                        const targetCellKey = `${colName}${currentRow}`;
+                        try {
+                            const cell = sheet.getCell(targetCellKey);
+                            if (field === 'proveedorNombre') {
+                                cell.value = `{{proveedor${pNum}Nombre}}`;
+                            } else if (field === 'proveedorNIT') {
+                                cell.value = `{{proveedor${pNum}NIT}}`;
+                            } else if (field === 'proveedorContacto') {
+                                cell.value = `{{proveedor${pNum}Contacto}}`;
+                            } else if (field.startsWith('prov') || field === 'tarifaNeta' || field === 'impuestos' || field === 'adicionalesServ' || field === 'comision' || field === 'descuento' || field === 'sobrecomision' || field === 'fee' || field === 'total') {
+                                let mappedField = field;
+                                if (field === 'tarifaNeta') mappedField = 'provTarifaNeta';
+                                else if (field === 'impuestos') mappedField = 'provImpuestos';
+                                else if (field === 'adicionalesServ') mappedField = 'provAdicionales';
+                                else if (field === 'comision') mappedField = 'provComision';
+                                else if (field === 'descuento') mappedField = 'provDescuento';
+                                else if (field === 'sobrecomision') mappedField = 'provSobrecomision';
+                                else if (field === 'fee') mappedField = 'provFee';
+                                else if (field === 'total') mappedField = 'provTotal';
+
+                                const fieldNameWithoutProv = mappedField.startsWith('prov') && !mappedField.startsWith('proveedor') ? mappedField.substring(4) : mappedField;
+                                cell.value = `{{prov${pNum}${fieldNameWithoutProv}}}`;
+                            } else {
+                                cell.value = `{{${field}${pNum}}}`;
+                            }
+                        } catch (e) {
+                            console.error(`Error setting product token for ${field} at row ${currentRow}:`, e);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // Replace other static header/footer cell values with placeholders based on config
     if (config && typeof config === 'object') {
         Object.entries(config).forEach(([key, cellKey]) => {
-            if (cellKey && typeof cellKey === 'string') {
+            if (cellKey && typeof cellKey === 'string' && !productFields.includes(key)) {
                 try {
                     const cell = sheet.getCell(cellKey);
                     cell.value = `{{${key}}}`;

@@ -755,6 +755,9 @@ BEGIN
 			RETURN 1;
         END
 
+        -- Limpiar saltos de línea y tabuladores para evitar que se guarden en campos de texto (usuario, tercero, dirección, etc.)
+        SET @xml = REPLACE(REPLACE(REPLACE(@xml, CHAR(13), ''), CHAR(10), ''), CHAR(9), '');
+
         SET @xmlData = TRY_CAST(@xml AS XML);
 
         IF @xmlData IS NULL

@@ -1,8 +1,9 @@
+require('dotenv').config();
 const { Pool } = require('pg');
 const fs = require('fs');
 
 const pool = new Pool({
-    connectionString: "postgresql://postgres:111985@localhost:5432/agencias_new?schema=public"
+    connectionString: process.env.DATABASE_URL
 });
 
 async function main() {

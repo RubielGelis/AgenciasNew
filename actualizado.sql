@@ -4006,6 +4006,8 @@ $$;
 -- Archivo: fnCotizacionHistorial.sql
 DROP FUNCTION IF EXISTS public.fnCotizacionHistorial();
 
+DROP FUNCTION IF EXISTS public.fnCotizacionHistorial();
+
 CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial(
     p_referencia VARCHAR DEFAULT NULL,
     p_fecha_desde DATE DEFAULT NULL,
@@ -4017,7 +4019,7 @@ CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial(
 )
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
-AS $$
+AS $
 BEGIN
     RETURN QUERY
     SELECT 
@@ -4067,10 +4069,13 @@ BEGIN
         AND (p_estado IS NULL OR q.state ILIKE '%' || p_estado || '%')
     ORDER BY q.date DESC;
 END;
-$$;
+$;
+
 
 
 -- Archivo: fnCotizacionListar.sql
+DROP FUNCTION IF EXISTS public.fnCotizacionListar();
+
 DROP FUNCTION IF EXISTS public.fnCotizacionListar();
 
 CREATE OR REPLACE FUNCTION public.fnCotizacionListar(
@@ -4084,7 +4089,7 @@ CREATE OR REPLACE FUNCTION public.fnCotizacionListar(
 )
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
-AS $$
+AS $
 BEGIN
     RETURN QUERY
     SELECT 
@@ -4162,7 +4167,8 @@ BEGIN
         AND (p_estado IS NULL OR q.state ILIKE '%' || p_estado || '%')
     ORDER BY q.date DESC;
 END;
-$$;
+$;
+
 
 
 -- Archivo: fnCountryListar.sql
@@ -4658,6 +4664,9 @@ CREATE OR REPLACE FUNCTION public."fnRptCotizacion"(
         "pasajeros" text,
         "totalAdultos" integer,
         "totalNinos" integer,
+        
+        -- Datos específicos del producto/servicio actual:
+        "idProducto" integer,
         "proveedorNombre" text,
         "proveedorNIT" text,
         "proveedorContacto" text,
@@ -4669,12 +4678,14 @@ CREATE OR REPLACE FUNCTION public."fnRptCotizacion"(
         "sobrecomision" double precision,
         "fee" double precision,
         "total" double precision,
+        
         "baseComisionable" double precision,
         "comisionAsesor" double precision,
         "observaciones" text,
         "logo" bytea,
         "fechasViaje" text,
-        "hotelesServicios" text
+        "hotelesServicios" text,
+        "vendedor" text
     ) 
     LANGUAGE 'plpgsql'
     COST 100
@@ -4695,86 +4706,67 @@ BEGIN
         q."exchangeRate"::double precision AS "tCambio",
         ('Cotización ' || q."internalNumber")::text AS "descripcionPlan",
         
-        -- Aggregate Passengers per Quotation
+        -- Pasajeros asociados específicamente to this product
         (
             SELECT string_agg(p.name, ', ')
             FROM "QuotationProductPassenger" p
-            JOIN "QuotationProduct" qp2 ON p."quotationProductId" = qp2.id
-            WHERE qp2."quotationId" = q.id
+            WHERE p."quotationProductId" = qp.id
         )::text AS "pasajeros",
 
-        -- Total Adults
-        (
-            SELECT COALESCE(SUM(qp2."paxAdults"), 0)::integer
-            FROM "QuotationProduct" qp2
-            WHERE qp2."quotationId" = q.id
-        ) AS "totalAdultos",
+        qp."paxAdults"::integer AS "totalAdultos",
+        qp."paxChildren"::integer AS "totalNinos",
 
-        -- Total Ninos
-        (
-            SELECT COALESCE(SUM(qp2."paxChildren"), 0)::integer
-            FROM "QuotationProduct" qp2
-            WHERE qp2."quotationId" = q.id
-        ) AS "totalNinos",
-
-        -- Provider Information
+        -- Datos específicos del producto
+        qp.id AS "idProducto",
         prov.name::text AS "proveedorNombre",
         prov.code::text AS "proveedorNIT",
         prov."contactInfo"::text AS "proveedorContacto",
         
-        -- tarifaNeta: sum of explicitAmount where isMain = true and type = 'TAX' for this provider
+        -- tarifaNeta para este producto específico
         COALESCE(
             (
                 SELECT SUM(qpt2."explicitAmount")
-                FROM "QuotationProduct" qp2
-                JOIN "QuotationProductTax" qpt2 ON qpt2."quotationProductId" = qp2.id
+                FROM "QuotationProductTax" qpt2
                 JOIN "ChargeAndTax" ct2 ON ct2.id = qpt2."chargeAndTaxId"
-                WHERE qp2."quotationId" = q.id
-                  AND qp2."providerId" = prov.id
+                WHERE qpt2."quotationProductId" = qp.id
                   AND qpt2."isMain" = true
                   AND ct2.type = 'CHARGE'
             ), 0
         )::double precision AS "tarifaNeta",
 
-        -- impuestos: sum of explicitAmount where isMain = false and type = 'TAX' for this provider
+        -- impuestos para este producto específico
         COALESCE(
             (
                 SELECT SUM(qpt2."explicitAmount")
-                FROM "QuotationProduct" qp2
-                JOIN "QuotationProductTax" qpt2 ON qpt2."quotationProductId" = qp2.id
+                FROM "QuotationProductTax" qpt2
                 JOIN "ChargeAndTax" ct2 ON ct2.id = qpt2."chargeAndTaxId"
-                WHERE qp2."quotationId" = q.id
-                  AND qp2."providerId" = prov.id
+                WHERE qpt2."quotationProductId" = qp.id
                   AND qpt2."isMain" = false
                   AND ct2.type = 'TAX'
             ), 0
         )::double precision AS "impuestos",
 
-        -- adicionalesServ: sum of explicitAmount where type = 'CHARGE' for this provider
+        -- adicionalesServ para este producto específico
         COALESCE(
             (
                 SELECT SUM(qpt2."explicitAmount")
-                FROM "QuotationProduct" qp2
-                JOIN "QuotationProductTax" qpt2 ON qpt2."quotationProductId" = qp2.id
+                FROM "QuotationProductTax" qpt2
                 JOIN "ChargeAndTax" ct2 ON ct2.id = qpt2."chargeAndTaxId"
-                WHERE qp2."quotationId" = q.id
-                  AND qp2."providerId" = prov.id
+                WHERE qpt2."quotationProductId" = qp.id
 				  AND qpt2."isMain" = false
                   AND ct2.type = 'CHARGE'
             ), 0
         )::double precision AS "adicionalesServ",
 
-        COALESCE(SUM(qp."sellerCommission"), 0)::double precision AS "comision",
+        qp."sellerCommission"::double precision AS "comision",
         0::double precision AS "descuento",
         0::double precision AS "sobrecomision",
         0::double precision AS "fee",
         COALESCE(
             (
                 SELECT SUM(qpt2."explicitAmount")
-                FROM "QuotationProduct" qp2
-                JOIN "QuotationProductTax" qpt2 ON qpt2."quotationProductId" = qp2.id
-                WHERE qp2."quotationId" = q.id
-                  AND qp2."providerId" = prov.id
+                FROM "QuotationProductTax" qpt2
+                WHERE qpt2."quotationProductId" = qp.id
             ), 0
         )::double precision AS "total",
         
@@ -4783,20 +4775,12 @@ BEGIN
         q.state::text AS "observaciones",
         COALESCE(i.logo, b.logo) AS "logo",
 
-        -- fechasViaje: MIN(checkInDate) to MAX(checkOutDate)
-        (
-            SELECT COALESCE(to_char(MIN(qp2."checkInDate"), 'DD/MM/YYYY') || ' al ' || to_char(MAX(qp2."checkOutDate"), 'DD/MM/YYYY'), '')
-            FROM "QuotationProduct" qp2
-            WHERE qp2."quotationId" = q.id
-        )::text AS "fechasViaje",
+        -- fechasViaje específicas del producto
+        COALESCE(to_char(qp."checkInDate", 'DD/MM/YYYY') || ' al ' || to_char(qp."checkOutDate", 'DD/MM/YYYY'), '')::text AS "fechasViaje",
 
-        -- hotelesServicios: string_agg of Product descriptions
-        (
-            SELECT COALESCE(string_agg(DISTINCT prod.description, ', '), '')
-            FROM "QuotationProduct" qp2
-            JOIN "Product" prod ON qp2."productId" = prod.id
-            WHERE qp2."quotationId" = q.id
-        )::text AS "hotelesServicios"
+        -- hotelesServicios: descripción del producto
+        prod.description::text AS "hotelesServicios",
+        COALESCE(s."name", '')::text AS "vendedor"
 
     FROM "Quotation" q
     LEFT JOIN "Client" c ON q."clientId" = c.id
@@ -4804,14 +4788,11 @@ BEGIN
     LEFT JOIN "User" u ON q."userId" = u.id
     LEFT JOIN "Branch" b ON q."branchId" = b.id
     LEFT JOIN "Implant" i ON q."implantId" = i.id
-    LEFT JOIN "QuotationProduct" qp ON qp."quotationId" = q.id
+    JOIN "QuotationProduct" qp ON qp."quotationId" = q.id  -- Inner Join para retornar una fila por producto
+    LEFT JOIN "Product" prod ON qp."productId" = prod.id
     LEFT JOIN "Provider" prov ON qp."providerId" = prov.id
     WHERE q.id BETWEEN p_id_ini AND p_id_fin
-    GROUP BY 
-        q.id, s.name, u.name, q.date, c.name, c.document, c.address, c."contactInfo", 
-        q."exchangeRate", q."internalNumber", prov.id, prov.name, prov.code, prov."contactInfo",
-        q."baseCommissionable", q."commissionPercentage", q.state, i.logo, b.logo
-    ORDER BY q.id;
+    ORDER BY q.id, qp.id;
 END;
 $BODY$;
 
@@ -5381,7 +5362,7 @@ CREATE OR REPLACE PROCEDURE public.spCotizacionActualizar(
     INOUT p_mensaje_resultado TEXT
 )
 LANGUAGE plpgsql
-AS $$
+AS $
 DECLARE
     v_item RECORD;
     v_tax RECORD;
@@ -5476,6 +5457,12 @@ BEGIN
                         v_json_field_name := 'checkIn';
                     ELSIF v_field_name = 'checkOutDate' THEN
                         v_json_field_name := 'checkOut';
+                    ELSIF v_field_name = 'description' THEN
+                        v_json_field_name := 'descripcion';
+                    ELSIF v_field_name = 'service' THEN
+                        IF NULLIF(v_val_item->>'service', '') IS NULL AND v_val_item->>'servicios' IS NOT NULL THEN
+                            v_json_field_name := 'servicios';
+                        END IF;
                     END IF;
 
                     IF v_field_name = 'passengers' THEN
@@ -5714,7 +5701,8 @@ EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
-$$;
+$;
+
 
 
 -- Archivo: spCotizacionActualizarEstado.sql
@@ -5857,7 +5845,7 @@ CREATE OR REPLACE PROCEDURE public.spCotizacionCrear(
     INOUT p_mensaje_resultado TEXT
 )
 LANGUAGE plpgsql
-AS $$
+AS $
 DECLARE
     v_internal_number TEXT;
     v_quotation_id INT;
@@ -5946,6 +5934,12 @@ BEGIN
                         v_json_field_name := 'checkIn';
                     ELSIF v_field_name = 'checkOutDate' THEN
                         v_json_field_name := 'checkOut';
+                    ELSIF v_field_name = 'description' THEN
+                        v_json_field_name := 'descripcion';
+                    ELSIF v_field_name = 'service' THEN
+                        IF NULLIF(v_val_item->>'service', '') IS NULL AND v_val_item->>'servicios' IS NOT NULL THEN
+                            v_json_field_name := 'servicios';
+                        END IF;
                     END IF;
 
                     IF v_field_name = 'passengers' THEN
@@ -6196,7 +6190,8 @@ EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
-$$;
+$;
+
 
 
 -- Archivo: spCotizacionEliminar.sql

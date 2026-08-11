@@ -32,6 +32,36 @@ import { SearchSelect } from '@/components/SearchSelect'
 
 type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion';
 
+const AVAILABLE_MANDATORY_FIELDS = [
+    { key: 'QuotationProduct.passengers', label: 'Pasajeros (Nombre obligatorio)', group: 'Por Producto' },
+    { key: 'QuotationProduct.payments', label: 'Formas de Pago (Al menos un pago registrado)', group: 'Por Producto' },
+    { key: 'QuotationProduct.checkInDate', label: 'Fecha de Inicio (Check-In)', group: 'Por Producto' },
+    { key: 'QuotationProduct.checkOutDate', label: 'Fecha de Fin (Check-Out)', group: 'Por Producto' },
+    { key: 'QuotationProduct.destination', label: 'Destino', group: 'Por Producto' },
+    { key: 'QuotationProduct.reservationCode', label: 'Código de Reserva', group: 'Por Producto' },
+    { key: 'QuotationProduct.providerId', label: 'Proveedor', group: 'Por Producto' },
+    { key: 'QuotationProduct.prestadoraId', label: 'Prestadora / Hotel', group: 'Por Producto' },
+    { key: 'QuotationProduct.serviceType', label: 'Clasificación de Servicio', group: 'Por Producto' },
+    { key: 'QuotationProduct.cost', label: 'Costo de Producto', group: 'Por Producto' },
+    { key: 'QuotationProduct.quantity', label: 'Cantidad', group: 'Por Producto' },
+    { key: 'QuotationProduct.price', label: 'Precio de Venta', group: 'Por Producto' },
+    { key: 'QuotationProduct.paxAdults', label: 'Pasajeros Adultos', group: 'Por Producto' },
+    { key: 'QuotationProduct.paxChildren', label: 'Pasajeros Niños', group: 'Por Producto' },
+    { key: 'QuotationProduct.sellerCommission', label: 'Comisión Vendedor', group: 'Por Producto' },
+    { key: 'QuotationProduct.ticketPrinterCommission', label: 'Comisión Tiqueteador', group: 'Por Producto' },
+    { key: 'QuotationProduct.inNationality', label: 'Nacionalidad', group: 'Por Producto' },
+    { key: 'QuotationProduct.service', label: 'Detalle de Servicio', group: 'Por Producto' },
+    { key: 'QuotationProduct.description', label: 'Descripción Manual', group: 'Por Producto' },
+    { key: 'QuotationProduct.nights', label: 'Noches', group: 'Por Producto' },
+    { key: 'Quotation.sellerId', label: 'Vendedor', group: 'Cabecera' },
+    { key: 'Quotation.ticketPrinterId', label: 'Tiqueteador', group: 'Cabecera' },
+    { key: 'Quotation.clientId', label: 'Cliente', group: 'Cabecera' },
+    { key: 'Quotation.branchId', label: 'Sucursal', group: 'Cabecera' },
+    { key: 'Quotation.implantId', label: 'Implant', group: 'Cabecera' },
+    { key: 'Quotation.currency', label: 'Moneda', group: 'Cabecera' },
+    { key: 'Quotation.exchangeRate', label: 'Tasa de Cambio', group: 'Cabecera' },
+];
+
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<Tab>('usuarios')
     const [loading, setLoading] = useState(true)
@@ -304,6 +334,19 @@ export default function SettingsPage() {
                     mandatoryVars = [];
                 }
                 setFormData({ ...item, mandatoryVariables: mandatoryVars })
+            } else if (activeTab === 'productos') {
+                let mandatory = item.mandatoryFields;
+                if (typeof mandatory === 'string') {
+                    try {
+                        mandatory = JSON.parse(mandatory);
+                    } catch (e) {
+                        mandatory = [];
+                    }
+                }
+                if (!Array.isArray(mandatory)) {
+                    mandatory = [];
+                }
+                setFormData({ ...item, mandatoryFields: mandatory })
             } else {
                 setFormData({ ...item })
             }
@@ -322,7 +365,7 @@ export default function SettingsPage() {
             } else if (activeTab === 'proveedores') {
                 setFormData({ code: '', name: '', contactInfo: '' })
             } else if (activeTab === 'productos') {
-                setFormData({ code: '', type: 'Servicio', description: '', basePrice: '', cost: '', billingConcept: '', serviceType: '' })
+                setFormData({ code: '', type: 'Servicio', description: '', basePrice: '', cost: '', billingConcept: '', serviceType: '', mandatoryFields: [] })
             } else if (activeTab === 'variables') {
                 setFormData({ code: '', name: '' })
             } else if (activeTab === 'monedas') {
@@ -1450,6 +1493,9 @@ export default function SettingsPage() {
                                                                             prov2TarifaNeta: "G23", prov2TarifaNetaPago: "I23", prov2Impuestos: "G24", prov2ImpuestosPago: "I24",
                                                                             prov2Adicionales: "G25", prov2AdicionalesPago: "G25", prov2Comision: "G26", prov2Descuento: "G27",
                                                                             prov2Sobrecomision: "G28", prov2Fee: "G29", prov2Total: "G30", prov2TotalPago: "I30",
+                                                                            tarifaNeta: "B23", tarifaNetaPago: "D23", impuestos: "B24", impuestosPago: "D24",
+                                                                            adicionalesServ: "B25", adicionalesServPago: "D25", comision: "B26", descuento: "B27",
+                                                                            sobrecomision: "B28", fee: "B29", total: "B30", totalPago: "D30",
                                                                             baseComisionable: "B35", comisionAsesor: "B36", baseComisionTop: "B37", observaciones: "B42"
                                                                         };
 
@@ -1681,6 +1727,65 @@ export default function SettingsPage() {
                                                         </div>
                                                     </div>
                                                 )}
+
+                                                <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-6 space-y-4">
+                                                    <h4 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider pl-1 font-title">Campos Obligatorios en Cotización</h4>
+                                                    <p className="text-xs text-zinc-400 pl-1">Seleccione qué campos serán obligatorios cuando un asesor agregue este producto a una cotización.</p>
+                                                    
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-zinc-50 dark:bg-zinc-800/20 p-5 rounded-2xl border border-zinc-100 dark:border-zinc-800/50">
+                                                        <div className="space-y-3">
+                                                            <span className="text-xs font-black text-zinc-400 uppercase tracking-widest block mb-1">Por Producto</span>
+                                                            {AVAILABLE_MANDATORY_FIELDS.filter(f => f.group === 'Por Producto').map(f => {
+                                                                const isChecked = (formData.mandatoryFields || []).includes(f.key);
+                                                                return (
+                                                                    <label key={f.key} className="flex items-center gap-3 cursor-pointer text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            className="w-4 h-4 rounded text-blue-600 border-zinc-300 focus:ring-blue-500 bg-white dark:bg-zinc-800 dark:border-zinc-700 cursor-pointer"
+                                                                            checked={isChecked}
+                                                                            onChange={(e) => {
+                                                                                let current = [...(formData.mandatoryFields || [])];
+                                                                                if (e.target.checked) {
+                                                                                    current.push(f.key);
+                                                                                } else {
+                                                                                    current = current.filter(k => k !== f.key);
+                                                                                }
+                                                                                setFormData({ ...formData, mandatoryFields: current });
+                                                                            }}
+                                                                        />
+                                                                        {f.label}
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <span className="text-xs font-black text-zinc-400 uppercase tracking-widest block mb-1">Cabecera (General)</span>
+                                                            {AVAILABLE_MANDATORY_FIELDS.filter(f => f.group === 'Cabecera').map(f => {
+                                                                const isChecked = (formData.mandatoryFields || []).includes(f.key);
+                                                                return (
+                                                                    <label key={f.key} className="flex items-center gap-3 cursor-pointer text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors">
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            className="w-4 h-4 rounded text-blue-600 border-zinc-300 focus:ring-blue-500 bg-white dark:bg-zinc-800 dark:border-zinc-700 cursor-pointer"
+                                                                            checked={isChecked}
+                                                                            onChange={(e) => {
+                                                                                let current = [...(formData.mandatoryFields || [])];
+                                                                                if (e.target.checked) {
+                                                                                    current.push(f.key);
+                                                                                } else {
+                                                                                    current = current.filter(k => k !== f.key);
+                                                                                }
+                                                                                setFormData({ ...formData, mandatoryFields: current });
+                                                                            }}
+                                                                        />
+                                                                        {f.label}
+                                                                    </label>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </>
                                         ) : activeTab === 'monedas' ? (
                                             <>
@@ -2349,6 +2454,9 @@ export default function SettingsPage() {
                                                                                         prov2TarifaNeta: "G23", prov2TarifaNetaPago: "I23", prov2Impuestos: "G24", prov2ImpuestosPago: "I24",
                                                                                         prov2Adicionales: "G25", prov2AdicionalesPago: "G25", prov2Comision: "G26", prov2Descuento: "G27",
                                                                                         prov2Sobrecomision: "G28", prov2Fee: "G29", prov2Total: "G30", prov2TotalPago: "I30",
+                                                                                        tarifaNeta: "B23", tarifaNetaPago: "D23", impuestos: "B24", impuestosPago: "D24",
+                                                                                        adicionalesServ: "B25", adicionalesServPago: "D25", comision: "B26", descuento: "B27",
+                                                                                        sobrecomision: "B28", fee: "B29", total: "B30", totalPago: "D30",
                                                                                         baseComisionable: "B35", comisionAsesor: "B36", baseComisionTop: "B37", observaciones: "B42"
                                                                                     };
 

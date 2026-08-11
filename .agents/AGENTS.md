@@ -6,6 +6,8 @@ Este documento contiene las directrices, estándares y reglas del proyecto para 
 
 ## 1. Reglas de Base de Datos y SQL
 
+- **Lógica en Base de Datos**: Siempre que sea posible, las validaciones, cálculos, procesamiento de datos y lógica de negocio deben ser implementados a través de Procedimientos Almacenados (SPs) y Funciones SQL. Se debe minimizar al máximo la lógica de negocio realizada directamente en Next.js.
+
 ### PostgreSQL (Base Local - Korex_colaereo)
 - **Mayúsculas en Nombres de Tablas/Relaciones**: Las tablas del sistema local usan PascalCase y deben ser referenciadas exactamente igual con comillas dobles si es necesario (`public."Quotation"`, `public."Client"`, `public."QuotationProduct"`).
 - **Tratamiento de Nulos**: Utilizar siempre `COALESCE` al realizar consultas para evitar valores inesperados de tipo `NULL` en los XML generados.
@@ -33,3 +35,13 @@ Este documento contiene las directrices, estándares y reglas del proyecto para 
   - Al realizar modificaciones de base de datos en Postgres, ejecutar siempre `npx prisma db pull` seguido de `npx prisma generate` para sincronizar los modelos locales.
   - Asegurar la detención y el reinicio correcto del servidor Next.js cuando se modifique el esquema de la base de datos o variables de entorno.
 - **Acceso a Datos**: Usar las relaciones de Prisma de forma segura y tipada en TypeScript, manejando correctamente los posibles nulos.
+
+---
+
+## 3. Reglas de Control de Cambios y Git
+
+- **Pruebas y Despliegue Local**: Todo desarrollo, modificación de base de datos o cambio en la interfaz debe ser generado y probado de manera estrictamente local.
+- **Autorización para Git**: Bajo ninguna circunstancia se deben subir cambios a Git o realizar commits en ramas remotas sin la previa verificación de pruebas locales y la autorización explícita del usuario.
+- **Descargas y Actualizaciones de Git**: No se deben realizar descargas automáticas, actualizaciones, clonaciones o `git pull` de ramas remotas de forma automática. Cualquier descarga o actualización de código desde Git debe realizarse única y exclusivamente cuando el usuario lo solicite de manera explícita.
+
+

@@ -6,40 +6,93 @@ import * as XLSX from 'xlsx'
 import fs from 'fs'
 import { generateHtmlTemplate } from '@/lib/excel-to-html'
 
-interface ProviderInfo {
-    nombre: string;
-    nit: string;
-    contacto: string;
+interface ProductInfo {
+    idProducto: number;
+    // Producto
+    productDescripcion: string;
+    productTipo: string;
+    productCodigo: string;
+    productConcepto: string;
+    productItinerario: string;
+    productClase: string;
+    productVuelo: string;
+    precio: number;
+    cantidad: number;
+    costo: number;
+    checkIn: string;
+    checkOut: string;
+    noches: number;
+    paxAdultos: number;
+    paxNinos: number;
+    destino: string;
+    codigoReserva: string;
+    tipoServicio: string;
+    servicio: string;
+    descripcion: string;
+    // Proveedor
+    proveedorNombre: string;
+    proveedorNIT: string;
+    proveedorContacto: string;
+    // Prestadora
+    prestadoraNombre: string;
+    prestadoraCategoria: string;
+    prestadoraUbicacion: string;
+    // Valores financieros
     tarifaNeta: number;
+    tarifaNetaPago: number;
     impuestos: number;
+    impuestosPago: number;
     adicionalesServ: number;
+    adicionalesServPago: number;
     comision: number;
     descuento: number;
     sobrecomision: number;
     fee: number;
     total: number;
+    totalPago: number;
+    // Legados (para compatibilidad con plantillas actuales)
+    fechasViaje: string;
+    hotelesServicios: string;
+    pasajeros: string;
+    totalAdultos: number;
+    totalNinos: number;
+    vendedor: string;
+    [key: string]: any;
 }
 
 interface GroupedQuotation {
     idCotizacion: number;
+    internalNumber: string;
     asesor: string;
     fecha: string;
+    currency: string;
+    tCambio: number;
+    state: string;
+    descripcionPlan: string;
+    observaciones: string;
+    baseCommissionable: number;
+    commissionPercentage: number;
+    totalAmount: number;
+    costoTotal: number;
+    valorBase: number;
+    utilidad: number;
+    comisionFreelanceValue: number;
+    comisionPropiaValue: number;
     clienteNombre: string;
     clienteIdentificacion: string;
     clienteDireccion: string;
     clienteTelefono: string;
-    tCambio: number;
-    descripcionPlan: string;
     pasajeros: string;
     totalAdultos: number;
     totalNinos: number;
     baseComisionable: number;
     comisionAsesor: number;
-    observaciones: string;
-    logo: Buffer | null;
     fechasViaje: string;
     hotelesServicios: string;
-    providers: ProviderInfo[];
+    vendedor: string;
+    logo: Buffer | null;
+    products: ProductInfo[];
+    [key: string]: any;
 }
 
 const DEFAULT_CONFIG = {
@@ -58,36 +111,21 @@ const DEFAULT_CONFIG = {
     pasajeros: "B14",
     totalAdultos: "C15",
     totalNinos: "G15",
-    proveedor1Nombre: "B18",
-    proveedor1NIT: "E18",
-    proveedor1Contacto: "H18",
-    proveedor2Nombre: "B19",
-    proveedor2NIT: "E19",
-    proveedor2Contacto: "H19",
-    prov1TarifaNeta: "B23",
-    prov1TarifaNetaPago: "D23",
-    prov2TarifaNeta: "G23",
-    prov2TarifaNetaPago: "I23",
-    prov1Impuestos: "B24",
-    prov1ImpuestosPago: "D24",
-    prov2Impuestos: "G24",
-    prov2ImpuestosPago: "I24",
-    prov1Adicionales: "B25",
-    prov1AdicionalesPago: "D25",
-    prov2Adicionales: "G25",
-    prov2AdicionalesPago: "I25",
-    prov1Comision: "B26",
-    prov2Comision: "G26",
-    prov1Descuento: "B27",
-    prov2Descuento: "G27",
-    prov1Sobrecomision: "B28",
-    prov2Sobrecomision: "G28",
-    prov1Fee: "B29",
-    prov2Fee: "G29",
-    prov1Total: "B30",
-    prov1TotalPago: "D30",
-    prov2Total: "G30",
-    prov2TotalPago: "I30",
+    proveedorNombre: "B18",
+    proveedorNIT: "E18",
+    proveedorContacto: "H18",
+    tarifaNeta: "B23",
+    tarifaNetaPago: "D23",
+    impuestos: "B24",
+    impuestosPago: "D24",
+    adicionalesServ: "B25",
+    adicionalesServPago: "D25",
+    comision: "B26",
+    descuento: "B27",
+    sobrecomision: "B28",
+    fee: "B29",
+    total: "B30",
+    totalPago: "D30",
     baseComisionable: "B35",
     comisionAsesor: "B36",
     baseComisionTop: "B37",
@@ -199,244 +237,111 @@ function colNameToIndex(colName: string): number {
     return index - 1;
 }
 
-function copySheet(
-    srcSheet: ExcelJS.Worksheet, 
-    destSheet: ExcelJS.Worksheet, 
-    srcWorkbook: ExcelJS.Workbook, 
-    destWorkbook: ExcelJS.Workbook
-) {
-    if (srcSheet.views) {
-        destSheet.views = JSON.parse(JSON.stringify(srcSheet.views));
-    }
-    if (srcSheet.pageSetup) {
-        destSheet.pageSetup = JSON.parse(JSON.stringify(srcSheet.pageSetup));
-    }
+function copySheet(src: ExcelJS.Worksheet, dest: ExcelJS.Worksheet, srcWorkbook: ExcelJS.Workbook, destWorkbook: ExcelJS.Workbook) {
+    dest.views = src.views;
+    dest.properties = src.properties;
+    dest.pageSetup = src.pageSetup;
 
-    if (srcSheet.columns) {
-        destSheet.columns = srcSheet.columns.map(col => {
-            const colStyle = col.style ? JSON.parse(JSON.stringify(col.style)) : undefined;
-            return {
-                header: col.header,
-                key: col.key,
-                width: col.width,
-                style: colStyle
-            };
-        });
-    }
-
-    const merges = (srcSheet.model as any).merges || [];
-    merges.forEach((m: string) => {
-        try {
-            destSheet.mergeCells(m);
-        } catch (mergeErr) {
-            console.error("Error merging cell in copySheet:", mergeErr);
+    src.columns?.forEach((col, idx) => {
+        if (col && dest.getColumn(idx + 1)) {
+            dest.getColumn(idx + 1).width = col.width;
         }
     });
 
-    srcSheet.eachRow({ includeEmpty: true }, (row, rowNum) => {
-        const destRow = destSheet.getRow(rowNum);
+    src.eachRow({ includeEmpty: true }, (row, rowNum) => {
+        const destRow = dest.getRow(rowNum);
         destRow.height = row.height;
-        if ((row as any).style) {
-            (destRow as any).style = JSON.parse(JSON.stringify((row as any).style));
-        }
 
         row.eachCell({ includeEmpty: true }, (cell, colNum) => {
             const destCell = destRow.getCell(colNum);
             destCell.value = cell.value;
-            
-            const style: any = {};
-            if (cell.font) style.font = JSON.parse(JSON.stringify(cell.font));
-            if (cell.fill) style.fill = JSON.parse(JSON.stringify(cell.fill));
-            if (cell.border) style.border = JSON.parse(JSON.stringify(cell.border));
-            if (cell.alignment) style.alignment = JSON.parse(JSON.stringify(cell.alignment));
-            if (cell.numFmt) style.numFmt = cell.numFmt;
-            if (cell.protection) style.protection = JSON.parse(JSON.stringify(cell.protection));
-            
-            if (Object.keys(style).length > 0) {
-                destCell.style = style;
-            }
+            destCell.style = cell.style;
         });
     });
 
-    // Copy images from source sheet to destination sheet
-    try {
-        const images = srcSheet.getImages();
-        images.forEach(img => {
-            try {
-                const imageObj = srcWorkbook.getImage(Number(img.imageId));
-                if (imageObj && imageObj.buffer) {
-                    const newImageId = destWorkbook.addImage({
-                        buffer: imageObj.buffer,
-                        extension: imageObj.extension,
-                    });
-                    
-                    // Safety clone of image range to avoid circular reference / sheet mismatch corruption
-                    const range = img.range as any;
-                    const rangeOption: any = {
-                        tl: { col: range.tl.col, row: range.tl.row },
-                        editAs: range.editAs
-                    };
-                    if (range.br) {
-                        rangeOption.br = { col: range.br.col, row: range.br.row };
-                    } else if (range.ext) {
-                        rangeOption.ext = { width: range.ext.width, height: range.ext.height };
-                    }
-
-                    destSheet.addImage(newImageId, rangeOption);
-                }
-            } catch (imgErr) {
-                console.error("Error copying image in copySheet:", imgErr);
-            }
-        });
-    } catch (err) {
-        console.error("Error getting images in copySheet:", err);
-    }
-}
-
-function getCellText(cell: ExcelJS.Cell): string {
-    if (cell.value === null || cell.value === undefined) return '';
-    if (typeof cell.value === 'object') {
-        if ('result' in cell.value) {
-            const res = (cell.value as any).result;
-            if ((res as any) instanceof Date) {
-                return (res as any).toLocaleDateString();
-            }
-            return res !== null && res !== undefined ? String(res) : '';
-        }
-        if ('richText' in cell.value) {
-            return (cell.value as any).richText.map((rt: any) => rt.text || '').join('');
-        }
-        if ('text' in cell.value) {
-            return String((cell.value as any).text || '');
-        }
-        return '';
-    }
-    if ((cell.value as any) instanceof Date) {
-        return (cell.value as any).toLocaleDateString();
-    }
-    return String(cell.value);
-}
-
-function parseColor(colorObj: any): string | null {
-    if (!colorObj) return null;
-    if (colorObj.argb) {
-        const argb = colorObj.argb;
-        if (argb.length === 8) {
-            return `#${argb.substring(2)}`;
-        }
-        return `#${argb}`;
-    }
-    if (colorObj.theme !== undefined) {
-        const standardThemes = [
-            '#FFFFFF', // 0: White
-            '#000000', // 1: Black
-            '#E7E6E6', // 2: Light Gray
-            '#44546A', // 3: Dark Blue/Gray
-            '#5B9BD5', // 4: Blue
-            '#ED7D31', // 5: Orange
-            '#A5A5A5', // 6: Gray
-            '#FFC000', // 7: Gold/Yellow
-            '#4472C4', // 8: Blue Accent
-            '#70AD47'  // 9: Green
-        ];
-        return standardThemes[colorObj.theme] || null;
-    }
-    return null;
-}
-
-function parseBorderSide(side: any): string | null {
-    if (!side || !side.style) return null;
-    const style = side.style;
-    const color = parseColor(side.color) || '#000000';
-    let width = '1px';
-    if (style === 'medium' || style === 'thick') width = '2px';
-    return `${width} ${style === 'dotted' || style === 'dashed' ? style : 'solid'} ${color}`;
-}
-
-function sheetToHtmlJson(sheet: ExcelJS.Worksheet, outWorkbook: ExcelJS.Workbook) {
-    const merges = (sheet.model as any).merges || [];
-    const mergeMap = new Map<string, { top: number; left: number; bottom: number; right: number; isTopLeft: boolean }>();
-    
-    merges.forEach((m: string) => {
-        const [startCell, endCell] = m.split(':');
-        const startCol = startCell.match(/[A-Z]+/)?.[0] || 'A';
-        const startRow = parseInt(startCell.match(/\d+/)?.[0] || '1');
-        const endCol = (endCell || startCell).match(/[A-Z]+/)?.[0] || 'A';
-        const endRow = parseInt((endCell || startCell).match(/\d+/)?.[0] || '1');
-        
-        const startColIdx = colNameToIndex(startCol) + 1;
-        const endColIdx = colNameToIndex(endCol) + 1;
-        
-        for (let r = startRow; r <= endRow; r++) {
-            for (let c = startColIdx; c <= endColIdx; c++) {
-                const key = `${r}_${c}`;
-                mergeMap.set(key, {
-                    top: startRow,
-                    left: startColIdx,
-                    bottom: endRow,
-                    right: endColIdx,
-                    isTopLeft: (r === startRow && c === startColIdx)
-                });
-            }
-        }
-    });
-
-    const images = sheet.getImages().map(img => {
+    src.getImages().forEach((img) => {
         try {
-            const imageObj = outWorkbook.getImage(Number(img.imageId));
-            return {
-                range: img.range,
-                base64: imageObj.buffer ? `data:image/${imageObj.extension};base64,${Buffer.from(imageObj.buffer).toString('base64')}` : null
-            };
-        } catch (e) {
-            return null;
-        }
-    }).filter(Boolean);
-
-    const rows = [];
-    const maxRow = sheet.rowCount;
-    let maxCol = 1;
-    sheet.eachRow((row) => {
-        if (row.cellCount > maxCol) {
-            maxCol = row.cellCount;
+            const mediaObj = srcWorkbook.model.media?.find((m: any) => m.index === img.imageId);
+            if (mediaObj) {
+                const imageId = destWorkbook.addImage({
+                    buffer: mediaObj.buffer,
+                    extension: mediaObj.extension as any,
+                });
+                dest.addImage(imageId, img.range);
+            }
+        } catch (err) {
+            console.error("Error copying image between sheets:", err);
         }
     });
-    if (maxCol < 15) maxCol = 15;
+}
 
-    for (let r = 1; r <= maxRow; r++) {
+function copyRowStyle(sheet: ExcelJS.Worksheet, srcRowNumber: number, destRowNumber: number) {
+    const srcRow = sheet.getRow(srcRowNumber);
+    const destRow = sheet.getRow(destRowNumber);
+    destRow.height = srcRow.height;
+
+    srcRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        const destCell = destRow.getCell(colNumber);
+        destCell.style = cell.style;
+    });
+}
+
+function sheetToHtmlJson(sheet: ExcelJS.Worksheet, workbook: ExcelJS.Workbook) {
+    const rows = [];
+    let maxCol = 1;
+
+    sheet.eachRow({ includeEmpty: true }, (row) => {
+        row.eachCell({ includeEmpty: true }, (cell) => {
+            const col = cell.col as unknown as number;
+            if (col > maxCol) maxCol = col;
+        });
+    });
+
+    for (let r = 1; r <= sheet.rowCount; r++) {
         const row = sheet.getRow(r);
         const rowJson = {
-            height: row.height,
+            height: row.height || 20,
             cells: [] as any[]
         };
 
         for (let c = 1; c <= maxCol; c++) {
-            const cellKey = `${r}_${c}`;
-            const mergeInfo = mergeMap.get(cellKey);
+            const cell = row.getCell(c);
+            let val = cell.value;
             
-            if (mergeInfo && !mergeInfo.isTopLeft) {
-                rowJson.cells.push({ isMerged: true });
-                continue;
+            if (val && typeof val === 'object') {
+                if ('result' in val) {
+                    val = (val as any).result;
+                } else if ('richText' in val) {
+                    val = (val as any).richText.map((t: any) => t.text).join('');
+                } else if ('text' in val) {
+                    val = (val as any).text;
+                }
             }
 
-            const cell = row.getCell(c);
-            const cellImage = images.find(img => img && Math.floor(img.range.tl.row) === r - 1 && Math.floor(img.range.tl.col) === c - 1);
+            const parseColor = (colorObj: any) => {
+                if (!colorObj) return 'transparent';
+                if (typeof colorObj === 'string') return colorObj;
+                if (colorObj.argb) return `#${colorObj.argb.substring(2)}`;
+                return 'transparent';
+            };
+
+            const parseBorderSide = (side: any) => {
+                if (!side || !side.style) return 'none';
+                const style = side.style;
+                const color = parseColor(side.color);
+                const width = style === 'thin' ? '1px' : style === 'medium' ? '2px' : '3px';
+                return `${width} ${style === 'dotted' || style === 'dashed' ? style : 'solid'} ${color}`;
+            };
 
             const cellJson = {
-                value: cell.value,
-                text: getCellText(cell),
-                address: cell.address,
-                isMerged: false,
-                rowSpan: mergeInfo ? (mergeInfo.bottom - mergeInfo.top + 1) : 1,
-                colSpan: mergeInfo ? (mergeInfo.right - mergeInfo.left + 1) : 1,
-                image: cellImage ? cellImage.base64 : null,
+                value: val !== null && val !== undefined ? String(val) : '',
                 style: {
-                    fontFamily: cell.font?.name || null,
-                    fontSize: cell.font?.size || null,
+                    backgroundColor: parseColor(cell.fill?.type === 'pattern' ? (cell.fill as any).fgColor : null),
+                    color: parseColor(cell.font?.color),
+                    fontFamily: cell.font?.name || 'inherit',
+                    fontSize: cell.font?.size ? `${cell.font.size}pt` : '10pt',
                     fontWeight: cell.font?.bold ? 'bold' : 'normal',
                     fontStyle: cell.font?.italic ? 'italic' : 'normal',
-                    color: parseColor(cell.font?.color),
-                    backgroundColor: parseColor((cell.fill as any)?.fgColor),
                     textAlign: cell.alignment?.horizontal || 'left',
                     verticalAlign: cell.alignment?.vertical || 'middle',
                     borderTop: parseBorderSide(cell.border?.top),
@@ -490,67 +395,126 @@ export async function GET(req: Request) {
             const id = row.idCotizacion;
             if (!grouped[id]) {
                 grouped[id] = {
+                    // Cotización cabecera
                     idCotizacion: id,
-                    asesor: row.asesor,
+                    internalNumber: row.internalNumber || '',
+                    asesor: row.asesor || '',
                     fecha: row.fecha,
-                    clienteNombre: row.clienteNombre,
-                    clienteIdentificacion: row.clienteIdentificacion,
-                    clienteDireccion: row.clienteDireccion,
-                    clienteTelefono: row.clienteTelefono,
+                    currency: row.currency || '',
                     tCambio: row.tCambio || 1.0,
+                    state: row.state || '',
                     descripcionPlan: row.descripcionPlan || `Cotización #${id}`,
-                    pasajeros: row.pasajeros,
+                    observaciones: row.observaciones || '',
+                    baseCommissionable: row.baseCommissionable || 0,
+                    commissionPercentage: row.commissionPercentage || 0,
+                    totalAmount: row.totalAmount || 0,
+                    costoTotal: row.costoTotal || 0,
+                    valorBase: row.valorBase || 0,
+                    utilidad: row.utilidad || 0,
+                    comisionFreelanceValue: row.comisionFreelanceValue || 0,
+                    comisionPropiaValue: row.comisionPropiaValue || 0,
+                    // Cliente
+                    clienteNombre: row.clienteNombre || '',
+                    clienteIdentificacion: row.clienteIdentificacion || '',
+                    clienteDireccion: row.clienteDireccion || '',
+                    clienteTelefono: row.clienteTelefono || '',
+                    // Resúmenes
+                    pasajeros: row.pasajeros || '',
                     totalAdultos: row.totalAdultos || 0,
                     totalNinos: row.totalNinos || 0,
                     baseComisionable: row.baseComisionable || 0,
                     comisionAsesor: row.comisionAsesor || 0,
-                    observaciones: row.observaciones,
-                    logo: row.logo, // Buffer from raw query
                     fechasViaje: row.fechasViaje || '',
                     hotelesServicios: row.hotelesServicios || '',
-                    providers: []
+                    vendedor: row.vendedor || '',
+                    logo: row.logo || null,
+                    products: []
                 };
             }
 
-            if (row.proveedorNombre || row.proveedorNIT || row.tarifaNeta > 0) {
-                grouped[id].providers.push({
-                    nombre: row.proveedorNombre || '',
-                    nit: row.proveedorNIT || '',
-                    contacto: row.proveedorContacto || '',
-                    tarifaNeta: row.tarifaNeta || 0,
-                    impuestos: row.impuestos || 0,
-                    adicionalesServ: row.adicionalesServ || 0,
-                    comision: row.comision || 0,
+            if (row.idProducto) {
+                const tarifaNeta = row.tarifaNeta || 0;
+                const impuestos = row.impuestos || 0;
+                const adicionalesServ = row.adicionalesServ || 0;
+                const comision = row.comision || 0;
+                const total = row.total || 0;
+                grouped[id].products.push({
+                    idProducto: row.idProducto,
+                    // Producto
+                    productDescripcion: row.productDescripcion || '',
+                    productTipo: row.productTipo || '',
+                    productCodigo: row.productCodigo || '',
+                    productConcepto: row.productConcepto || '',
+                    productItinerario: row.productItinerario || '',
+                    productClase: row.productClase || '',
+                    productVuelo: row.productVuelo || '',
+                    precio: row.precio || 0,
+                    cantidad: row.cantidad || 1,
+                    costo: row.costo || 0,
+                    checkIn: row.checkIn || '',
+                    checkOut: row.checkOut || '',
+                    noches: row.noches || 0,
+                    paxAdultos: row.paxAdultos || 0,
+                    paxNinos: row.paxNinos || 0,
+                    destino: row.destino || '',
+                    codigoReserva: row.codigoReserva || '',
+                    tipoServicio: row.tipoServicio || '',
+                    servicio: row.servicio || '',
+                    descripcion: row.descripcion || '',
+                    // Proveedor
+                    proveedorNombre: row.proveedorNombre || '',
+                    proveedorNIT: row.proveedorNIT || '',
+                    proveedorContacto: row.proveedorContacto || '',
+                    // Prestadora
+                    prestadoraNombre: row.prestadoraNombre || '',
+                    prestadoraCategoria: row.prestadoraCategoria || '',
+                    prestadoraUbicacion: row.prestadoraUbicacion || '',
+                    // Valores financieros
+                    tarifaNeta,
+                    tarifaNetaPago: tarifaNeta - comision,
+                    impuestos,
+                    impuestosPago: impuestos,
+                    adicionalesServ,
+                    adicionalesServPago: adicionalesServ,
+                    comision,
                     descuento: row.descuento || 0,
                     sobrecomision: row.sobrecomision || 0,
                     fee: row.fee || 0,
-                    total: row.total || 0,
+                    total,
+                    totalPago: total - comision,
+                    // Legados / compatibilidad
+                    fechasViaje: row.fechasViaje || '',
+                    hotelesServicios: row.hotelesServicios || '',
+                    pasajeros: row.pasajeros || '',
+                    totalAdultos: row.totalAdultos || 0,
+                    totalNinos: row.totalNinos || 0,
+                    vendedor: row.vendedor || ''
                 });
             }
         });
 
         const groupedList = Object.values(grouped);
-        const quotationIds = groupedList.map(q => q.idCotizacion);
 
-        // 2. Fetch template files and coordinates configuration for each quotation
-        const quotationsDb = await prisma.quotation.findMany({
-            where: { id: { in: quotationIds } },
-            select: {
-                id: true,
-                branch: { select: { id: true, template: true, templateConfig: true, htmlTemplate: true } },
-                implant: { select: { id: true, template: true, templateConfig: true, htmlTemplate: true } }
+        // Get sucursal configs to mapping values
+        const qDbMap = new Map<number, any>();
+        for (const q of groupedList) {
+            const dbQuo = await prisma.quotation.findUnique({
+                where: { id: q.idCotizacion },
+                include: {
+                    branch: true,
+                    implant: true
+                }
+            });
+            if (dbQuo) {
+                qDbMap.set(q.idCotizacion, dbQuo);
             }
-        });
+        }
 
-        const qDbMap = new Map(quotationsDb.map(q => [q.id, q]));
-
-        // Initialize output workbook
         const outWorkbook = new ExcelJS.Workbook();
         const defaultTemplatePath = path.join(process.cwd(), 'templates', 'default_template.xlsx');
 
         for (const q of groupedList) {
             const dbInfo = qDbMap.get(q.idCotizacion);
-            const templateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
             const templateConfigRaw = dbInfo?.implant?.templateConfig || dbInfo?.branch?.templateConfig;
             
             let config = DEFAULT_CONFIG;
@@ -558,20 +522,20 @@ export async function GET(req: Request) {
                 config = { ...DEFAULT_CONFIG, ...(templateConfigRaw as any) };
             }
 
-            // Load template workbook
             const tempWorkbook = new ExcelJS.Workbook();
+            const templateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
+            
             if (templateBuffer) {
-                let finalBuffer = Buffer.from(templateBuffer as any) as any;
-                // Check for OLE2 Compound File signature (indicating .xls binary file)
+                let finalBuffer: Buffer = Buffer.from(templateBuffer) as unknown as Buffer;
                 if (finalBuffer[0] === 0xD0 && finalBuffer[1] === 0xCF && finalBuffer[2] === 0x11 && finalBuffer[3] === 0xE0) {
                     try {
                         const xlsWorkbook = XLSX.read(finalBuffer, { type: 'buffer' });
-                        finalBuffer = XLSX.write(xlsWorkbook, { bookType: 'xlsx', type: 'buffer' });
+                        finalBuffer = Buffer.from(XLSX.write(xlsWorkbook, { bookType: 'xlsx', type: 'buffer' })) as unknown as Buffer;
                     } catch (convErr) {
                         console.error("Error converting XLS template to XLSX:", convErr);
                     }
                 }
-                await tempWorkbook.xlsx.load(finalBuffer);
+                await tempWorkbook.xlsx.load(finalBuffer as any);
             } else {
                 await tempWorkbook.xlsx.readFile(defaultTemplatePath);
             }
@@ -600,7 +564,7 @@ export async function GET(req: Request) {
                 logoCell.value = '';
             }
 
-            // Populate cells based on config mapping
+            // Helper to set cell value safely
             const setVal = (cellKey: string, value: any) => {
                 if (cellKey) {
                     const cell = destSheet.getCell(cellKey);
@@ -608,6 +572,7 @@ export async function GET(req: Request) {
                 }
             };
 
+            // Set Header variables (Quotation-level fields)
             setVal(config.asesor, q.asesor || '');
             setVal(config.fecha, q.fecha ? new Date(q.fecha) : '');
             setVal(config.clienteNombre, q.clienteNombre || '');
@@ -619,48 +584,81 @@ export async function GET(req: Request) {
             setVal(config.pasajeros, q.pasajeros || 'Mismo titular');
             setVal(config.totalAdultos, q.totalAdultos);
             setVal(config.totalNinos, q.totalNinos);
+            // New header fields
+            setVal((config as any).internalNumber, q.internalNumber || '');
+            setVal((config as any).currency, q.currency || '');
+            setVal((config as any).state, q.state || '');
+            setVal((config as any).totalAmount, q.totalAmount || 0);
+            setVal((config as any).costoTotal, q.costoTotal || 0);
+            setVal((config as any).valorBase, q.valorBase || 0);
+            setVal((config as any).utilidad, q.utilidad || 0);
+            setVal((config as any).baseCommissionable, q.baseCommissionable || 0);
+            setVal((config as any).commissionPercentage, q.commissionPercentage || 0);
+            setVal((config as any).comisionFreelanceValue, q.comisionFreelanceValue || 0);
+            setVal((config as any).comisionPropiaValue, q.comisionPropiaValue || 0);
+            setVal((config as any).vendedor, q.vendedor || '');
 
-            // Providers data
-            const prov1 = q.providers[0];
-            if (prov1) {
-                setVal(config.proveedor1Nombre, prov1.nombre);
-                setVal(config.proveedor1NIT, prov1.nit);
-                setVal(config.proveedor1Contacto, prov1.contacto);
-
-                setVal(config.prov1TarifaNeta, prov1.tarifaNeta);
-                setVal(config.prov1TarifaNetaPago, prov1.tarifaNeta - prov1.comision);
-                setVal(config.prov1Impuestos, prov1.impuestos);
-                setVal(config.prov1ImpuestosPago, prov1.impuestos);
-                setVal(config.prov1Adicionales, prov1.adicionalesServ);
-                setVal(config.prov1AdicionalesPago, prov1.adicionalesServ);
-                setVal(config.prov1Comision, prov1.comision);
-                setVal(config.prov1Descuento, prov1.descuento);
-                setVal(config.prov1Sobrecomision, prov1.sobrecomision);
-                setVal(config.prov1Fee, prov1.fee);
-                setVal(config.prov1Total, prov1.total);
-                setVal(config.prov1TotalPago, prov1.total - prov1.comision);
+            // Process dynamic product rows
+            // 1. Identify product start row number from config.proveedorNombre
+            let productStartRow = 0;
+            if (config.proveedorNombre) {
+                productStartRow = parseInt(config.proveedorNombre.match(/\d+/)?.[0] || '0');
             }
 
-            const prov2 = q.providers[1];
-            if (prov2) {
-                setVal(config.proveedor2Nombre, prov2.nombre);
-                setVal(config.proveedor2NIT, prov2.nit);
-                setVal(config.proveedor2Contacto, prov2.contacto);
+            // Default product fields for backward compatibility
+            const DEFAULT_PRODUCT_FIELDS = [
+                'proveedorNombre', 'proveedorNIT', 'proveedorContacto',
+                'tarifaNeta', 'tarifaNetaPago', 'impuestos', 'impuestosPago',
+                'adicionalesServ', 'adicionalesServPago', 'comision', 'descuento',
+                'sobrecomision', 'fee', 'total', 'totalPago', 'fechasViaje',
+                'hotelesServicios', 'pasajeros', 'totalAdultos', 'totalNinos', 'vendedor',
+                // New fields available in fnRptCotizacion v2
+                'productDescripcion', 'productTipo', 'productCodigo', 'productConcepto',
+                'productItinerario', 'productClase', 'productVuelo',
+                'precio', 'cantidad', 'costo', 'checkIn', 'checkOut', 'noches',
+                'paxAdultos', 'paxNinos', 'destino', 'codigoReserva', 'tipoServicio',
+                'servicio', 'descripcion',
+                'prestadoraNombre', 'prestadoraCategoria', 'prestadoraUbicacion'
+            ];
 
-                setVal(config.prov2TarifaNeta, prov2.tarifaNeta);
-                setVal(config.prov2TarifaNetaPago, prov2.tarifaNeta - prov2.comision);
-                setVal(config.prov2Impuestos, prov2.impuestos);
-                setVal(config.prov2ImpuestosPago, prov2.impuestos);
-                setVal(config.prov2Adicionales, prov2.adicionalesServ);
-                setVal(config.prov2AdicionalesPago, prov2.adicionalesServ);
-                setVal(config.prov2Comision, prov2.comision);
-                setVal(config.prov2Descuento, prov2.descuento);
-                setVal(config.prov2Sobrecomision, prov2.sobrecomision);
-                setVal(config.prov2Fee, prov2.fee);
-                setVal(config.prov2Total, prov2.total);
-                setVal(config.prov2TotalPago, prov2.total - prov2.comision);
+            // Read product fields from templateConfig.__productFields if configured
+            const productFields: string[] = Array.isArray((config as any).__productFields)
+                ? (config as any).__productFields
+                : DEFAULT_PRODUCT_FIELDS;
+
+            if (productStartRow > 0 && q.products.length > 0) {
+                // Insert additional rows if there is more than 1 product
+                for (let idx = 1; idx < q.products.length; idx++) {
+                    const insertRowIndex = productStartRow + idx;
+                    destSheet.insertRow(insertRowIndex, []);
+                    copyRowStyle(destSheet, productStartRow, insertRowIndex);
+                }
+
+                // Write product properties row by row
+                q.products.forEach((prod, idx) => {
+                    const currentRow = productStartRow + idx;
+
+                    productFields.forEach(field => {
+                        const cellKey = (config as any)[field];
+                        if (cellKey && typeof cellKey === 'string') {
+                            const colName = cellKey.match(/[A-Z]+/)?.[0] || '';
+                            if (colName) {
+                                const targetCellKey = `${colName}${currentRow}`;
+                                let value = (prod as any)[field];
+                                if (field.endsWith('Pago') && field !== 'pasajeros') {
+                                    const baseField = field.substring(0, field.length - 4);
+                                    const baseVal = (prod as any)[baseField] || 0;
+                                    const comisionVal = prod.comision || 0;
+                                    value = baseVal - comisionVal;
+                                }
+                                setVal(targetCellKey, value);
+                            }
+                        }
+                    });
+                });
             }
 
+            // Overall Totals
             setVal(config.baseComisionable, q.baseComisionable);
             setVal(config.comisionAsesor, q.comisionAsesor);
             setVal(config.baseComisionTop, q.baseComisionable - q.comisionAsesor);
@@ -668,14 +666,14 @@ export async function GET(req: Request) {
             setVal(config.fechasViaje, q.fechasViaje || '');
             setVal(config.hotelesServicios, q.hotelesServicios || '');
 
-            const totalTarifaNeta = q.providers.reduce((sum, p) => sum + p.tarifaNeta, 0);
-            const totalImpuestos = q.providers.reduce((sum, p) => sum + p.impuestos, 0);
-            const totalAdicionalesServ = q.providers.reduce((sum, p) => sum + p.adicionalesServ, 0);
-            const totalComision = q.providers.reduce((sum, p) => sum + p.comision, 0);
-            const totalDescuento = q.providers.reduce((sum, p) => sum + p.descuento, 0);
-            const totalSobrecomision = q.providers.reduce((sum, p) => sum + p.sobrecomision, 0);
-            const totalFee = q.providers.reduce((sum, p) => sum + p.fee, 0);
-            const totalTotal = q.providers.reduce((sum, p) => sum + p.total, 0);
+            const totalTarifaNeta = q.products.reduce((sum, p) => sum + p.tarifaNeta, 0);
+            const totalImpuestos = q.products.reduce((sum, p) => sum + p.impuestos, 0);
+            const totalAdicionalesServ = q.products.reduce((sum, p) => sum + p.adicionalesServ, 0);
+            const totalComision = q.products.reduce((sum, p) => sum + p.comision, 0);
+            const totalDescuento = q.products.reduce((sum, p) => sum + p.descuento, 0);
+            const totalSobrecomision = q.products.reduce((sum, p) => sum + p.sobrecomision, 0);
+            const totalFee = q.products.reduce((sum, p) => sum + p.fee, 0);
+            const totalTotal = q.products.reduce((sum, p) => sum + p.total, 0);
 
             setVal((config as any).tarifaNeta, totalTarifaNeta);
             setVal((config as any).tarifaNetaPago, totalTarifaNeta - totalComision);
@@ -691,25 +689,23 @@ export async function GET(req: Request) {
             setVal((config as any).totalPago, totalTotal - totalComision);
             setVal((config as any).idCotizacion, q.idCotizacion);
 
-            // Dynamically set any other columns from config/q
+            // Dynamically set any other columns from config/q (header fields not covered above)
             Object.entries(config).forEach(([key, cellKey]) => {
-                if (cellKey && typeof cellKey === 'string' && key !== '__customNames') {
-                    const standardKeys = [
-                        'asesor', 'fecha', 'clienteNombre', 'clienteIdentificacion', 'clienteDireccion',
-                        'clienteTelefono', 'tCambio', 'descripcionPlan', 'pasajeros', 'totalAdultos', 'totalNinos',
-                        'baseComisionable', 'comisionAsesor', 'baseComisionTop', 'observaciones', 'idCotizacion',
-                        'fechasViaje', 'hotelesServicios', 'tarifaNeta', 'tarifaNetaPago', 'impuestos', 'impuestosPago',
-                        'adicionalesServ', 'adicionalesServPago', 'comision', 'descuento', 'sobrecomision', 'fee',
-                        'total', 'totalPago'
-                    ];
-                    if (!standardKeys.includes(key) && !key.startsWith('prov') && !key.startsWith('proveedor') && key !== 'logo') {
-                        const qVal = (q as any)[key];
-                        if (qVal !== undefined && qVal !== null) {
-                            setVal(cellKey, qVal);
-                        }
+                if (cellKey && typeof cellKey === 'string' && key !== '__customNames' && key !== '__productFields') {
+                    // Skip meta keys
+                    if (key.startsWith('__')) return;
+                    // Skip if this key is a product (item) field - those are handled per-row above
+                    if (productFields.includes(key)) return;
+                    // Skip if this key is logo
+                    if (key === 'logo') return;
+                    // All remaining keys are header fields — write value from quotation object
+                    const qVal = (q as any)[key];
+                    if (qVal !== undefined && qVal !== null && qVal !== '') {
+                        setVal(cellKey, qVal);
                     }
                 }
             });
+
 
             // Forcefully clear cell A1 and the designated logo cell to remove any copied JSON or buffer strings
             destSheet.getCell('A1').value = null;
@@ -743,13 +739,10 @@ export async function GET(req: Request) {
 
         const formatParam = searchParams.get('format');
         if (formatParam === 'html') {
-            // For print layout, return populated HTML strings
             const htmlReports = [];
             
             for (const q of groupedList) {
                 const dbInfo = qDbMap.get(q.idCotizacion);
-                
-                // Force regeneration to apply the new dynamic logo layout and bypass the database cache
                 let htmlTemplate = null;
                 const templateConfigRaw = dbInfo?.implant?.templateConfig || dbInfo?.branch?.templateConfig;
                 
@@ -758,32 +751,17 @@ export async function GET(req: Request) {
                     config = { ...DEFAULT_CONFIG, ...(templateConfigRaw as any) };
                 }
 
-                // If htmlTemplate is missing, auto-generate and cache it
                 if (!htmlTemplate) {
                     const templateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
                     if (templateBuffer) {
                         try {
                             htmlTemplate = await generateHtmlTemplate(Buffer.from(templateBuffer), config);
-                            
-                            // Cache it in database
-                            if (dbInfo?.implant) {
-                                await prisma.implant.update({
-                                    where: { id: dbInfo.implant.id },
-                                    data: { htmlTemplate }
-                                });
-                            } else if (dbInfo?.branch) {
-                                await prisma.branch.update({
-                                    where: { id: dbInfo.branch.id },
-                                    data: { htmlTemplate }
-                                });
-                            }
                         } catch (err) {
                             console.error(`Error auto-generating htmlTemplate for quotation ${q.idCotizacion}:`, err);
                         }
                     }
                 }
 
-                // Fallback to default template if still missing
                 if (!htmlTemplate) {
                     try {
                         const defaultTemplatePath = path.join(process.cwd(), 'templates', 'default_template.xlsx');
@@ -795,10 +773,8 @@ export async function GET(req: Request) {
                     }
                 }
 
-                // Interpolate quotation values into tokens
                 let compiledHtml = htmlTemplate;
 
-                // Format values for replacement
                 const formatDate = (dStr: string) => {
                     if (!dStr) return '';
                     const d = new Date(dStr);
@@ -810,17 +786,14 @@ export async function GET(req: Request) {
                     return val.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                 };
 
-                const prov1 = q.providers[0];
-                const prov2 = q.providers[1];
-
-                const totalTarifaNeta = q.providers.reduce((sum, p) => sum + p.tarifaNeta, 0);
-                const totalImpuestos = q.providers.reduce((sum, p) => sum + p.impuestos, 0);
-                const totalAdicionalesServ = q.providers.reduce((sum, p) => sum + p.adicionalesServ, 0);
-                const totalComision = q.providers.reduce((sum, p) => sum + p.comision, 0);
-                const totalDescuento = q.providers.reduce((sum, p) => sum + p.descuento, 0);
-                const totalSobrecomision = q.providers.reduce((sum, p) => sum + p.sobrecomision, 0);
-                const totalFee = q.providers.reduce((sum, p) => sum + p.fee, 0);
-                const totalTotal = q.providers.reduce((sum, p) => sum + p.total, 0);
+                const totalTarifaNeta = q.products.reduce((sum, p) => sum + p.tarifaNeta, 0);
+                const totalImpuestos = q.products.reduce((sum, p) => sum + p.impuestos, 0);
+                const totalAdicionalesServ = q.products.reduce((sum, p) => sum + p.adicionalesServ, 0);
+                const totalComision = q.products.reduce((sum, p) => sum + p.comision, 0);
+                const totalDescuento = q.products.reduce((sum, p) => sum + p.descuento, 0);
+                const totalSobrecomision = q.products.reduce((sum, p) => sum + p.sobrecomision, 0);
+                const totalFee = q.products.reduce((sum, p) => sum + p.fee, 0);
+                const totalTotal = q.products.reduce((sum, p) => sum + p.total, 0);
 
                 const replacements: { [key: string]: string } = {
                     logo: q.logo ? `<img src="data:image/png;base64,${Buffer.from(q.logo as any).toString('base64')}" alt="Logo" style="max-height: 48px; max-width: 120px; object-fit: contain; display: block; margin: auto;" />` : '',
@@ -830,8 +803,8 @@ export async function GET(req: Request) {
                     clienteIdentificacion: q.clienteIdentificacion || '',
                     clienteDireccion: q.clienteDireccion || '',
                     clienteTelefono: q.clienteTelefono || '',
-                    centroCosto: '', // Fill empty for cc
-                    solicita: '', // Fill empty for solicita
+                    centroCosto: '',
+                    solicita: '',
                     tCambio: String(q.tCambio || 1.0),
                     descripcionPlan: q.descripcionPlan || `Cotización #${q.idCotizacion}`,
                     fechasViaje: q.fechasViaje || '',
@@ -844,8 +817,8 @@ export async function GET(req: Request) {
                     baseComisionTop: formatCurrency(q.baseComisionable - q.comisionAsesor),
                     observaciones: q.observaciones || '',
                     idCotizacion: String(q.idCotizacion),
+                    vendedor: q.vendedor || '',
 
-                    // Overall Totals
                     tarifaNeta: formatCurrency(totalTarifaNeta),
                     tarifaNetaPago: formatCurrency(totalTarifaNeta - totalComision),
                     impuestos: formatCurrency(totalImpuestos),
@@ -858,43 +831,28 @@ export async function GET(req: Request) {
                     fee: formatCurrency(totalFee),
                     total: formatCurrency(totalTotal),
                     totalPago: formatCurrency(totalTotal - totalComision),
-
-                    // Provider 1
-                    proveedor1Nombre: prov1?.nombre || '',
-                    proveedor1NIT: prov1?.nit || '',
-                    proveedor1Contacto: prov1?.contacto || '',
-                    prov1TarifaNeta: prov1 ? formatCurrency(prov1.tarifaNeta) : '',
-                    prov1TarifaNetaPago: prov1 ? formatCurrency(prov1.tarifaNeta - prov1.comision) : '',
-                    prov1Impuestos: prov1 ? formatCurrency(prov1.impuestos) : '',
-                    prov1ImpuestosPago: prov1 ? formatCurrency(prov1.impuestos) : '',
-                    prov1Adicionales: prov1 ? formatCurrency(prov1.adicionalesServ) : '',
-                    prov1AdicionalesPago: prov1 ? formatCurrency(prov1.adicionalesServ) : '',
-                    prov1Comision: prov1 ? formatCurrency(prov1.comision) : '',
-                    prov1Descuento: prov1 ? formatCurrency(prov1.descuento) : '',
-                    prov1Sobrecomision: prov1 ? formatCurrency(prov1.sobrecomision) : '',
-                    prov1Fee: prov1 ? formatCurrency(prov1.fee) : '',
-                    prov1Total: prov1 ? formatCurrency(prov1.total) : '',
-                    prov1TotalPago: prov1 ? formatCurrency(prov1.total - prov1.comision) : '',
-
-                    // Provider 2
-                    proveedor2Nombre: prov2?.nombre || '',
-                    proveedor2NIT: prov2?.nit || '',
-                    proveedor2Contacto: prov2?.contacto || '',
-                    prov2TarifaNeta: prov2 ? formatCurrency(prov2.tarifaNeta) : '',
-                    prov2TarifaNetaPago: prov2 ? formatCurrency(prov2.tarifaNeta - prov2.comision) : '',
-                    prov2Impuestos: prov2 ? formatCurrency(prov2.impuestos) : '',
-                    prov2ImpuestosPago: prov2 ? formatCurrency(prov2.impuestos) : '',
-                    prov2Adicionales: prov2 ? formatCurrency(prov2.adicionalesServ) : '',
-                    prov2AdicionalesPago: prov2 ? formatCurrency(prov2.adicionalesServ) : '',
-                    prov2Comision: prov2 ? formatCurrency(prov2.comision) : '',
-                    prov2Descuento: prov2 ? formatCurrency(prov2.descuento) : '',
-                    prov2Sobrecomision: prov2 ? formatCurrency(prov2.sobrecomision) : '',
-                    prov2Fee: prov2 ? formatCurrency(prov2.fee) : '',
-                    prov2Total: prov2 ? formatCurrency(prov2.total) : '',
-                    prov2TotalPago: prov2 ? formatCurrency(prov2.total - prov2.comision) : '',
                 };
 
-                // Add any dynamic properties present in the query row 'q'
+                // Add dynamic replacement for product rows in HTML tokens if configured
+                q.products.forEach((prod, pIdx) => {
+                    const pNum = pIdx + 1;
+                    replacements[`proveedor${pNum}Nombre`] = prod.proveedorNombre;
+                    replacements[`proveedor${pNum}NIT`] = prod.proveedorNIT;
+                    replacements[`proveedor${pNum}Contacto`] = prod.proveedorContacto;
+                    replacements[`prov${pNum}TarifaNeta`] = formatCurrency(prod.tarifaNeta);
+                    replacements[`prov${pNum}TarifaNetaPago`] = formatCurrency(prod.tarifaNeta - prod.comision);
+                    replacements[`prov${pNum}Impuestos`] = formatCurrency(prod.impuestos);
+                    replacements[`prov${pNum}ImpuestosPago`] = formatCurrency(prod.impuestos);
+                    replacements[`prov${pNum}Adicionales`] = formatCurrency(prod.adicionalesServ);
+                    replacements[`prov${pNum}AdicionalesPago`] = formatCurrency(prod.adicionalesServ);
+                    replacements[`prov${pNum}Comision`] = formatCurrency(prod.comision);
+                    replacements[`prov${pNum}Descuento`] = formatCurrency(prod.descuento);
+                    replacements[`prov${pNum}Sobrecomision`] = formatCurrency(prod.sobrecomision);
+                    replacements[`prov${pNum}Fee`] = formatCurrency(prod.fee);
+                    replacements[`prov${pNum}Total`] = formatCurrency(prod.total);
+                    replacements[`prov${pNum}TotalPago`] = formatCurrency(prod.total - prod.comision);
+                });
+
                 Object.keys(q).forEach(key => {
                     if (replacements[key] === undefined && key !== 'logo') {
                         const qVal = (q as any)[key];
@@ -902,7 +860,6 @@ export async function GET(req: Request) {
                     }
                 });
 
-                // Replace all instances of {{key}} with value
                 Object.entries(replacements).forEach(([key, val]) => {
                     const token = `{{${key}}}`;
                     compiledHtml = compiledHtml.split(token).join(val);
