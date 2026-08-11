@@ -5,6 +5,7 @@ import path from 'path'
 import * as XLSX from 'xlsx'
 import fs from 'fs'
 import { generateHtmlTemplate } from '@/lib/excel-to-html'
+import { getCellCustomizationConfig } from '@/lib/cell-customization'
 
 interface ProductInfo {
     idProducto: number;
@@ -389,6 +390,29 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: 'No data found for the specified range' }, { status: 404 });
         }
 
+        // Fetch dynamic variables for all products in rawRows
+        const productIds = rawRows
+            .map((r: any) => r.idProducto)
+            .filter((id: any) => id !== null && id !== undefined && typeof id === 'number');
+
+        const productVariables = productIds.length > 0 ? await prisma.quotationProductVariable.findMany({
+            where: {
+                quotationProductId: { in: productIds }
+            },
+            include: {
+                masterVariable: true
+            }
+        }) : [];
+
+        const varsByProductMap = new Map<number, any[]>();
+        productVariables.forEach((pv: any) => {
+            const pId = pv.quotationProductId;
+            if (!varsByProductMap.has(pId)) {
+                varsByProductMap.set(pId, []);
+            }
+            varsByProductMap.get(pId)!.push(pv);
+        });
+
         // Group rows by idCotizacion
         const grouped: { [key: number]: GroupedQuotation } = {};
         rawRows.forEach((row: any) => {
@@ -438,7 +462,7 @@ export async function GET(req: Request) {
                 const adicionalesServ = row.adicionalesServ || 0;
                 const comision = row.comision || 0;
                 const total = row.total || 0;
-                grouped[id].products.push({
+                const prodObj: any = {
                     idProducto: row.idProducto,
                     // Producto
                     productDescripcion: row.productDescripcion || '',
@@ -489,11 +513,87 @@ export async function GET(req: Request) {
                     totalAdultos: row.totalAdultos || 0,
                     totalNinos: row.totalNinos || 0,
                     vendedor: row.vendedor || ''
+                };
+
+                // Inject dynamic variables into the product object
+                const pVars = varsByProductMap.get(row.idProducto) || [];
+                pVars.forEach((pv: any) => {
+                    const code = pv.masterVariable.code;
+                    prodObj[code] = pv.value || '';
+                    prodObj[`var_${pv.masterVariable.id}`] = pv.value || '';
                 });
+
+                grouped[id].products.push(prodObj);
             }
         });
 
         const groupedList = Object.values(grouped);
+
+        // Inject 1-to-9 indexed variables for static Excel template mapping compatibility
+        groupedList.forEach((q: any) => {
+            q.products.forEach((prod: any, idx: number) => {
+                const pNum = idx + 1;
+                if (pNum > 9) return;
+
+                q[`proveedor${pNum}Nombre`] = prod.proveedorNombre || '';
+                q[`proveedor${pNum}NIT`] = prod.proveedorNIT || '';
+                q[`proveedor${pNum}Contacto`] = prod.proveedorContacto || '';
+                q[`prov${pNum}TarifaNeta`] = prod.tarifaNeta || 0;
+                q[`prov${pNum}TarifaNetaPago`] = prod.tarifaNetaPago || 0;
+                q[`prov${pNum}Impuestos`] = prod.impuestos || 0;
+                q[`prov${pNum}ImpuestosPago`] = prod.impuestosPago || 0;
+                q[`prov${pNum}Adicionales`] = prod.adicionalesServ || 0;
+                q[`prov${pNum}AdicionalesPago`] = prod.adicionalesServPago || 0;
+                q[`prov${pNum}Comision`] = prod.comision || 0;
+                q[`prov${pNum}Descuento`] = prod.descuento || 0;
+                q[`prov${pNum}Sobrecomision`] = prod.sobrecomision || 0;
+                q[`prov${pNum}Fee`] = prod.fee || 0;
+                q[`prov${pNum}Total`] = prod.total || 0;
+                q[`prov${pNum}TotalPago`] = prod.totalPago || 0;
+                q[`prov${pNum}checkIn`] = prod.checkIn || '';
+                q[`prov${pNum}checkOut`] = prod.checkOut || '';
+                q[`prov${pNum}nights`] = prod.noches || 0;
+                q[`prov${pNum}destination`] = prod.destino || '';
+                q[`prov${pNum}quantity`] = prod.cantidad || 1;
+                q[`prov${pNum}price`] = prod.precio || 0;
+                q[`prov${pNum}cost`] = prod.costo || 0;
+                q[`prov${pNum}paxAdultos`] = prod.paxAdultos || 0;
+                q[`prov${pNum}paxNinos`] = prod.paxNinos || 0;
+                q[`prov${pNum}sellerCommission`] = prod.sellerCommission || 0;
+                q[`prov${pNum}ticketPrinterCommission`] = prod.ticketPrinterCommission || 0;
+                q[`prov${pNum}inNationality`] = prod.inNationality || 1;
+                q[`prov${pNum}servicio`] = prod.servicio || '';
+                q[`prov${pNum}descripcion`] = prod.descripcion || '';
+                q[`prov${pNum}prestadoraNombre`] = prod.prestadoraNombre || '';
+                q[`prov${pNum}prestadoraCategoria`] = prod.prestadoraCategoria || '';
+                q[`prov${pNum}prestadoraUbicacion`] = prod.prestadoraUbicacion || '';
+
+                q[`prov${pNum}productDescripcion`] = prod.productDescripcion || '';
+                q[`prov${pNum}productTipo`] = prod.productTipo || '';
+                q[`prov${pNum}productCodigo`] = prod.productCodigo || '';
+                q[`prov${pNum}productConcepto`] = prod.productConcepto || '';
+                q[`prov${pNum}productItinerario`] = prod.productItinerario || '';
+                q[`prov${pNum}productClase`] = prod.productClase || '';
+                q[`prov${pNum}productVuelo`] = prod.productVuelo || '';
+
+                const standardProductFields = [
+                    'idProducto', 'productDescripcion', 'productTipo', 'productCodigo', 'productConcepto',
+                    'productItinerario', 'productClase', 'productVuelo', 'precio', 'cantidad', 'costo',
+                    'checkIn', 'checkOut', 'noches', 'paxAdultos', 'paxNinos', 'destino', 'codigoReserva',
+                    'tipoServicio', 'servicio', 'descripcion', 'proveedorNombre', 'proveedorNIT',
+                    'proveedorContacto', 'prestadoraNombre', 'prestadoraCategoria', 'prestadoraUbicacion',
+                    'tarifaNeta', 'tarifaNetaPago', 'impuestos', 'impuestosPago', 'adicionalesServ',
+                    'adicionalesServPago', 'comision', 'descuento', 'sobrecomision', 'fee', 'total', 'totalPago',
+                    'fechasViaje', 'hotelesServicios', 'pasajeros', 'totalAdultos', 'totalNinos', 'vendedor'
+                ];
+                
+                Object.keys(prod).forEach(key => {
+                    if (!standardProductFields.includes(key)) {
+                        q[`prov${pNum}_${key}`] = prod[key];
+                    }
+                });
+            });
+        });
 
         // Get sucursal configs to mapping values
         const qDbMap = new Map<number, any>();
@@ -515,15 +615,28 @@ export async function GET(req: Request) {
 
         for (const q of groupedList) {
             const dbInfo = qDbMap.get(q.idCotizacion);
+            const physicalConfig = await getCellCustomizationConfig(
+                dbInfo?.branch?.id || null,
+                dbInfo?.implant?.id || null
+            );
             const templateConfigRaw = dbInfo?.implant?.templateConfig || dbInfo?.branch?.templateConfig;
             
-            let config = DEFAULT_CONFIG;
-            if (templateConfigRaw && typeof templateConfigRaw === 'object') {
-                config = { ...DEFAULT_CONFIG, ...(templateConfigRaw as any) };
+            const templateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
+            let config = DEFAULT_CONFIG as any;
+            if (templateBuffer) {
+                config = {
+                    ...(templateConfigRaw as any || {}),
+                    ...(physicalConfig || {})
+                };
+            } else if (templateConfigRaw || physicalConfig) {
+                config = { 
+                    ...DEFAULT_CONFIG, 
+                    ...(templateConfigRaw as any || {}), 
+                    ...(physicalConfig || {}) 
+                };
             }
 
             const tempWorkbook = new ExcelJS.Workbook();
-            const templateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
             
             if (templateBuffer) {
                 let finalBuffer: Buffer = Buffer.from(templateBuffer) as unknown as Buffer;
@@ -599,40 +712,66 @@ export async function GET(req: Request) {
             setVal((config as any).vendedor, q.vendedor || '');
 
             // Process dynamic product rows
-            // 1. Identify product start row number from config.proveedorNombre
+            // 1. Identify product start row number from config
             let productStartRow = 0;
-            if (config.proveedorNombre) {
-                productStartRow = parseInt(config.proveedorNombre.match(/\d+/)?.[0] || '0');
+            const productFieldsToTry = [
+                'proveedorNombre', 'proveedorNIT', 'proveedorContacto', 'tarifaNeta',
+                'total', 'servicio', 'productDescripcion', 'checkIn', 'destino'
+            ];
+            for (const field of productFieldsToTry) {
+                const cell = (config as any)[field];
+                if (cell && typeof cell === 'string') {
+                    const rowMatch = cell.match(/\d+/);
+                    if (rowMatch) {
+                        productStartRow = parseInt(rowMatch[0]);
+                        break;
+                    }
+                }
             }
 
-            // Default product fields for backward compatibility
-            const DEFAULT_PRODUCT_FIELDS = [
-                'proveedorNombre', 'proveedorNIT', 'proveedorContacto',
-                'tarifaNeta', 'tarifaNetaPago', 'impuestos', 'impuestosPago',
-                'adicionalesServ', 'adicionalesServPago', 'comision', 'descuento',
-                'sobrecomision', 'fee', 'total', 'totalPago', 'fechasViaje',
-                'hotelesServicios', 'pasajeros', 'totalAdultos', 'totalNinos', 'vendedor',
-                // New fields available in fnRptCotizacion v2
-                'productDescripcion', 'productTipo', 'productCodigo', 'productConcepto',
-                'productItinerario', 'productClase', 'productVuelo',
-                'precio', 'cantidad', 'costo', 'checkIn', 'checkOut', 'noches',
-                'paxAdultos', 'paxNinos', 'destino', 'codigoReserva', 'tipoServicio',
-                'servicio', 'descripcion',
-                'prestadoraNombre', 'prestadoraCategoria', 'prestadoraUbicacion'
-            ];
-
-            // Read product fields from templateConfig.__productFields if configured
-            const productFields: string[] = Array.isArray((config as any).__productFields)
-                ? (config as any).__productFields
-                : DEFAULT_PRODUCT_FIELDS;
+            // Deducimos los campos repetitivos del producto a partir de config
+            const productFields = Object.keys(config).filter(key => {
+                if (key === '__customNames' || key === '__productFields') return false;
+                // Excluimos campos indexados tradicionales (heredados)
+                if (key.match(/^(prov|proveedor)\d+.+$/)) return false;
+                
+                const cellVal = (config as any)[key];
+                if (cellVal && typeof cellVal === 'string') {
+                    const rowMatch = cellVal.match(/\d+/);
+                    if (rowMatch) {
+                        const rowNum = parseInt(rowMatch[0]);
+                        // Si la fila del mapeo coincide con la fila de productos,
+                        // ¡definitivamente es un campo de producto repetitivo!
+                        if (rowNum === productStartRow) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            });
 
             if (productStartRow > 0 && q.products.length > 0) {
+                if (productFields.length > 0) {
+                    for (let i = 0; i < 9; i++) {
+                        destSheet.spliceRows(productStartRow + 1, 1);
+                    }
+                }
+
                 // Insert additional rows if there is more than 1 product
                 for (let idx = 1; idx < q.products.length; idx++) {
                     const insertRowIndex = productStartRow + idx;
                     destSheet.insertRow(insertRowIndex, []);
                     copyRowStyle(destSheet, productStartRow, insertRowIndex);
                 }
+
+                const fieldAliases: Record<string, string> = {
+                    nights: 'noches',
+                    destination: 'destino',
+                    price: 'precio',
+                    cost: 'costo',
+                    quantity: 'cantidad',
+                    adicionalesServ: 'adicionalesServ'
+                };
 
                 // Write product properties row by row
                 q.products.forEach((prod, idx) => {
@@ -644,13 +783,26 @@ export async function GET(req: Request) {
                             const colName = cellKey.match(/[A-Z]+/)?.[0] || '';
                             if (colName) {
                                 const targetCellKey = `${colName}${currentRow}`;
+                                
+                                // Extraer valor con soporte para aliases y variables dinámicas
                                 let value = (prod as any)[field];
+                                if (value === undefined) {
+                                    const aliasKey = fieldAliases[field];
+                                    if (aliasKey) {
+                                        value = (prod as any)[aliasKey];
+                                    }
+                                }
+
                                 if (field.endsWith('Pago') && field !== 'pasajeros') {
                                     const baseField = field.substring(0, field.length - 4);
-                                    const baseVal = (prod as any)[baseField] || 0;
+                                    const aliasKey = fieldAliases[baseField];
+                                    const baseVal = (prod as any)[baseField] !== undefined 
+                                        ? (prod as any)[baseField] 
+                                        : ((prod as any)[aliasKey || baseField] || 0);
                                     const comisionVal = prod.comision || 0;
                                     value = baseVal - comisionVal;
                                 }
+
                                 setVal(targetCellKey, value);
                             }
                         }
@@ -744,18 +896,31 @@ export async function GET(req: Request) {
             for (const q of groupedList) {
                 const dbInfo = qDbMap.get(q.idCotizacion);
                 let htmlTemplate = null;
+                const physicalConfig = await getCellCustomizationConfig(
+                    dbInfo?.branch?.id || null,
+                    dbInfo?.implant?.id || null
+                );
                 const templateConfigRaw = dbInfo?.implant?.templateConfig || dbInfo?.branch?.templateConfig;
                 
-                let config = DEFAULT_CONFIG;
-                if (templateConfigRaw && typeof templateConfigRaw === 'object') {
-                    config = { ...DEFAULT_CONFIG, ...(templateConfigRaw as any) };
+                const templateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
+                let config = DEFAULT_CONFIG as any;
+                if (templateBuffer) {
+                    config = {
+                        ...(templateConfigRaw as any || {}),
+                        ...(physicalConfig || {})
+                    };
+                } else if (templateConfigRaw || physicalConfig) {
+                    config = { 
+                        ...DEFAULT_CONFIG, 
+                        ...(templateConfigRaw as any || {}), 
+                        ...(physicalConfig || {}) 
+                    };
                 }
 
                 if (!htmlTemplate) {
-                    const templateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
                     if (templateBuffer) {
                         try {
-                            htmlTemplate = await generateHtmlTemplate(Buffer.from(templateBuffer), config);
+                            htmlTemplate = await generateHtmlTemplate(Buffer.from(templateBuffer), config, null, q.products.length);
                         } catch (err) {
                             console.error(`Error auto-generating htmlTemplate for quotation ${q.idCotizacion}:`, err);
                         }
@@ -766,7 +931,7 @@ export async function GET(req: Request) {
                     try {
                         const defaultTemplatePath = path.join(process.cwd(), 'templates', 'default_template.xlsx');
                         const defaultBuffer = fs.readFileSync(defaultTemplatePath);
-                        htmlTemplate = await generateHtmlTemplate(defaultBuffer, config);
+                        htmlTemplate = await generateHtmlTemplate(defaultBuffer, config, null, q.products.length);
                     } catch (err) {
                         console.error(`Error loading default template HTML:`, err);
                         htmlTemplate = '<div>No template layout available.</div>';
@@ -851,6 +1016,24 @@ export async function GET(req: Request) {
                     replacements[`prov${pNum}Fee`] = formatCurrency(prod.fee);
                     replacements[`prov${pNum}Total`] = formatCurrency(prod.total);
                     replacements[`prov${pNum}TotalPago`] = formatCurrency(prod.total - prod.comision);
+
+                    // Dynamic mappings for any property in prod:
+                    Object.entries(prod).forEach(([propKey, propVal]) => {
+                        let formattedVal = propVal !== null && propVal !== undefined ? String(propVal) : '';
+                        if (typeof propVal === 'number') {
+                            formattedVal = formatCurrency(propVal);
+                        } else if (propVal instanceof Date) {
+                            formattedVal = formatDate(propVal.toISOString());
+                        } else if (typeof propVal === 'string' && propVal.match(/^\d{4}-\d{2}-\d{2}/)) {
+                            formattedVal = formatDate(propVal);
+                        }
+                        
+                        const capitalizedKey = propKey.charAt(0).toUpperCase() + propKey.slice(1);
+                        replacements[`prov${pNum}${propKey}`] = formattedVal;
+                        replacements[`prov${pNum}${capitalizedKey}`] = formattedVal;
+                        replacements[`proveedor${pNum}${propKey}`] = formattedVal;
+                        replacements[`proveedor${pNum}${capitalizedKey}`] = formattedVal;
+                    });
                 });
 
                 Object.keys(q).forEach(key => {
@@ -864,6 +1047,9 @@ export async function GET(req: Request) {
                     const token = `{{${key}}}`;
                     compiledHtml = compiledHtml.split(token).join(val);
                 });
+
+                // Limpieza de cualquier token huérfano no configurado o antiguo (ej. {{proveedorNIT}})
+                compiledHtml = compiledHtml.replace(/\{\{[^}]+\}\}/g, '');
 
                 htmlReports.push({
                     idCotizacion: q.idCotizacion,

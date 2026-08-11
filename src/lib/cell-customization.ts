@@ -135,7 +135,7 @@ export async function syncCellCustomization(
 
         // Upsert all mapping coordinates
         for (const [key, value] of Object.entries(templateConfig)) {
-            if (key === '__customNames') continue;
+            if (key === '__customNames' || key === '__productFields' || key === '__keysOrder') continue;
             // Coordinate value can be empty (meaning deleted or empty, but let's upsert if provided)
             const valStr = value !== null && value !== undefined ? String(value) : '';
             const name = __customNames[key] || FIELD_LABELS[key] || key;

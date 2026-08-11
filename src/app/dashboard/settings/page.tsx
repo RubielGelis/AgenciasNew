@@ -25,7 +25,9 @@ import {
     Download,
     Hotel as HotelIcon,
     TerminalSquare,
-    Copy
+    Copy,
+    ArrowUp,
+    ArrowDown
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SearchSelect } from '@/components/SearchSelect'
@@ -118,6 +120,329 @@ export default function SettingsPage() {
         return () => clearTimeout(handler)
     }, [searchTerm])
 
+    const getFieldLabel = (key: string) => {
+        const customNames = formData.templateConfig?.__customNames || {};
+        if (customNames[key]) return customNames[key];
+
+        const productGenericLabels: Record<string, string> = {
+            proveedorNombre: 'Proveedor Nombre',
+            proveedorNIT: 'Proveedor NIT',
+            proveedorContacto: 'Proveedor Contacto',
+            tarifaNeta: 'Tarifa Neta',
+            tarifaNetaPago: 'Tarifa Neta Pago',
+            impuestos: 'Impuestos',
+            impuestosPago: 'Impuestos Pago',
+            adicionalesServ: 'Adicionales',
+            adicionalesServPago: 'Adicionales Pago',
+            comision: 'Comisión',
+            descuento: 'Descuento',
+            sobrecomision: 'Sobrecomisión',
+            fee: 'Fee',
+            total: 'Total',
+            totalPago: 'Total Pago',
+            checkIn: 'Check-In',
+            checkOut: 'Check-Out',
+            nights: 'Noches',
+            destination: 'Destino',
+            quantity: 'Cantidad',
+            price: 'Precio de Venta',
+            cost: 'Costo',
+            paxAdultos: 'Adultos',
+            paxNinos: 'Niños',
+            sellerCommission: 'Comisión Asesor',
+            ticketPrinterCommission: 'Comisión Tiqueteador',
+            inNationality: 'Nacionalidad',
+            servicio: 'Detalle Servicio',
+            descripcion: 'Descripción Manual',
+            prestadoraNombre: 'Prestadora Nombre',
+            prestadoraCategoria: 'Prestadora Categoría',
+            prestadoraUbicacion: 'Prestadora Ubicación',
+            productDescripcion: 'Producto Descripción',
+            productTipo: 'Producto Tipo',
+            productCodigo: 'Producto Código',
+            productConcepto: 'Producto Concepto',
+            productItinerario: 'Producto Itinerario',
+            productClase: 'Producto Clase',
+            productVuelo: 'Producto Vuelo'
+        };
+
+        if (productGenericLabels[key]) {
+            return `Producto: ${productGenericLabels[key]}`;
+        }
+
+        const dynamicVarMatch = key.match(/^prov(\d+)_(.+)$/);
+        if (dynamicVarMatch) {
+            const pNum = dynamicVarMatch[1];
+            const varCode = dynamicVarMatch[2];
+            const v = variables.find(x => x.code === varCode);
+            return `Prov ${pNum}: ${v ? v.name : varCode}`;
+        }
+
+        const vGen = variables.find(x => x.code === key);
+        if (vGen) return `Producto: ${vGen.name}`;
+
+        const prodMatch = key.match(/^(prov|proveedor)(\d+)(.+)$/);
+        if (prodMatch) {
+            const prefix = prodMatch[1];
+            const pNum = prodMatch[2];
+            const suffix = prodMatch[3];
+            
+            const labels: Record<string, string> = {
+                Nombre: 'Nombre',
+                NIT: 'NIT',
+                Contacto: 'Contacto',
+                TarifaNeta: 'Tarifa Neta',
+                TarifaNetaPago: 'Tarifa Neta Pago',
+                Impuestos: 'Impuestos',
+                ImpuestosPago: 'Impuestos Pago',
+                Adicionales: 'Adicionales',
+                AdicionalesPago: 'Adicionales Pago',
+                Comision: 'Comisión',
+                Descuento: 'Descuento',
+                Sobrecomision: 'Sobrecomisión',
+                Fee: 'Fee',
+                Total: 'Total',
+                TotalPago: 'Total Pago',
+                checkIn: 'Check-In',
+                checkOut: 'Check-Out',
+                nights: 'Noches',
+                destination: 'Destino',
+                quantity: 'Cantidad',
+                price: 'Precio de Venta',
+                cost: 'Costo',
+                paxAdultos: 'Adultos',
+                paxNinos: 'Niños',
+                sellerCommission: 'Comisión Asesor',
+                ticketPrinterCommission: 'Comisión Tiqueteador',
+                inNationality: 'Nacionalidad',
+                servicio: 'Detalle Servicio',
+                descripcion: 'Descripción Manual',
+                prestadoraNombre: 'Prestadora Nombre',
+                prestadoraCategoria: 'Prestadora Categoría',
+                prestadoraUbicacion: 'Prestadora Ubicación',
+                productDescripcion: 'Producto Descripción',
+                productTipo: 'Producto Tipo',
+                productCodigo: 'Producto Código',
+                productConcepto: 'Producto Concepto',
+                productItinerario: 'Producto Itinerario',
+                productClase: 'Producto Clase',
+                productVuelo: 'Producto Vuelo'
+            };
+            const baseName = prefix === 'proveedor' ? `Proveedor ${pNum}` : `Prov ${pNum}`;
+            return `${baseName}: ${labels[suffix] || suffix}`;
+        }
+
+        const generalLabels: Record<string, string> = {
+            idCotizacion: 'ID Cotización',
+            internalNumber: 'Número Interno',
+            fecha: 'Fecha',
+            clienteNombre: 'Cliente Nombre',
+            clienteIdentificacion: 'Cliente ID / NIT',
+            clienteDireccion: 'Dirección',
+            clienteTelefono: 'Teléfono',
+            asesor: 'Asesor',
+            vendedor: 'Vendedor',
+            currency: 'Moneda',
+            tCambio: 'Tasa de Cambio',
+            comisionTotalPercentage: 'Comisión Total (%)',
+            comisionFreelancePercentage: 'Comisión Freelance (%)',
+            comisionPropiaPercentage: 'Comisión Propia (%)',
+            state: 'Estado de Cotización',
+            descripcionPlan: 'Descripción Plan',
+            fechasViaje: 'Fechas Viaje',
+            logo: 'Celda Logo',
+            observaciones: 'Observaciones',
+            pasajeros: 'Pasajeros',
+            totalAdultos: 'Total Adultos',
+            totalNinos: 'Total Niños',
+            tarifaNeta: 'Total: Tarifa Neta',
+            tarifaNetaPago: 'Total: Tarifa Neta Pago',
+            impuestos: 'Total: Impuestos',
+            impuestosPago: 'Total: Impuestos Pago',
+            adicionalesServ: 'Total: Adicionales',
+            adicionalesServPago: 'Total: Adicionales Pago',
+            comision: 'Total: Comisión',
+            descuento: 'Total: Descuento',
+            sobrecomision: 'Total: Sobrecomisión',
+            fee: 'Total: Fee',
+            total: 'Total: Total',
+            totalPago: 'Total: Total Pago',
+            baseComisionable: 'Base Comisión',
+            comisionAsesor: 'Comisión Asesor',
+            baseComisionTop: 'Comisión Top'
+        };
+
+        return generalLabels[key] || key;
+    };
+
+    const renderMappingOptions = () => {
+        const headerFields = [
+            { key: 'idCotizacion', label: 'ID Cotización' },
+            { key: 'internalNumber', label: 'Número Interno' },
+            { key: 'fecha', label: 'Fecha' },
+            { key: 'clienteNombre', label: 'Cliente Nombre' },
+            { key: 'clienteIdentificacion', label: 'Cliente ID / NIT' },
+            { key: 'clienteDireccion', label: 'Dirección' },
+            { key: 'clienteTelefono', label: 'Teléfono' },
+            { key: 'asesor', label: 'Asesor' },
+            { key: 'vendedor', label: 'Vendedor' },
+            { key: 'currency', label: 'Moneda' },
+            { key: 'tCambio', label: 'Tasa de Cambio' },
+            { key: 'comisionTotalPercentage', label: 'Comisión Total (%)' },
+            { key: 'comisionFreelancePercentage', label: 'Comisión Freelance (%)' },
+            { key: 'comisionPropiaPercentage', label: 'Comisión Propia (%)' },
+            { key: 'state', label: 'Estado de Cotización' },
+            { key: 'descripcionPlan', label: 'Descripción Plan' },
+            { key: 'fechasViaje', label: 'Fechas Viaje' },
+            { key: 'logo', label: 'Celda Logo' },
+            { key: 'observaciones', label: 'Observaciones' },
+            { key: 'pasajeros', label: 'Pasajeros' },
+            { key: 'totalAdultos', label: 'Total Adultos' },
+            { key: 'totalNinos', label: 'Total Niños' },
+            { key: 'tarifaNeta', label: 'Total: Tarifa Neta' },
+            { key: 'tarifaNetaPago', label: 'Total: Tarifa Neta Pago' },
+            { key: 'impuestos', label: 'Total: Impuestos' },
+            { key: 'impuestosPago', label: 'Total: Impuestos Pago' },
+            { key: 'adicionalesServ', label: 'Total: Adicionales' },
+            { key: 'adicionalesServPago', label: 'Total: Adicionales Pago' },
+            { key: 'comision', label: 'Total: Comisión' },
+            { key: 'descuento', label: 'Total: Descuento' },
+            { key: 'sobrecomision', label: 'Total: Sobrecomisión' },
+            { key: 'fee', label: 'Total: Fee' },
+            { key: 'total', label: 'Total: Total' },
+            { key: 'totalPago', label: 'Total: Total Pago' },
+            { key: 'baseComisionable', label: 'Base Comisión' },
+            { key: 'comisionAsesor', label: 'Comisión Asesor' },
+            { key: 'baseComisionTop', label: 'Comisión Top' }
+        ];
+
+        const baseProductFields = [
+            { keySuffix: 'Nombre', keyPrefix: 'proveedor', labelSuffix: 'Nombre', labelPrefix: 'Proveedor' },
+            { keySuffix: 'NIT', keyPrefix: 'proveedor', labelSuffix: 'NIT', labelPrefix: 'Proveedor' },
+            { keySuffix: 'Contacto', keyPrefix: 'proveedor', labelSuffix: 'Contacto', labelPrefix: 'Proveedor' },
+            { keySuffix: 'TarifaNeta', keyPrefix: 'prov', labelSuffix: 'Tarifa Neta', labelPrefix: 'Prov' },
+            { keySuffix: 'TarifaNetaPago', keyPrefix: 'prov', labelSuffix: 'Tarifa Neta Pago', labelPrefix: 'Prov' },
+            { keySuffix: 'Impuestos', keyPrefix: 'prov', labelSuffix: 'Impuestos', labelPrefix: 'Prov' },
+            { keySuffix: 'ImpuestosPago', keyPrefix: 'prov', labelSuffix: 'Impuestos Pago', labelPrefix: 'Prov' },
+            { keySuffix: 'Adicionales', keyPrefix: 'prov', labelSuffix: 'Adicionales', labelPrefix: 'Prov' },
+            { keySuffix: 'AdicionalesPago', keyPrefix: 'prov', labelSuffix: 'Adicionales Pago', labelPrefix: 'Prov' },
+            { keySuffix: 'Comision', keyPrefix: 'prov', labelSuffix: 'Comisión', labelPrefix: 'Prov' },
+            { keySuffix: 'Descuento', keyPrefix: 'prov', labelSuffix: 'Descuento', labelPrefix: 'Prov' },
+            { keySuffix: 'Sobrecomision', keyPrefix: 'prov', labelSuffix: 'Sobrecomisión', labelPrefix: 'Prov' },
+            { keySuffix: 'Fee', keyPrefix: 'prov', labelSuffix: 'Fee', labelPrefix: 'Prov' },
+            { keySuffix: 'Total', keyPrefix: 'prov', labelSuffix: 'Total', labelPrefix: 'Prov' },
+            { keySuffix: 'TotalPago', keyPrefix: 'prov', labelSuffix: 'Total Pago', labelPrefix: 'Prov' },
+            { keySuffix: 'checkIn', keyPrefix: 'prov', labelSuffix: 'Check-In', labelPrefix: 'Prov' },
+            { keySuffix: 'checkOut', keyPrefix: 'prov', labelSuffix: 'Check-Out', labelPrefix: 'Prov' },
+            { keySuffix: 'nights', keyPrefix: 'prov', labelSuffix: 'Noches', labelPrefix: 'Prov' },
+            { keySuffix: 'destination', keyPrefix: 'prov', labelSuffix: 'Destino', labelPrefix: 'Prov' },
+            { keySuffix: 'quantity', keyPrefix: 'prov', labelSuffix: 'Cantidad', labelPrefix: 'Prov' },
+            { keySuffix: 'price', keyPrefix: 'prov', labelSuffix: 'Precio de Venta', labelPrefix: 'Prov' },
+            { keySuffix: 'cost', keyPrefix: 'prov', labelSuffix: 'Costo', labelPrefix: 'Prov' },
+            { keySuffix: 'paxAdultos', keyPrefix: 'prov', labelSuffix: 'Adultos', labelPrefix: 'Prov' },
+            { keySuffix: 'paxNinos', keyPrefix: 'prov', labelSuffix: 'Niños', labelPrefix: 'Prov' },
+            { keySuffix: 'sellerCommission', keyPrefix: 'prov', labelSuffix: 'Comisión Asesor', labelPrefix: 'Prov' },
+            { keySuffix: 'ticketPrinterCommission', keyPrefix: 'prov', labelSuffix: 'Comisión Tiqueteador', labelPrefix: 'Prov' },
+            { keySuffix: 'inNationality', keyPrefix: 'prov', labelSuffix: 'Nacionalidad', labelPrefix: 'Prov' },
+            { keySuffix: 'servicio', keyPrefix: 'prov', labelSuffix: 'Detalle Servicio', labelPrefix: 'Prov' },
+            { keySuffix: 'descripcion', keyPrefix: 'prov', labelSuffix: 'Descripción Manual', labelPrefix: 'Prov' },
+            { keySuffix: 'prestadoraNombre', keyPrefix: 'prov', labelSuffix: 'Prestadora Nombre', labelPrefix: 'Prov' },
+            { keySuffix: 'prestadoraCategoria', keyPrefix: 'prov', labelSuffix: 'Prestadora Categoría', labelPrefix: 'Prov' },
+            { keySuffix: 'prestadoraUbicacion', keyPrefix: 'prov', labelSuffix: 'Prestadora Ubicación', labelPrefix: 'Prov' },
+            { keySuffix: 'productDescripcion', keyPrefix: 'prov', labelSuffix: 'Producto Descripción', labelPrefix: 'Prov' },
+            { keySuffix: 'productTipo', keyPrefix: 'prov', labelSuffix: 'Producto Tipo', labelPrefix: 'Prov' },
+            { keySuffix: 'productCodigo', keyPrefix: 'prov', labelSuffix: 'Producto Código', labelPrefix: 'Prov' },
+            { keySuffix: 'productConcepto', keyPrefix: 'prov', labelSuffix: 'Producto Concepto', labelPrefix: 'Prov' },
+            { keySuffix: 'productItinerario', keyPrefix: 'prov', labelSuffix: 'Producto Itinerario', labelPrefix: 'Prov' },
+            { keySuffix: 'productClase', keyPrefix: 'prov', labelSuffix: 'Producto Clase', labelPrefix: 'Prov' },
+            { keySuffix: 'productVuelo', keyPrefix: 'prov', labelSuffix: 'Producto Vuelo', labelPrefix: 'Prov' },
+        ];
+
+        const genericProductFields = [
+            { key: 'proveedorNombre', label: 'Proveedor Nombre' },
+            { key: 'proveedorNIT', label: 'Proveedor NIT' },
+            { key: 'proveedorContacto', label: 'Proveedor Contacto' },
+            { key: 'tarifaNeta', label: 'Tarifa Neta' },
+            { key: 'tarifaNetaPago', label: 'Tarifa Neta Pago' },
+            { key: 'impuestos', label: 'Impuestos' },
+            { key: 'impuestosPago', label: 'Impuestos Pago' },
+            { key: 'adicionalesServ', label: 'Adicionales' },
+            { key: 'adicionalesServPago', label: 'Adicionales Pago' },
+            { key: 'comision', label: 'Comisión' },
+            { key: 'descuento', label: 'Descuento' },
+            { key: 'sobrecomision', label: 'Sobrecomisión' },
+            { key: 'fee', label: 'Fee' },
+            { key: 'total', label: 'Total' },
+            { key: 'totalPago', label: 'Total Pago' },
+            { key: 'checkIn', label: 'Check-In' },
+            { key: 'checkOut', label: 'Check-Out' },
+            { key: 'nights', label: 'Noches' },
+            { key: 'destination', label: 'Destino' },
+            { key: 'quantity', label: 'Cantidad' },
+            { key: 'price', label: 'Precio de Venta' },
+            { key: 'cost', label: 'Costo' },
+            { key: 'paxAdultos', label: 'Adultos' },
+            { key: 'paxNinos', label: 'Niños' },
+            { key: 'sellerCommission', label: 'Comisión Asesor' },
+            { key: 'ticketPrinterCommission', label: 'Comisión Tiqueteador' },
+            { key: 'inNationality', label: 'Nacionalidad' },
+            { key: 'servicio', label: 'Detalle Servicio' },
+            { key: 'descripcion', label: 'Descripción Manual' },
+            { key: 'prestadoraNombre', label: 'Prestadora Nombre' },
+            { key: 'prestadoraCategoria', label: 'Prestadora Categoría' },
+            { key: 'prestadoraUbicacion', label: 'Prestadora Ubicación' },
+            { key: 'productDescripcion', label: 'Producto Descripción' },
+            { key: 'productTipo', label: 'Producto Tipo' },
+            { key: 'productCodigo', label: 'Producto Código' },
+            { key: 'productConcepto', label: 'Producto Concepto' },
+            { key: 'productItinerario', label: 'Producto Itinerario' },
+            { key: 'productClase', label: 'Producto Clase' },
+            { key: 'productVuelo', label: 'Producto Vuelo' }
+        ];
+
+        return (
+            <>
+                <optgroup label="Campos Generales (Cabecera)">
+                    {headerFields.map(f => (
+                        <option key={f.key} value={`${f.key}|${f.label}`}>{f.label}</option>
+                    ))}
+                </optgroup>
+
+                <optgroup label="Campos de Producto (Dinámico / Fila Repetida)">
+                    {genericProductFields.map(f => (
+                        <option key={f.key} value={`${f.key}|${f.label}`}>{f.label}</option>
+                    ))}
+                    {variables && variables.map((v: any) => (
+                        <option key={v.code} value={`${v.code}|Producto: ${v.name}`}>{v.name}</option>
+                    ))}
+                </optgroup>
+
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(pNum => (
+                    <optgroup key={pNum} label={`Producto ${pNum} (Estático)`}>
+                        {baseProductFields.map(f => {
+                            const key = `${f.keyPrefix}${pNum}${f.keySuffix}`;
+                            const label = `${f.labelPrefix} ${pNum}: ${f.labelSuffix}`;
+                            return (
+                                <option key={key} value={`${key}|${label}`}>{f.labelSuffix}</option>
+                            );
+                        })}
+                        {variables && variables.map((v: any) => {
+                            const key = `prov${pNum}_${v.code}`;
+                            const label = `Prov ${pNum}: ${v.name}`;
+                            return (
+                                <option key={key} value={`${key}|${label}`}>{v.name}</option>
+                            );
+                        })}
+                    </optgroup>
+                ))}
+
+                <optgroup label="Personalizado">
+                    <option value="custom|Personalizado (Ingresar manualmente)">Personalizado (Ingresar manualmente)</option>
+                </optgroup>
+            </>
+        );
+    };
+
     // Reset pagination and search on tab change
     useEffect(() => {
         setCurrentPage(1)
@@ -176,7 +501,7 @@ export default function SettingsPage() {
                 setBranches(Array.isArray(b) ? b : []);
                 setImplants(Array.isArray(i) ? i : []);
                 setTicketPrinters(Array.isArray(tp) ? tp : []);
-            } else if (tab === 'clientes') {
+            } else if (tab === 'clientes' || tab === 'sucursales' || tab === 'implants') {
                 const res = await fetch('/api/config/variables').then(res => res.json());
                 setVariables(Array.isArray(res) ? res : []);
             }
@@ -1362,30 +1687,46 @@ export default function SettingsPage() {
                                                 </label>
                                                 <div className="flex items-center gap-4">
                                                     <input 
-                                                        type="file" 
-                                                        accept=".xlsx,.xls"
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (file) {
-                                                                const reader = new FileReader();
-                                                                reader.onloadend = () => {
-                                                                    setFormData({ ...formData, template: reader.result });
-                                                                };
-                                                                reader.readAsDataURL(file);
-                                                            }
-                                                        }}
-                                                        className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                                                    />
-                                                    {formData.hasTemplate && !formData.template && (
-                                                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
-                                                            ✓ Guardada
-                                                        </span>
-                                                    )}
-                                                    {formData.template && (
-                                                        <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
-                                                            ✓ Nueva
-                                                        </span>
-                                                    )}
+                                                         type="file" 
+                                                         id="implant-template-file-input"
+                                                         accept=".xlsx,.xls"
+                                                         onChange={(e) => {
+                                                             const file = e.target.files?.[0];
+                                                             if (file) {
+                                                                 const reader = new FileReader();
+                                                                 reader.onloadend = () => {
+                                                                     setFormData({ ...formData, template: reader.result, clearTemplate: false });
+                                                                 };
+                                                                 reader.readAsDataURL(file);
+                                                             }
+                                                         }}
+                                                         className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                                                     />
+                                                     {formData.hasTemplate && !formData.template && !formData.clearTemplate && (
+                                                         <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md shrink-0">
+                                                             ✓ Guardada
+                                                         </span>
+                                                     )}
+                                                     {formData.template && (
+                                                         <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md shrink-0">
+                                                             ✓ Nueva
+                                                         </span>
+                                                     )}
+                                                     {((formData.hasTemplate && !formData.clearTemplate) || formData.template) && (
+                                                         <button
+                                                             type="button"
+                                                             onClick={() => {
+                                                                 setFormData({ ...formData, template: null, hasTemplate: false, clearTemplate: true });
+                                                                 const fileInput = document.getElementById('implant-template-file-input') as HTMLInputElement;
+                                                                 if (fileInput) fileInput.value = '';
+                                                             }}
+                                                             className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 rounded-xl text-xs font-bold transition-all border border-red-100 shrink-0"
+                                                             title="Eliminar plantilla actual de la base de datos"
+                                                         >
+                                                             <Trash2 className="w-3.5 h-3.5" />
+                                                             <span>Eliminar</span>
+                                                         </button>
+                                                     )}
                                                 </div>
                                             </div>
 
@@ -1407,107 +1748,36 @@ export default function SettingsPage() {
                                                                         <th className="py-2 px-3">Campo / Descripción</th>
                                                                         <th className="py-2 px-3">Token / Código</th>
                                                                         <th className="py-2 px-3 w-32">Coordenada</th>
-                                                                        <th className="py-2 px-3 w-16 text-center">Acción</th>
+                                                                        <th className="py-2 px-3 w-28 text-center">Acción</th>
                                                                     </tr>
                                                                 </thead>
                                                                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                                                                     {(() => {
                                                                         const config = formData.templateConfig || {};
                                                                         const customNames = config.__customNames || {};
-                                                                        const standardFields = [
-                                                                            { key: 'idCotizacion', label: 'ID Cotización' },
-                                                                            { key: 'asesor', label: 'Asesor' },
-                                                                            { key: 'fecha', label: 'Fecha' },
-                                                                            { key: 'clienteNombre', label: 'Cliente Nombre' },
-                                                                            { key: 'clienteIdentificacion', label: 'Cliente ID' },
-                                                                            { key: 'clienteDireccion', label: 'Dirección' },
-                                                                            { key: 'clienteTelefono', label: 'Teléfono' },
-                                                                            { key: 'centroCosto', label: 'C. Costo' },
-                                                                            { key: 'solicita', label: 'Solicita' },
-                                                                            { key: 'tCambio', label: 'T. Cambio' },
-                                                                            { key: 'descripcionPlan', label: 'Desc Plan' },
-                                                                            { key: 'fechasViaje', label: 'Fechas Viaje' },
-                                                                            { key: 'hotelesServicios', label: 'Servicios' },
-                                                                            { key: 'pasajeros', label: 'Pasajeros' },
-                                                                            { key: 'totalAdultos', label: 'Total Adultos' },
-                                                                            { key: 'totalNinos', label: 'Total Niños' },
-                                                                            { key: 'logo', label: 'Celda Logo' },
-                                                                            { key: 'proveedor1Nombre', label: 'Prov 1: Nombre' },
-                                                                            { key: 'proveedor1NIT', label: 'Prov 1: NIT' },
-                                                                            { key: 'proveedor1Contacto', label: 'Prov 1: Contacto' },
-                                                                            { key: 'prov1TarifaNeta', label: 'Prov 1: Neta' },
-                                                                            { key: 'prov1TarifaNetaPago', label: 'Prov 1: Neta Pago' },
-                                                                            { key: 'prov1Impuestos', label: 'Prov 1: Impuestos' },
-                                                                            { key: 'prov1ImpuestosPago', label: 'Prov 1: Impuestos Pago' },
-                                                                            { key: 'prov1Adicionales', label: 'Prov 1: Adicionales' },
-                                                                            { key: 'prov1AdicionalesPago', label: 'Prov 1: Adicionales Pago' },
-                                                                            { key: 'prov1Comision', label: 'Prov 1: Comisión' },
-                                                                            { key: 'prov1Descuento', label: 'Prov 1: Descuento' },
-                                                                            { key: 'prov1Sobrecomision', label: 'Prov 1: Sobrecomisión' },
-                                                                            { key: 'prov1Fee', label: 'Prov 1: Fee' },
-                                                                            { key: 'prov1Total', label: 'Prov 1: Total' },
-                                                                            { key: 'prov1TotalPago', label: 'Prov 1: Total Pago' },
-                                                                            { key: 'proveedor2Nombre', label: 'Prov 2: Nombre' },
-                                                                            { key: 'proveedor2NIT', label: 'Prov 2: NIT' },
-                                                                            { key: 'proveedor2Contacto', label: 'Prov 2: Contacto' },
-                                                                            { key: 'prov2TarifaNeta', label: 'Prov 2: Neta' },
-                                                                            { key: 'prov2TarifaNetaPago', label: 'Prov 2: Neta Pago' },
-                                                                            { key: 'prov2Impuestos', label: 'Prov 2: Impuestos' },
-                                                                            { key: 'prov2ImpuestosPago', label: 'Prov 2: Impuestos Pago' },
-                                                                            { key: 'prov2Adicionales', label: 'Prov 2: Adicionales' },
-                                                                            { key: 'prov2AdicionalesPago', label: 'Prov 2: Adicionales Pago' },
-                                                                            { key: 'prov2Comision', label: 'Prov 2: Comisión' },
-                                                                            { key: 'prov2Descuento', label: 'Prov 2: Descuento' },
-                                                                            { key: 'prov2Sobrecomision', label: 'Prov 2: Sobrecomisión' },
-                                                                            { key: 'prov2Fee', label: 'Prov 2: Fee' },
-                                                                            { key: 'prov2Total', label: 'Prov 2: Total' },
-                                                                            { key: 'prov2TotalPago', label: 'Prov 2: Total Pago' },
-                                                                            { key: 'tarifaNeta', label: 'Total: Tarifa Neta' },
-                                                                            { key: 'tarifaNetaPago', label: 'Total: Neta Pago' },
-                                                                            { key: 'impuestos', label: 'Total: Impuestos' },
-                                                                            { key: 'impuestosPago', label: 'Total: Impuestos Pago' },
-                                                                            { key: 'adicionalesServ', label: 'Total: Adicionales' },
-                                                                            { key: 'adicionalesServPago', label: 'Total: Adicionales Pago' },
-                                                                            { key: 'comision', label: 'Total: Comisión' },
-                                                                            { key: 'descuento', label: 'Total: Descuento' },
-                                                                            { key: 'sobrecomision', label: 'Total: Sobrecomisión' },
-                                                                            { key: 'fee', label: 'Total: Fee' },
-                                                                            { key: 'total', label: 'Total: Total' },
-                                                                            { key: 'totalPago', label: 'Total: Total Pago' },
-                                                                            { key: 'baseComisionable', label: 'Base Comisión' },
-                                                                            { key: 'comisionAsesor', label: 'Comisión Asesor' },
-                                                                            { key: 'baseComisionTop', label: 'Comisión Top' },
-                                                                            { key: 'observaciones', label: 'Observaciones' }
-                                                                        ];
-
-                                                                        const DEFAULT_CONFIG = {
+                                                                        const defaultPlaceholders: Record<string, string> = {
                                                                             asesor: "B4", fecha: "G4", clienteNombre: "B7", clienteIdentificacion: "G7",
                                                                             clienteDireccion: "B8", clienteTelefono: "G8", centroCosto: "B9", solicita: "G9",
                                                                             tCambio: "G11", descripcionPlan: "B12", fechasViaje: "G12", hotelesServicios: "A13",
-                                                                            pasajeros: "B14", totalAdultos: "C15", totalNinos: "G15", logo: "A1",
-                                                                            proveedor1Nombre: "B18", proveedor1NIT: "E18", proveedor1Contacto: "H18",
-                                                                            proveedor2Nombre: "B19", proveedor2NIT: "E19", proveedor2Contacto: "H19",
-                                                                            prov1TarifaNeta: "B23", prov1TarifaNetaPago: "D23", prov1Impuestos: "B24", prov1ImpuestosPago: "D24",
-                                                                            prov1Adicionales: "B25", prov1AdicionalesPago: "D25", prov1Comision: "B26", prov1Descuento: "B27",
-                                                                            prov1Sobrecomision: "B28", prov1Fee: "B29", prov1Total: "B30", prov1TotalPago: "D30",
-                                                                            prov2TarifaNeta: "G23", prov2TarifaNetaPago: "I23", prov2Impuestos: "G24", prov2ImpuestosPago: "I24",
-                                                                            prov2Adicionales: "G25", prov2AdicionalesPago: "G25", prov2Comision: "G26", prov2Descuento: "G27",
-                                                                            prov2Sobrecomision: "G28", prov2Fee: "G29", prov2Total: "G30", prov2TotalPago: "I30",
-                                                                            tarifaNeta: "B23", tarifaNetaPago: "D23", impuestos: "B24", impuestosPago: "D24",
-                                                                            adicionalesServ: "B25", adicionalesServPago: "D25", comision: "B26", descuento: "B27",
-                                                                            sobrecomision: "B28", fee: "B29", total: "B30", totalPago: "D30",
-                                                                            baseComisionable: "B35", comisionAsesor: "B36", baseComisionTop: "B37", observaciones: "B42"
+                                                                            pasajeros: "B14", totalAdultos: "C15", totalNinos: "G15", logo: "A1"
                                                                         };
 
-                                                                        const customFields = Object.keys(customNames).map(k => ({
-                                                                            key: k,
-                                                                            label: customNames[k] || k,
-                                                                            isCustom: true
+                                                                        let mappedKeys = Object.keys(config).filter(k => k !== '__customNames' && k !== '__productFields' && k !== '__keysOrder');
+                                                                        if (config && Array.isArray(config.__keysOrder)) {
+                                                                            const ordered = config.__keysOrder.filter((k: string) => k in config);
+                                                                            const missing = mappedKeys.filter(k => !ordered.includes(k));
+                                                                            mappedKeys = [...ordered, ...missing];
+                                                                        }
+                                                                        
+                                                                        const allFields = mappedKeys.map(key => ({
+                                                                            key,
+                                                                            label: getFieldLabel(key),
+                                                                            isCustom: key.startsWith('col_') || !!customNames[key]
                                                                         }));
 
-                                                                        const allFields = [...standardFields, ...customFields] as any[];
+                                                                        const DEFAULT_CONFIG = defaultPlaceholders as any;
 
-                                                                        return allFields.map((f) => (
+                                                                        return allFields.map((f, idx) => (
                                                                             <tr key={f.key} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
                                                                                 <td className="py-2 px-3 font-semibold text-zinc-700 dark:text-zinc-300">
                                                                                     {f.isCustom ? (
@@ -1547,6 +1817,12 @@ export default function SettingsPage() {
                                                                                                 newNames[newKey] = label || f.label;
                                                                                                 
                                                                                                 newConfig.__customNames = newNames;
+                                                                                                
+                                                                                                // Actualizar la clave en __keysOrder
+                                                                                                if (Array.isArray(config.__keysOrder)) {
+                                                                                                    newConfig.__keysOrder = config.__keysOrder.map((k: string) => k === f.key ? newKey : k);
+                                                                                                }
+                                                                                                
                                                                                                 setFormData({ ...formData, templateConfig: newConfig });
                                                                                             }}
                                                                                             className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
@@ -1570,7 +1846,53 @@ export default function SettingsPage() {
                                                                                     />
                                                                                 </td>
                                                                                 <td className="py-2 px-3 text-center">
-                                                                                    {f.isCustom ? (
+                                                                                    <div className="flex items-center justify-center gap-1.5">
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            disabled={idx === 0}
+                                                                                            onClick={() => {
+                                                                                                const keys = [...mappedKeys];
+                                                                                                const temp = keys[idx];
+                                                                                                keys[idx] = keys[idx - 1];
+                                                                                                keys[idx - 1] = temp;
+                                                                                                
+                                                                                                const newConfig: any = {};
+                                                                                                keys.forEach(k => {
+                                                                                                    newConfig[k] = config[k];
+                                                                                                });
+                                                                                                newConfig.__keysOrder = keys;
+                                                                                                if (config.__customNames) newConfig.__customNames = config.__customNames;
+                                                                                                if (config.__productFields) newConfig.__productFields = config.__productFields;
+                                                                                                setFormData({ ...formData, templateConfig: newConfig });
+                                                                                            }}
+                                                                                            className="p-1 text-zinc-400 hover:text-blue-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-20 disabled:pointer-events-none"
+                                                                                            title="Subir Posición"
+                                                                                        >
+                                                                                            <ArrowUp className="w-3.5 h-3.5" />
+                                                                                        </button>
+                                                                                        <button
+                                                                                            type="button"
+                                                                                            disabled={idx === mappedKeys.length - 1}
+                                                                                            onClick={() => {
+                                                                                                const keys = [...mappedKeys];
+                                                                                                const temp = keys[idx];
+                                                                                                keys[idx] = keys[idx + 1];
+                                                                                                keys[idx + 1] = temp;
+                                                                                                
+                                                                                                const newConfig: any = {};
+                                                                                                keys.forEach(k => {
+                                                                                                    newConfig[k] = config[k];
+                                                                                                });
+                                                                                                newConfig.__keysOrder = keys;
+                                                                                                if (config.__customNames) newConfig.__customNames = config.__customNames;
+                                                                                                if (config.__productFields) newConfig.__productFields = config.__productFields;
+                                                                                                setFormData({ ...formData, templateConfig: newConfig });
+                                                                                            }}
+                                                                                            className="p-1 text-zinc-400 hover:text-blue-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-20 disabled:pointer-events-none"
+                                                                                            title="Bajar Posición"
+                                                                                        >
+                                                                                            <ArrowDown className="w-3.5 h-3.5" />
+                                                                                        </button>
                                                                                         <button
                                                                                             type="button"
                                                                                             onClick={() => {
@@ -1579,14 +1901,17 @@ export default function SettingsPage() {
                                                                                                 const newConfig = { ...config };
                                                                                                 delete newConfig[f.key];
                                                                                                 newConfig.__customNames = newNames;
+                                                                                                if (Array.isArray(config.__keysOrder)) {
+                                                                                                    newConfig.__keysOrder = config.__keysOrder.filter((k: string) => k !== f.key);
+                                                                                                }
                                                                                                 setFormData({ ...formData, templateConfig: newConfig });
                                                                                             }}
-                                                                                            className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
-                                                                                            title="Eliminar Columna"
+                                                                                            className="p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
+                                                                                            title="Eliminar del Mapeo"
                                                                                         >
-                                                                                            <Trash2 className="w-4 h-4" />
+                                                                                            <Trash2 className="w-3.5 h-3.5" />
                                                                                         </button>
-                                                                                    ) : null}
+                                                                                    </div>
                                                                                 </td>
                                                                             </tr>
                                                                         ));
@@ -1594,22 +1919,78 @@ export default function SettingsPage() {
                                                                 </tbody>
                                                             </table>
                                                         </div>
-                                                        <div className="flex justify-end">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    const config = formData.templateConfig || {};
-                                                                    const customNames = config.__customNames || {};
-                                                                    const newId = 'col_' + Date.now();
-                                                                    const newConfig = { ...config, [newId]: '' };
-                                                                    newConfig.__customNames = { ...customNames, [newId]: 'Nueva Columna' };
-                                                                    setFormData({ ...formData, templateConfig: newConfig });
-                                                                }}
-                                                                className="px-4 py-2 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl transition-all flex items-center gap-1.5"
-                                                            >
-                                                                <Plus className="w-3.5 h-3.5" />
-                                                                Agregar Columna Dinámica
-                                                            </button>
+                                                        <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider pl-1 block">Agregar Variable de Cotización al Mapeo</span>
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="flex-1">
+                                                                    <select
+                                                                        id="field-selector-implant"
+                                                                        className="w-full h-10 px-3 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
+                                                                        defaultValue=""
+                                                                    >
+                                                                        <option value="" disabled>-- Seleccionar Campo de Cotización --</option>
+                                                                        {renderMappingOptions()}
+                                                                    </select>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const selectEl = document.getElementById('field-selector-implant') as HTMLSelectElement;
+                                                                        if (!selectEl || !selectEl.value) return;
+                                                                        const [key, label] = selectEl.value.split('|');
+                                                                        
+                                                                        const config = formData.templateConfig || {};
+                                                                        const customNames = config.__customNames || {};
+                                                                        
+                                                                        let finalKey = key;
+                                                                        let finalLabel = label;
+                                                                        if (key === 'custom') {
+                                                                            finalKey = 'col_' + Date.now();
+                                                                            finalLabel = 'Nueva Columna';
+                                                                        }
+                                                                        
+                                                                        const newConfig = { ...config, [finalKey]: '' };
+                                                                        if (key === 'custom' || !getFieldLabel(finalKey)) {
+                                                                            newConfig.__customNames = { ...customNames, [finalKey]: finalLabel };
+                                                                        } else if (label) {
+                                                                            newConfig.__customNames = { ...customNames, [finalKey]: finalLabel };
+                                                                        }
+                                                                        
+                                                                        let currentKeys = Array.isArray(config.__keysOrder) ? [...config.__keysOrder] : Object.keys(config).filter(k => k !== '__customNames' && k !== '__productFields' && k !== '__keysOrder');
+                                                                        if (!currentKeys.includes(finalKey)) {
+                                                                            currentKeys.push(finalKey);
+                                                                        }
+                                                                        newConfig.__keysOrder = currentKeys;
+                                                                        
+                                                                        setFormData({ ...formData, templateConfig: newConfig });
+                                                                        selectEl.value = "";
+                                                                    }}
+                                                                    className="px-4 h-10 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all"
+                                                                >
+                                                                    + Agregar al Mapeo
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const config = formData.templateConfig || {};
+                                                                        const customNames = config.__customNames || {};
+                                                                        const newId = 'col_' + Date.now();
+                                                                        const newConfig = { ...config, [newId]: '' };
+                                                                        newConfig.__customNames = { ...customNames, [newId]: 'Nueva Columna' };
+                                                                        
+                                                                        let currentKeys = Array.isArray(config.__keysOrder) ? [...config.__keysOrder] : Object.keys(config).filter(k => k !== '__customNames' && k !== '__productFields' && k !== '__keysOrder');
+                                                                        if (!currentKeys.includes(newId)) {
+                                                                            currentKeys.push(newId);
+                                                                        }
+                                                                        newConfig.__keysOrder = currentKeys;
+                                                                        
+                                                                        setFormData({ ...formData, templateConfig: newConfig });
+                                                                    }}
+                                                                    className="px-4 h-10 text-xs font-bold bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl transition-all"
+                                                                >
+                                                                    + Campo Personalizado
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </details>
@@ -2322,30 +2703,46 @@ export default function SettingsPage() {
                                                             </label>
                                                             <div className="flex items-center gap-4">
                                                                 <input 
-                                                                    type="file" 
-                                                                    accept=".xlsx,.xls"
-                                                                    onChange={(e) => {
-                                                                        const file = e.target.files?.[0];
-                                                                        if (file) {
-                                                                            const reader = new FileReader();
-                                                                            reader.onloadend = () => {
-                                                                                setFormData({ ...formData, template: reader.result });
-                                                                            };
-                                                                            reader.readAsDataURL(file);
-                                                                        }
-                                                                    }}
-                                                                    className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
-                                                                />
-                                                                {formData.hasTemplate && !formData.template && (
-                                                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md">
-                                                                        ✓ Guardada
-                                                                    </span>
-                                                                )}
-                                                                {formData.template && (
-                                                                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
-                                                                        ✓ Nueva
-                                                                    </span>
-                                                                )}
+                                                                     type="file" 
+                                                                     id="branch-template-file-input"
+                                                                     accept=".xlsx,.xls"
+                                                                     onChange={(e) => {
+                                                                         const file = e.target.files?.[0];
+                                                                         if (file) {
+                                                                             const reader = new FileReader();
+                                                                             reader.onloadend = () => {
+                                                                                 setFormData({ ...formData, template: reader.result, clearTemplate: false });
+                                                                             };
+                                                                             reader.readAsDataURL(file);
+                                                                         }
+                                                                     }}
+                                                                     className="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                                                                 />
+                                                                 {formData.hasTemplate && !formData.template && !formData.clearTemplate && (
+                                                                     <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-md shrink-0">
+                                                                         ✓ Guardada
+                                                                     </span>
+                                                                 )}
+                                                                 {formData.template && (
+                                                                     <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md shrink-0">
+                                                                         ✓ Nueva
+                                                                     </span>
+                                                                 )}
+                                                                 {((formData.hasTemplate && !formData.clearTemplate) || formData.template) && (
+                                                                     <button
+                                                                         type="button"
+                                                                         onClick={() => {
+                                                                             setFormData({ ...formData, template: null, hasTemplate: false, clearTemplate: true });
+                                                                             const fileInput = document.getElementById('branch-template-file-input') as HTMLInputElement;
+                                                                             if (fileInput) fileInput.value = '';
+                                                                         }}
+                                                                         className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 rounded-xl text-xs font-bold transition-all border border-red-100 shrink-0"
+                                                                         title="Eliminar plantilla actual de la base de datos"
+                                                                     >
+                                                                         <Trash2 className="w-3.5 h-3.5" />
+                                                                         <span>Eliminar</span>
+                                                                     </button>
+                                                                 )}
                                                             </div>
                                                         </div>
 
@@ -2368,107 +2765,36 @@ export default function SettingsPage() {
                                                                                     <th className="py-2 px-3">Campo / Descripción</th>
                                                                                     <th className="py-2 px-3">Token / Código</th>
                                                                                     <th className="py-2 px-3 w-32">Coordenada</th>
-                                                                                    <th className="py-2 px-3 w-16 text-center">Acción</th>
+                                                                                    <th className="py-2 px-3 w-28 text-center">Acción</th>
                                                                                 </tr>
                                                                             </thead>
                                                                             <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                                                                                 {(() => {
                                                                                     const config = formData.templateConfig || {};
                                                                                     const customNames = config.__customNames || {};
-                                                                                    const standardFields = [
-                                                                                        { key: 'idCotizacion', label: 'ID Cotización' },
-                                                                                        { key: 'asesor', label: 'Asesor' },
-                                                                                        { key: 'fecha', label: 'Fecha' },
-                                                                                        { key: 'clienteNombre', label: 'Cliente Nombre' },
-                                                                                        { key: 'clienteIdentificacion', label: 'Cliente ID' },
-                                                                                        { key: 'clienteDireccion', label: 'Dirección' },
-                                                                                        { key: 'clienteTelefono', label: 'Teléfono' },
-                                                                                        { key: 'centroCosto', label: 'C. Costo' },
-                                                                                        { key: 'solicita', label: 'Solicita' },
-                                                                                        { key: 'tCambio', label: 'T. Cambio' },
-                                                                                        { key: 'descripcionPlan', label: 'Desc Plan' },
-                                                                                        { key: 'fechasViaje', label: 'Fechas Viaje' },
-                                                                                        { key: 'hotelesServicios', label: 'Servicios' },
-                                                                                        { key: 'pasajeros', label: 'Pasajeros' },
-                                                                                        { key: 'totalAdultos', label: 'Total Adultos' },
-                                                                                        { key: 'totalNinos', label: 'Total Niños' },
-                                                                                        { key: 'logo', label: 'Celda Logo' },
-                                                                                        { key: 'proveedor1Nombre', label: 'Prov 1: Nombre' },
-                                                                                        { key: 'proveedor1NIT', label: 'Prov 1: NIT' },
-                                                                                        { key: 'proveedor1Contacto', label: 'Prov 1: Contacto' },
-                                                                                        { key: 'prov1TarifaNeta', label: 'Prov 1: Neta' },
-                                                                                        { key: 'prov1TarifaNetaPago', label: 'Prov 1: Neta Pago' },
-                                                                                        { key: 'prov1Impuestos', label: 'Prov 1: Impuestos' },
-                                                                                        { key: 'prov1ImpuestosPago', label: 'Prov 1: Impuestos Pago' },
-                                                                                        { key: 'prov1Adicionales', label: 'Prov 1: Adicionales' },
-                                                                                        { key: 'prov1AdicionalesPago', label: 'Prov 1: Adicionales Pago' },
-                                                                                        { key: 'prov1Comision', label: 'Prov 1: Comisión' },
-                                                                                        { key: 'prov1Descuento', label: 'Prov 1: Descuento' },
-                                                                                        { key: 'prov1Sobrecomision', label: 'Prov 1: Sobrecomisión' },
-                                                                                        { key: 'prov1Fee', label: 'Prov 1: Fee' },
-                                                                                        { key: 'prov1Total', label: 'Prov 1: Total' },
-                                                                                        { key: 'prov1TotalPago', label: 'Prov 1: Total Pago' },
-                                                                                        { key: 'proveedor2Nombre', label: 'Prov 2: Nombre' },
-                                                                                        { key: 'proveedor2NIT', label: 'Prov 2: NIT' },
-                                                                                        { key: 'proveedor2Contacto', label: 'Prov 2: Contacto' },
-                                                                                        { key: 'prov2TarifaNeta', label: 'Prov 2: Tarifa Neta' },
-                                                                                        { key: 'prov2TarifaNetaPago', label: 'Prov 2: Neta Pago' },
-                                                                                        { key: 'prov2Impuestos', label: 'Prov 2: Impuestos' },
-                                                                                        { key: 'prov2ImpuestosPago', label: 'Prov 2: Impuestos Pago' },
-                                                                                        { key: 'prov2Adicionales', label: 'Prov 2: Adicionales' },
-                                                                                        { key: 'prov2AdicionalesPago', label: 'Prov 2: Adicionales Pago' },
-                                                                                        { key: 'prov2Comision', label: 'Prov 2: Comisión' },
-                                                                                        { key: 'prov2Descuento', label: 'Prov 2: Descuento' },
-                                                                                        { key: 'prov2Sobrecomision', label: 'Prov 2: Sobrecomisión' },
-                                                                                        { key: 'prov2Fee', label: 'Prov 2: Fee' },
-                                                                                        { key: 'prov2Total', label: 'Prov 2: Total' },
-                                                                                        { key: 'prov2TotalPago', label: 'Prov 2: Total Pago' },
-                                                                                        { key: 'tarifaNeta', label: 'Total: Tarifa Neta' },
-                                                                                        { key: 'tarifaNetaPago', label: 'Total: Neta Pago' },
-                                                                                        { key: 'impuestos', label: 'Total: Impuestos' },
-                                                                                        { key: 'impuestosPago', label: 'Total: Impuestos Pago' },
-                                                                                        { key: 'adicionalesServ', label: 'Total: Adicionales' },
-                                                                                        { key: 'adicionalesServPago', label: 'Total: Adicionales Pago' },
-                                                                                        { key: 'comision', label: 'Total: Comisión' },
-                                                                                        { key: 'descuento', label: 'Total: Descuento' },
-                                                                                        { key: 'sobrecomision', label: 'Total: Sobrecomisión' },
-                                                                                        { key: 'fee', label: 'Total: Fee' },
-                                                                                        { key: 'total', label: 'Total: Total' },
-                                                                                        { key: 'totalPago', label: 'Total: Total Pago' },
-                                                                                        { key: 'baseComisionable', label: 'Base Comisión' },
-                                                                                        { key: 'comisionAsesor', label: 'Comisión Asesor' },
-                                                                                        { key: 'baseComisionTop', label: 'Comisión Top' },
-                                                                                        { key: 'observaciones', label: 'Observaciones' }
-                                                                                    ];
-
-                                                                                    const DEFAULT_CONFIG = {
+                                                                                    const defaultPlaceholders: Record<string, string> = {
                                                                                         asesor: "B4", fecha: "G4", clienteNombre: "B7", clienteIdentificacion: "G7",
                                                                                         clienteDireccion: "B8", clienteTelefono: "G8", centroCosto: "B9", solicita: "G9",
                                                                                         tCambio: "G11", descripcionPlan: "B12", fechasViaje: "G12", hotelesServicios: "A13",
-                                                                                        pasajeros: "B14", totalAdultos: "C15", totalNinos: "G15", logo: "A1",
-                                                                                        proveedor1Nombre: "B18", proveedor1NIT: "E18", proveedor1Contacto: "H18",
-                                                                                        proveedor2Nombre: "B19", proveedor2NIT: "E19", proveedor2Contacto: "H19",
-                                                                                        prov1TarifaNeta: "B23", prov1TarifaNetaPago: "D23", prov1Impuestos: "B24", prov1ImpuestosPago: "D24",
-                                                                                        prov1Adicionales: "B25", prov1AdicionalesPago: "D25", prov1Comision: "B26", prov1Descuento: "B27",
-                                                                                        prov1Sobrecomision: "B28", prov1Fee: "B29", prov1Total: "B30", prov1TotalPago: "D30",
-                                                                                        prov2TarifaNeta: "G23", prov2TarifaNetaPago: "I23", prov2Impuestos: "G24", prov2ImpuestosPago: "I24",
-                                                                                        prov2Adicionales: "G25", prov2AdicionalesPago: "G25", prov2Comision: "G26", prov2Descuento: "G27",
-                                                                                        prov2Sobrecomision: "G28", prov2Fee: "G29", prov2Total: "G30", prov2TotalPago: "I30",
-                                                                                        tarifaNeta: "B23", tarifaNetaPago: "D23", impuestos: "B24", impuestosPago: "D24",
-                                                                                        adicionalesServ: "B25", adicionalesServPago: "D25", comision: "B26", descuento: "B27",
-                                                                                        sobrecomision: "B28", fee: "B29", total: "B30", totalPago: "D30",
-                                                                                        baseComisionable: "B35", comisionAsesor: "B36", baseComisionTop: "B37", observaciones: "B42"
+                                                                                        pasajeros: "B14", totalAdultos: "C15", totalNinos: "G15", logo: "A1"
                                                                                     };
 
-                                                                                    const customFields = Object.keys(customNames).map(k => ({
-                                                                                        key: k,
-                                                                                        label: customNames[k] || k,
-                                                                                        isCustom: true
+                                                                                    let mappedKeys = Object.keys(config).filter(k => k !== '__customNames' && k !== '__productFields' && k !== '__keysOrder');
+                                                                                    if (config && Array.isArray(config.__keysOrder)) {
+                                                                                        const ordered = config.__keysOrder.filter((k: string) => k in config);
+                                                                                        const missing = mappedKeys.filter(k => !ordered.includes(k));
+                                                                                        mappedKeys = [...ordered, ...missing];
+                                                                                    }
+                                                                                    
+                                                                                    const allFields = mappedKeys.map(key => ({
+                                                                                        key,
+                                                                                        label: getFieldLabel(key),
+                                                                                        isCustom: key.startsWith('col_') || !!customNames[key]
                                                                                     }));
 
-                                                                                    const allFields = [...standardFields, ...customFields] as any[];
+                                                                                    const DEFAULT_CONFIG = defaultPlaceholders as any;
 
-                                                                                    return allFields.map((f) => (
+                                                                                    return allFields.map((f, idx) => (
                                                                                         <tr key={f.key} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all">
                                                                                             <td className="py-2 px-3 font-semibold text-zinc-700 dark:text-zinc-300">
                                                                                                 {f.isCustom ? (
@@ -2508,6 +2834,12 @@ export default function SettingsPage() {
                                                                                                             newNames[newKey] = label || f.label;
                                                                                                             
                                                                                                             newConfig.__customNames = newNames;
+                                                                                                            
+                                                                                                            // Actualizar la clave en __keysOrder
+                                                                                                            if (Array.isArray(config.__keysOrder)) {
+                                                                                                                newConfig.__keysOrder = config.__keysOrder.map((k: string) => k === f.key ? newKey : k);
+                                                                                                            }
+                                                                                                            
                                                                                                             setFormData({ ...formData, templateConfig: newConfig });
                                                                                                         }}
                                                                                                         className="w-full h-8 px-2 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-semibold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
@@ -2531,7 +2863,53 @@ export default function SettingsPage() {
                                                                                                 />
                                                                                             </td>
                                                                                             <td className="py-2 px-3 text-center">
-                                                                                                {f.isCustom ? (
+                                                                                                <div className="flex items-center justify-center gap-1.5">
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        disabled={idx === 0}
+                                                                                                        onClick={() => {
+                                                                                                            const keys = [...mappedKeys];
+                                                                                                            const temp = keys[idx];
+                                                                                                            keys[idx] = keys[idx - 1];
+                                                                                                            keys[idx - 1] = temp;
+                                                                                                            
+                                                                                                            const newConfig: any = {};
+                                                                                                            keys.forEach(k => {
+                                                                                                                newConfig[k] = config[k];
+                                                                                                            });
+                                                                                                            newConfig.__keysOrder = keys;
+                                                                                                            if (config.__customNames) newConfig.__customNames = config.__customNames;
+                                                                                                            if (config.__productFields) newConfig.__productFields = config.__productFields;
+                                                                                                            setFormData({ ...formData, templateConfig: newConfig });
+                                                                                                        }}
+                                                                                                        className="p-1 text-zinc-400 hover:text-blue-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-20 disabled:pointer-events-none"
+                                                                                                        title="Subir Posición"
+                                                                                                    >
+                                                                                                        <ArrowUp className="w-3.5 h-3.5" />
+                                                                                                    </button>
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        disabled={idx === mappedKeys.length - 1}
+                                                                                                        onClick={() => {
+                                                                                                            const keys = [...mappedKeys];
+                                                                                                            const temp = keys[idx];
+                                                                                                            keys[idx] = keys[idx + 1];
+                                                                                                            keys[idx + 1] = temp;
+                                                                                                            
+                                                                                                            const newConfig: any = {};
+                                                                                                            keys.forEach(k => {
+                                                                                                                newConfig[k] = config[k];
+                                                                                                            });
+                                                                                                            newConfig.__keysOrder = keys;
+                                                                                                            if (config.__customNames) newConfig.__customNames = config.__customNames;
+                                                                                                            if (config.__productFields) newConfig.__productFields = config.__productFields;
+                                                                                                            setFormData({ ...formData, templateConfig: newConfig });
+                                                                                                        }}
+                                                                                                        className="p-1 text-zinc-400 hover:text-blue-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-20 disabled:pointer-events-none"
+                                                                                                        title="Bajar Posición"
+                                                                                                    >
+                                                                                                        <ArrowDown className="w-3.5 h-3.5" />
+                                                                                                    </button>
                                                                                                     <button
                                                                                                         type="button"
                                                                                                         onClick={() => {
@@ -2540,14 +2918,17 @@ export default function SettingsPage() {
                                                                                                             const newConfig = { ...config };
                                                                                                             delete newConfig[f.key];
                                                                                                             newConfig.__customNames = newNames;
+                                                                                                            if (Array.isArray(config.__keysOrder)) {
+                                                                                                                newConfig.__keysOrder = config.__keysOrder.filter((k: string) => k !== f.key);
+                                                                                                            }
                                                                                                             setFormData({ ...formData, templateConfig: newConfig });
                                                                                                         }}
-                                                                                                        className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
-                                                                                                        title="Eliminar Columna"
+                                                                                                        className="p-1 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
+                                                                                                        title="Eliminar del Mapeo"
                                                                                                     >
-                                                                                                        <Trash2 className="w-4 h-4" />
+                                                                                                        <Trash2 className="w-3.5 h-3.5" />
                                                                                                     </button>
-                                                                                                ) : null}
+                                                                                                </div>
                                                                                             </td>
                                                                                         </tr>
                                                                                     ));
@@ -2555,22 +2936,78 @@ export default function SettingsPage() {
                                                                             </tbody>
                                                                         </table>
                                                                     </div>
-                                                                    <div className="flex justify-end">
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => {
-                                                                                const config = formData.templateConfig || {};
-                                                                                const customNames = config.__customNames || {};
-                                                                                const newId = 'col_' + Date.now();
-                                                                                const newConfig = { ...config, [newId]: '' };
-                                                                                newConfig.__customNames = { ...customNames, [newId]: 'Nueva Columna' };
-                                                                                setFormData({ ...formData, templateConfig: newConfig });
-                                                                            }}
-                                                                            className="px-4 py-2 text-xs font-bold bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl transition-all flex items-center gap-1.5"
-                                                                        >
-                                                                            <Plus className="w-3.5 h-3.5" />
-                                                                            Agregar Columna Dinámica
-                                                                        </button>
+                                                                    <div className="flex flex-col gap-4 mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                                                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider pl-1 block">Agregar Variable de Cotización al Mapeo</span>
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div className="flex-1">
+                                                                                <select
+                                                                                    id="field-selector-branch"
+                                                                                    className="w-full h-10 px-3 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
+                                                                                    defaultValue=""
+                                                                                >
+                                                                                    <option value="" disabled>-- Seleccionar Campo de Cotización --</option>
+                                                                                    {renderMappingOptions()}
+                                                                                </select>
+                                                                            </div>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    const selectEl = document.getElementById('field-selector-branch') as HTMLSelectElement;
+                                                                                    if (!selectEl || !selectEl.value) return;
+                                                                                    const [key, label] = selectEl.value.split('|');
+                                                                                    
+                                                                                    const config = formData.templateConfig || {};
+                                                                                    const customNames = config.__customNames || {};
+                                                                                    
+                                                                                    let finalKey = key;
+                                                                                    let finalLabel = label;
+                                                                                    if (key === 'custom') {
+                                                                                        finalKey = 'col_' + Date.now();
+                                                                                        finalLabel = 'Nueva Columna';
+                                                                                    }
+                                                                                    
+                                                                                    const newConfig = { ...config, [finalKey]: '' };
+                                                                                    if (key === 'custom' || !getFieldLabel(finalKey)) {
+                                                                                        newConfig.__customNames = { ...customNames, [finalKey]: finalLabel };
+                                                                                    } else if (label) {
+                                                                                        newConfig.__customNames = { ...customNames, [finalKey]: finalLabel };
+                                                                                    }
+                                                                                    
+                                                                                    let currentKeys = Array.isArray(config.__keysOrder) ? [...config.__keysOrder] : Object.keys(config).filter(k => k !== '__customNames' && k !== '__productFields' && k !== '__keysOrder');
+                                                                                    if (!currentKeys.includes(finalKey)) {
+                                                                                        currentKeys.push(finalKey);
+                                                                                    }
+                                                                                    newConfig.__keysOrder = currentKeys;
+                                                                                    
+                                                                                    setFormData({ ...formData, templateConfig: newConfig });
+                                                                                    selectEl.value = "";
+                                                                                }}
+                                                                                className="px-4 h-10 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all"
+                                                                            >
+                                                                                + Agregar al Mapeo
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    const config = formData.templateConfig || {};
+                                                                                    const customNames = config.__customNames || {};
+                                                                                    const newId = 'col_' + Date.now();
+                                                                                    const newConfig = { ...config, [newId]: '' };
+                                                                                    newConfig.__customNames = { ...customNames, [newId]: 'Nueva Columna' };
+                                                                                    
+                                                                                    let currentKeys = Array.isArray(config.__keysOrder) ? [...config.__keysOrder] : Object.keys(config).filter(k => k !== '__customNames' && k !== '__productFields' && k !== '__keysOrder');
+                                                                                    if (!currentKeys.includes(newId)) {
+                                                                                        currentKeys.push(newId);
+                                                                                    }
+                                                                                    newConfig.__keysOrder = currentKeys;
+                                                                                    
+                                                                                    setFormData({ ...formData, templateConfig: newConfig });
+                                                                                }}
+                                                                                className="px-4 h-10 text-xs font-bold bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl transition-all"
+                                                                            >
+                                                                                + Campo Personalizado
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </details>

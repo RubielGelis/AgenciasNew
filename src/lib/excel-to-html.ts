@@ -9,6 +9,28 @@ function colNameToIndex(colName: string): number {
     return index - 1;
 }
 
+function shouldClearFormulaResult(formulaText: string, productStartRow: number, productsCount: number): boolean {
+    if (!formulaText) return false;
+    
+    // Rango de filas de productos eliminadas
+    const minEliminatedRow = productStartRow + (productsCount > 0 ? productsCount : 10);
+    const maxEliminatedRow = productStartRow + 9;
+    
+    if (minEliminatedRow > maxEliminatedRow) return false;
+    
+    // Buscamos todos los números en la fórmula (que representan filas)
+    const matches = formulaText.match(/\d+/g);
+    if (matches) {
+        for (const m of matches) {
+            const rowNum = parseInt(m);
+            if (rowNum >= minEliminatedRow && rowNum <= maxEliminatedRow) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 function parseColor(colorObj: any): string | null {
     if (!colorObj) return null;
     if (colorObj.argb) {
@@ -172,7 +194,8 @@ function clearUnconfiguredFields(sheet: ExcelJS.Worksheet, config: any) {
 export async function generateHtmlTemplate(
     templateBuffer: Buffer,
     config: any,
-    logoBuffer?: Buffer | null
+    logoBuffer?: Buffer | null,
+    productsCount?: number
 ): Promise<string> {
     let finalBuffer = templateBuffer;
     
@@ -198,23 +221,55 @@ export async function generateHtmlTemplate(
     clearUnconfiguredFields(sheet, config);
 
     // Replace cell values with placeholders based on coordinates config
-    // 1. Identify product start row number from config.proveedorNombre
+    // 1. Identify product start row number from config
     let productStartRow = 0;
-    if (config.proveedorNombre) {
-        productStartRow = parseInt(config.proveedorNombre.match(/\d+/)?.[0] || '0');
+    const productFieldsToTry = [
+        'proveedorNombre', 'proveedorNIT', 'proveedorContacto', 'tarifaNeta',
+        'total', 'servicio', 'productDescripcion', 'checkIn', 'destino'
+    ];
+    for (const field of productFieldsToTry) {
+        const cell = (config as any)[field];
+        if (cell && typeof cell === 'string') {
+            const rowMatch = cell.match(/\d+/);
+            if (rowMatch) {
+                productStartRow = parseInt(rowMatch[0]);
+                break;
+            }
+        }
     }
 
-    const productFields = [
-        'proveedorNombre', 'proveedorNIT', 'proveedorContacto',
-        'tarifaNeta', 'tarifaNetaPago', 'impuestos', 'impuestosPago',
-        'adicionalesServ', 'adicionalesServPago', 'comision', 'descuento',
-        'sobrecomision', 'fee', 'total', 'totalPago', 'fechasViaje',
-        'hotelesServicios', 'pasajeros', 'totalAdultos', 'totalNinos', 'vendedor'
-    ];
+    // Deducimos los campos repetitivos del producto a partir de config
+    const productFields = Object.keys(config).filter(key => {
+        if (key === '__customNames' || key === '__productFields') return false;
+        // Excluimos campos indexados tradicionales (heredados)
+        if (key.match(/^(prov|proveedor)\d+.+$/)) return false;
+        
+        const cellVal = (config as any)[key];
+        if (cellVal && typeof cellVal === 'string') {
+            const rowMatch = cellVal.match(/\d+/);
+            if (rowMatch) {
+                const rowNum = parseInt(rowMatch[0]);
+                // Si la fila del mapeo coincide con la fila de productos,
+                // ¡definitivamente es un campo de producto repetitivo!
+                if (rowNum === productStartRow) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    });
 
     if (productStartRow > 0) {
-        // Insert additional product rows in template (prepare up to 10 rows in preview)
-        for (let idx = 1; idx < 10; idx++) {
+        if (productFields.length > 0) {
+            for (let i = 0; i < 9; i++) {
+                sheet.spliceRows(productStartRow + 1, 1);
+            }
+        }
+
+        const numProductsToPrepare = productsCount !== undefined ? productsCount : 10;
+
+        // Insert additional product rows in template (prepare up to numProductsToPrepare rows)
+        for (let idx = 1; idx < numProductsToPrepare; idx++) {
             const insertRowIndex = productStartRow + idx;
             sheet.insertRow(insertRowIndex, []);
             
@@ -229,7 +284,7 @@ export async function generateHtmlTemplate(
         }
 
         // Map product tokens to their respective cells
-        for (let idx = 0; idx < 10; idx++) {
+        for (let idx = 0; idx < numProductsToPrepare; idx++) {
             const currentRow = productStartRow + idx;
             const pNum = idx + 1;
 
@@ -247,21 +302,33 @@ export async function generateHtmlTemplate(
                                 cell.value = `{{proveedor${pNum}NIT}}`;
                             } else if (field === 'proveedorContacto') {
                                 cell.value = `{{proveedor${pNum}Contacto}}`;
-                            } else if (field.startsWith('prov') || field === 'tarifaNeta' || field === 'impuestos' || field === 'adicionalesServ' || field === 'comision' || field === 'descuento' || field === 'sobrecomision' || field === 'fee' || field === 'total') {
-                                let mappedField = field;
-                                if (field === 'tarifaNeta') mappedField = 'provTarifaNeta';
-                                else if (field === 'impuestos') mappedField = 'provImpuestos';
-                                else if (field === 'adicionalesServ') mappedField = 'provAdicionales';
-                                else if (field === 'comision') mappedField = 'provComision';
-                                else if (field === 'descuento') mappedField = 'provDescuento';
-                                else if (field === 'sobrecomision') mappedField = 'provSobrecomision';
-                                else if (field === 'fee') mappedField = 'provFee';
-                                else if (field === 'total') mappedField = 'provTotal';
-
-                                const fieldNameWithoutProv = mappedField.startsWith('prov') && !mappedField.startsWith('proveedor') ? mappedField.substring(4) : mappedField;
-                                cell.value = `{{prov${pNum}${fieldNameWithoutProv}}}`;
+                            } else if (field === 'tarifaNeta') {
+                                cell.value = `{{prov${pNum}TarifaNeta}}`;
+                            } else if (field === 'tarifaNetaPago') {
+                                cell.value = `{{prov${pNum}TarifaNetaPago}}`;
+                            } else if (field === 'impuestos') {
+                                cell.value = `{{prov${pNum}Impuestos}}`;
+                            } else if (field === 'impuestosPago') {
+                                cell.value = `{{prov${pNum}ImpuestosPago}}`;
+                            } else if (field === 'adicionalesServ') {
+                                cell.value = `{{prov${pNum}Adicionales}}`;
+                            } else if (field === 'adicionalesServPago') {
+                                cell.value = `{{prov${pNum}AdicionalesPago}}`;
+                            } else if (field === 'comision') {
+                                cell.value = `{{prov${pNum}Comision}}`;
+                            } else if (field === 'descuento') {
+                                cell.value = `{{prov${pNum}Descuento}}`;
+                            } else if (field === 'sobrecomision') {
+                                cell.value = `{{prov${pNum}Sobrecomision}}`;
+                            } else if (field === 'fee') {
+                                cell.value = `{{prov${pNum}Fee}}`;
+                            } else if (field === 'total') {
+                                cell.value = `{{prov${pNum}Total}}`;
+                            } else if (field === 'totalPago') {
+                                cell.value = `{{prov${pNum}TotalPago}}`;
                             } else {
-                                cell.value = `{{${field}${pNum}}}`;
+                                const capitalizedField = field.charAt(0).toUpperCase() + field.slice(1);
+                                cell.value = `{{prov${pNum}${capitalizedField}}}`;
                             }
                         } catch (e) {
                             console.error(`Error setting product token for ${field} at row ${currentRow}:`, e);
@@ -515,10 +582,17 @@ export async function generateHtmlTemplate(
                     if (typeof cellVal === 'object') {
                         if ('result' in cellVal) {
                             const res = (cellVal as any).result;
-                            if ((res as any) instanceof Date) {
-                                textToShow = (res as any).toLocaleDateString();
+                            const formula = (cellVal as any).formula;
+                            const count = productsCount !== undefined ? productsCount : 10;
+                            
+                            if (formula && productStartRow > 0 && shouldClearFormulaResult(formula, productStartRow, count)) {
+                                textToShow = '';
                             } else {
-                                textToShow = res !== null && res !== undefined ? String(res) : '';
+                                if ((res as any) instanceof Date) {
+                                    textToShow = (res as any).toLocaleDateString();
+                                } else {
+                                    textToShow = res !== null && res !== undefined ? String(res) : '';
+                                }
                             }
                         } else if ('richText' in cellVal) {
                             textToShow = (cellVal as any).richText.map((rt: any) => rt.text || '').join('');

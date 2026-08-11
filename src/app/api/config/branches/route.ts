@@ -116,7 +116,13 @@ export async function PUT(req: NextRequest) {
         let finalLogoBuffer = logoBuffer;
         let finalTemplateBuffer = templateBuffer;
         
-        if (!finalTemplateBuffer || !finalLogoBuffer) {
+        if (body.clearTemplate) {
+            await prisma.branch.update({
+                where: { id: dbId },
+                data: { template: null, htmlTemplate: null }
+            });
+            finalTemplateBuffer = null;
+        } else if (!finalTemplateBuffer || !finalLogoBuffer) {
             const current = await prisma.branch.findUnique({
                 where: { id: dbId },
                 select: { template: true, logo: true }
