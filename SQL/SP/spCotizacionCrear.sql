@@ -184,12 +184,23 @@ BEGIN
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
         "branchId", "implantId", "sellerId", "ticketPrinterId", 
         "baseCommissionable", "commissionPercentage", "chargesAndTaxes", 
-        "totalAmount", "userId", "state", "stateDescription", "stateUpdatedAt"
+        "totalAmount", "userId", "state", "stateDescription", "stateUpdatedAt",
+        "destination", "startDate", "endDate", "passenger", "paxAdults", "paxChildren",
+        "reservationCode", "copyFieldsToProducts", "manualDescription"
     ) VALUES (
         v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
         NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
         0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, ROUND(NULLIF(p_data->>'chargesAndTaxes', '')::numeric, v_decimals)::double precision,
-        ROUND(NULLIF(p_data->>'totalAmount', '')::numeric, v_decimals)::double precision, p_acting_user_id, 'NUEVO', 'Creación de cotización', CURRENT_TIMESTAMP
+        ROUND(NULLIF(p_data->>'totalAmount', '')::numeric, v_decimals)::double precision, p_acting_user_id, 'NUEVO', 'Creación de cotización', CURRENT_TIMESTAMP,
+        p_data->>'destination', 
+        CASE WHEN p_data->>'startDate' IS NOT NULL AND p_data->>'startDate' <> '' THEN (p_data->>'startDate')::TIMESTAMP ELSE NULL END,
+        CASE WHEN p_data->>'endDate' IS NOT NULL AND p_data->>'endDate' <> '' THEN (p_data->>'endDate')::TIMESTAMP ELSE NULL END,
+        p_data->>'passenger',
+        NULLIF(p_data->>'paxAdults', '')::INT,
+        NULLIF(p_data->>'paxChildren', '')::INT,
+        p_data->>'reservationCode',
+        COALESCE(NULLIF(p_data->>'copyFieldsToProducts', '')::BOOLEAN, TRUE),
+        p_data->>'manualDescription'
     ) RETURNING id INTO v_quotation_id;
 
     -- Insertar historial de estado inicial
@@ -225,7 +236,7 @@ BEGIN
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
                       "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "payments" JSONB, "inNationality" INT,
-                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT
+                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT, "passenger" TEXT
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
@@ -233,7 +244,7 @@ BEGIN
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
-            "service", "servicios", "descripcion"
+            "service", "servicios", "descripcion", "passenger"
         ) VALUES (
             v_quotation_id, v_item."productId", v_item.quantity, 
             ROUND(v_item.price::numeric, v_decimals)::double precision, 
@@ -246,7 +257,8 @@ BEGIN
             ROUND(v_item."sellerCommission"::numeric, v_decimals)::double precision,
             ROUND(v_item."ticketPrinterCommission"::numeric, v_decimals)::double precision, 
             NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
-            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion"
+            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion",
+            v_item."passenger"
         ) RETURNING id INTO v_quotation_product_id;
 
         IF v_item.passengers IS NOT NULL THEN

@@ -12,10 +12,10 @@ BEGIN
         id integer NOT NULL,
         code text NOT NULL,
         name text NOT NULL,
+        logo bytea,
         template bytea,
         "templateConfig" jsonb,
-        "htmlTemplate" text,
-        logo bytea
+        "htmlTemplate" text
     );
     CREATE TABLE IF NOT EXISTS public."Client" (
         id integer NOT NULL,
@@ -30,11 +30,11 @@ BEGIN
         code text NOT NULL,
         name text NOT NULL,
         "branchId" integer,
-        "Logo" bytea,
+        logo bytea,
         template bytea,
         "templateConfig" jsonb,
         "htmlTemplate" text,
-        logo bytea
+        "Logo" bytea
     );
     CREATE TABLE IF NOT EXISTS public."ChargeAndTax" (
         id integer NOT NULL,
@@ -64,10 +64,10 @@ BEGIN
         type text NOT NULL,
         description text NOT NULL,
         "basePrice" double precision NOT NULL,
+        cost double precision DEFAULT 0,
         "billingConcept" text,
         "serviceType" text,
         code text,
-        cost double precision DEFAULT 0,
         "airlineItinerary" text,
         "classItinerary" text,
         "flightItinerary" text,
@@ -426,16 +426,17 @@ BEGIN
         id integer NOT NULL,
         code text NOT NULL,
         name text NOT NULL,
-        "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        "updatedAt" timestamp without time zone DEFAULT now(),
+        cupos integer DEFAULT 0,
         "currencyId" integer,
-        cupos integer DEFAULT 1
+        "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" timestamp without time zone DEFAULT now()
     );
     CREATE TABLE IF NOT EXISTS public."ComboProduct" (
         id integer NOT NULL,
         "comboId" integer NOT NULL,
         "productId" integer NOT NULL,
         price double precision NOT NULL,
+        cost double precision DEFAULT 0,
         "checkInDate" timestamp(3) without time zone,
         "checkOutDate" timestamp(3) without time zone,
         "prestadoraId" integer,
@@ -444,8 +445,7 @@ BEGIN
         "paxChildren" integer,
         "providerId" integer,
         "inNationality" integer DEFAULT 1,
-        quantity integer DEFAULT 1 NOT NULL,
-        cost double precision DEFAULT 0
+        quantity integer DEFAULT 1 NOT NULL
     );
     CREATE TABLE IF NOT EXISTS public."ComboProductTax" (
         id integer NOT NULL,
@@ -509,7 +509,8 @@ BEGIN
         id integer NOT NULL,
         code text NOT NULL,
         name text NOT NULL,
-        "exchangeRate" double precision NOT NULL
+        "exchangeRate" double precision NOT NULL,
+        decimals integer DEFAULT 2 NOT NULL
     );
     CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq"
         START WITH 1
@@ -555,6 +556,21 @@ BEGIN
         NO MAXVALUE
         CACHE 1;
     ALTER SEQUENCE public."EquivalenciasInterfaces_Log_id_seq" OWNED BY public."EquivalenciasInterfaces_Log".id;
+    CREATE TABLE IF NOT EXISTS public."FormatCellCustomization" (
+        id integer NOT NULL,
+        "formatId" integer NOT NULL,
+        code character varying(50) NOT NULL,
+        name character varying(100) NOT NULL,
+        value character varying(10)
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."FormatCellCustomization_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."FormatCellCustomization_id_seq" OWNED BY public."FormatCellCustomization".id;
     CREATE TABLE IF NOT EXISTS public."GDS" (
         id integer NOT NULL,
         name text NOT NULL
@@ -867,7 +883,16 @@ BEGIN
         "comisionFreelanceValue" double precision DEFAULT 0,
         "comisionPropiaPercentage" double precision DEFAULT 0,
         "comisionPropiaValue" double precision DEFAULT 0,
-        "comisionUtilidadPercentage" double precision DEFAULT 0
+        "comisionUtilidadPercentage" double precision DEFAULT 0,
+        destination character varying(255),
+        "startDate" timestamp without time zone,
+        "endDate" timestamp without time zone,
+        passenger character varying(255),
+        "paxAdults" integer,
+        "paxChildren" integer,
+        "reservationCode" character varying(255),
+        "copyFieldsToProducts" boolean DEFAULT true,
+        "manualDescription" text
     );
     CREATE TABLE IF NOT EXISTS public."QuotationCombo" (
         id integer NOT NULL,
@@ -881,12 +906,48 @@ BEGIN
         MAXVALUE 2147483647
         CACHE 1;
     ALTER SEQUENCE public."QuotationCombo_id_seq" OWNED BY public."QuotationCombo".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationFormat" (
+        id integer NOT NULL,
+        name character varying(100) NOT NULL,
+        description character varying(255),
+        template bytea,
+        "templateConfig" jsonb,
+        "htmlTemplate" text,
+        "branchId" integer,
+        "implantId" integer,
+        "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationFormat_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationFormat_id_seq" OWNED BY public."QuotationFormat".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationPrintCustomization" (
+        id integer NOT NULL,
+        "quotationId" integer NOT NULL,
+        html text NOT NULL,
+        "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationPrintCustomization_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationPrintCustomization_id_seq" OWNED BY public."QuotationPrintCustomization".id;
     CREATE TABLE IF NOT EXISTS public."QuotationProduct" (
         id integer NOT NULL,
         "quotationId" integer NOT NULL,
         "productId" integer NOT NULL,
         quantity integer NOT NULL,
         price double precision NOT NULL,
+        cost double precision DEFAULT 0,
         "providerId" integer,
         "prestadoraId" integer,
         "checkInDate" timestamp(3) without time zone,
@@ -902,11 +963,11 @@ BEGIN
         "comboId" integer,
         "mainTaxId" integer,
         "inNationality" integer DEFAULT 1,
-        cost double precision DEFAULT 0,
         service text,
         description text,
         servicios text,
-        descripcion text
+        descripcion text,
+        passenger character varying(255)
     );
     CREATE TABLE IF NOT EXISTS public."QuotationProductPassenger" (
         id integer NOT NULL,
@@ -980,10 +1041,10 @@ BEGIN
     ALTER SEQUENCE public."QuotationProduct_id_seq" OWNED BY public."QuotationProduct".id;
     CREATE TABLE IF NOT EXISTS public."QuotationState" (
         id integer NOT NULL,
+        code character varying(25) NOT NULL,
         name character varying(50) NOT NULL,
         color character varying(20),
-        "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        code character varying(25) NOT NULL
+        "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
     CREATE TABLE IF NOT EXISTS public."QuotationStateHistory" (
         id integer NOT NULL,
@@ -1209,6 +1270,7 @@ BEGIN
     ALTER TABLE ONLY public."Currency" ALTER COLUMN id SET DEFAULT nextval('public."Currency_id_seq"'::regclass);
     ALTER TABLE ONLY public."EquivalencesInterfaces" ALTER COLUMN id SET DEFAULT nextval('public."EquivalencesInterfaces_id_seq"'::regclass);
     ALTER TABLE ONLY public."EquivalenciasInterfaces_Log" ALTER COLUMN id SET DEFAULT nextval('public."EquivalenciasInterfaces_Log_id_seq"'::regclass);
+    ALTER TABLE ONLY public."FormatCellCustomization" ALTER COLUMN id SET DEFAULT nextval('public."FormatCellCustomization_id_seq"'::regclass);
     ALTER TABLE ONLY public."GDS" ALTER COLUMN id SET DEFAULT nextval('public."GDS_id_seq"'::regclass);
     ALTER TABLE ONLY public."Implant" ALTER COLUMN id SET DEFAULT nextval('public."Implant_id_seq"'::regclass);
     ALTER TABLE ONLY public."Interfaces" ALTER COLUMN id SET DEFAULT nextval('public."Interfaces_id_seq"'::regclass);
@@ -1229,6 +1291,8 @@ BEGIN
     ALTER TABLE ONLY public."Provider" ALTER COLUMN id SET DEFAULT nextval('public."Provider_id_seq"'::regclass);
     ALTER TABLE ONLY public."Quotation" ALTER COLUMN id SET DEFAULT nextval('public."Quotation_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationCombo" ALTER COLUMN id SET DEFAULT nextval('public."QuotationCombo_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationFormat" ALTER COLUMN id SET DEFAULT nextval('public."QuotationFormat_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationPrintCustomization" ALTER COLUMN id SET DEFAULT nextval('public."QuotationPrintCustomization_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationProduct" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProduct_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationProductPassenger" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductPassenger_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationProductPayment" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductPayment_id_seq"'::regclass);
@@ -1418,6 +1482,18 @@ BEGIN
     END $con$;
     DO $con$
     BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FormatCellCustomization_format_code_key') THEN
+            ALTER TABLE ONLY public."FormatCellCustomization" ADD CONSTRAINT "FormatCellCustomization_format_code_key" UNIQUE ("formatId", code);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FormatCellCustomization_pkey') THEN
+            ALTER TABLE ONLY public."FormatCellCustomization" ADD CONSTRAINT "FormatCellCustomization_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN
             ALTER TABLE ONLY public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id);
         END IF;
@@ -1532,6 +1608,24 @@ BEGIN
     END $con$;
     DO $con$
     BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationFormat_pkey') THEN
+            ALTER TABLE ONLY public."QuotationFormat" ADD CONSTRAINT "QuotationFormat_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationPrintCustomization_pkey') THEN
+            ALTER TABLE ONLY public."QuotationPrintCustomization" ADD CONSTRAINT "QuotationPrintCustomization_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationPrintCustomization_quotationId_key') THEN
+            ALTER TABLE ONLY public."QuotationPrintCustomization" ADD CONSTRAINT "QuotationPrintCustomization_quotationId_key" UNIQUE ("quotationId");
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductPassenger_pkey') THEN
             ALTER TABLE ONLY public."QuotationProductPassenger" ADD CONSTRAINT "QuotationProductPassenger_pkey" PRIMARY KEY (id);
         END IF;
@@ -1564,6 +1658,12 @@ BEGIN
     BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationStateHistory_pkey') THEN
             ALTER TABLE ONLY public."QuotationStateHistory" ADD CONSTRAINT "QuotationStateHistory_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationState_code_key') THEN
+            ALTER TABLE ONLY public."QuotationState" ADD CONSTRAINT "QuotationState_code_key" UNIQUE (code);
         END IF;
     END $con$;
     DO $con$
@@ -1682,7 +1782,6 @@ BEGIN
     CREATE UNIQUE INDEX IF NOT EXISTS "Product_code_key" ON public."Product" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
     CREATE UNIQUE INDEX IF NOT EXISTS "Provider_code_key" ON public."Provider" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
     CREATE INDEX IF NOT EXISTS "QuotationStateHistory_quotationId_idx" ON public."QuotationStateHistory" USING btree ("quotationId");
-    CREATE UNIQUE INDEX IF NOT EXISTS "QuotationState_code_key" ON public."QuotationState" USING btree (code);
     CREATE UNIQUE INDEX IF NOT EXISTS "Quotation_internalNumber_key" ON public."Quotation" USING btree ("internalNumber") WITH (fillfactor='100', deduplicate_items='true');
     CREATE UNIQUE INDEX IF NOT EXISTS "Role_name_key" ON public."Role" USING btree (name) WITH (fillfactor='100', deduplicate_items='true');
     CREATE UNIQUE INDEX IF NOT EXISTS "Seller_code_key" ON public."Seller" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
@@ -1844,6 +1943,12 @@ BEGIN
     END $con$;
     DO $con$
     BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FormatCellCustomization_formatId_fkey') THEN
+            ALTER TABLE ONLY public."FormatCellCustomization" ADD CONSTRAINT "FormatCellCustomization_formatId_fkey" FOREIGN KEY ("formatId") REFERENCES public."QuotationFormat"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Implant_branchId_fkey') THEN
             ALTER TABLE ONLY public."Implant" ADD CONSTRAINT "Implant_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE SET NULL;
         END IF;
@@ -1882,6 +1987,18 @@ BEGIN
     BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationCombo_quotationId_fkey') THEN
             ALTER TABLE ONLY public."QuotationCombo" ADD CONSTRAINT "QuotationCombo_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationFormat_branchId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationFormat" ADD CONSTRAINT "QuotationFormat_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationFormat_implantId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationFormat" ADD CONSTRAINT "QuotationFormat_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant"(id) ON DELETE CASCADE;
         END IF;
     END $con$;
     DO $con$
@@ -2047,7 +2164,8 @@ BEGIN
         END IF;
     END $con$;
 
-END $$;
+END $$; 
+
 
 -- >>> 1.1. ADICIÓN DE COLUMNAS A TABLAS EXISTENTES (ALTER COLUMNS) <<<
 
@@ -2063,6 +2181,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'name') THEN
         ALTER TABLE public."Branch" ADD COLUMN "name" text NOT NULL;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'logo') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "logo" bytea;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'template') THEN
         ALTER TABLE public."Branch" ADD COLUMN "template" bytea;
     END IF;
@@ -2071,9 +2192,6 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'htmlTemplate') THEN
         ALTER TABLE public."Branch" ADD COLUMN "htmlTemplate" text;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'logo') THEN
-        ALTER TABLE public."Branch" ADD COLUMN "logo" bytea;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'id') THEN
         ALTER TABLE public."Client" ADD COLUMN "id" integer NOT NULL;
@@ -2105,8 +2223,8 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'branchId') THEN
         ALTER TABLE public."Implant" ADD COLUMN "branchId" integer;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'Logo') THEN
-        ALTER TABLE public."Implant" ADD COLUMN "Logo" bytea;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'logo') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "logo" bytea;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'template') THEN
         ALTER TABLE public."Implant" ADD COLUMN "template" bytea;
@@ -2117,8 +2235,8 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'htmlTemplate') THEN
         ALTER TABLE public."Implant" ADD COLUMN "htmlTemplate" text;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'logo') THEN
-        ALTER TABLE public."Implant" ADD COLUMN "logo" bytea;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'Logo') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "Logo" bytea;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'id') THEN
         ALTER TABLE public."ChargeAndTax" ADD COLUMN "id" integer NOT NULL;
@@ -2183,6 +2301,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'basePrice') THEN
         ALTER TABLE public."Product" ADD COLUMN "basePrice" double precision NOT NULL;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'cost') THEN
+        ALTER TABLE public."Product" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'billingConcept') THEN
         ALTER TABLE public."Product" ADD COLUMN "billingConcept" text;
     END IF;
@@ -2191,9 +2312,6 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'code') THEN
         ALTER TABLE public."Product" ADD COLUMN "code" text;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'cost') THEN
-        ALTER TABLE public."Product" ADD COLUMN "cost" double precision DEFAULT 0;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'airlineItinerary') THEN
         ALTER TABLE public."Product" ADD COLUMN "airlineItinerary" text;
@@ -2750,17 +2868,17 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'name') THEN
         ALTER TABLE public."Combo" ADD COLUMN "name" text NOT NULL;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'cupos') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "cupos" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'currencyId') THEN
+        ALTER TABLE public."Combo" ADD COLUMN "currencyId" integer;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'createdAt') THEN
         ALTER TABLE public."Combo" ADD COLUMN "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'updatedAt') THEN
         ALTER TABLE public."Combo" ADD COLUMN "updatedAt" timestamp without time zone DEFAULT now();
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'currencyId') THEN
-        ALTER TABLE public."Combo" ADD COLUMN "currencyId" integer;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Combo' AND column_name = 'cupos') THEN
-        ALTER TABLE public."Combo" ADD COLUMN "cupos" integer DEFAULT 1;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'id') THEN
         ALTER TABLE public."ComboProduct" ADD COLUMN "id" integer NOT NULL;
@@ -2773,6 +2891,9 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'price') THEN
         ALTER TABLE public."ComboProduct" ADD COLUMN "price" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'cost') THEN
+        ALTER TABLE public."ComboProduct" ADD COLUMN "cost" double precision DEFAULT 0;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'checkInDate') THEN
         ALTER TABLE public."ComboProduct" ADD COLUMN "checkInDate" timestamp(3) without time zone;
@@ -2800,9 +2921,6 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'quantity') THEN
         ALTER TABLE public."ComboProduct" ADD COLUMN "quantity" integer DEFAULT 1 NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProduct' AND column_name = 'cost') THEN
-        ALTER TABLE public."ComboProduct" ADD COLUMN "cost" double precision DEFAULT 0;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ComboProductTax' AND column_name = 'id') THEN
         ALTER TABLE public."ComboProductTax" ADD COLUMN "id" integer NOT NULL;
@@ -2867,6 +2985,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'exchangeRate') THEN
         ALTER TABLE public."Currency" ADD COLUMN "exchangeRate" double precision NOT NULL;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'decimals') THEN
+        ALTER TABLE public."Currency" ADD COLUMN "decimals" integer DEFAULT 2 NOT NULL;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces' AND column_name = 'id') THEN
         ALTER TABLE public."EquivalencesInterfaces" ADD COLUMN "id" integer NOT NULL;
     END IF;
@@ -2920,6 +3041,21 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'EquivalenciasInterfaces_Log' AND column_name = 'fecha_creacion') THEN
         ALTER TABLE public."EquivalenciasInterfaces_Log" ADD COLUMN "fecha_creacion" timestamp(6) without time zone DEFAULT now();
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'FormatCellCustomization' AND column_name = 'id') THEN
+        ALTER TABLE public."FormatCellCustomization" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'FormatCellCustomization' AND column_name = 'formatId') THEN
+        ALTER TABLE public."FormatCellCustomization" ADD COLUMN "formatId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'FormatCellCustomization' AND column_name = 'code') THEN
+        ALTER TABLE public."FormatCellCustomization" ADD COLUMN "code" character varying(50) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'FormatCellCustomization' AND column_name = 'name') THEN
+        ALTER TABLE public."FormatCellCustomization" ADD COLUMN "name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'FormatCellCustomization' AND column_name = 'value') THEN
+        ALTER TABLE public."FormatCellCustomization" ADD COLUMN "value" character varying(10);
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'GDS' AND column_name = 'id') THEN
         ALTER TABLE public."GDS" ADD COLUMN "id" integer NOT NULL;
@@ -3368,6 +3504,33 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'comisionUtilidadPercentage') THEN
         ALTER TABLE public."Quotation" ADD COLUMN "comisionUtilidadPercentage" double precision DEFAULT 0;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'destination') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "destination" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'startDate') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "startDate" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'endDate') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "endDate" timestamp without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'passenger') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "passenger" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'paxAdults') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "paxAdults" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'paxChildren') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "paxChildren" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'reservationCode') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "reservationCode" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'copyFieldsToProducts') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "copyFieldsToProducts" boolean DEFAULT true;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Quotation' AND column_name = 'manualDescription') THEN
+        ALTER TABLE public."Quotation" ADD COLUMN "manualDescription" text;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationCombo' AND column_name = 'id') THEN
         ALTER TABLE public."QuotationCombo" ADD COLUMN "id" integer NOT NULL;
     END IF;
@@ -3376,6 +3539,51 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationCombo' AND column_name = 'comboId') THEN
         ALTER TABLE public."QuotationCombo" ADD COLUMN "comboId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationFormat" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'name') THEN
+        ALTER TABLE public."QuotationFormat" ADD COLUMN "name" character varying(100) NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'description') THEN
+        ALTER TABLE public."QuotationFormat" ADD COLUMN "description" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'template') THEN
+        ALTER TABLE public."QuotationFormat" ADD COLUMN "template" bytea;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'templateConfig') THEN
+        ALTER TABLE public."QuotationFormat" ADD COLUMN "templateConfig" jsonb;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'htmlTemplate') THEN
+        ALTER TABLE public."QuotationFormat" ADD COLUMN "htmlTemplate" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'branchId') THEN
+        ALTER TABLE public."QuotationFormat" ADD COLUMN "branchId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'implantId') THEN
+        ALTER TABLE public."QuotationFormat" ADD COLUMN "implantId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."QuotationFormat" ADD COLUMN "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'updatedAt') THEN
+        ALTER TABLE public."QuotationFormat" ADD COLUMN "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'quotationId') THEN
+        ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "quotationId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'html') THEN
+        ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "html" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'updatedAt') THEN
+        ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'id') THEN
         ALTER TABLE public."QuotationProduct" ADD COLUMN "id" integer NOT NULL;
@@ -3391,6 +3599,9 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'price') THEN
         ALTER TABLE public."QuotationProduct" ADD COLUMN "price" double precision NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'cost') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "cost" double precision DEFAULT 0;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'providerId') THEN
         ALTER TABLE public."QuotationProduct" ADD COLUMN "providerId" integer;
@@ -3437,9 +3648,6 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'inNationality') THEN
         ALTER TABLE public."QuotationProduct" ADD COLUMN "inNationality" integer DEFAULT 1;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'cost') THEN
-        ALTER TABLE public."QuotationProduct" ADD COLUMN "cost" double precision DEFAULT 0;
-    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'service') THEN
         ALTER TABLE public."QuotationProduct" ADD COLUMN "service" text;
     END IF;
@@ -3451,6 +3659,9 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'descripcion') THEN
         ALTER TABLE public."QuotationProduct" ADD COLUMN "descripcion" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'passenger') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "passenger" character varying(255);
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProductPassenger' AND column_name = 'id') THEN
         ALTER TABLE public."QuotationProductPassenger" ADD COLUMN "id" integer NOT NULL;
@@ -3533,6 +3744,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'id') THEN
         ALTER TABLE public."QuotationState" ADD COLUMN "id" integer NOT NULL;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'code') THEN
+        ALTER TABLE public."QuotationState" ADD COLUMN "code" character varying(25) NOT NULL;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'name') THEN
         ALTER TABLE public."QuotationState" ADD COLUMN "name" character varying(50) NOT NULL;
     END IF;
@@ -3540,10 +3754,7 @@ BEGIN
         ALTER TABLE public."QuotationState" ADD COLUMN "color" character varying(20);
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'createdAt') THEN
-        ALTER TABLE public."QuotationState" ADD COLUMN "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationState' AND column_name = 'code') THEN
-        ALTER TABLE public."QuotationState" ADD COLUMN "code" character varying(25) NOT NULL;
+        ALTER TABLE public."QuotationState" ADD COLUMN "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory' AND column_name = 'id') THEN
         ALTER TABLE public."QuotationStateHistory" ADD COLUMN "id" integer NOT NULL;
@@ -3739,10 +3950,6 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'ticketPrinterId') THEN
         ALTER TABLE public."User" ADD COLUMN "ticketPrinterId" integer;
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'decimals') THEN
-        ALTER TABLE public."Currency" ADD COLUMN "decimals" integer DEFAULT 2 NOT NULL;
     END IF;
 
 END $$;
@@ -5672,7 +5879,16 @@ BEGIN
         "state" = COALESCE(p_data->>'state', 'Nuevo'),
         "stateDescription" = CASE WHEN COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN p_data->>'stateDescription' ELSE "stateDescription" END,
         "stateUpdatedAt" = CASE WHEN COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN CURRENT_TIMESTAMP ELSE "stateUpdatedAt" END,
-        "date" = CURRENT_TIMESTAMP
+        "date" = CURRENT_TIMESTAMP,
+        "destination" = p_data->>'destination',
+        "startDate" = CASE WHEN p_data->>'startDate' IS NOT NULL AND p_data->>'startDate' <> '' THEN (p_data->>'startDate')::TIMESTAMP ELSE NULL END,
+        "endDate" = CASE WHEN p_data->>'endDate' IS NOT NULL AND p_data->>'endDate' <> '' THEN (p_data->>'endDate')::TIMESTAMP ELSE NULL END,
+        "passenger" = p_data->>'passenger',
+        "paxAdults" = NULLIF(p_data->>'paxAdults', '')::INT,
+        "paxChildren" = NULLIF(p_data->>'paxChildren', '')::INT,
+        "reservationCode" = p_data->>'reservationCode',
+        "copyFieldsToProducts" = COALESCE(NULLIF(p_data->>'copyFieldsToProducts', '')::BOOLEAN, TRUE),
+        "manualDescription" = p_data->>'manualDescription'
     WHERE id = p_id;
 
     -- Insertar historial de estado si cambia
@@ -5695,7 +5911,7 @@ BEGIN
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
                       "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "payments" JSONB, "inNationality" INT,
-                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT
+                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT, "passenger" TEXT
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
@@ -5703,7 +5919,7 @@ BEGIN
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
-            "service", "servicios", "descripcion"
+            "service", "servicios", "descripcion", "passenger"
         ) VALUES (
             p_id, v_item."productId", v_item.quantity, 
             ROUND(v_item.price::numeric, v_decimals)::double precision, 
@@ -5716,7 +5932,8 @@ BEGIN
             ROUND(v_item."sellerCommission"::numeric, v_decimals)::double precision,
             ROUND(v_item."ticketPrinterCommission"::numeric, v_decimals)::double precision, 
             NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
-            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion"
+            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion",
+            v_item."passenger"
         ) RETURNING id INTO v_quotation_product_id;
 
         IF v_item.passengers IS NOT NULL THEN
@@ -6152,12 +6369,23 @@ BEGIN
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
         "branchId", "implantId", "sellerId", "ticketPrinterId", 
         "baseCommissionable", "commissionPercentage", "chargesAndTaxes", 
-        "totalAmount", "userId", "state", "stateDescription", "stateUpdatedAt"
+        "totalAmount", "userId", "state", "stateDescription", "stateUpdatedAt",
+        "destination", "startDate", "endDate", "passenger", "paxAdults", "paxChildren",
+        "reservationCode", "copyFieldsToProducts", "manualDescription"
     ) VALUES (
         v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
         NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
         0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, ROUND(NULLIF(p_data->>'chargesAndTaxes', '')::numeric, v_decimals)::double precision,
-        ROUND(NULLIF(p_data->>'totalAmount', '')::numeric, v_decimals)::double precision, p_acting_user_id, 'NUEVO', 'Creación de cotización', CURRENT_TIMESTAMP
+        ROUND(NULLIF(p_data->>'totalAmount', '')::numeric, v_decimals)::double precision, p_acting_user_id, 'NUEVO', 'Creación de cotización', CURRENT_TIMESTAMP,
+        p_data->>'destination', 
+        CASE WHEN p_data->>'startDate' IS NOT NULL AND p_data->>'startDate' <> '' THEN (p_data->>'startDate')::TIMESTAMP ELSE NULL END,
+        CASE WHEN p_data->>'endDate' IS NOT NULL AND p_data->>'endDate' <> '' THEN (p_data->>'endDate')::TIMESTAMP ELSE NULL END,
+        p_data->>'passenger',
+        NULLIF(p_data->>'paxAdults', '')::INT,
+        NULLIF(p_data->>'paxChildren', '')::INT,
+        p_data->>'reservationCode',
+        COALESCE(NULLIF(p_data->>'copyFieldsToProducts', '')::BOOLEAN, TRUE),
+        p_data->>'manualDescription'
     ) RETURNING id INTO v_quotation_id;
 
     -- Insertar historial de estado inicial
@@ -6193,7 +6421,7 @@ BEGIN
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
                       "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "payments" JSONB, "inNationality" INT,
-                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT
+                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT, "passenger" TEXT
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
@@ -6201,7 +6429,7 @@ BEGIN
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
-            "service", "servicios", "descripcion"
+            "service", "servicios", "descripcion", "passenger"
         ) VALUES (
             v_quotation_id, v_item."productId", v_item.quantity, 
             ROUND(v_item.price::numeric, v_decimals)::double precision, 
@@ -6214,7 +6442,8 @@ BEGIN
             ROUND(v_item."sellerCommission"::numeric, v_decimals)::double precision,
             ROUND(v_item."ticketPrinterCommission"::numeric, v_decimals)::double precision, 
             NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
-            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion"
+            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion",
+            v_item."passenger"
         ) RETURNING id INTO v_quotation_product_id;
 
         IF v_item.passengers IS NOT NULL THEN
@@ -8989,12 +9218,17 @@ BEGIN
     JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
     LEFT JOIN public."Provider" prov ON qp."providerId" = prov."id"
 	LEFT JOIN public."Prestadora" pre ON pre."id" = qp."prestadoraId"
-	LEFT JOIN LATERAL ( SELECT  pp.*,
-		        				regexp_split_to_array(TRIM(pp.name), '\s+') AS arr
-		    			FROM public."QuotationProductPassenger" pp 
-						WHERE pp."quotationProductId" = qp.id
-    					ORDER BY pp.id
-    					LIMIT 1) qpp ON true;
+	LEFT JOIN LATERAL ( 
+        SELECT 
+            COALESCE(pp.id, 999999) as id,
+            COALESCE(pp.name, qp.passenger, '') as name,
+            COALESCE(pp.document, '') as document,
+            regexp_split_to_array(TRIM(COALESCE(pp.name, qp.passenger, '')), '\s+') AS arr
+        FROM (SELECT 1) dummy
+        LEFT JOIN public."QuotationProductPassenger" pp ON pp."quotationProductId" = qp.id
+        ORDER BY pp.id NULLS LAST
+        LIMIT 1
+    ) qpp ON true;
 
     --INSERT INTO CotizacionServicios_PaxAdicional (
     --    cd_Cotizacion, cd_CotizacionServicios, ds_paxape, ds_paxname, ds_paxprefix,
@@ -12287,30 +12521,4 @@ EXCEPTION
 END;
 $$;
 
-
--- ============================================================
--- TABLA: QuotationFormat - Multi-plantillas de Cotización
--- ============================================================
-CREATE TABLE IF NOT EXISTS public."QuotationFormat" (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description VARCHAR(255),
-    template BYTEA,
-    "templateConfig" JSONB,
-    "htmlTemplate" TEXT,
-    "branchId" INTEGER REFERENCES public."Branch"(id) ON DELETE CASCADE,
-    "implantId" INTEGER REFERENCES public."Implant"(id) ON DELETE CASCADE,
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Tabla de configuración de celdas por formato de cotización
-CREATE TABLE IF NOT EXISTS public."FormatCellCustomization" (
-    id SERIAL PRIMARY KEY,
-    "formatId" INTEGER NOT NULL REFERENCES public."QuotationFormat"(id) ON DELETE CASCADE,
-    code VARCHAR(50) NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    value VARCHAR(10),
-    CONSTRAINT "FormatCellCustomization_format_code_key" UNIQUE ("formatId", code)
-);
 

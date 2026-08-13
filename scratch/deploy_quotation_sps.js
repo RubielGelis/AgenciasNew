@@ -28,6 +28,13 @@ async function main() {
     const sql2 = fs.readFileSync(path.join(__dirname, '..', file2), 'utf8');
     await client.query(sql2);
     console.log(`SUCCESS: ${file2} deployed.`);
+
+    // File 3: spExportQuotation
+    const file3 = 'SQL/SP/spExportQuotation.sql';
+    console.log(`Executing ${file3}...`);
+    const sql3 = fs.readFileSync(path.join(__dirname, '..', file3), 'utf8');
+    await client.query(sql3);
+    console.log(`SUCCESS: ${file3} deployed.`);
     
   } catch (err) {
     console.error("DEPLOYMENT ERROR:", err);

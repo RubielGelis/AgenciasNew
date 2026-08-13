@@ -198,7 +198,16 @@ BEGIN
         "state" = COALESCE(p_data->>'state', 'Nuevo'),
         "stateDescription" = CASE WHEN COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN p_data->>'stateDescription' ELSE "stateDescription" END,
         "stateUpdatedAt" = CASE WHEN COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN CURRENT_TIMESTAMP ELSE "stateUpdatedAt" END,
-        "date" = CURRENT_TIMESTAMP
+        "date" = CURRENT_TIMESTAMP,
+        "destination" = p_data->>'destination',
+        "startDate" = CASE WHEN p_data->>'startDate' IS NOT NULL AND p_data->>'startDate' <> '' THEN (p_data->>'startDate')::TIMESTAMP ELSE NULL END,
+        "endDate" = CASE WHEN p_data->>'endDate' IS NOT NULL AND p_data->>'endDate' <> '' THEN (p_data->>'endDate')::TIMESTAMP ELSE NULL END,
+        "passenger" = p_data->>'passenger',
+        "paxAdults" = NULLIF(p_data->>'paxAdults', '')::INT,
+        "paxChildren" = NULLIF(p_data->>'paxChildren', '')::INT,
+        "reservationCode" = p_data->>'reservationCode',
+        "copyFieldsToProducts" = COALESCE(NULLIF(p_data->>'copyFieldsToProducts', '')::BOOLEAN, TRUE),
+        "manualDescription" = p_data->>'manualDescription'
     WHERE id = p_id;
 
     -- Insertar historial de estado si cambia
@@ -221,7 +230,7 @@ BEGIN
                       "paxAdults" INT, "paxChildren" INT, "serviceType" TEXT, "destination" TEXT,
                       "reservationCode" TEXT, "sellerCommission" FLOAT, "ticketPrinterCommission" FLOAT,
                       "comboId" TEXT, "appliedTaxes" JSONB, "passengers" JSONB, "variables" JSONB, "payments" JSONB, "inNationality" INT,
-                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT
+                      "service" TEXT, "servicios" TEXT, "descripcion" TEXT, "passenger" TEXT
                   )
     LOOP
         INSERT INTO public."QuotationProduct" (
@@ -229,7 +238,7 @@ BEGIN
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
-            "service", "servicios", "descripcion"
+            "service", "servicios", "descripcion", "passenger"
         ) VALUES (
             p_id, v_item."productId", v_item.quantity, 
             ROUND(v_item.price::numeric, v_decimals)::double precision, 
@@ -242,7 +251,8 @@ BEGIN
             ROUND(v_item."sellerCommission"::numeric, v_decimals)::double precision,
             ROUND(v_item."ticketPrinterCommission"::numeric, v_decimals)::double precision, 
             NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
-            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion"
+            COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion",
+            v_item."passenger"
         ) RETURNING id INTO v_quotation_product_id;
 
         IF v_item.passengers IS NOT NULL THEN

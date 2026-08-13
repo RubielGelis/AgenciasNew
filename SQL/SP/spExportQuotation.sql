@@ -579,12 +579,17 @@ BEGIN
     JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
     LEFT JOIN public."Provider" prov ON qp."providerId" = prov."id"
 	LEFT JOIN public."Prestadora" pre ON pre."id" = qp."prestadoraId"
-	LEFT JOIN LATERAL ( SELECT  pp.*,
-		        				regexp_split_to_array(TRIM(pp.name), '\s+') AS arr
-		    			FROM public."QuotationProductPassenger" pp 
-						WHERE pp."quotationProductId" = qp.id
-    					ORDER BY pp.id
-    					LIMIT 1) qpp ON true;
+	LEFT JOIN LATERAL ( 
+        SELECT 
+            COALESCE(pp.id, 999999) as id,
+            COALESCE(pp.name, qp.passenger, '') as name,
+            COALESCE(pp.document, '') as document,
+            regexp_split_to_array(TRIM(COALESCE(pp.name, qp.passenger, '')), '\s+') AS arr
+        FROM (SELECT 1) dummy
+        LEFT JOIN public."QuotationProductPassenger" pp ON pp."quotationProductId" = qp.id
+        ORDER BY pp.id NULLS LAST
+        LIMIT 1
+    ) qpp ON true;
 
     --INSERT INTO CotizacionServicios_PaxAdicional (
     --    cd_Cotizacion, cd_CotizacionServicios, ds_paxape, ds_paxname, ds_paxprefix,

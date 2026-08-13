@@ -5,10 +5,10 @@ BEGIN
         id integer NOT NULL,
         code text NOT NULL,
         name text NOT NULL,
+        logo bytea,
         template bytea,
         "templateConfig" jsonb,
-        "htmlTemplate" text,
-        logo bytea
+        "htmlTemplate" text
     );
     CREATE TABLE IF NOT EXISTS public."Client" (
         id integer NOT NULL,
@@ -23,11 +23,11 @@ BEGIN
         code text NOT NULL,
         name text NOT NULL,
         "branchId" integer,
-        "Logo" bytea,
+        logo bytea,
         template bytea,
         "templateConfig" jsonb,
         "htmlTemplate" text,
-        logo bytea
+        "Logo" bytea
     );
     CREATE TABLE IF NOT EXISTS public."ChargeAndTax" (
         id integer NOT NULL,
@@ -57,10 +57,10 @@ BEGIN
         type text NOT NULL,
         description text NOT NULL,
         "basePrice" double precision NOT NULL,
+        cost double precision DEFAULT 0,
         "billingConcept" text,
         "serviceType" text,
         code text,
-        cost double precision DEFAULT 0,
         "airlineItinerary" text,
         "classItinerary" text,
         "flightItinerary" text,
@@ -419,16 +419,17 @@ BEGIN
         id integer NOT NULL,
         code text NOT NULL,
         name text NOT NULL,
-        "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        "updatedAt" timestamp without time zone DEFAULT now(),
+        cupos integer DEFAULT 0,
         "currencyId" integer,
-        cupos integer DEFAULT 1
+        "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" timestamp without time zone DEFAULT now()
     );
     CREATE TABLE IF NOT EXISTS public."ComboProduct" (
         id integer NOT NULL,
         "comboId" integer NOT NULL,
         "productId" integer NOT NULL,
         price double precision NOT NULL,
+        cost double precision DEFAULT 0,
         "checkInDate" timestamp(3) without time zone,
         "checkOutDate" timestamp(3) without time zone,
         "prestadoraId" integer,
@@ -437,8 +438,7 @@ BEGIN
         "paxChildren" integer,
         "providerId" integer,
         "inNationality" integer DEFAULT 1,
-        quantity integer DEFAULT 1 NOT NULL,
-        cost double precision DEFAULT 0
+        quantity integer DEFAULT 1 NOT NULL
     );
     CREATE TABLE IF NOT EXISTS public."ComboProductTax" (
         id integer NOT NULL,
@@ -502,7 +502,8 @@ BEGIN
         id integer NOT NULL,
         code text NOT NULL,
         name text NOT NULL,
-        "exchangeRate" double precision NOT NULL
+        "exchangeRate" double precision NOT NULL,
+        decimals integer DEFAULT 2 NOT NULL
     );
     CREATE SEQUENCE IF NOT EXISTS public."Currency_id_seq"
         START WITH 1
@@ -548,6 +549,21 @@ BEGIN
         NO MAXVALUE
         CACHE 1;
     ALTER SEQUENCE public."EquivalenciasInterfaces_Log_id_seq" OWNED BY public."EquivalenciasInterfaces_Log".id;
+    CREATE TABLE IF NOT EXISTS public."FormatCellCustomization" (
+        id integer NOT NULL,
+        "formatId" integer NOT NULL,
+        code character varying(50) NOT NULL,
+        name character varying(100) NOT NULL,
+        value character varying(10)
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."FormatCellCustomization_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."FormatCellCustomization_id_seq" OWNED BY public."FormatCellCustomization".id;
     CREATE TABLE IF NOT EXISTS public."GDS" (
         id integer NOT NULL,
         name text NOT NULL
@@ -860,7 +876,16 @@ BEGIN
         "comisionFreelanceValue" double precision DEFAULT 0,
         "comisionPropiaPercentage" double precision DEFAULT 0,
         "comisionPropiaValue" double precision DEFAULT 0,
-        "comisionUtilidadPercentage" double precision DEFAULT 0
+        "comisionUtilidadPercentage" double precision DEFAULT 0,
+        destination character varying(255),
+        "startDate" timestamp without time zone,
+        "endDate" timestamp without time zone,
+        passenger character varying(255),
+        "paxAdults" integer,
+        "paxChildren" integer,
+        "reservationCode" character varying(255),
+        "copyFieldsToProducts" boolean DEFAULT true,
+        "manualDescription" text
     );
     CREATE TABLE IF NOT EXISTS public."QuotationCombo" (
         id integer NOT NULL,
@@ -874,12 +899,48 @@ BEGIN
         MAXVALUE 2147483647
         CACHE 1;
     ALTER SEQUENCE public."QuotationCombo_id_seq" OWNED BY public."QuotationCombo".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationFormat" (
+        id integer NOT NULL,
+        name character varying(100) NOT NULL,
+        description character varying(255),
+        template bytea,
+        "templateConfig" jsonb,
+        "htmlTemplate" text,
+        "branchId" integer,
+        "implantId" integer,
+        "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationFormat_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationFormat_id_seq" OWNED BY public."QuotationFormat".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationPrintCustomization" (
+        id integer NOT NULL,
+        "quotationId" integer NOT NULL,
+        html text NOT NULL,
+        "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationPrintCustomization_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationPrintCustomization_id_seq" OWNED BY public."QuotationPrintCustomization".id;
     CREATE TABLE IF NOT EXISTS public."QuotationProduct" (
         id integer NOT NULL,
         "quotationId" integer NOT NULL,
         "productId" integer NOT NULL,
         quantity integer NOT NULL,
         price double precision NOT NULL,
+        cost double precision DEFAULT 0,
         "providerId" integer,
         "prestadoraId" integer,
         "checkInDate" timestamp(3) without time zone,
@@ -895,11 +956,11 @@ BEGIN
         "comboId" integer,
         "mainTaxId" integer,
         "inNationality" integer DEFAULT 1,
-        cost double precision DEFAULT 0,
         service text,
         description text,
         servicios text,
-        descripcion text
+        descripcion text,
+        passenger character varying(255)
     );
     CREATE TABLE IF NOT EXISTS public."QuotationProductPassenger" (
         id integer NOT NULL,
@@ -973,10 +1034,10 @@ BEGIN
     ALTER SEQUENCE public."QuotationProduct_id_seq" OWNED BY public."QuotationProduct".id;
     CREATE TABLE IF NOT EXISTS public."QuotationState" (
         id integer NOT NULL,
+        code character varying(25) NOT NULL,
         name character varying(50) NOT NULL,
         color character varying(20),
-        "createdAt" timestamp(6) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        code character varying(25) NOT NULL
+        "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
     );
     CREATE TABLE IF NOT EXISTS public."QuotationStateHistory" (
         id integer NOT NULL,
@@ -1202,6 +1263,7 @@ BEGIN
     ALTER TABLE ONLY public."Currency" ALTER COLUMN id SET DEFAULT nextval('public."Currency_id_seq"'::regclass);
     ALTER TABLE ONLY public."EquivalencesInterfaces" ALTER COLUMN id SET DEFAULT nextval('public."EquivalencesInterfaces_id_seq"'::regclass);
     ALTER TABLE ONLY public."EquivalenciasInterfaces_Log" ALTER COLUMN id SET DEFAULT nextval('public."EquivalenciasInterfaces_Log_id_seq"'::regclass);
+    ALTER TABLE ONLY public."FormatCellCustomization" ALTER COLUMN id SET DEFAULT nextval('public."FormatCellCustomization_id_seq"'::regclass);
     ALTER TABLE ONLY public."GDS" ALTER COLUMN id SET DEFAULT nextval('public."GDS_id_seq"'::regclass);
     ALTER TABLE ONLY public."Implant" ALTER COLUMN id SET DEFAULT nextval('public."Implant_id_seq"'::regclass);
     ALTER TABLE ONLY public."Interfaces" ALTER COLUMN id SET DEFAULT nextval('public."Interfaces_id_seq"'::regclass);
@@ -1222,6 +1284,8 @@ BEGIN
     ALTER TABLE ONLY public."Provider" ALTER COLUMN id SET DEFAULT nextval('public."Provider_id_seq"'::regclass);
     ALTER TABLE ONLY public."Quotation" ALTER COLUMN id SET DEFAULT nextval('public."Quotation_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationCombo" ALTER COLUMN id SET DEFAULT nextval('public."QuotationCombo_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationFormat" ALTER COLUMN id SET DEFAULT nextval('public."QuotationFormat_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationPrintCustomization" ALTER COLUMN id SET DEFAULT nextval('public."QuotationPrintCustomization_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationProduct" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProduct_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationProductPassenger" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductPassenger_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationProductPayment" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductPayment_id_seq"'::regclass);
@@ -1411,6 +1475,18 @@ BEGIN
     END $con$;
     DO $con$
     BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FormatCellCustomization_format_code_key') THEN
+            ALTER TABLE ONLY public."FormatCellCustomization" ADD CONSTRAINT "FormatCellCustomization_format_code_key" UNIQUE ("formatId", code);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FormatCellCustomization_pkey') THEN
+            ALTER TABLE ONLY public."FormatCellCustomization" ADD CONSTRAINT "FormatCellCustomization_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'GDS_pkey') THEN
             ALTER TABLE ONLY public."GDS" ADD CONSTRAINT "GDS_pkey" PRIMARY KEY (id);
         END IF;
@@ -1525,6 +1601,24 @@ BEGIN
     END $con$;
     DO $con$
     BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationFormat_pkey') THEN
+            ALTER TABLE ONLY public."QuotationFormat" ADD CONSTRAINT "QuotationFormat_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationPrintCustomization_pkey') THEN
+            ALTER TABLE ONLY public."QuotationPrintCustomization" ADD CONSTRAINT "QuotationPrintCustomization_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationPrintCustomization_quotationId_key') THEN
+            ALTER TABLE ONLY public."QuotationPrintCustomization" ADD CONSTRAINT "QuotationPrintCustomization_quotationId_key" UNIQUE ("quotationId");
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationProductPassenger_pkey') THEN
             ALTER TABLE ONLY public."QuotationProductPassenger" ADD CONSTRAINT "QuotationProductPassenger_pkey" PRIMARY KEY (id);
         END IF;
@@ -1557,6 +1651,12 @@ BEGIN
     BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationStateHistory_pkey') THEN
             ALTER TABLE ONLY public."QuotationStateHistory" ADD CONSTRAINT "QuotationStateHistory_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationState_code_key') THEN
+            ALTER TABLE ONLY public."QuotationState" ADD CONSTRAINT "QuotationState_code_key" UNIQUE (code);
         END IF;
     END $con$;
     DO $con$
@@ -1675,7 +1775,6 @@ BEGIN
     CREATE UNIQUE INDEX IF NOT EXISTS "Product_code_key" ON public."Product" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
     CREATE UNIQUE INDEX IF NOT EXISTS "Provider_code_key" ON public."Provider" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
     CREATE INDEX IF NOT EXISTS "QuotationStateHistory_quotationId_idx" ON public."QuotationStateHistory" USING btree ("quotationId");
-    CREATE UNIQUE INDEX IF NOT EXISTS "QuotationState_code_key" ON public."QuotationState" USING btree (code);
     CREATE UNIQUE INDEX IF NOT EXISTS "Quotation_internalNumber_key" ON public."Quotation" USING btree ("internalNumber") WITH (fillfactor='100', deduplicate_items='true');
     CREATE UNIQUE INDEX IF NOT EXISTS "Role_name_key" ON public."Role" USING btree (name) WITH (fillfactor='100', deduplicate_items='true');
     CREATE UNIQUE INDEX IF NOT EXISTS "Seller_code_key" ON public."Seller" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
@@ -1837,6 +1936,12 @@ BEGIN
     END $con$;
     DO $con$
     BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'FormatCellCustomization_formatId_fkey') THEN
+            ALTER TABLE ONLY public."FormatCellCustomization" ADD CONSTRAINT "FormatCellCustomization_formatId_fkey" FOREIGN KEY ("formatId") REFERENCES public."QuotationFormat"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Implant_branchId_fkey') THEN
             ALTER TABLE ONLY public."Implant" ADD CONSTRAINT "Implant_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON UPDATE CASCADE ON DELETE SET NULL;
         END IF;
@@ -1875,6 +1980,18 @@ BEGIN
     BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationCombo_quotationId_fkey') THEN
             ALTER TABLE ONLY public."QuotationCombo" ADD CONSTRAINT "QuotationCombo_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationFormat_branchId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationFormat" ADD CONSTRAINT "QuotationFormat_branchId_fkey" FOREIGN KEY ("branchId") REFERENCES public."Branch"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationFormat_implantId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationFormat" ADD CONSTRAINT "QuotationFormat_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant"(id) ON DELETE CASCADE;
         END IF;
     END $con$;
     DO $con$

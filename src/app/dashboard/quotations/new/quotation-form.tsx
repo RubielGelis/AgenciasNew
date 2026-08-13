@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, CreditCard, Receipt } from 'lucide-react'
+import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, CreditCard, Receipt, Plane } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -26,6 +26,15 @@ interface QuotationFormData {
     comisionFreelancePercentage: number;
     comisionPropiaPercentage: number;
     chargesAndTaxes: number;
+    destination?: string;
+    startDate?: string;
+    endDate?: string;
+    passenger?: string;
+    paxAdults?: number;
+    paxChildren?: number;
+    reservationCode?: string;
+    copyFieldsToProducts?: boolean;
+    manualDescription?: string;
     items: {
         productId: string;
         quantity: number;
@@ -43,6 +52,7 @@ interface QuotationFormData {
         service?: string;
         servicios?: string;
         descripcion?: string;
+        passenger?: string;
         passengers: { name: string, document: string }[];
         sellerCommission: number;
         ticketPrinterCommission: number;
@@ -107,6 +117,15 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         comisionFreelancePercentage: 0,
         comisionPropiaPercentage: 10,
         chargesAndTaxes: 0,
+        destination: '',
+        startDate: '',
+        endDate: '',
+        passenger: '',
+        paxAdults: 1,
+        paxChildren: 0,
+        reservationCode: '',
+        copyFieldsToProducts: true,
+        manualDescription: '',
         items: [],
         selectedCombos: [],
         state: 'Nuevo',
@@ -120,6 +139,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     const [attachments, setAttachments] = useState<any[]>([])
     const [uploadingAttachment, setUploadingAttachment] = useState(false)
     const [focusedTax, setFocusedTax] = useState<{ itemIdx: number, taxId: number, rawValue?: string } | null>(null)
+    const [focusedField, setFocusedField] = useState<{ itemIdx?: number, field: string, rawValue?: string } | null>(null)
     const [activeGeneralTab, setActiveGeneralTab] = useState<'info' | 'history'>('info')
     const [stateHistoryList, setStateHistoryList] = useState<any[]>([])
     const router = useRouter()
@@ -464,6 +484,15 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                             comisionFreelancePercentage: qData.comisionFreelancePercentage ?? 0,
                             comisionPropiaPercentage: qData.comisionPropiaPercentage ?? qData.commissionPercentage ?? 10,
                             chargesAndTaxes: qData.chargesAndTaxes || 0,
+                            destination: qData.destination || '',
+                            startDate: qData.startDate ? new Date(qData.startDate).toISOString().split('T')[0] : '',
+                            endDate: qData.endDate ? new Date(qData.endDate).toISOString().split('T')[0] : '',
+                            passenger: qData.passenger || '',
+                            paxAdults: qData.paxAdults ?? 1,
+                            paxChildren: qData.paxChildren ?? 0,
+                            reservationCode: qData.reservationCode || '',
+                            copyFieldsToProducts: qData.copyFieldsToProducts ?? true,
+                            manualDescription: qData.manualDescription || '',
                             state: qData.state || 'Nuevo',
                             stateDescription: qData.stateDescription || '',
                             stateUpdatedAt: qData.stateUpdatedAt || null,
@@ -498,6 +527,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     service: p.service || p.servicios || '',
                                     servicios: p.servicios || p.service || '',
                                     descripcion: p.descripcion || '',
+                                    passenger: p.passenger || '',
                                     passengers: Array.isArray(p.passengers) ? p.passengers : [],
                                     payments: Array.isArray(p.payments) ? p.payments : [],
                                     sellerCommission: p.sellerCommission || 0,
@@ -531,13 +561,64 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         loadInitialData()
     }, [quotationId])
 
+    const updateHeaderField = (field: keyof QuotationFormData, value: any) => {
+        setFormData(prev => {
+            const nextState = { ...prev, [field]: value };
+            const copyFields = nextState.copyFieldsToProducts !== false;
+            
+            if (copyFields) {
+                const mapHeaderToProduct: Record<string, string> = {
+                    destination: 'destination',
+                    startDate: 'checkIn',
+                    endDate: 'checkOut',
+                    passenger: 'passenger',
+                    paxAdults: 'paxAdults',
+                    paxChildren: 'paxChildren',
+                    reservationCode: 'reservationCode',
+                    manualDescription: 'descripcion',
+                };
+                
+                if (mapHeaderToProduct[field]) {
+                    const prodField = mapHeaderToProduct[field];
+                    nextState.items = nextState.items.map(item => ({
+                        ...item,
+                        [prodField]: value
+                    }));
+                } else if (field === 'copyFieldsToProducts' && value === true) {
+                    nextState.items = nextState.items.map(item => ({
+                        ...item,
+                        destination: nextState.destination || item.destination,
+                        checkIn: nextState.startDate || item.checkIn,
+                        checkOut: nextState.endDate || item.checkOut,
+                        passenger: nextState.passenger || item.passenger,
+                        paxAdults: nextState.paxAdults !== undefined ? nextState.paxAdults : item.paxAdults,
+                        paxChildren: nextState.paxChildren !== undefined ? nextState.paxChildren : item.paxChildren,
+                        reservationCode: nextState.reservationCode || item.reservationCode,
+                        descripcion: nextState.manualDescription || item.descripcion,
+                    }));
+                }
+            }
+            return nextState;
+        });
+    };
+
     const addItem = () => {
+        const copyFields = formData.copyFieldsToProducts !== false;
         setFormData({
             ...formData,
             items: [...formData.items, {
                 productId: '', quantity: 1, price: 0, cost: 0,
-                providerId: '', prestadoraId: '', checkIn: '', checkOut: '',
-                paxAdults: 1, paxChildren: 0, destination: '', serviceType: '', reservationCode: '', descripcion: '', passengers: [{ name: '', document: '' }],
+                providerId: '', prestadoraId: '', 
+                checkIn: copyFields && formData.startDate ? formData.startDate : '', 
+                checkOut: copyFields && formData.endDate ? formData.endDate : '',
+                paxAdults: copyFields && formData.paxAdults !== undefined ? formData.paxAdults : 1, 
+                paxChildren: copyFields && formData.paxChildren !== undefined ? formData.paxChildren : 0, 
+                destination: copyFields && formData.destination ? formData.destination : '', 
+                serviceType: '', 
+                reservationCode: copyFields && formData.reservationCode ? formData.reservationCode : '', 
+                descripcion: copyFields && formData.manualDescription ? formData.manualDescription : '', 
+                passenger: copyFields && formData.passenger ? formData.passenger : '',
+                passengers: [{ name: '', document: '' }],
                 sellerCommission: 0, ticketPrinterCommission: 0,
                 appliedTaxes: [],
                 variables: [],
@@ -558,7 +639,6 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         const combo = data.combos.find((c: any) => c.id === comboId);
         if (!combo) return;
 
-        // Prevent duplicate combos if needed, or just add products again
         const alreadyIn = formData.selectedCombos?.find(c => c.id === comboId);
         if (alreadyIn) {
             alert("Este combo ya ha sido agregado.");
@@ -566,16 +646,13 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         }
 
         const newItemsFromCombo = combo.products.map((cp: any) => {
-            // Usar mainTaxId directamente desde el combo guardado en BD
             const mainTaxId: number | undefined = cp.mainTaxId || undefined;
-
-            // Incluir TODOS los taxes en appliedTaxes (incluido el cargo principal)
-            // igual a como funcionan los ítems creados manualmente
             const appliedTaxes = (cp.appliedTaxes || []).map((t: any) => ({
                 id: t.chargeAndTaxId,
                 amount: t.amount
             }));
 
+            const copyFields = formData.copyFieldsToProducts !== false;
             return {
                 productId: cp.productId.toString(),
                 quantity: 1,
@@ -583,14 +660,15 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 cost: cp.product?.cost || 0,
                 providerId: cp.providerId?.toString() || '',
                 prestadoraId: cp.prestadoraId?.toString() || '',
-                checkIn: cp.checkInDate ? new Date(cp.checkInDate).toISOString().split('T')[0] : '',
-                checkOut: cp.checkOutDate ? new Date(cp.checkOutDate).toISOString().split('T')[0] : '',
-                paxAdults: cp.paxAdults || 1,
-                paxChildren: cp.paxChildren || 0,
-                destination: '',
+                checkIn: (copyFields && formData.startDate) ? formData.startDate : (cp.checkInDate ? new Date(cp.checkInDate).toISOString().split('T')[0] : ''),
+                checkOut: (copyFields && formData.endDate) ? formData.endDate : (cp.checkOutDate ? new Date(cp.checkOutDate).toISOString().split('T')[0] : ''),
+                paxAdults: (copyFields && formData.paxAdults !== undefined) ? formData.paxAdults : (cp.paxAdults || 1),
+                paxChildren: (copyFields && formData.paxChildren !== undefined) ? formData.paxChildren : (cp.paxChildren || 0),
+                destination: (copyFields && formData.destination) ? formData.destination : '',
                 serviceType: '',
-                reservationCode: '',
-                descripcion: '',
+                reservationCode: (copyFields && formData.reservationCode) ? formData.reservationCode : '',
+                descripcion: copyFields && formData.manualDescription ? formData.manualDescription : '',
+                passenger: (copyFields && formData.passenger) ? formData.passenger : '',
                 passengers: [],
                 sellerCommission: 0,
                 ticketPrinterCommission: 0,
@@ -887,6 +965,106 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                         />
                                     </div>
                                 )}
+
+                                {/* Sección: Datos de Viaje en la Cabecera */}
+                                <div className="col-span-1 md:col-span-2 border-t border-zinc-100 dark:border-zinc-800 pt-6 mt-6 space-y-6">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-2 gap-4">
+                                        <h4 className="text-md font-bold flex items-center gap-2 dark:text-white">
+                                            <Plane className="w-5 h-5 text-blue-500" />
+                                            Información de Viaje (Cabecera)
+                                        </h4>
+                                        <label className="flex items-center gap-2 text-xs font-bold text-zinc-500 cursor-pointer">
+                                            <input 
+                                                type="checkbox"
+                                                checked={formData.copyFieldsToProducts !== false}
+                                                onChange={(e) => updateHeaderField('copyFieldsToProducts', e.target.checked)}
+                                                className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            Copiar campos automáticamente a los productos
+                                        </label>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-zinc-500">Destino</label>
+                                            <input 
+                                                type="text"
+                                                className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                value={formData.destination || ''}
+                                                onChange={(e) => updateHeaderField('destination', e.target.value)}
+                                                placeholder="Destino del viaje"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-zinc-500">Reservación / Localizador</label>
+                                            <input 
+                                                type="text"
+                                                className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                value={formData.reservationCode || ''}
+                                                onChange={(e) => updateHeaderField('reservationCode', e.target.value)}
+                                                placeholder="Código de reservación"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-zinc-500">Fecha Inicio</label>
+                                            <input 
+                                                type="date"
+                                                className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                value={formData.startDate || ''}
+                                                onChange={(e) => updateHeaderField('startDate', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-zinc-500">Fecha Fin</label>
+                                            <input 
+                                                type="date"
+                                                className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                value={formData.endDate || ''}
+                                                onChange={(e) => updateHeaderField('endDate', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="space-y-2 md:col-span-2">
+                                            <label className="text-sm font-semibold text-zinc-500">Pasajero Principal</label>
+                                            <input 
+                                                type="text"
+                                                className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                value={formData.passenger || ''}
+                                                onChange={(e) => updateHeaderField('passenger', e.target.value)}
+                                                placeholder="Nombre del pasajero principal"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-zinc-500">Cantidad Adultos</label>
+                                            <input 
+                                                type="number"
+                                                min="0"
+                                                className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                value={formData.paxAdults !== undefined ? formData.paxAdults : ''}
+                                                onChange={(e) => updateHeaderField('paxAdults', e.target.value === '' ? undefined : parseInt(e.target.value))}
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-semibold text-zinc-500">Cantidad Niños</label>
+                                            <input 
+                                                type="number"
+                                                min="0"
+                                                className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                value={formData.paxChildren !== undefined ? formData.paxChildren : ''}
+                                                onChange={(e) => updateHeaderField('paxChildren', e.target.value === '' ? undefined : parseInt(e.target.value))}
+                                            />
+                                        </div>
+                                        <div className="space-y-2 md:col-span-2">
+                                            <label className="text-sm font-semibold text-zinc-500">Descripción Manual</label>
+                                            <input 
+                                                type="text"
+                                                className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                                value={formData.manualDescription || ''}
+                                                onChange={(e) => updateHeaderField('manualDescription', e.target.value)}
+                                                placeholder="Descripción manual por defecto para los productos..."
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -1165,7 +1343,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Check-In</label>
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Fecha Inicio</label>
                                                     <input
                                                         type="date"
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs p-1"
@@ -1174,7 +1352,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Check-Out</label>
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Fecha Fin</label>
                                                     <input
                                                         type="date"
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs p-1"
@@ -1202,6 +1380,10 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     <label className="text-[10px] uppercase font-bold text-zinc-400">Reservación</label>
                                                     <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={item.reservationCode} onChange={(e) => updateItem(index, 'reservationCode', e.target.value)} />
                                                 </div>
+                                                <div className="space-y-1 md:col-span-2">
+                                                     <label className="text-[10px] uppercase font-bold text-zinc-400">Pasajero</label>
+                                                     <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={item.passenger || ''} onChange={(e) => updateItem(index, 'passenger', e.target.value)} placeholder="Pasajero del producto..." />
+                                                 </div>
                                                  <div className="space-y-1 md:col-span-2">
                                                      <label className="text-[10px] uppercase font-bold text-blue-500">Servicio</label>
                                                      <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-blue-200 dark:border-blue-800 outline-none text-xs" value={item.servicios || item.service || ''} onChange={(e) => { updateItem(index, 'servicios', e.target.value); updateItem(index, 'service', e.target.value); }} placeholder="Servicio (ej. Desayuno incluido, Traslado VIP)..." />
@@ -1270,30 +1452,46 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-orange-500 dark:text-orange-400">Costo ($)</label>
                                                     <input
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.01"
+                                                        type="text"
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-orange-200 dark:border-orange-800 outline-none text-xs font-bold text-orange-600 dark:text-orange-400 focus:ring-1 focus:ring-orange-400"
-                                                        value={item.cost ?? 0}
-                                                        onChange={(e) => updateItem(index, 'cost', parseFloat(e.target.value) || 0)}
+                                                        value={focusedField?.itemIdx === index && focusedField?.field === 'cost' ? (focusedField.rawValue ?? item.cost ?? '') : (item.cost ?? '')}
+                                                        onFocus={() => setFocusedField({ itemIdx: index, field: 'cost', rawValue: item.cost?.toString() || '' })}
+                                                        onBlur={() => setFocusedField(null)}
+                                                        onChange={(e) => {
+                                                            const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+                                                            setFocusedField(prev => prev ? { ...prev, rawValue: cleanVal } : { itemIdx: index, field: 'cost', rawValue: cleanVal });
+                                                            updateItem(index, 'cost', parseFloat(cleanVal) || 0);
+                                                        }}
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Com. Vend. ($)</label>
                                                     <input
-                                                        type="number"
+                                                        type="text"
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold"
-                                                        value={item.sellerCommission}
-                                                        onChange={(e) => updateItem(index, 'sellerCommission', parseFloat(e.target.value) || 0)}
+                                                        value={focusedField?.itemIdx === index && focusedField?.field === 'sellerCommission' ? (focusedField.rawValue ?? item.sellerCommission ?? '') : (item.sellerCommission ?? '')}
+                                                        onFocus={() => setFocusedField({ itemIdx: index, field: 'sellerCommission', rawValue: item.sellerCommission?.toString() || '' })}
+                                                        onBlur={() => setFocusedField(null)}
+                                                        onChange={(e) => {
+                                                            const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+                                                            setFocusedField(prev => prev ? { ...prev, rawValue: cleanVal } : { itemIdx: index, field: 'sellerCommission', rawValue: cleanVal });
+                                                            updateItem(index, 'sellerCommission', parseFloat(cleanVal) || 0);
+                                                        }}
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400">Com. Tiq. ($)</label>
                                                     <input
-                                                        type="number"
+                                                        type="text"
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold"
-                                                        value={item.ticketPrinterCommission}
-                                                        onChange={(e) => updateItem(index, 'ticketPrinterCommission', parseFloat(e.target.value) || 0)}
+                                                        value={focusedField?.itemIdx === index && focusedField?.field === 'ticketPrinterCommission' ? (focusedField.rawValue ?? item.ticketPrinterCommission ?? '') : (item.ticketPrinterCommission ?? '')}
+                                                        onFocus={() => setFocusedField({ itemIdx: index, field: 'ticketPrinterCommission', rawValue: item.ticketPrinterCommission?.toString() || '' })}
+                                                        onBlur={() => setFocusedField(null)}
+                                                        onChange={(e) => {
+                                                            const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+                                                            setFocusedField(prev => prev ? { ...prev, rawValue: cleanVal } : { itemIdx: index, field: 'ticketPrinterCommission', rawValue: cleanVal });
+                                                            updateItem(index, 'ticketPrinterCommission', parseFloat(cleanVal) || 0);
+                                                        }}
                                                     />
                                                 </div>
                                             </div>
@@ -1556,20 +1754,30 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                 <div className="space-y-1 flex-1">
                                     <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Tasa Cambio</label>
                                     <input
-                                        type="number"
+                                        type="text"
                                         className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right"
-                                        value={formData.exchangeRate}
-                                        onChange={(e) => setFormData({ ...formData, exchangeRate: parseFloat(e.target.value) })}
+                                        value={focusedField?.field === 'exchangeRate' ? (focusedField.rawValue ?? formData.exchangeRate ?? '') : (formData.exchangeRate ?? '')}
+                                        onFocus={() => setFocusedField({ field: 'exchangeRate', rawValue: formData.exchangeRate?.toString() || '' })}
+                                        onBlur={() => setFocusedField(null)}
+                                        onChange={(e) => {
+                                            const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+                                            setFocusedField({ field: 'exchangeRate', rawValue: cleanVal });
+                                            setFormData({ ...formData, exchangeRate: parseFloat(cleanVal) || 0 });
+                                        }}
                                     />
                                 </div>
                                 <div className="space-y-1 flex-1">
                                     <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Comisión (%)</label>
                                     <input
-                                        type="number"
+                                        type="text"
                                         className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right text-white"
-                                        value={formData.comisionTotalPercentage}
+                                        value={focusedField?.field === 'comisionTotalPercentage' ? (focusedField.rawValue ?? formData.comisionTotalPercentage ?? '') : (formData.comisionTotalPercentage ?? '')}
+                                        onFocus={() => setFocusedField({ field: 'comisionTotalPercentage', rawValue: formData.comisionTotalPercentage?.toString() || '' })}
+                                        onBlur={() => setFocusedField(null)}
                                         onChange={(e) => {
-                                            const totalPct = parseFloat(e.target.value) || 0;
+                                            const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+                                            setFocusedField({ field: 'comisionTotalPercentage', rawValue: cleanVal });
+                                            const totalPct = parseFloat(cleanVal) || 0;
                                             const freelancePct = formData.comisionFreelancePercentage || 0;
                                             const ownPct = totalPct - freelancePct;
                                             setFormData({
@@ -1628,11 +1836,15 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">% Comisión Free Lance/Agencia</label>
                                             <input
-                                                type="number"
+                                                type="text"
                                                 className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right text-white"
-                                                value={formData.comisionFreelancePercentage}
+                                                value={focusedField?.field === 'comisionFreelancePercentage' ? (focusedField.rawValue ?? formData.comisionFreelancePercentage ?? '') : (formData.comisionFreelancePercentage ?? '')}
+                                                onFocus={() => setFocusedField({ field: 'comisionFreelancePercentage', rawValue: formData.comisionFreelancePercentage?.toString() || '' })}
+                                                onBlur={() => setFocusedField(null)}
                                                 onChange={(e) => {
-                                                    const freelancePct = parseFloat(e.target.value) || 0;
+                                                    const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+                                                    setFocusedField({ field: 'comisionFreelancePercentage', rawValue: cleanVal });
+                                                    const freelancePct = parseFloat(cleanVal) || 0;
                                                     const totalPct = formData.comisionTotalPercentage || 0;
                                                     const ownPct = totalPct - freelancePct;
                                                     setFormData({
