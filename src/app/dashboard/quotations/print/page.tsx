@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, Suspense } from 'react'
+import React, { useEffect, useState, Suspense, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { 
     Printer, FileSpreadsheet, ArrowLeft, AlignLeft, AlignCenter, 
@@ -128,15 +128,17 @@ function PrintQuotationsContent() {
     const [parsedReports, setParsedReports] = useState<ParsedReport[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [resetCounter, setResetCounter] = useState(0) // Used to trigger reload / reset
+    const [resetCounter, setResetCounter] = useState(0)
     const [saving, setSaving] = useState(false)
 
-    // Editor States (managed via standard React state now that parsedReports is stable)
+    // Editor Active State
     const [isEditing, setIsEditing] = useState(false)
-    const [selectedCell, setSelectedCell] = useState<HTMLElement | null>(null)
-    const [selectedRow, setSelectedRow] = useState<HTMLElement | null>(null)
-    const [globalFont, setGlobalFont] = useState('Arial')
     const [showHelp, setShowHelp] = useState(true)
+
+    // Stable DOM references to prevent React re-render cycle overrides
+    const selectedCellRef = useRef<HTMLElement | null>(null)
+    const selectedRowRef = useRef<HTMLElement | null>(null)
+    const globalFontRef = useRef<string>('Arial')
 
     // Load reports and parse them once
     useEffect(() => {
@@ -175,8 +177,8 @@ function PrintQuotationsContent() {
                 setParsedReports(parsed);
                 setLoading(false);
                 setIsEditing(false);
-                setSelectedCell(null);
-                setSelectedRow(null);
+                selectedCellRef.current = null;
+                selectedRowRef.current = null;
             })
             .catch(err => {
                 console.error(err)
@@ -184,6 +186,27 @@ function PrintQuotationsContent() {
                 setLoading(false)
             })
     }, [idIni, idFin, formatId, resetCounter])
+
+    // Enable/disable toolbar buttons directly in the DOM (pure CSS pointer-events blocker)
+    const updateToolbarUI = (hasSelection: boolean) => {
+        const cellButtons = document.querySelectorAll('.cell-ctrl-btn')
+        cellButtons.forEach((btn: any) => {
+            if (hasSelection) {
+                btn.classList.remove('editor-btn-disabled')
+            } else {
+                btn.classList.add('editor-btn-disabled')
+            }
+        })
+        
+        const rowButtons = document.querySelectorAll('.row-ctrl-btn')
+        rowButtons.forEach((btn: any) => {
+            if (hasSelection) {
+                btn.classList.remove('editor-btn-disabled')
+            } else {
+                btn.classList.add('editor-btn-disabled')
+            }
+        })
+    }
 
     // Attach click/focus event listeners and contenteditable post-render
     useEffect(() => {
@@ -202,13 +225,16 @@ function PrintQuotationsContent() {
                 if (prevRowActive) prevRowActive.classList.remove('active-editor-row')
 
                 cell.classList.add('active-editor-cell')
-                setSelectedCell(cell)
+                selectedCellRef.current = cell
 
                 const row = cell.closest('tr')
                 if (row) {
                     row.classList.add('active-editor-row')
-                    setSelectedRow(row)
+                    selectedRowRef.current = row
                 }
+
+                // Enable toolbar controls directly in DOM
+                updateToolbarUI(true)
             }
         }
 
@@ -233,8 +259,9 @@ function PrintQuotationsContent() {
             if (prevActive) prevActive.classList.remove('active-editor-cell')
             const prevRowActive = document.querySelector('.active-editor-row')
             if (prevRowActive) prevRowActive.classList.remove('active-editor-row')
-            setSelectedCell(null)
-            setSelectedRow(null)
+            selectedCellRef.current = null
+            selectedRowRef.current = null
+            updateToolbarUI(false)
         }
 
         return () => {
@@ -253,49 +280,55 @@ function PrintQuotationsContent() {
         setIsEditing(!isEditing)
     }
 
-    // Direct DOM styling handlers (acting on the React state reference)
+    // Direct DOM styling handlers (acting on the stable ref)
     const toggleBold = () => {
-        if (!selectedCell) return
-        const isBold = selectedCell.style.fontWeight === 'bold' || selectedCell.style.fontWeight === '700'
-        selectedCell.style.fontWeight = isBold ? 'normal' : 'bold'
+        const cell = selectedCellRef.current
+        if (!cell) return
+        const isBold = cell.style.fontWeight === 'bold' || cell.style.fontWeight === '700'
+        cell.style.fontWeight = isBold ? 'normal' : 'bold'
     }
 
     const setAlign = (align: 'left' | 'center' | 'right' | 'justify') => {
-        if (!selectedCell) return
-        selectedCell.style.textAlign = align
+        const cell = selectedCellRef.current
+        if (!cell) return
+        cell.style.textAlign = align
     }
 
     const changeFontSize = (delta: number) => {
-        if (!selectedCell) return
-        const currentSize = window.getComputedStyle(selectedCell).fontSize
+        const cell = selectedCellRef.current
+        if (!cell) return
+        const currentSize = window.getComputedStyle(cell).fontSize
         const sizeNum = parseFloat(currentSize) || 12
-        selectedCell.style.fontSize = `${sizeNum + delta}px`
+        cell.style.fontSize = `${sizeNum + delta}px`
     }
 
     const moveRow = (direction: 'up' | 'down') => {
-        if (!selectedRow) return
-        const parent = selectedRow.parentNode
+        const row = selectedRowRef.current
+        if (!row) return
+        const parent = row.parentNode
         if (!parent) return
 
-        if (direction === 'up' && selectedRow.previousElementSibling) {
-            parent.insertBefore(selectedRow, selectedRow.previousElementSibling)
-        } else if (direction === 'down' && selectedRow.nextElementSibling) {
-            parent.insertBefore(selectedRow.nextElementSibling, selectedRow)
+        if (direction === 'up' && row.previousElementSibling) {
+            parent.insertBefore(row, row.previousElementSibling)
+        } else if (direction === 'down' && row.nextElementSibling) {
+            parent.insertBefore(row.nextElementSibling, row)
         }
-        selectedRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }
 
     const hideRow = () => {
-        if (!selectedRow) return
+        const row = selectedRowRef.current
+        if (!row) return
         if (confirm('¿Desea ocultar esta fila del reporte? (Se mantendrá oculta al imprimir/guardar PDF)')) {
-            selectedRow.style.display = 'none'
-            setSelectedRow(null)
-            setSelectedCell(null)
+            row.style.display = 'none'
+            selectedRowRef.current = null
+            selectedCellRef.current = null
+            updateToolbarUI(false)
         }
     }
 
     const handleFontChange = (font: string) => {
-        setGlobalFont(font)
+        globalFontRef.current = font
         // Apply directly to DOM to avoid full React re-render layout overwrite
         const tables = document.querySelectorAll('.excel-table')
         tables.forEach((table: any) => {
@@ -353,8 +386,8 @@ function PrintQuotationsContent() {
 
             alert('¡Diseño y cambios guardados correctamente de forma permanente!')
             setIsEditing(false)
-            setSelectedCell(null)
-            setSelectedRow(null)
+            selectedCellRef.current = null
+            selectedRowRef.current = null
         } catch (err: any) {
             console.error(err)
             alert('Error al guardar cambios: ' + err.message)
@@ -413,7 +446,7 @@ function PrintQuotationsContent() {
                     box-sizing: border-box !important;
                 }
                 .excel-table {
-                    font-family: ${globalFont}, Arial, sans-serif !important;
+                    font-family: ${globalFontRef.current}, Arial, sans-serif !important;
                     user-select: text !important;
                     -webkit-user-select: text !important;
                     -moz-user-select: text !important;
@@ -448,6 +481,13 @@ function PrintQuotationsContent() {
                         outline: 2px solid #2563eb !important;
                         background-color: rgba(37, 99, 235, 0.05) !important;
                         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+                    }
+                    
+                    /* Custom editor button disabled selector */
+                    .editor-btn-disabled {
+                        opacity: 0.3 !important;
+                        pointer-events: none !important;
+                        cursor: not-allowed !important;
                     }
                 }
                 
@@ -563,7 +603,7 @@ function PrintQuotationsContent() {
                                     Tipografía:
                                 </span>
                                 <select
-                                    value={globalFont}
+                                    defaultValue={globalFontRef.current}
                                     onChange={(e) => handleFontChange(e.target.value)}
                                     className="h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
                                 >
@@ -595,12 +635,7 @@ function PrintQuotationsContent() {
                                 
                                 <button
                                     onClick={toggleBold}
-                                    disabled={!selectedCell}
-                                    className={`p-2 rounded-lg transition-all ${
-                                        selectedCell 
-                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
-                                        : 'opacity-30 cursor-not-allowed'
-                                    }`}
+                                    className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
                                     title="Negrita"
                                 >
                                     <Bold className="w-4 h-4" />
@@ -610,12 +645,7 @@ function PrintQuotationsContent() {
 
                                 <button
                                     onClick={() => setAlign('left')}
-                                    disabled={!selectedCell}
-                                    className={`p-2 rounded-lg transition-all ${
-                                        selectedCell 
-                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
-                                        : 'opacity-30 cursor-not-allowed'
-                                    }`}
+                                    className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
                                     title="Alinear a la Izquierda"
                                 >
                                     <AlignLeft className="w-4 h-4" />
@@ -623,12 +653,7 @@ function PrintQuotationsContent() {
 
                                 <button
                                     onClick={() => setAlign('center')}
-                                    disabled={!selectedCell}
-                                    className={`p-2 rounded-lg transition-all ${
-                                        selectedCell 
-                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
-                                        : 'opacity-30 cursor-not-allowed'
-                                    }`}
+                                    className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
                                     title="Centrar"
                                 >
                                     <AlignCenter className="w-4 h-4" />
@@ -636,12 +661,7 @@ function PrintQuotationsContent() {
 
                                 <button
                                     onClick={() => setAlign('right')}
-                                    disabled={!selectedCell}
-                                    className={`p-2 rounded-lg transition-all ${
-                                        selectedCell 
-                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
-                                        : 'opacity-30 cursor-not-allowed'
-                                    }`}
+                                    className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
                                     title="Alinear a la Derecha"
                                 >
                                     <AlignRight className="w-4 h-4" />
@@ -651,12 +671,7 @@ function PrintQuotationsContent() {
 
                                 <button
                                     onClick={() => changeFontSize(1)}
-                                    disabled={!selectedCell}
-                                    className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
-                                        selectedCell 
-                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
-                                        : 'opacity-30 cursor-not-allowed'
-                                    }`}
+                                    className="cell-ctrl-btn editor-btn-disabled px-2 py-1 rounded-lg text-xs font-bold transition-all text-zinc-800 dark:text-zinc-200"
                                     title="Aumentar Tamaño Letra"
                                 >
                                     A+
@@ -664,12 +679,7 @@ function PrintQuotationsContent() {
 
                                 <button
                                     onClick={() => changeFontSize(-1)}
-                                    disabled={!selectedCell}
-                                    className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
-                                        selectedCell 
-                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
-                                        : 'opacity-30 cursor-not-allowed'
-                                    }`}
+                                    className="cell-ctrl-btn editor-btn-disabled px-2 py-1 rounded-lg text-xs font-bold transition-all text-zinc-800 dark:text-zinc-200"
                                     title="Disminuir Tamaño Letra"
                                 >
                                     A-
@@ -682,12 +692,7 @@ function PrintQuotationsContent() {
                                 
                                 <button
                                     onClick={() => moveRow('up')}
-                                    disabled={!selectedRow}
-                                    className={`p-2 rounded-lg transition-all ${
-                                        selectedRow 
-                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
-                                        : 'opacity-30 cursor-not-allowed'
-                                    }`}
+                                    className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
                                     title="Subir Fila"
                                 >
                                     <ArrowUp className="w-4 h-4" />
@@ -695,12 +700,7 @@ function PrintQuotationsContent() {
 
                                 <button
                                     onClick={() => moveRow('down')}
-                                    disabled={!selectedRow}
-                                    className={`p-2 rounded-lg transition-all ${
-                                        selectedRow 
-                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
-                                        : 'opacity-30 cursor-not-allowed'
-                                    }`}
+                                    className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
                                     title="Bajar Fila"
                                 >
                                     <ArrowDown className="w-4 h-4" />
@@ -708,10 +708,7 @@ function PrintQuotationsContent() {
 
                                 <button
                                     onClick={hideRow}
-                                    disabled={!selectedRow}
-                                    className={`p-2 rounded-lg hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20 transition-all ${
-                                        selectedRow ? 'text-zinc-500' : 'opacity-30 cursor-not-allowed'
-                                    }`}
+                                    className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-500 hover:text-red-600"
                                     title="Ocultar fila completa"
                                 >
                                     <EyeOff className="w-4 h-4" />
