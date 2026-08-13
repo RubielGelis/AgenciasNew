@@ -190,9 +190,13 @@ function PrintQuotationsContent() {
 
         const handleCellClick = (e: MouseEvent) => {
             if (!isEditing) return
-            const cell = (e.target as HTMLElement).closest('.excel-table td') as HTMLTableCellElement
-            if (cell) {
-                // Remove highlight from previous cell and row
+            const target = e.target as HTMLElement;
+            // Buscar la celda más cercana
+            const cell = target.closest('td') as HTMLTableCellElement;
+            
+            // Verificar que pertenezca a una tabla de reporte Excel
+            if (cell && cell.closest('.excel-table')) {
+                // Deseleccionar anteriores
                 const prevActive = document.querySelector('.active-editor-cell')
                 if (prevActive) prevActive.classList.remove('active-editor-cell')
                 
@@ -397,6 +401,16 @@ function PrintQuotationsContent() {
                 }
                 .excel-table {
                     font-family: ${globalFont}, Arial, sans-serif !important;
+                    user-select: text !important;
+                    -webkit-user-select: text !important;
+                    -moz-user-select: text !important;
+                    -ms-user-select: text !important;
+                }
+                .excel-table * {
+                    user-select: text !important;
+                    -webkit-user-select: text !important;
+                    -moz-user-select: text !important;
+                    -ms-user-select: text !important;
                 }
                 
                 /* Editor styling - hidden when printing */
