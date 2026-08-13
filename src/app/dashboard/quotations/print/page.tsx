@@ -2,7 +2,11 @@
 
 import React, { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { Printer, FileSpreadsheet, ArrowLeft } from 'lucide-react'
+import { 
+    Printer, FileSpreadsheet, ArrowLeft, AlignLeft, AlignCenter, 
+    AlignRight, Bold, Trash2, ArrowUp, ArrowDown, Sparkles, 
+    Check, Edit3, EyeOff, RotateCcw, HelpCircle
+} from 'lucide-react'
 
 interface HtmlReportJson {
     idCotizacion: number;
@@ -84,17 +88,14 @@ function splitReportHtml(html: string) {
             </table>
         `;
 
-        let footerHtml = '';
-        if (rentabilidadRows.length > 0) {
-            footerHtml = `
-                <table class="excel-table table-rentabilidad border-collapse table-fixed w-full" style="font-family: Arial, sans-serif; border-spacing: 0; border-collapse: collapse;">
-                    ${colgroup}
-                    <tbody>
-                        ${rentabilidadRows.join('')}
-                    </tbody>
-                </table>
-            `;
-        }
+        const footerHtml = rentabilidadRows.length > 0 ? `
+            <table class="excel-table table-rentabilidad border-collapse table-fixed w-full" style="font-family: Arial, sans-serif; border-spacing: 0; border-collapse: collapse;">
+                ${colgroup}
+                <tbody>
+                    ${rentabilidadRows.join('')}
+                </tbody>
+            </table>
+        ` : '';
 
         const bodyHtml = `
             <div class="report-header-section">${tableCabecera}</div>
@@ -118,7 +119,16 @@ function PrintQuotationsContent() {
     const [reports, setReports] = useState<HtmlReportJson[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [resetCounter, setResetCounter] = useState(0) // Used to trigger reload / reset
 
+    // Editor States
+    const [isEditing, setIsEditing] = useState(false)
+    const [selectedCell, setSelectedCell] = useState<HTMLElement | null>(null)
+    const [selectedRow, setSelectedRow] = useState<HTMLElement | null>(null)
+    const [globalFont, setGlobalFont] = useState('Arial')
+    const [showHelp, setShowHelp] = useState(true)
+
+    // Load reports
     useEffect(() => {
         if (!idIni || !idFin) {
             setError("Faltan parámetros idIni o idFin.")
@@ -126,6 +136,7 @@ function PrintQuotationsContent() {
             return
         }
 
+        setLoading(true)
         fetch(`/api/reports/cotizaciones/export-excel?idIni=${idIni}&idFin=${idFin}&format=html${formatId ? `&formatId=${formatId}` : ''}`)
             .then(res => {
                 if (!res.ok) throw new Error("Error fetching report data")
@@ -134,13 +145,123 @@ function PrintQuotationsContent() {
             .then((json: HtmlReportJson[]) => {
                 setReports(json);
                 setLoading(false);
+                setSelectedCell(null);
+                setSelectedRow(null);
             })
             .catch(err => {
                 console.error(err)
                 setError(err.message)
                 setLoading(false)
             })
-    }, [idIni, idFin, formatId])
+    }, [idIni, idFin, formatId, resetCounter])
+
+    // Enable/disable contentEditable on cells based on edit mode
+    useEffect(() => {
+        if (loading || reports.length === 0) return
+
+        const tables = document.querySelectorAll('.excel-table')
+        
+        const handleCellClick = (e: MouseEvent) => {
+            if (!isEditing) return
+            const cell = (e.target as HTMLElement).closest('td')
+            if (cell) {
+                // Remove highlight from previous cell
+                const prevActive = document.querySelector('.active-editor-cell')
+                if (prevActive) prevActive.classList.remove('active-editor-cell')
+                
+                const prevRowActive = document.querySelector('.active-editor-row')
+                if (prevRowActive) prevRowActive.classList.remove('active-editor-row')
+
+                cell.classList.add('active-editor-cell')
+                setSelectedCell(cell)
+
+                const row = cell.closest('tr')
+                if (row) {
+                    row.classList.add('active-editor-row')
+                    setSelectedRow(row)
+                }
+            }
+        }
+
+        tables.forEach(table => {
+            const cells = table.querySelectorAll('td')
+            cells.forEach(cell => {
+                if (isEditing) {
+                    cell.setAttribute('contenteditable', 'true')
+                } else {
+                    cell.removeAttribute('contenteditable')
+                }
+            })
+            
+            if (isEditing) {
+                table.addEventListener('click', handleCellClick as any)
+            }
+        })
+
+        // Clean up editor highlight classes when editing mode turns off
+        if (!isEditing) {
+            const prevActive = document.querySelector('.active-editor-cell')
+            if (prevActive) prevActive.classList.remove('active-editor-cell')
+            const prevRowActive = document.querySelector('.active-editor-row')
+            if (prevRowActive) prevRowActive.classList.remove('active-editor-row')
+            setSelectedCell(null)
+            setSelectedRow(null)
+        }
+
+        return () => {
+            tables.forEach(table => {
+                table.removeEventListener('click', handleCellClick as any)
+                const cells = table.querySelectorAll('td')
+                cells.forEach(cell => {
+                    cell.removeAttribute('contenteditable')
+                })
+            })
+        }
+    }, [isEditing, loading, reports])
+
+    // Styling Toolbar Handlers
+    const toggleBold = () => {
+        if (!selectedCell) return
+        const isBold = selectedCell.style.fontWeight === 'bold' || selectedCell.style.fontWeight === '700'
+        selectedCell.style.fontWeight = isBold ? 'normal' : 'bold'
+    }
+
+    const setAlign = (align: 'left' | 'center' | 'right' | 'justify') => {
+        if (!selectedCell) return
+        selectedCell.style.textAlign = align
+    }
+
+    const changeFontSize = (delta: number) => {
+        if (!selectedCell) return
+        const currentSize = window.getComputedStyle(selectedCell).fontSize
+        const sizeNum = parseFloat(currentSize) || 12
+        selectedCell.style.fontSize = `${sizeNum + delta}px`
+    }
+
+    const moveRow = (direction: 'up' | 'down') => {
+        if (!selectedRow) return
+        const parent = selectedRow.parentNode
+        if (!parent) return
+
+        if (direction === 'up' && selectedRow.previousElementSibling) {
+            parent.insertBefore(selectedRow, selectedRow.previousElementSibling)
+        } else if (direction === 'down' && selectedRow.nextElementSibling) {
+            // parent.insertBefore inserts before the specified element.
+            // To move down, we insert selectedRow after nextElementSibling, which is equivalent to inserting nextElementSibling before selectedRow.
+            parent.insertBefore(selectedRow.nextElementSibling, selectedRow)
+        }
+        // Force scroll selection into view
+        selectedRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    }
+
+    const hideRow = () => {
+        if (!selectedRow) return
+        if (confirm('¿Desea ocultar esta fila del reporte? (Se mantendrá oculta al imprimir/guardar PDF)')) {
+            selectedRow.style.display = 'none'
+            setSelectedRow(null)
+            setSelectedCell(null)
+        }
+    }
 
     const handleExportExcel = () => {
         if (!idIni || !idFin) {
@@ -191,6 +312,35 @@ function PrintQuotationsContent() {
                     width: 100% !important;
                     box-sizing: border-box !important;
                 }
+                .excel-table {
+                    font-family: ${globalFont}, Arial, sans-serif !important;
+                }
+                
+                /* Editor styling - hidden when printing */
+                @media screen {
+                    .active-editor-cell {
+                        outline: 2px solid #3b82f6 !important;
+                        background-color: rgba(59, 130, 246, 0.08) !important;
+                        box-shadow: inset 0 0 0 1px #3b82f6 !important;
+                    }
+                    .active-editor-row {
+                        background-color: rgba(59, 130, 246, 0.02) !important;
+                        border-left: 3px solid #3b82f6 !important;
+                    }
+                    [contenteditable="true"] {
+                        transition: all 0.15s ease;
+                    }
+                    [contenteditable="true"]:hover {
+                        outline: 1px dashed #3b82f6 !important;
+                        cursor: text;
+                    }
+                    [contenteditable="true"]:focus {
+                        outline: 2px solid #2563eb !important;
+                        background-color: rgba(37, 99, 235, 0.05) !important;
+                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+                    }
+                }
+                
                 @media print {
                     body {
                         background-color: white !important;
@@ -237,31 +387,234 @@ function PrintQuotationsContent() {
 
             <div className="max-w-[1200px] mx-auto bg-white p-8 rounded-xl shadow-xl print:shadow-none print:p-0">
                 
-                {/* Print and Navigation Action Bar (hidden during print) */}
-                <div className="flex justify-between items-center mb-8 print:hidden bg-zinc-50 dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800">
-                    <button 
-                        onClick={handleVolver}
-                        className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white font-bold flex items-center gap-2 transition-colors"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Volver
-                    </button>
-                    <div className="flex gap-3">
+                {/* Print, Editor, and Navigation Action Bar (hidden during print) */}
+                <div className="flex flex-col gap-4 mb-8 print:hidden bg-zinc-50 dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+                    
+                    {/* Top Row: Navigation and Actions */}
+                    <div className="flex justify-between items-center">
                         <button 
-                            onClick={handleExportExcel}
-                            className="bg-emerald-600 text-white px-5 h-11 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm"
+                            onClick={handleVolver}
+                            className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white font-black flex items-center gap-2 transition-colors text-sm"
                         >
-                            <FileSpreadsheet className="w-4 h-4" />
-                            Descargar EXCEL
+                            <ArrowLeft className="w-4 h-4" />
+                            Volver
                         </button>
-                        <button 
-                            onClick={() => window.print()}
-                            className="bg-blue-600 text-white px-5 h-11 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm"
-                        >
-                            <Printer className="w-4 h-4" />
-                            Imprimir / Guardar PDF
-                        </button>
+                        
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => setIsEditing(!isEditing)}
+                                className={`px-5 h-11 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm ${
+                                    isEditing 
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white ring-2 ring-blue-500/20' 
+                                    : 'bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200'
+                                }`}
+                            >
+                                <Edit3 className="w-4 h-4" />
+                                {isEditing ? 'Desactivar Editor' : 'Activar Diseñador / Editor'}
+                            </button>
+
+                            <button 
+                                onClick={handleExportExcel}
+                                className="bg-emerald-600 text-white px-5 h-11 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm text-sm"
+                            >
+                                <FileSpreadsheet className="w-4 h-4" />
+                                Descargar EXCEL
+                            </button>
+                            
+                            <button 
+                                onClick={() => window.print()}
+                                className="bg-blue-600 text-white px-5 h-11 rounded-xl font-black flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 text-sm"
+                            >
+                                <Printer className="w-4 h-4" />
+                                Imprimir / Guardar PDF
+                            </button>
+                        </div>
                     </div>
+
+                    {/* Editor Toolbar (Only visible when Editor Mode is active) */}
+                    {isEditing && (
+                        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-2 flex flex-wrap items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                            
+                            {/* Global Options */}
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                                    <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                                    Tipografía:
+                                </span>
+                                <select
+                                    value={globalFont}
+                                    onChange={(e) => setGlobalFont(e.target.value)}
+                                    className="h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                                >
+                                    <option value="Arial">Arial (Por defecto)</option>
+                                    <option value="Inter">Inter (Moderna)</option>
+                                    <option value="Georgia">Georgia (Elegante)</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                    <option value="Courier New">Courier New (Monospaced)</option>
+                                    <option value="system-ui">Sistema (San Francisco/Segoe UI)</option>
+                                </select>
+                                
+                                <button
+                                    onClick={() => {
+                                        if (confirm('¿Desea restaurar el reporte a su estado original? Se perderán todos los textos y estilos modificados localmente.')) {
+                                            setResetCounter(prev => prev + 1);
+                                        }
+                                    }}
+                                    className="flex items-center gap-1 px-3 h-9 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/20 dark:hover:bg-red-900/30 dark:text-red-400 rounded-lg text-xs font-bold transition-all border border-red-100 dark:border-red-900/35"
+                                    title="Restaurar valores de base de datos"
+                                >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                    Restaurar
+                                </button>
+                            </div>
+
+                            {/* Active Cell Options */}
+                            <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800">
+                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Formato Celda:</span>
+                                
+                                <button
+                                    onClick={toggleBold}
+                                    disabled={!selectedCell}
+                                    className={`p-2 rounded-lg transition-all ${
+                                        selectedCell 
+                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
+                                        : 'opacity-30 cursor-not-allowed'
+                                    }`}
+                                    title="Negrita"
+                                >
+                                    <Bold className="w-4 h-4" />
+                                </button>
+
+                                <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700"></div>
+
+                                <button
+                                    onClick={() => setAlign('left')}
+                                    disabled={!selectedCell}
+                                    className={`p-2 rounded-lg transition-all ${
+                                        selectedCell 
+                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
+                                        : 'opacity-30 cursor-not-allowed'
+                                    }`}
+                                    title="Alinear a la Izquierda"
+                                >
+                                    <AlignLeft className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                    onClick={() => setAlign('center')}
+                                    disabled={!selectedCell}
+                                    className={`p-2 rounded-lg transition-all ${
+                                        selectedCell 
+                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
+                                        : 'opacity-30 cursor-not-allowed'
+                                    }`}
+                                    title="Centrar"
+                                >
+                                    <AlignCenter className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                    onClick={() => setAlign('right')}
+                                    disabled={!selectedCell}
+                                    className={`p-2 rounded-lg transition-all ${
+                                        selectedCell 
+                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
+                                        : 'opacity-30 cursor-not-allowed'
+                                    }`}
+                                    title="Alinear a la Derecha"
+                                >
+                                    <AlignRight className="w-4 h-4" />
+                                </button>
+
+                                <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700"></div>
+
+                                <button
+                                    onClick={() => changeFontSize(1)}
+                                    disabled={!selectedCell}
+                                    className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
+                                        selectedCell 
+                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
+                                        : 'opacity-30 cursor-not-allowed'
+                                    }`}
+                                    title="Aumentar Tamaño Letra"
+                                >
+                                    A+
+                                </button>
+
+                                <button
+                                    onClick={() => changeFontSize(-1)}
+                                    disabled={!selectedCell}
+                                    className={`px-2 py-1 rounded-lg text-xs font-bold transition-all ${
+                                        selectedCell 
+                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
+                                        : 'opacity-30 cursor-not-allowed'
+                                    }`}
+                                    title="Disminuir Tamaño Letra"
+                                >
+                                    A-
+                                </button>
+                            </div>
+
+                            {/* Active Row Options */}
+                            <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800">
+                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Fila:</span>
+                                
+                                <button
+                                    onClick={() => moveRow('up')}
+                                    disabled={!selectedRow}
+                                    className={`p-2 rounded-lg transition-all ${
+                                        selectedRow 
+                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
+                                        : 'opacity-30 cursor-not-allowed'
+                                    }`}
+                                    title="Subir Fila"
+                                >
+                                    <ArrowUp className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                    onClick={() => moveRow('down')}
+                                    disabled={!selectedRow}
+                                    className={`p-2 rounded-lg transition-all ${
+                                        selectedRow 
+                                        ? 'hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200' 
+                                        : 'opacity-30 cursor-not-allowed'
+                                    }`}
+                                    title="Bajar Fila"
+                                >
+                                    <ArrowDown className="w-4 h-4" />
+                                </button>
+
+                                <button
+                                    onClick={hideRow}
+                                    disabled={!selectedRow}
+                                    className={`p-2 rounded-lg hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/20 transition-all ${
+                                        selectedRow ? 'text-zinc-500' : 'opacity-30 cursor-not-allowed'
+                                    }`}
+                                    title="Ocultar fila completa"
+                                >
+                                    <EyeOff className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                        </div>
+                    )}
+
+                    {/* Quick Helper Notice */}
+                    {isEditing && showHelp && (
+                        <div className="bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 p-3.5 rounded-xl text-xs flex items-start gap-2.5 border border-blue-100 dark:border-blue-900/50">
+                            <HelpCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                                <span className="font-bold">Guía Rápida del Diseñador:</span>
+                                <ul className="list-disc list-inside mt-1 space-y-0.5 text-zinc-600 dark:text-zinc-400">
+                                    <li>Haz **doble clic o clic** en cualquier celda para escribir y cambiar la información directamente.</li>
+                                    <li>Selecciona una celda para activar las opciones de formato (Negrita, alineación, tamaño, o subir/bajar la fila).</li>
+                                    <li>Cuando estés satisfecho con el aspecto, haz clic en **"Imprimir / Guardar PDF"** para generar el reporte idéntico a lo que ves.</li>
+                                </ul>
+                            </div>
+                            <button onClick={() => setShowHelp(false)} className="text-blue-500 hover:text-blue-700 font-bold">Entendido</button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Report Content Container */}
@@ -271,7 +624,7 @@ function PrintQuotationsContent() {
                         return (
                             <div 
                                 key={idx} 
-                                className="bg-white text-black p-8 border border-zinc-200 rounded-2xl print:border-none print:p-0 print:m-0 break-after-page overflow-x-auto"
+                                className="bg-white text-black p-8 border border-zinc-200 rounded-2xl print:border-none print:p-0 print:m-0 break-after-page overflow-x-auto relative"
                             >
                                 <h3 className="text-sm font-bold text-zinc-400 mb-4 print:hidden">Cotización #{report.idCotizacion}</h3>
                                 <div className="report-body-wrapper" dangerouslySetInnerHTML={{ __html: bodyHtml }} />

@@ -957,25 +957,41 @@ export async function GET(req: Request) {
             for (const q of groupedList) {
                 const dbInfo = qDbMap.get(q.idCotizacion);
                 let htmlTemplate = null;
-                const physicalConfig = await getCellCustomizationConfig(
-                    dbInfo?.branch?.id || null,
-                    dbInfo?.implant?.id || null
-                );
-                const templateConfigRaw = dbInfo?.implant?.templateConfig || dbInfo?.branch?.templateConfig;
-                
-                const templateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
-                let config = DEFAULT_CONFIG as any;
-                if (templateBuffer) {
+                let templateBuffer: Buffer | null = null;
+                let config: any = DEFAULT_CONFIG;
+
+                if (customFormat) {
+                    templateBuffer = customFormat.template ? Buffer.from(customFormat.template) : null;
+                    const formatCellConfig = (customFormat.FormatCellCustomization || []).reduce((acc: any, c: any) => {
+                        if (c.value) acc[c.code] = c.value;
+                        return acc;
+                    }, {});
                     config = {
-                        ...(templateConfigRaw as any || {}),
-                        ...(physicalConfig || {})
+                        ...DEFAULT_CONFIG,
+                        ...(customFormat.templateConfig as any || {}),
+                        ...formatCellConfig,
                     };
-                } else if (templateConfigRaw || physicalConfig) {
-                    config = { 
-                        ...DEFAULT_CONFIG, 
-                        ...(templateConfigRaw as any || {}), 
-                        ...(physicalConfig || {}) 
-                    };
+                } else {
+                    const physicalConfig = await getCellCustomizationConfig(
+                        dbInfo?.branch?.id || null,
+                        dbInfo?.implant?.id || null
+                    );
+                    const templateConfigRaw = dbInfo?.implant?.templateConfig || dbInfo?.branch?.templateConfig;
+                    const branchTemplateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
+                    templateBuffer = branchTemplateBuffer ? Buffer.from(branchTemplateBuffer) : null;
+
+                    if (templateBuffer) {
+                        config = {
+                            ...(templateConfigRaw as any || {}),
+                            ...(physicalConfig || {})
+                        };
+                    } else if (templateConfigRaw || physicalConfig) {
+                        config = { 
+                            ...DEFAULT_CONFIG, 
+                            ...(templateConfigRaw as any || {}), 
+                            ...(physicalConfig || {}) 
+                        };
+                    }
                 }
 
                 if (!htmlTemplate) {
