@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { code, name, exchangeRate } = body
+        const { code, name, exchangeRate, decimals } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
@@ -36,10 +36,11 @@ export async function POST(req: NextRequest) {
         }
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spMonedaCrear($1::TEXT, $2::TEXT, $3::FLOAT, $4::INT, $5::INT, $6::TEXT)`,
+            `CALL public.spMonedaCrear($1::TEXT, $2::TEXT, $3::FLOAT, $4::INT, $5::INT, $6::INT, $7::TEXT)`,
             code.toUpperCase(),
             name,
             parseFloat(exchangeRate),
+            decimals !== undefined ? parseInt(decimals) : 2,
             actingUserId,
             0,  // p_currency_id (INOUT)
             ''  // p_mensaje_resultado (INOUT)
@@ -52,7 +53,13 @@ export async function POST(req: NextRequest) {
             throw new Error(message || 'Error al crear la moneda')
         }
 
-        const currency = { id: currencyId, code: code.toUpperCase(), name, exchangeRate: parseFloat(exchangeRate) }
+        const currency = { 
+            id: currencyId, 
+            code: code.toUpperCase(), 
+            name, 
+            exchangeRate: parseFloat(exchangeRate),
+            decimals: decimals !== undefined ? parseInt(decimals) : 2
+        }
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
             logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'MONEDA', description: `Moneda ${code} creada (SP).`, metadata: currency })
@@ -69,7 +76,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json()
-        const { id, code, name, exchangeRate } = body
+        const { id, code, name, exchangeRate, decimals } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
@@ -78,11 +85,12 @@ export async function PUT(req: NextRequest) {
         }
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spMonedaActualizar($1::INT, $2::TEXT, $3::TEXT, $4::FLOAT, $5::INT, $6::TEXT)`,
+            `CALL public.spMonedaActualizar($1::INT, $2::TEXT, $3::TEXT, $4::FLOAT, $5::INT, $6::INT, $7::TEXT)`,
             parseInt(id),
             code.toUpperCase(),
             name,
             parseFloat(exchangeRate),
+            decimals !== undefined ? parseInt(decimals) : 2,
             actingUserId,
             ''  // p_mensaje_resultado (INOUT)
         )
@@ -92,7 +100,13 @@ export async function PUT(req: NextRequest) {
             throw new Error(message)
         }
 
-        const currency = { id: parseInt(id), code: code.toUpperCase(), name, exchangeRate: parseFloat(exchangeRate) }
+        const currency = { 
+            id: parseInt(id), 
+            code: code.toUpperCase(), 
+            name, 
+            exchangeRate: parseFloat(exchangeRate),
+            decimals: decimals !== undefined ? parseInt(decimals) : 2
+        }
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
             logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'MONEDA', description: `Moneda ${code} actualizada (SP).`, metadata: currency })

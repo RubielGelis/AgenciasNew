@@ -53,6 +53,7 @@ interface QuotationFormData {
         isPaymentModalOpen?: boolean;
         comboId?: number;
         inNationality?: number;
+        totalInput?: string;
         _productName?: string;
         _providerName?: string;
         _prestadoraName?: string;
@@ -64,11 +65,11 @@ interface QuotationFormData {
     internalNumber?: string;
 }
 
-const formatMoney = (val: any) => {
+const formatMoney = (val: any, decimals: number = 2) => {
     if (val === null || val === undefined || val === '') return '';
     const num = parseFloat(val);
     if (isNaN(num)) return '';
-    return num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return num.toLocaleString('es-CO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 };
 
 const getStateColorClass = (stateName: string, statesList: any[]) => {
@@ -118,10 +119,13 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     const [isGlobalPaymentOpen, setIsGlobalPaymentOpen] = useState(false)
     const [attachments, setAttachments] = useState<any[]>([])
     const [uploadingAttachment, setUploadingAttachment] = useState(false)
-    const [focusedTax, setFocusedTax] = useState<{ itemIdx: number, taxId: number } | null>(null)
+    const [focusedTax, setFocusedTax] = useState<{ itemIdx: number, taxId: number, rawValue?: string } | null>(null)
     const [activeGeneralTab, setActiveGeneralTab] = useState<'info' | 'history'>('info')
     const [stateHistoryList, setStateHistoryList] = useState<any[]>([])
     const router = useRouter()
+
+    const activeCurrency = data?.currencies?.find((c: any) => c.code === formData.currency);
+    const decimals = activeCurrency ? (activeCurrency.decimals ?? 2) : 2;
 
     const handleSave = async (e: React.FormEvent, downloadPdf = false) => {
         e.preventDefault();
@@ -350,7 +354,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             newItems.forEach(item => {
                 const updatedPayments = [...(item.payments || [])];
                 updatedPayments.push({
-                    amount: parseFloat(equalShare.toFixed(2)),
+                    amount: parseFloat(equalShare.toFixed(decimals)),
                     paymentMethod: method,
                     date,
                     reference,
@@ -368,7 +372,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 if (idx === newItems.length - 1) {
                     itemShare = amount - distributedSum;
                 } else {
-                    itemShare = parseFloat((amount * (itemTotal / totalValue)).toFixed(2));
+                    itemShare = parseFloat((amount * (itemTotal / totalValue)).toFixed(decimals));
                     distributedSum += itemShare;
                 }
                 
@@ -399,7 +403,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             const taxId = rawTaxId != null ? Number(rawTaxId) : null;
             const taxMaster = data.taxes.find((t: any) => Number(t.id) === taxId);
             if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
-                return { ...taxApp, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(2)) };
+                return { ...taxApp, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(decimals)) };
             }
             return taxApp;
         });
@@ -537,7 +541,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 sellerCommission: 0, ticketPrinterCommission: 0,
                 appliedTaxes: [],
                 variables: [],
-                inNationality: 1
+                inNationality: 1,
+                totalInput: ''
             }]
         })
     }
@@ -651,13 +656,13 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                     // 2. Los impuestos porcentuales se recalculan sobre la nueva base (Precio Unitario * Cantidad)
                     const taxMaster = data?.taxes?.find((m: any) => Number(m.id) === taxId);
                     if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
-                        return { ...t, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(2)) };
+                        return { ...t, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(decimals)) };
                     }
 
                     // 3. Otros cargos (fijos o manuales): 
                     // Si cambió la cantidad, escalan proporcionalmente (Ej: $10 -> $20 si duplicas)
                     if (field === 'quantity') {
-                        return { ...t, amount: parseFloat((t.amount * ratio).toFixed(2)) };
+                        return { ...t, amount: parseFloat((t.amount * ratio).toFixed(decimals)) };
                     }
 
                     return t;
@@ -1084,29 +1089,28 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 <div className="relative w-40">
                                                     <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
                                                     <input
-                                                        type="number"
-                                                        className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-2 border border-blue-200 dark:border-blue-800 outline-none text-sm font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500 shadow-sm"
-                                                        value={((item.appliedTaxes || []).reduce((acc: number, t: any) => acc + (t.amount || 0), 0)).toFixed(2)}
-                                                        onChange={(e) => {
+                                                        type="text"
+                                                        className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-2 border border-blue-200 dark:border-blue-800 outline-none text-sm font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-5 shadow-sm"
+                                                        value={item.totalInput ?? ((item.appliedTaxes || []).reduce((acc: number, t: any) => acc + (t.amount || 0), 0)).toFixed(decimals)}
+                                                        onChange={(e) => updateItem(index, 'totalInput', e.target.value)}
+                                                        onBlur={(e) => {
                                                             const newTotal = parseFloat(e.target.value) || 0;
                                                             const currentTaxes = item.appliedTaxes || [];
                                                             const currentTotal = currentTaxes.reduce((acc: number, t: any) => acc + (t.amount || 0), 0);
-
-                                                            // Calculate how much we need to add to the main tax
                                                             const diff = newTotal - currentTotal;
-
                                                             const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
                                                             const mainTax = currentTaxes.find((t: any) => {
                                                                 const rawId = t.id ?? t.chargeAndTaxId;
                                                                 return rawId != null && Number(rawId) === mainTaxIdNum;
                                                             });
-
                                                             if (mainTax) {
                                                                 const newMainAmount = (mainTax.amount || 0) + diff;
                                                                 updateItem(index, 'price', newMainAmount / (item.quantity || 1));
                                                             } else {
                                                                 updateItem(index, 'price', newTotal / (item.quantity || 1));
                                                             }
+                                                            // clear temporary input after applying
+                                                            updateItem(index, 'totalInput', undefined);
                                                         }}
                                                         placeholder="V. Total"
                                                     />
@@ -1212,7 +1216,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                  <div>
                                                      <p className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">Pagos Registrados</p>
                                                      <p className="text-xs font-bold text-zinc-600 dark:text-zinc-300">
-                                                         Total: ${((item.appliedTaxes || []).reduce((acc: number, t: any) => acc + (t.amount || 0), 0) || (item.price || 0) * (item.quantity || 1)).toLocaleString(undefined, {minimumFractionDigits: 2})} | Pagado: ${((item.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0)).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                                         Total: ${((item.appliedTaxes || []).reduce((acc: number, t: any) => acc + (t.amount || 0), 0) || (item.price || 0) * (item.quantity || 1)).toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals})} | Pagado: ${((item.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0)).toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals})}
                                                      </p>
                                                  </div>
                                                  <button type="button" onClick={() => updateItem(index, 'isPaymentModalOpen', true)} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all">
@@ -1390,26 +1394,43 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                                             )}
                                                                             value={
                                                                                 focusedTax?.itemIdx === index && focusedTax?.taxId === Number(tax.id)
-                                                                                    ? (appliedTax.amount ?? '')
-                                                                                    : formatMoney(appliedTax.amount)
+                                                                                    ? (focusedTax.rawValue ?? appliedTax.amount ?? '')
+                                                                                    : formatMoney(appliedTax.amount, decimals)
                                                                             }
                                                                             disabled={tax.isEditable === false && !isPrincipal}
-                                                                            onFocus={() => setFocusedTax({ itemIdx: index, taxId: Number(tax.id) })}
-                                                                            onBlur={() => setFocusedTax(null)}
+                                                                            onFocus={() => setFocusedTax({ itemIdx: index, taxId: Number(tax.id), rawValue: appliedTax.amount?.toString() || '' })}
+                                                                            onBlur={() => {
+                                                                                setFocusedTax(null);
+                                                                                // Sanitizar a float al perder el foco
+                                                                                const taxIdNum = Number(tax.id);
+                                                                                const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
+                                                                                if (mainTaxIdNum === taxIdNum) {
+                                                                                    const currentPrice = parseFloat(item.price as any) || 0;
+                                                                                    updateItem(index, 'price', currentPrice);
+                                                                                } else {
+                                                                                    const newTaxes = (item.appliedTaxes || []).map((t: any) => {
+                                                                                        const rawId = t.id ?? t.chargeAndTaxId;
+                                                                                        const currentAmt = parseFloat(t.amount as any) || 0;
+                                                                                        return rawId != null && Number(rawId) === taxIdNum ? { ...t, amount: currentAmt } : t;
+                                                                                    });
+                                                                                    updateItem(index, 'appliedTaxes', newTaxes);
+                                                                                }
+                                                                            }}
                                                                             onChange={(e) => {
                                                                                 const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
-                                                                                const val = parseFloat(cleanVal) || 0;
+                                                                                
+                                                                                setFocusedTax(prev => prev ? { ...prev, rawValue: cleanVal } : { itemIdx: index, taxId: Number(tax.id), rawValue: cleanVal });
+
+                                                                                const parsedVal = parseFloat(cleanVal) || 0;
                                                                                 const taxIdNum = Number(tax.id);
                                                                                 const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
 
-                                                                                // Si estoy editando el rubro que es principal, actualizar por precio
                                                                                 if (mainTaxIdNum === taxIdNum) {
-                                                                                    updateItem(index, 'price', val / (item.quantity || 1));
+                                                                                    updateItem(index, 'price', parsedVal / (item.quantity || 1));
                                                                                 } else {
-                                                                                    // Si es un rubro secundario, solo actualizar su monto
                                                                                     const newTaxes = (item.appliedTaxes || []).map((t: any) => {
                                                                                         const rawId = t.id ?? t.chargeAndTaxId;
-                                                                                        return rawId != null && Number(rawId) === taxIdNum ? { ...t, amount: val } : t;
+                                                                                        return rawId != null && Number(rawId) === taxIdNum ? { ...t, amount: parsedVal } : t;
                                                                                     });
                                                                                     updateItem(index, 'appliedTaxes', newTaxes);
                                                                                 }
@@ -1572,7 +1593,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                             <Tag className="w-4 h-4 text-emerald-400" />
                                             {name}
                                         </span>
-                                        <span className="text-white">${amount.toLocaleString()}</span>
+                                        <span className="text-white">${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</span>
                                     </div>
                                 ))}
                             </div>
@@ -1584,16 +1605,16 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     
                                     <div className="flex justify-between items-center text-zinc-400">
                                         <span>Costo Total:</span>
-                                        <span className="font-bold text-white">${costoTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="font-bold text-white">${costoTotal.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-zinc-400">
                                         <span>Valor Base (Cargo Principal):</span>
-                                        <span className="font-bold text-white">${valorBase.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                        <span className="font-bold text-white">${valorBase.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</span>
                                     </div>
                                     <div className="flex justify-between items-center text-zinc-400">
                                         <span>Utilidad:</span>
                                         <span className={`font-bold ${utilidad >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                            ${utilidad.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            ${utilidad.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center text-zinc-400">
@@ -1627,7 +1648,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                         <div className="flex justify-between items-center text-zinc-400">
                                             <span>Comisión Free Lance/Agencia:</span>
                                             <span className="font-bold text-white">
-                                                ${comisionFreelanceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                ${comisionFreelanceValue.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
                                             </span>
                                         </div>
                                         <div className="flex justify-between items-center text-zinc-400">
@@ -1639,7 +1660,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                         <div className="flex justify-between items-center text-zinc-400 border-b border-dashed border-zinc-800 pb-3">
                                             <span>Comisión Propia:</span>
                                             <span className="font-bold text-white">
-                                                ${comisionPropiaValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                ${comisionPropiaValue.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
                                             </span>
                                         </div>
                                     </div>
@@ -1652,7 +1673,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     <span className="text-lg font-bold">Costo Real Total</span>
                                     <div className="text-right">
                                         <div className="text-4xl font-black text-emerald-400">
-                                            ${total.toLocaleString()}
+                                            ${total.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
                                         </div>
                                         <p className="text-[10px] uppercase text-zinc-500 mt-1">Suma exacta en {formData.currency}</p>
                                         <div className="mt-4">

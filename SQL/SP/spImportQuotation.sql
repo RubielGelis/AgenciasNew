@@ -38,6 +38,7 @@ DECLARE
     v_total_amount DECIMAL := 0;
     v_imported_count INT := 0;
     v_created_ids TEXT := '';
+    v_decimals INT;
 BEGIN
     -- 1. Crear tabla temporal
     CREATE TEMP TABLE IF NOT EXISTS tmp_import_rows (
@@ -158,7 +159,7 @@ BEGIN
                 TRIM(v_cols[24]), -- destino
 				TRIM(v_cols[25]), -- tipo_servicio
 				TRIM(v_cols[26]), -- reserva 
-                NULLIF(TRIM(v_cols[27]), '')::DECIMAL, -- comision vendedor
+				NULLIF(TRIM(v_cols[27]), '')::DECIMAL, -- comision vendedor
 				NULLIF(TRIM(v_cols[28]), '')::DECIMAL, -- comision tiqueteador
                 TRIM(v_cols[29]), -- codigo combos
 				COALESCE(NULLIF(TRIM(v_cols[30]), '')::INT, 1), -- nacionalidad
@@ -206,6 +207,9 @@ BEGIN
         SELECT id INTO v_seller_id FROM public."Seller" WHERE LOWER(code) = LOWER(v_quotation_record.vendedor_cd);
         SELECT id INTO v_ticket_printer_id FROM public."TicketPrinter" WHERE LOWER(code) = LOWER(v_quotation_record.tiqueteador_cd);
 
+        -- Obtener decimales de la moneda
+        v_decimals := public.fn_obtener_decimales_moneda(COALESCE(v_quotation_record.moneda, 'COP'));
+
         v_internal_number := 'QUO-SP-' || to_char(now(), 'YYYYMMDD') || '-' || floor(random() * 10000)::TEXT;
 
         RAISE NOTICE 'DEBUG: moneda=%, tasa=%, seller=%', v_quotation_record.moneda, v_quotation_record.tasa_cambio, v_quotation_record.vendedor_cd;
@@ -216,8 +220,8 @@ BEGIN
         ) VALUES (
             v_internal_number, now(), v_client_id, COALESCE(v_quotation_record.moneda, 'COP'), 
             COALESCE(v_quotation_record.tasa_cambio, 1), v_branch_id, v_implant_id, v_seller_id, 
-            v_ticket_printer_id, 0, COALESCE(v_quotation_record.comision_global, 0), 
-            COALESCE(v_quotation_record.cargos_global, 0), 0, p_user_id
+            v_ticket_printer_id, 0, ROUND(COALESCE(v_quotation_record.comision_global, 0)::numeric, v_decimals)::double precision, 
+            ROUND(COALESCE(v_quotation_record.cargos_global, 0)::numeric, v_decimals)::double precision, 0, p_user_id
         ) RETURNING id INTO v_quotation_id;
 
         v_created_ids := v_created_ids || v_quotation_id || ',';
@@ -240,7 +244,10 @@ BEGIN
                             INSERT INTO public."QuotationProduct" (
                                 "quotationId", "productId", "quantity", "price", "comboId", "mainTaxId", "inNationality", "cost"
                             ) VALUES (
-                                v_quotation_id, v_cp_record."productId", v_cp_record.quantity, v_cp_record.price, v_combo_id, v_cp_record."mainTaxId", v_cp_record."inNationality", v_cp_record."cost"
+                                v_quotation_id, v_cp_record."productId", v_cp_record.quantity, 
+                                ROUND(v_cp_record.price::numeric, v_decimals)::double precision, 
+                                v_combo_id, v_cp_record."mainTaxId", v_cp_record."inNationality", 
+                                ROUND(v_cp_record."cost"::numeric, v_decimals)::double precision
                             ) RETURNING id INTO v_qp_id;
 
                             v_total_amount := v_total_amount + (v_cp_record.price * v_cp_record.quantity);
@@ -249,7 +256,8 @@ BEGIN
                             INSERT INTO public."QuotationProductTax" (
                                 "quotationProductId", "chargeAndTaxId", "valueSnapshot", "valueTypeSnapshot", "explicitAmount", "isMain"
                             )
-                            SELECT v_qp_id, cpt."chargeAndTaxId", ct.value, ct."valueType", cpt.amount, cpt."isMain"
+                            SELECT v_qp_id, cpt."chargeAndTaxId", ct.value, ct."valueType", 
+                                   ROUND(cpt.amount::numeric, v_decimals)::double precision, cpt."isMain"
                             FROM public."ComboProductTax" cpt
                             JOIN public."ChargeAndTax" ct ON cpt."chargeAndTaxId" = ct.id
                             WHERE cpt."comboProductId" = v_cp_record.id;
@@ -287,8 +295,8 @@ BEGIN
 
             IF v_qp_id IS NOT NULL THEN
                 UPDATE public."QuotationProduct" SET
-                    "quantity" = COALESCE(v_product_record.cantidad, "quantity"),
-                    "price" = COALESCE(v_product_record.precio, "price"),
+                    "quantity" = COALESCE(v_product_record.quantity, "quantity"),
+                    "price" = ROUND(COALESCE(v_product_record.precio, "price")::numeric, v_decimals)::double precision,
                     "providerId" = COALESCE(v_provider_id, "providerId"),
                     "prestadoraId" = COALESCE(v_prestadora_id, "prestadoraId"),
                     "checkInDate" = COALESCE(v_product_record.check_in, "checkInDate"),
@@ -301,11 +309,11 @@ BEGIN
                     "serviceType" = COALESCE(v_product_record.tipo_servicio, "serviceType"),
                     "destination" = COALESCE(v_product_record.destino, "destination"),
                     "reservationCode" = COALESCE(v_product_record.reserva, "reservationCode"),
-                    "sellerCommission" = COALESCE(v_product_record.com_vendedor, "sellerCommission"),
-                    "ticketPrinterCommission" = COALESCE(v_product_record.com_tiqueteador, "ticketPrinterCommission"),
+                    "sellerCommission" = ROUND(COALESCE(v_product_record.com_vendedor, "sellerCommission")::numeric, v_decimals)::double precision,
+                    "ticketPrinterCommission" = ROUND(COALESCE(v_product_record.com_tiqueteador, "ticketPrinterCommission")::numeric, v_decimals)::double precision,
                     "inNationality" = COALESCE(v_product_record.nacionalidad, "inNationality"),
                     "mainTaxId" = COALESCE(v_main_tax_id, "mainTaxId"),
-					"cost" = COALESCE(v_product_record.cost, "cost")
+					"cost" = ROUND(COALESCE(v_product_record.cost, "cost")::numeric, v_decimals)::double precision
                 WHERE id = v_qp_id;
 
                 -- Eliminar impuestos base del combo si hay overrides en Excel
@@ -323,20 +331,23 @@ BEGIN
                     "serviceType", "destination", "reservationCode", "sellerCommission", "ticketPrinterCommission",
                     "inNationality", "mainTaxId", "cost"
                 ) VALUES (
-                    v_quotation_id, v_product_id, COALESCE(v_product_record.cantidad, 1), 
-                    COALESCE(v_product_record.precio, 0), v_provider_id, v_prestadora_id, 
+                    v_quotation_id, v_product_id, COALESCE(v_product_record.quantity, 1), 
+                    ROUND(COALESCE(v_product_record.precio, 0)::numeric, v_decimals)::double precision, 
+                    v_provider_id, v_prestadora_id, 
                     v_product_record.check_in, v_product_record.check_out, 
                     CASE WHEN v_product_record.check_in IS NOT NULL AND v_product_record.check_out IS NOT NULL 
                          THEN EXTRACT(DAY FROM (v_product_record.check_out - v_product_record.check_in))::INT 
                          ELSE 1 END,
                     COALESCE(v_product_record.pax_adultos, 1), COALESCE(v_product_record.pax_ninos, 0),
                     v_product_record.tipo_servicio, v_product_record.destino, v_product_record.reserva,
-                    v_product_record.com_vendedor, v_product_record.com_tiqueteador,
-                    COALESCE(v_product_record.nacionalidad, 1), v_main_tax_id, v_product_record.cost
+                    ROUND(COALESCE(v_product_record.com_vendedor, 0)::numeric, v_decimals)::double precision, 
+                    ROUND(COALESCE(v_product_record.com_tiqueteador, 0)::numeric, v_decimals)::double precision,
+                    COALESCE(v_product_record.nacionalidad, 1), v_main_tax_id, 
+                    ROUND(COALESCE(v_product_record.cost, 0)::numeric, v_decimals)::double precision
                 ) RETURNING id INTO v_qp_id;
             END IF;
 
-            v_total_amount := v_total_amount + (COALESCE(v_product_record.precio, 0) * COALESCE(v_product_record.cantidad, 1));
+            v_total_amount := v_total_amount + (COALESCE(v_product_record.precio, 0) * COALESCE(v_product_record.quantity, 1));
 
             -- Split para Impuestos
             IF v_product_record.impuestos_str IS NOT NULL AND v_product_record.impuestos_str <> '' THEN
@@ -347,7 +358,8 @@ BEGIN
                         INSERT INTO public."QuotationProductTax" (
                             "quotationProductId", "chargeAndTaxId", "valueSnapshot", "valueTypeSnapshot", "explicitAmount"
                         ) 
-                        SELECT v_qp_id, id, value, "valueType", NULLIF(TRIM(v_tax_parts[2]), '')::DECIMAL
+                        SELECT v_qp_id, id, value, "valueType", 
+                               ROUND(NULLIF(TRIM(v_tax_parts[2]), '')::numeric, v_decimals)::double precision
                         FROM public."ChargeAndTax" WHERE id = v_tax_id;
                         v_total_amount := v_total_amount + NULLIF(TRIM(v_tax_parts[2]), '')::DECIMAL;
                     END IF;
@@ -378,12 +390,12 @@ BEGIN
 
         -- Calcular y actualizar el totalAmount basado en QuotationProductTax
         UPDATE public."Quotation"
-        SET "totalAmount" = (
+        SET "totalAmount" = ROUND((
             SELECT COALESCE(SUM(qpt."explicitAmount"), 0) AS cargos_global
             FROM public."QuotationProductTax" qpt
             JOIN public."QuotationProduct" qp ON qpt."quotationProductId" = qp.id
             WHERE qp."quotationId" = v_quotation_id
-        )
+        )::numeric, v_decimals)::double precision
         WHERE id = v_quotation_id;
         
         v_imported_count := v_imported_count + 1;
@@ -396,4 +408,3 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM || ' | ' || SQLSTATE;
 END;
 $$;
-

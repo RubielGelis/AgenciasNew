@@ -57,6 +57,7 @@ DECLARE
     v_total_amount DECIMAL := 0;
     v_imported_count INT := 0;
     v_created_ids TEXT := '';
+    v_decimals INT;
 BEGIN
     -- 1. Crear tabla temporal
     CREATE TEMP TABLE IF NOT EXISTS tmp_import_invoice_rows (
@@ -226,6 +227,9 @@ BEGIN
         SELECT id INTO v_seller_id FROM public."Seller" WHERE LOWER(code) = LOWER(v_invoice_record.vendedor_cd);
         SELECT id INTO v_ticket_printer_id FROM public."TicketPrinter" WHERE LOWER(code) = LOWER(v_invoice_record.tiqueteador_cd);
 
+        -- Obtener decimales de la moneda
+        v_decimals := public.fn_obtener_decimales_moneda(COALESCE(v_invoice_record.moneda, 'COP'));
+
         v_internal_number := 'INV-SP-' || to_char(now(), 'YYYYMMDD') || '-' || floor(random() * 10000)::TEXT;
 
         INSERT INTO public."Invoices" (
@@ -236,8 +240,8 @@ BEGIN
         ) VALUES (
             v_internal_number, now(), v_client_id, COALESCE(v_invoice_record.moneda, 'COP'), 
             COALESCE(v_invoice_record.tasa_cambio, 1), v_branch_id, v_implant_id, v_seller_id, 
-            v_ticket_printer_id, 0, COALESCE(v_invoice_record.comision_global, 0), 
-            COALESCE(v_invoice_record.cargos_global, 0), 0, p_user_id, 'NUEVO',
+            v_ticket_printer_id, 0, ROUND(COALESCE(v_invoice_record.comision_global, 0)::numeric, v_decimals)::double precision, 
+            ROUND(COALESCE(v_invoice_record.cargos_global, 0)::numeric, v_decimals)::double precision, 0, p_user_id, 'NUEVO',
             v_invoice_record.fuente, v_invoice_record.serie, v_invoice_record.consecutivo
         ) RETURNING id INTO v_invoice_id;
 
@@ -261,7 +265,10 @@ BEGIN
                             INSERT INTO public."InvoicesProduct" (
                                 "invoiceId", "productId", "quantity", "price", "comboId", "mainTaxId", "inNationality", "cost"
                             ) VALUES (
-                                v_invoice_id, v_cp_record."productId", v_cp_record.quantity, v_cp_record.price, v_combo_id, v_cp_record."mainTaxId", v_cp_record."inNationality", v_cp_record."cost"
+                                v_invoice_id, v_cp_record."productId", v_cp_record.quantity, 
+                                ROUND(v_cp_record.price::numeric, v_decimals)::double precision, 
+                                v_combo_id, v_cp_record."mainTaxId", v_cp_record."inNationality", 
+                                ROUND(v_cp_record."cost"::numeric, v_decimals)::double precision
                             ) RETURNING id INTO v_ip_id;
 
                             v_total_amount := v_total_amount + (v_cp_record.price * v_cp_record.quantity);
@@ -270,7 +277,8 @@ BEGIN
                             INSERT INTO public."InvoicesProductTax" (
                                 "invoiceProductId", "chargeAndTaxId", "valueSnapshot", "valueTypeSnapshot", "explicitAmount", "isMain"
                             )
-                            SELECT v_ip_id, cpt."chargeAndTaxId", ct.value, ct."valueType", cpt.amount, cpt."isMain"
+                            SELECT v_ip_id, cpt."chargeAndTaxId", ct.value, ct."valueType", 
+                                   ROUND(cpt.amount::numeric, v_decimals)::double precision, cpt."isMain"
                             FROM public."ComboProductTax" cpt
                             JOIN public."ChargeAndTax" ct ON cpt."chargeAndTaxId" = ct.id
                             WHERE cpt."comboProductId" = v_cp_record.id;
@@ -335,8 +343,8 @@ BEGIN
             IF v_ip_id IS NOT NULL THEN
                 UPDATE public."InvoicesProduct" SET
                     "quantity" = COALESCE(v_product_record.cantidad, "quantity"),
-                    "price" = COALESCE(v_product_record.precio, "price"),
-                    "cost" = COALESCE(v_product_record.costo, "cost"),
+                    "price" = ROUND(COALESCE(v_product_record.precio, "price")::numeric, v_decimals)::double precision,
+                    "cost" = ROUND(COALESCE(v_product_record.costo, "cost")::numeric, v_decimals)::double precision,
                     "providerId" = COALESCE(v_provider_id, "providerId"),
                     "prestadoraId" = COALESCE(v_prestadora_id, "prestadoraId"),
                     "checkInDate" = COALESCE(v_product_record.check_in, "checkInDate"),
@@ -349,8 +357,8 @@ BEGIN
                     "serviceType" = COALESCE(v_product_record.tipo_servicio, "serviceType"),
                     "destination" = COALESCE(v_product_record.destino, "destination"),
                     "reservationCode" = COALESCE(v_product_record.reserva, "reservationCode"),
-                    "sellerCommission" = COALESCE(v_product_record.com_vendedor, "sellerCommission"),
-                    "ticketPrinterCommission" = COALESCE(v_product_record.com_tiqueteador, "ticketPrinterCommission"),
+                    "sellerCommission" = ROUND(COALESCE(v_product_record.com_vendedor, "sellerCommission")::numeric, v_decimals)::double precision,
+                    "ticketPrinterCommission" = ROUND(COALESCE(v_product_record.com_tiqueteador, "ticketPrinterCommission")::numeric, v_decimals)::double precision,
                     "inNationality" = COALESCE(v_product_record.nacionalidad, "inNationality"),
                     "mainTaxId" = COALESCE(v_main_tax_id, "mainTaxId"),
                     "servicios" = COALESCE(v_product_record.servicios, "servicios"),
@@ -377,14 +385,17 @@ BEGIN
                     "comboId", "mainTaxId", "inNationality", "servicios", "descripcion", "itinerary", "class", "airline", "ticketTypeId"
                 ) VALUES (
                     v_invoice_id, v_product_id, COALESCE(v_product_record.cantidad, 1), 
-                    COALESCE(v_product_record.precio, 0), COALESCE(v_product_record.costo, 0), v_provider_id, v_prestadora_id, 
+                    ROUND(COALESCE(v_product_record.precio, 0)::numeric, v_decimals)::double precision, 
+                    ROUND(COALESCE(v_product_record.costo, 0)::numeric, v_decimals)::double precision, 
+                    v_provider_id, v_prestadora_id, 
                     v_product_record.check_in, v_product_record.check_out, 
                     CASE WHEN v_product_record.check_in IS NOT NULL AND v_product_record.check_out IS NOT NULL 
                          THEN EXTRACT(DAY FROM (v_product_record.check_out - v_product_record.check_in))::INT 
                          ELSE 1 END,
                     COALESCE(v_product_record.pax_adultos, 1), COALESCE(v_product_record.pax_ninos, 0),
                     v_product_record.tipo_servicio, v_product_record.destino, v_product_record.reserva,
-                    v_product_record.com_vendedor, v_product_record.com_tiqueteador,
+                    ROUND(COALESCE(v_product_record.com_vendedor, 0)::numeric, v_decimals)::double precision, 
+                    ROUND(COALESCE(v_product_record.com_tiqueteador, 0)::numeric, v_decimals)::double precision,
                     NULL, v_main_tax_id, COALESCE(v_product_record.nacionalidad, 1),
                     v_product_record.servicios, v_product_record.descripcion, v_product_record.itinerary, v_product_record.class, v_product_record.airline, v_ticket_type_id
                 ) RETURNING id INTO v_ip_id;
@@ -401,7 +412,8 @@ BEGIN
                         INSERT INTO public."InvoicesProductTax" (
                             "invoiceProductId", "chargeAndTaxId", "valueSnapshot", "valueTypeSnapshot", "explicitAmount", "isMain"
                         ) 
-                        SELECT v_ip_id, id, value, "valueType", NULLIF(TRIM(v_tax_parts[2]), '')::DECIMAL,
+                        SELECT v_ip_id, id, value, "valueType", 
+                               ROUND(NULLIF(TRIM(v_tax_parts[2]), '')::numeric, v_decimals)::double precision,
                                CASE WHEN v_main_tax_id = id THEN TRUE ELSE FALSE END
                         FROM public."ChargeAndTax" WHERE id = v_tax_id;
                         v_total_amount := v_total_amount + NULLIF(TRIM(v_tax_parts[2]), '')::DECIMAL;
@@ -409,7 +421,7 @@ BEGIN
                 END LOOP;
             END IF;
 
-            -- Split para Pasajeros (spelled Pasenger with one 's' in the database/prisma model)
+            -- Split para Pasajeros
             IF v_product_record.pasajeros_str IS NOT NULL AND v_product_record.pasajeros_str <> '' THEN
                 FOREACH v_pass_item IN ARRAY string_to_array(v_product_record.pasajeros_str, '|') LOOP
                     v_pass_parts := string_to_array(v_pass_item, ':');
@@ -458,7 +470,7 @@ BEGIN
                         "creditCardId", "cardNumber", "authorizationCode", "voucher", "expirationDate"
                     ) VALUES (
                         v_ip_id, 
-                        NULLIF(TRIM(v_pay_parts[1]), '')::DECIMAL, 
+                        ROUND(NULLIF(TRIM(v_pay_parts[1]), '')::numeric, v_decimals)::double precision, 
                         v_pay_method, 
                         v_pay_ref, 
                         v_pay_date, 
@@ -512,12 +524,12 @@ BEGIN
 
         -- Calcular y actualizar el totalAmount basado en InvoicesProductTax
         UPDATE public."Invoices"
-        SET "totalAmount" = (
+        SET "totalAmount" = ROUND((
             SELECT COALESCE(SUM(ipt."explicitAmount"), 0) AS cargos_global
             FROM public."InvoicesProductTax" ipt
             JOIN public."InvoicesProduct" ip ON ipt."invoiceProductId" = ip.id
             WHERE ip."invoiceId" = v_invoice_id
-        )
+        )::numeric, v_decimals)::double precision
         WHERE id = v_invoice_id;
         
         v_imported_count := v_imported_count + 1;

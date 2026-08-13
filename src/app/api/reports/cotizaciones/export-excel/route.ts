@@ -79,6 +79,10 @@ interface GroupedQuotation {
     utilidad: number;
     comisionFreelanceValue: number;
     comisionPropiaValue: number;
+    comisionTotalPercentage: number;
+    comisionFreelancePercentage: number;
+    comisionPropiaPercentage: number;
+    comisionUtilidadPercentage: number;
     clienteNombre: string;
     clienteIdentificacion: string;
     clienteDireccion: string;
@@ -154,7 +158,7 @@ const FIELD_KEYWORDS: Record<string, string[]> = {
     tCambio: ['tasa de cambio', 'tasa cambio', 't. cambio', 'cambio', 'tasacambio'],
     descripcionPlan: ['descripcion plan', 'plan', 'descripcion', 'descripcionplan'],
     fechasViaje: ['fechas de viaje', 'fechas viaje', 'fecha viaje', 'fechasviaje'],
-    hotelesServicios: ['hoteles o servicios', 'hoteles/servicios', 'servicios', 'hoteles', 'detalle'],
+    hotelesServicios: ['hoteles o servicios', 'hoteles/servicios', 'servicios', 'hoteles'],
     pasajeros: ['pasajeros', 'pasajero', 'nombre pasajero'],
     totalAdultos: ['total adultos', 'adultos', 'totaladultos'],
     totalNinos: ['total ninos', 'ninos', 'totalninos'],
@@ -164,6 +168,23 @@ const FIELD_KEYWORDS: Record<string, string[]> = {
 
 function clearUnconfiguredFields(sheet: ExcelJS.Worksheet, config: any) {
     if (!config || typeof config !== 'object') return;
+
+    // Detect productStartRow to protect column headers and product rows
+    let productStartRow = 0;
+    const productFieldsToTry = [
+        'proveedorNombre', 'proveedorNIT', 'proveedorContacto', 'tarifaNeta',
+        'total', 'servicio', 'productDescripcion', 'checkIn', 'destino'
+    ];
+    for (const field of productFieldsToTry) {
+        const cell = config[field];
+        if (cell && typeof cell === 'string') {
+            const rowMatch = cell.match(/\d+/);
+            if (rowMatch) {
+                productStartRow = parseInt(rowMatch[0]);
+                break;
+            }
+        }
+    }
 
     const unconfiguredKeys = new Set<string>();
     const allPossibleKeys = new Set([
@@ -197,6 +218,9 @@ function clearUnconfiguredFields(sheet: ExcelJS.Worksheet, config: any) {
     });
 
     sheet.eachRow({ includeEmpty: true }, (row) => {
+        if (productStartRow > 0 && row.number >= productStartRow - 1) {
+            return;
+        }
         row.eachCell({ includeEmpty: true }, (cell) => {
             const cellVal = cell.value;
             if (cellVal && typeof cellVal === 'string') {
@@ -375,9 +399,19 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url);
         const idIni = searchParams.get('idIni');
         const idFin = searchParams.get('idFin');
+        const formatId = searchParams.get('formatId') ? parseInt(searchParams.get('formatId')!) : null;
 
         if (!idIni || !idFin) {
             return NextResponse.json({ error: 'idIni and idFin are required' }, { status: 400 });
+        }
+
+        // Si se especifica un formatId, precargamos ese formato de cotización personalizado
+        let customFormat: any = null;
+        if (formatId) {
+            customFormat = await prisma.quotationFormat.findUnique({
+                where: { id: formatId },
+                include: { FormatCellCustomization: true }
+            });
         }
 
         // 1. Fetch raw quotation data from database function
@@ -437,6 +471,10 @@ export async function GET(req: Request) {
                     utilidad: row.utilidad || 0,
                     comisionFreelanceValue: row.comisionFreelanceValue || 0,
                     comisionPropiaValue: row.comisionPropiaValue || 0,
+                    comisionTotalPercentage: row.comisionTotalPercentage || 0,
+                    comisionFreelancePercentage: row.comisionFreelancePercentage || 0,
+                    comisionPropiaPercentage: row.comisionPropiaPercentage || 0,
+                    comisionUtilidadPercentage: row.comisionUtilidadPercentage || 0,
                     // Cliente
                     clienteNombre: row.clienteNombre || '',
                     clienteIdentificacion: row.clienteIdentificacion || '',
@@ -615,25 +653,44 @@ export async function GET(req: Request) {
 
         for (const q of groupedList) {
             const dbInfo = qDbMap.get(q.idCotizacion);
-            const physicalConfig = await getCellCustomizationConfig(
-                dbInfo?.branch?.id || null,
-                dbInfo?.implant?.id || null
-            );
-            const templateConfigRaw = dbInfo?.implant?.templateConfig || dbInfo?.branch?.templateConfig;
-            
-            const templateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
-            let config = DEFAULT_CONFIG as any;
-            if (templateBuffer) {
+
+            let templateBuffer: Buffer | null = null;
+            let config: any = DEFAULT_CONFIG;
+
+            if (customFormat) {
+                // Usar el formato personalizado si se especificó formatId
+                templateBuffer = customFormat.template ? Buffer.from(customFormat.template) : null;
+                const formatCellConfig = (customFormat.FormatCellCustomization || []).reduce((acc: any, c: any) => {
+                    if (c.value) acc[c.code] = c.value;
+                    return acc;
+                }, {});
                 config = {
-                    ...(templateConfigRaw as any || {}),
-                    ...(physicalConfig || {})
+                    ...DEFAULT_CONFIG,
+                    ...(customFormat.templateConfig as any || {}),
+                    ...formatCellConfig,
                 };
-            } else if (templateConfigRaw || physicalConfig) {
-                config = { 
-                    ...DEFAULT_CONFIG, 
-                    ...(templateConfigRaw as any || {}), 
-                    ...(physicalConfig || {}) 
-                };
+            } else {
+                // Usar el formato de la sucursal/implant como antes
+                const physicalConfig = await getCellCustomizationConfig(
+                    dbInfo?.branch?.id || null,
+                    dbInfo?.implant?.id || null
+                );
+                const templateConfigRaw = dbInfo?.implant?.templateConfig || dbInfo?.branch?.templateConfig;
+                const branchTemplateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
+                templateBuffer = branchTemplateBuffer ? Buffer.from(branchTemplateBuffer) : null;
+
+                if (templateBuffer) {
+                    config = {
+                        ...(templateConfigRaw as any || {}),
+                        ...(physicalConfig || {})
+                    };
+                } else if (templateConfigRaw || physicalConfig) {
+                    config = {
+                        ...DEFAULT_CONFIG,
+                        ...(templateConfigRaw as any || {}),
+                        ...(physicalConfig || {})
+                    };
+                }
             }
 
             const tempWorkbook = new ExcelJS.Workbook();
@@ -709,6 +766,10 @@ export async function GET(req: Request) {
             setVal((config as any).commissionPercentage, q.commissionPercentage || 0);
             setVal((config as any).comisionFreelanceValue, q.comisionFreelanceValue || 0);
             setVal((config as any).comisionPropiaValue, q.comisionPropiaValue || 0);
+            setVal((config as any).comisionTotalPercentage, q.comisionTotalPercentage || 0);
+            setVal((config as any).comisionFreelancePercentage, q.comisionFreelancePercentage || 0);
+            setVal((config as any).comisionPropiaPercentage, q.comisionPropiaPercentage || 0);
+            setVal((config as any).comisionUtilidadPercentage, q.comisionUtilidadPercentage || 0);
             setVal((config as any).vendedor, q.vendedor || '');
 
             // Process dynamic product rows
@@ -983,6 +1044,17 @@ export async function GET(req: Request) {
                     observaciones: q.observaciones || '',
                     idCotizacion: String(q.idCotizacion),
                     vendedor: q.vendedor || '',
+                    internalNumber: q.internalNumber || '',
+                    costoTotal: formatCurrency(q.costoTotal),
+                    valorBase: formatCurrency(q.valorBase),
+                    utilidad: formatCurrency(q.utilidad),
+                    comisionFreelanceValue: formatCurrency(q.comisionFreelanceValue),
+                    comisionPropiaValue: formatCurrency(q.comisionPropiaValue),
+                    comisionTotalPercentage: String(q.comisionTotalPercentage),
+                    comisionFreelancePercentage: String(q.comisionFreelancePercentage),
+                    comisionPropiaPercentage: String(q.comisionPropiaPercentage),
+                    comisionUtilidadPercentage: String(q.comisionUtilidadPercentage),
+                    totalAmount: formatCurrency(q.totalAmount),
 
                     tarifaNeta: formatCurrency(totalTarifaNeta),
                     tarifaNetaPago: formatCurrency(totalTarifaNeta - totalComision),
@@ -1033,6 +1105,23 @@ export async function GET(req: Request) {
                         replacements[`prov${pNum}${capitalizedKey}`] = formattedVal;
                         replacements[`proveedor${pNum}${propKey}`] = formattedVal;
                         replacements[`proveedor${pNum}${capitalizedKey}`] = formattedVal;
+
+                        // Support bidirectional aliases for English/Spanish compatibility
+                        const reverseAliases: Record<string, string> = {
+                            noches: 'nights',
+                            destino: 'destination',
+                            precio: 'price',
+                            costo: 'cost',
+                            cantidad: 'quantity'
+                        };
+                        const enKey = reverseAliases[propKey];
+                        if (enKey) {
+                            const capitalizedEnKey = enKey.charAt(0).toUpperCase() + enKey.slice(1);
+                            replacements[`prov${pNum}${enKey}`] = formattedVal;
+                            replacements[`prov${pNum}${capitalizedEnKey}`] = formattedVal;
+                            replacements[`proveedor${pNum}${enKey}`] = formattedVal;
+                            replacements[`proveedor${pNum}${capitalizedEnKey}`] = formattedVal;
+                        }
                     });
                 });
 

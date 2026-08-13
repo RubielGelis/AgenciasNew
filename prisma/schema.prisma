@@ -89,6 +89,7 @@ model Branch {
   cellCustomizations   CellCustomization[]
   implants             Implant[]
   quotations           Quotation[]
+  QuotationFormat      QuotationFormat[]
   users                User[]
 }
 
@@ -105,6 +106,7 @@ model Implant {
   cellCustomizations CellCustomization[]
   branch             Branch?             @relation(fields: [branchId], references: [id])
   quotations         Quotation[]
+  QuotationFormat    QuotationFormat[]
   users              User[]
 }
 
@@ -357,6 +359,7 @@ model Currency {
   code         String      @unique
   name         String
   exchangeRate Float
+  decimals     Int         @default(2)
   combos       Combo[]
   Countries    Countries[]
 }
@@ -896,4 +899,31 @@ model QuotationStateHistory {
   user        User?     @relation(fields: [userId], references: [id])
 
   @@index([quotationId])
+}
+
+model FormatCellCustomization {
+  id              Int             @id @default(autoincrement())
+  formatId        Int
+  code            String          @db.VarChar(50)
+  name            String          @db.VarChar(100)
+  value           String?         @db.VarChar(10)
+  QuotationFormat QuotationFormat @relation(fields: [formatId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([formatId, code], map: "FormatCellCustomization_format_code_key")
+}
+
+model QuotationFormat {
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @db.VarChar(100)
+  description             String?                   @db.VarChar(255)
+  template                Bytes?
+  templateConfig          Json?
+  htmlTemplate            String?
+  branchId                Int?
+  implantId               Int?
+  createdAt               DateTime?                 @default(now()) @db.Timestamptz(6)
+  updatedAt               DateTime?                 @default(now()) @db.Timestamptz(6)
+  FormatCellCustomization FormatCellCustomization[]
+  Branch                  Branch?                   @relation(fields: [branchId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  Implant                 Implant?                  @relation(fields: [implantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }

@@ -1437,6 +1437,7 @@ BEGIN
 			id_CotizacionServicios INT NULL,
 			Id_Cotizacion INT NULL,
 			id_FormasPago INT NULL,
+			cd_codigo VARCHAR(3) NULL,
 			ds_FPnm VARCHAR(50) NULL,
 			bl_FPrepresenta BIT NOT NULL DEFAULT 0,
 			id_TarjetasCredito INT NULL,
@@ -1463,6 +1464,9 @@ BEGIN
             SELECT 'El XML es obligatorio.' AS 'Respuesta', 1 AS 'Estado'
 			RETURN 1;
         END
+
+        -- Limpiar saltos de línea y tabuladores para evitar que se guarden en campos de texto (usuario, tercero, dirección, etc.)
+        SET @xml = REPLACE(REPLACE(REPLACE(@xml, CHAR(13), ''), CHAR(10), ''), CHAR(9), '');
 
         SET @xmlData = TRY_CAST(@xml AS XML);
 
@@ -1614,7 +1618,7 @@ BEGIN
 			ds_cliente_contacto_email = ISNULL(C.Cotizacion.value('ds_cliente_contacto_email[1]','VARCHAR(60)'),''),
 			id_monedas_IATA = ISNULL(M.id,1),
 			cd_vendedor = ISNULL(C.Cotizacion.value('cd_vendedor[1]','VARCHAR(3)'),''),
-			id_tiqueteador = ISNULL(Tq.id,1),
+			id_tiqueteador = ISNULL(Tq.id, (SELECT TOP 1 id FROM dbo.Tiqueteadores)),
 			bn_anexo = NULL,
 			am_tcambio = ISNULL(C.Cotizacion.value('am_tcambio[1]','SMALLMONEY'),1),
 			am_tcambiousd = ISNULL(C.Cotizacion.value('am_tcambiousd[1]','MONEY'),1),
@@ -1640,11 +1644,11 @@ BEGIN
 			id_usuario_Bloqueo = NULL,
 			ds_AlertaSolicitud = '',
 			bl_comisiona = 0,
-			ds_FormaDePago = '',
+			ds_FormaDePago = ISNULL(C.Cotizacion.value('ds_FormaDePago[1]','VARCHAR(250)'),''),
 			ds_records = '',
 			bl_entregadoCliente = 0,
 			dt_entregadoCliente = NULL,
-			id_sys_entidades = NULL,
+			id_sys_entidades = 65,
 			id_MonedaPagoDestino = NULL,
 			id_FormaPagoDestino = NULL,
 			ds_DocumentoPagoDestino = NULL,
@@ -1797,7 +1801,7 @@ BEGIN
 			ds_descrip=ISNULL(C.CotizacionServicios.value('ds_descrip[1]','VARCHAR(25)'),'') ,
 			ds_paxname=ISNULL(C.CotizacionServicios.value('ds_paxname[1]','VARCHAR(25)'),'') ,
 			ds_paxape=ISNULL(C.CotizacionServicios.value('ds_paxape[1]','VARCHAR(25)'),'') ,
-			cd_paxtype=ISNULL(C.CotizacionServicios.value('cd_paxtype[1]','VARCHAR(25)'),'') ,
+			cd_paxtype=SUBSTRING(ISNULL(C.CotizacionServicios.value('cd_paxtype[1]','VARCHAR(25)'),''), 1, 3) ,
 			in_nacionalidad=ISNULL(C.CotizacionServicios.value('in_nacionalidad[1]','INT'),1) ,
 			cd_voucher=ISNULL(C.CotizacionServicios.value('cd_voucher[1]','VARCHAR(25)'),'') ,
 			in_cantpax=ISNULL(C.CotizacionServicios.value('in_cantpax[1]','INT'),1) ,
@@ -1826,7 +1830,7 @@ BEGIN
 			Valor_Comision=ISNULL(C.CotizacionServicios.value('valor_comision[1]','MONEY'),0) ,
 			Valor_Recaudo=0,
 			dias_recaudo=0,
-			ds_paxClasificacion=ISNULL(C.CotizacionServicios.value('ds_paxclasificacion[1]','VARCHAR(25)'),'') ,
+			ds_paxClasificacion=SUBSTRING(ISNULL(C.CotizacionServicios.value('ds_paxclasificacion[1]','VARCHAR(25)'),''), 1, 7) ,
 			id_tipoplan=NULL,
 			id_acomodacion=NULL ,
 			in_dias=ISNULL(C.CotizacionServicios.value('in_dias[1]','INT'),1),
@@ -1853,7 +1857,7 @@ BEGIN
 			id_TipoPlanSrv=NULL ,
 			in_habitaciones=0 ,
 			in_habitacionesSrv=0 ,
-			cd_Consecutivo_VariablesAdicionales=ISNULL(C.CotizacionServicios.value('cd_Consecutivo_VARiablesAdicionales[1]','VARCHAR(25)'),'') ,
+			cd_Consecutivo_VariablesAdicionales=ISNULL(C.CotizacionServicios.value('cd_consecutivo_variablesadicionales[1]','VARCHAR(25)'),'') ,
 			cd_confirmacion='',
 			ds_confirmadopor='',
 			cd_paxidentificacion='',
@@ -2550,6 +2554,7 @@ BEGIN
 		SET TF.id_CotizacionServicios=CS.id_CotizacionServicios
 		FROM @Fac_Servicios_TiposFacturacionHoteles TF
 		INNER JOIN @CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales = TF.cd_CotizacionServicios
+		INNER JOIN @Cotizacion C ON C.cd_consecutivo = CS.cd_Cotizacion AND C.bl_existe=0
 
 		INSERT INTO dbo.Fac_Servicios_TiposFacturacionHoteles(
 			id_Fac_Servicios,
@@ -2575,6 +2580,7 @@ BEGIN
 			   ds_cargonm
 		FROM @Fac_Servicios_TiposFacturacionHoteles
 		WHERE Id_TiposFacturacionHoteles IS NOT NULL
+
 
 		UPDATE TP
 		SET TP.id_CotizacionServicios=CS.id
@@ -2604,6 +2610,7 @@ BEGIN
 		INSERT INTO @CotizacionServiciosFormasPago(
 			cd_Cotizacion,
 			cd_CotizacionServicios,
+			cd_codigo,
 			ds_FPnm,
 			bl_FPrepresenta,
 			ds_tcnumber,
@@ -2617,6 +2624,7 @@ BEGIN
 		SELECT
 			FP.FormasPago.value('cd_cotizacion[1]', 'VARCHAR(25)') AS cd_Cotizacion,
 			FP.FormasPago.value('cd_cotizacionservicios[1]', 'VARCHAR(25)') AS cd_CotizacionServicios,
+			ISNULL(FP.FormasPago.value('cd_codigo[1]', 'VARCHAR(3)'), '') AS cd_codigo,
 			ISNULL(FP.FormasPago.value('ds_fpnm[1]', 'VARCHAR(50)'), '') AS ds_FPnm,
 			ISNULL(FP.FormasPago.value('bl_fprepresenta[1]', 'BIT'), 0) AS bl_FPrepresenta,
 			ISNULL(FP.FormasPago.value('ds_tcnumber[1]', 'CHAR(16)'), '') AS ds_tcnumber,
@@ -2636,8 +2644,9 @@ BEGIN
 		    FP.id_FormasPago          = ISNULL(FPM.id, 1),
 		    FP.ds_FPnm                = ISNULL(FPM.ds_nombre, FP.ds_FPnm)
 		FROM @CotizacionServiciosFormasPago FP
-		LEFT JOIN dbo.FormasPago FPM ON FPM.cd_codigo = FP.ds_FPnm
+		LEFT JOIN dbo.FormasPago FPM ON FPM.cd_codigo = FP.cd_codigo
 		INNER JOIN dbo.CotizacionServicios CS ON CS.cd_Consecutivo_VariablesAdicionales = FP.cd_CotizacionServicios
+		INNER JOIN @Cotizacion C ON C.cd_consecutivo = FP.cd_Cotizacion AND C.bl_existe=0
 
 		-- Insertar en tabla real
 		INSERT INTO dbo.CotizacionServiciosFormasPago(
@@ -2662,7 +2671,7 @@ BEGIN
 			ds_tcautorizacion,
 			in_tccuotas
 		)
-		SELECT 
+		SELECT
 			id_CotizacionServicios,
 			Id_Cotizacion,
 			id_FormasPago,
@@ -3483,6 +3492,9 @@ BEGIN
             SELECT 'El XML es obligatorio.' AS 'Respuesta', 1 AS 'Estado'
 			RETURN 1;
         END
+
+        -- Limpiar saltos de línea y tabuladores para evitar que se guarden en campos de texto (usuario, tercero, dirección, etc.)
+        SET @xml = REPLACE(REPLACE(REPLACE(@xml, CHAR(13), ''), CHAR(10), ''), CHAR(9), '');
 
         SET @xmlData = TRY_CAST(@xml AS XML);
 

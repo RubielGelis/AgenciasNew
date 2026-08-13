@@ -115,7 +115,7 @@ const FIELD_KEYWORDS: Record<string, string[]> = {
     tCambio: ['tasa de cambio', 'tasa cambio', 't. cambio', 'cambio', 'tasacambio'],
     descripcionPlan: ['descripcion plan', 'plan', 'descripcion', 'descripcionplan'],
     fechasViaje: ['fechas de viaje', 'fechas viaje', 'fecha viaje', 'fechasviaje'],
-    hotelesServicios: ['hoteles o servicios', 'hoteles/servicios', 'servicios', 'hoteles', 'detalle'],
+    hotelesServicios: ['hoteles o servicios', 'hoteles/servicios', 'servicios', 'hoteles'],
     pasajeros: ['pasajeros', 'pasajero', 'nombre pasajero'],
     totalAdultos: ['total adultos', 'adultos', 'totaladultos'],
     totalNinos: ['total ninos', 'ninos', 'totalninos'],
@@ -125,6 +125,23 @@ const FIELD_KEYWORDS: Record<string, string[]> = {
 
 function clearUnconfiguredFields(sheet: ExcelJS.Worksheet, config: any) {
     if (!config || typeof config !== 'object') return;
+
+    // Detect productStartRow to protect column headers and product rows
+    let productStartRow = 0;
+    const productFieldsToTry = [
+        'proveedorNombre', 'proveedorNIT', 'proveedorContacto', 'tarifaNeta',
+        'total', 'servicio', 'productDescripcion', 'checkIn', 'destino'
+    ];
+    for (const field of productFieldsToTry) {
+        const cell = config[field];
+        if (cell && typeof cell === 'string') {
+            const rowMatch = cell.match(/\d+/);
+            if (rowMatch) {
+                productStartRow = parseInt(rowMatch[0]);
+                break;
+            }
+        }
+    }
 
     const unconfiguredKeys = new Set<string>();
     const allPossibleKeys = new Set([
@@ -158,6 +175,9 @@ function clearUnconfiguredFields(sheet: ExcelJS.Worksheet, config: any) {
     });
 
     sheet.eachRow({ includeEmpty: true }, (row) => {
+        if (productStartRow > 0 && row.number >= productStartRow - 1) {
+            return;
+        }
         row.eachCell({ includeEmpty: true }, (cell) => {
             const cellVal = cell.value;
             if (cellVal && typeof cellVal === 'string') {

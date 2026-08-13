@@ -44,6 +44,7 @@ DECLARE
     v_comision_propia DOUBLE PRECISION;
     v_costo_total DOUBLE PRECISION;
     v_valor_base DOUBLE PRECISION;
+    v_decimals INT;
 BEGIN
     -- Validaciones
     IF NOT EXISTS (SELECT 1 FROM public."Quotation" WHERE id = p_id) THEN
@@ -180,6 +181,9 @@ BEGIN
         END IF;
     END IF;
 
+    -- Obtener decimales de la moneda
+    v_decimals := public.fn_obtener_decimales_moneda(p_data->>'currency');
+
     UPDATE public."Quotation" SET
         "clientId" = NULLIF(p_data->>'clientId', '')::INT,
         "currency" = p_data->>'currency',
@@ -189,8 +193,8 @@ BEGIN
         "sellerId" = NULLIF(p_data->>'sellerId', '')::INT,
         "ticketPrinterId" = NULLIF(p_data->>'ticketPrinterId', '')::INT,
         "commissionPercentage" = NULLIF(p_data->>'commissionPercentage', '')::FLOAT,
-        "chargesAndTaxes" = NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
-        "totalAmount" = NULLIF(p_data->>'totalAmount', '')::FLOAT,
+        "chargesAndTaxes" = ROUND(NULLIF(p_data->>'chargesAndTaxes', '')::numeric, v_decimals)::double precision,
+        "totalAmount" = ROUND(NULLIF(p_data->>'totalAmount', '')::numeric, v_decimals)::double precision,
         "state" = COALESCE(p_data->>'state', 'Nuevo'),
         "stateDescription" = CASE WHEN COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN p_data->>'stateDescription' ELSE "stateDescription" END,
         "stateUpdatedAt" = CASE WHEN COALESCE(v_old_state, '') <> COALESCE(p_data->>'state', 'Nuevo') THEN CURRENT_TIMESTAMP ELSE "stateUpdatedAt" END,
@@ -227,12 +231,17 @@ BEGIN
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
             "service", "servicios", "descripcion"
         ) VALUES (
-            p_id, v_item."productId", v_item.quantity, v_item.price, v_item.cost, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
+            p_id, v_item."productId", v_item.quantity, 
+            ROUND(v_item.price::numeric, v_decimals)::double precision, 
+            ROUND(v_item.cost::numeric, v_decimals)::double precision, 
+            NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
             CASE WHEN v_item."checkOut" IS NOT NULL AND v_item."checkOut" <> '' THEN v_item."checkOut"::TIMESTAMP ELSE NULL END,
             v_item.nights, v_item."paxAdults", v_item."paxChildren",
-            v_item."serviceType", v_item."destination", v_item."reservationCode", v_item."sellerCommission",
-            v_item."ticketPrinterCommission", NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
+            v_item."serviceType", v_item."destination", v_item."reservationCode", 
+            ROUND(v_item."sellerCommission"::numeric, v_decimals)::double precision,
+            ROUND(v_item."ticketPrinterCommission"::numeric, v_decimals)::double precision, 
+            NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
             COALESCE(v_item."service", v_item."servicios"), COALESCE(v_item."servicios", v_item."service"), v_item."descripcion"
         ) RETURNING id INTO v_quotation_product_id;
 
@@ -250,7 +259,8 @@ BEGIN
                 INSERT INTO public."QuotationProductTax" (
                     "quotationProductId", "chargeAndTaxId", "valueSnapshot", "valueTypeSnapshot", "explicitAmount", "isMain"
                 )
-                SELECT v_quotation_product_id, ct.id, ct.value, ct."valueType", v_tax."explicitAmount", 
+                SELECT v_quotation_product_id, ct.id, ct.value, ct."valueType", 
+                       ROUND(v_tax."explicitAmount"::numeric, v_decimals)::double precision, 
                        CASE WHEN NULLIF(v_item."mainTaxId", '')::INT = ct.id THEN TRUE ELSE FALSE END
                 FROM public."ChargeAndTax" ct
                 WHERE ct.id = v_tax."chargeAndTaxId";
@@ -275,7 +285,9 @@ BEGIN
                     "quotationProductId", "amount", "paymentMethod", "reference", "date",
                     "creditCardId", "cardNumber", "authorizationCode", "voucher", "expirationDate"
                 ) VALUES (
-                    v_quotation_product_id, v_pmt."amount", v_pmt."paymentMethod", v_pmt."reference",
+                    v_quotation_product_id, 
+                    ROUND(v_pmt."amount"::numeric, v_decimals)::double precision, 
+                    v_pmt."paymentMethod", v_pmt."reference",
                     CASE WHEN v_pmt."date" IS NOT NULL AND v_pmt."date" <> '' THEN v_pmt."date"::TIMESTAMP ELSE CURRENT_TIMESTAMP END,
                     v_pmt."creditCardId", v_pmt."cardNumber", v_pmt."authorizationCode", v_pmt."voucher", v_pmt."expirationDate"
                 );
@@ -307,25 +319,25 @@ BEGIN
 
     UPDATE public."Quotation"
     SET 
-        "totalAmount" = COALESCE("chargesAndTaxes", 0) + (
+        "totalAmount" = ROUND((COALESCE("chargesAndTaxes", 0) + (
             SELECT COALESCE(SUM(qpt."explicitAmount"), 0)
             FROM public."QuotationProductTax" qpt
             JOIN public."QuotationProduct" qp ON qpt."quotationProductId" = qp.id
             WHERE qp."quotationId" = p_id
-        ),
-        "costoTotal" = v_costo_total,
-        "valorBase" = v_valor_base,
+        ))::numeric, v_decimals)::double precision,
+        "costoTotal" = ROUND(v_costo_total::numeric, v_decimals)::double precision,
+        "valorBase" = ROUND(v_valor_base::numeric, v_decimals)::double precision,
         "comisionTotalPercentage" = COALESCE(NULLIF(p_data->>'comisionTotalPercentage', '')::DOUBLE PRECISION, COALESCE(NULLIF(p_data->>'commissionPercentage', '')::DOUBLE PRECISION, 0.0)),
         "comisionFreelancePercentage" = v_comision_freelance,
         "comisionPropiaPercentage" = v_comision_propia,
         "commissionPercentage" = v_comision_propia,
-        "utilidad" = public.fn_calcular_utilidad(v_valor_base, v_costo_total),
+        "utilidad" = ROUND(public.fn_calcular_utilidad(v_valor_base, v_costo_total)::numeric, v_decimals)::double precision,
         "comisionUtilidadPercentage" = public.fn_calcular_porcentaje_comision(
             public.fn_calcular_utilidad(v_valor_base, v_costo_total),
             v_valor_base
         ),
-        "comisionFreelanceValue" = public.fn_calcular_valor_comision(v_comision_freelance, v_valor_base),
-        "comisionPropiaValue" = public.fn_calcular_valor_comision(v_comision_propia, v_valor_base)
+        "comisionFreelanceValue" = ROUND(public.fn_calcular_valor_comision(v_comision_freelance, v_valor_base)::numeric, v_decimals)::double precision,
+        "comisionPropiaValue" = ROUND(public.fn_calcular_valor_comision(v_comision_propia, v_valor_base)::numeric, v_decimals)::double precision
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Cotización ' || p_id || ' actualizada correctamente.';

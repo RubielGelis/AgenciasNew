@@ -20,6 +20,10 @@ CREATE OR REPLACE FUNCTION public."fnRptCotizacion"(
         "utilidad" double precision,
         "comisionFreelanceValue" double precision,
         "comisionPropiaValue" double precision,
+        "comisionTotalPercentage" double precision,
+        "comisionFreelancePercentage" double precision,
+        "comisionPropiaPercentage" double precision,
+        "comisionUtilidadPercentage" double precision,
 
         -- Cliente
         "clienteNombre" text,
@@ -108,6 +112,10 @@ BEGIN
         COALESCE(q."utilidad", 0)::double precision AS "utilidad",
         COALESCE(q."comisionFreelanceValue", 0)::double precision AS "comisionFreelanceValue",
         COALESCE(q."comisionPropiaValue", 0)::double precision AS "comisionPropiaValue",
+        COALESCE(q."comisionTotalPercentage", 0)::double precision AS "comisionTotalPercentage",
+        COALESCE(q."comisionFreelancePercentage", 0)::double precision AS "comisionFreelancePercentage",
+        COALESCE(q."comisionPropiaPercentage", 0)::double precision AS "comisionPropiaPercentage",
+        COALESCE(q."comisionUtilidadPercentage", 0)::double precision AS "comisionUtilidadPercentage",
 
         -- Cliente
         COALESCE(c.name, '')::text AS "clienteNombre",

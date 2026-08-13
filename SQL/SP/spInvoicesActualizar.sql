@@ -18,6 +18,7 @@ DECLARE
     v_real_product_id INT;
     v_existing_invoice_number TEXT;
     v_temp_msg TEXT;
+    v_decimals INT;
 BEGIN
     -- Validaciones
     IF NOT EXISTS (SELECT 1 FROM public."Invoices" WHERE id = p_id) THEN
@@ -35,6 +36,9 @@ BEGIN
         RETURN;
     END IF;
 
+    -- Obtener decimales de la moneda
+    v_decimals := public.fn_obtener_decimales_moneda(p_data->>'currency');
+
     UPDATE public."Invoices" SET
         "clientId" = NULLIF(p_data->>'clientId', '')::INT,
         "currency" = p_data->>'currency',
@@ -44,12 +48,12 @@ BEGIN
         "sellerId" = NULLIF(p_data->>'sellerId', '')::INT,
         "ticketPrinterId" = NULLIF(p_data->>'ticketPrinterId', '')::INT,
         "commissionPercentage" = NULLIF(p_data->>'commissionPercentage', '')::FLOAT,
-        "chargesAndTaxes" = NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
-        "totalAmount" = NULLIF(p_data->>'totalAmount', '')::FLOAT,
+        "chargesAndTaxes" = ROUND(NULLIF(p_data->>'chargesAndTaxes', '')::numeric, v_decimals)::double precision,
+        "totalAmount" = ROUND(NULLIF(p_data->>'totalAmount', '')::numeric, v_decimals)::double precision,
         "state" = COALESCE(p_data->>'state', 'Nuevo'),
         "date" = CURRENT_TIMESTAMP,
         "fuente" = NULLIF(p_data->>'fuente', ''),
-        "serie" = NULLIF(p_data->>'serie', ''),
+        "serie" = NULLIF(p_data->>'fuente', ''),
         "consecutivo" = NULLIF(p_data->>'consecutivo', '')
     WHERE id = p_id;
 
@@ -126,12 +130,17 @@ BEGIN
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
             "servicios", "descripcion", "itinerary", "class", "airline", "ticketTypeId"
         ) VALUES (
-            p_id, v_real_product_id, v_item.quantity, v_item.price, v_item.cost, NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
+            p_id, v_real_product_id, v_item.quantity, 
+            ROUND(v_item.price::numeric, v_decimals)::double precision, 
+            ROUND(v_item.cost::numeric, v_decimals)::double precision, 
+            NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,
             CASE WHEN v_item."checkIn" IS NOT NULL AND v_item."checkIn" <> '' THEN v_item."checkIn"::TIMESTAMP ELSE NULL END,
             CASE WHEN v_item."checkOut" IS NOT NULL AND v_item."checkOut" <> '' THEN v_item."checkOut"::TIMESTAMP ELSE NULL END,
             v_item.nights, v_item."paxAdults", v_item."paxChildren",
-            v_item."serviceType", v_item."destination", v_item."reservationCode", v_item."sellerCommission",
-            v_item."ticketPrinterCommission", NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
+            v_item."serviceType", v_item."destination", v_item."reservationCode", 
+            ROUND(v_item."sellerCommission"::numeric, v_decimals)::double precision,
+            ROUND(v_item."ticketPrinterCommission"::numeric, v_decimals)::double precision, 
+            NULLIF(v_item."comboId", '')::INT, NULLIF(v_item."mainTaxId", '')::INT, COALESCE(v_item."inNationality", 1),
             v_item."servicios", COALESCE(v_item."itemDescription", v_item."description"), v_item."itinerary", v_item."class", v_item."airline", NULLIF(v_item."ticketTypeId", '')::INT
         ) RETURNING id INTO v_invoice_product_id;
 
@@ -149,7 +158,8 @@ BEGIN
                 INSERT INTO public."InvoicesProductTax" (
                     "invoiceProductId", "chargeAndTaxId", "valueSnapshot", "valueTypeSnapshot", "explicitAmount", "isMain"
                 )
-                SELECT v_invoice_product_id, ct.id, ct.value, ct."valueType", v_tax."explicitAmount", 
+                SELECT v_invoice_product_id, ct.id, ct.value, ct."valueType", 
+                       ROUND(v_tax."explicitAmount"::numeric, v_decimals)::double precision, 
                        CASE WHEN NULLIF(v_item."mainTaxId", '')::INT = ct.id THEN TRUE ELSE FALSE END
                 FROM public."ChargeAndTax" ct
                 WHERE ct.id = v_tax."chargeAndTaxId";
@@ -168,7 +178,13 @@ BEGIN
             FOR v_payment IN SELECT * FROM jsonb_to_recordset(v_item.payments) AS x(amount FLOAT, "paymentMethod" TEXT, "reference" TEXT, "date" TEXT, "creditCardId" INT, "cardNumber" TEXT, "authorizationCode" TEXT, "voucher" TEXT, "expirationDate" TEXT)
             LOOP
                 INSERT INTO public."InvoicesProductPayment" ("invoiceProductId", "amount", "paymentMethod", "reference", "date", "creditCardId", "cardNumber", "authorizationCode", "voucher", "expirationDate")
-                VALUES (v_invoice_product_id, v_payment.amount, v_payment."paymentMethod", v_payment.reference, CASE WHEN v_payment."date" IS NOT NULL AND v_payment."date" <> '' THEN v_payment."date"::TIMESTAMP ELSE CURRENT_TIMESTAMP END, v_payment."creditCardId", v_payment."cardNumber", v_payment."authorizationCode", v_payment."voucher", v_payment."expirationDate");
+                VALUES (
+                    v_invoice_product_id, 
+                    ROUND(v_payment.amount::numeric, v_decimals)::double precision, 
+                    v_payment."paymentMethod", v_payment.reference, 
+                    CASE WHEN v_payment."date" IS NOT NULL AND v_payment."date" <> '' THEN v_payment."date"::TIMESTAMP ELSE CURRENT_TIMESTAMP END, 
+                    v_payment."creditCardId", v_payment."cardNumber", v_payment."authorizationCode", v_payment."voucher", v_payment."expirationDate"
+                );
             END LOOP;
         END IF;
 
@@ -176,7 +192,14 @@ BEGIN
             FOR v_itinerary IN SELECT * FROM jsonb_to_recordset(v_item."itinerariesItineraryList") AS x(origin TEXT, destination TEXT, class TEXT, "checkInDate" TEXT, "checkOutDate" TEXT, "prestadoraCode" TEXT, "farebasis" TEXT, "Numflight" TEXT, "Typeflight" TEXT, "amount" FLOAT, "co2" NUMERIC, orden INT)
             LOOP
                 INSERT INTO public."InvoicesProductItinerary" ("invoiceProductId", "origin", "destination", "class", "checkInDate", "checkOutDate", "prestadoraCode", "farebasis", "Numflight", "Typeflight", "amount", "co2", "orden")
-                VALUES (v_invoice_product_id, v_itinerary.origin, v_itinerary.destination, v_itinerary.class, CASE WHEN v_itinerary."checkInDate" IS NOT NULL AND v_itinerary."checkInDate" <> '' THEN v_itinerary."checkInDate"::TIMESTAMP ELSE NULL END, CASE WHEN v_itinerary."checkOutDate" IS NOT NULL AND v_itinerary."checkOutDate" <> '' THEN v_itinerary."checkOutDate"::TIMESTAMP ELSE NULL END, COALESCE(v_itinerary."prestadoraCode", ''), COALESCE(v_itinerary."farebasis", ''), v_itinerary."Numflight", v_itinerary."Typeflight", COALESCE(v_itinerary."amount", 0), v_itinerary."co2", v_itinerary.orden);
+                VALUES (
+                    v_invoice_product_id, v_itinerary.origin, v_itinerary.destination, v_itinerary.class, 
+                    CASE WHEN v_itinerary."checkInDate" IS NOT NULL AND v_itinerary."checkInDate" <> '' THEN v_itinerary."checkInDate"::TIMESTAMP ELSE NULL END, 
+                    CASE WHEN v_itinerary."checkOutDate" IS NOT NULL AND v_itinerary."checkOutDate" <> '' THEN v_itinerary."checkOutDate"::TIMESTAMP ELSE NULL END, 
+                    COALESCE(v_itinerary."prestadoraCode", ''), COALESCE(v_itinerary."farebasis", ''), v_itinerary."Numflight", v_itinerary."Typeflight", 
+                    ROUND(COALESCE(v_itinerary."amount", 0)::numeric, v_decimals)::double precision, 
+                    v_itinerary."co2", v_itinerary.orden
+                );
             END LOOP;
         END IF;
 
@@ -184,12 +207,12 @@ BEGIN
 
     -- Calcular y actualizar el totalAmount
     UPDATE public."Invoices"
-    SET "totalAmount" = COALESCE("chargesAndTaxes", 0) + (
+    SET "totalAmount" = ROUND((COALESCE("chargesAndTaxes", 0) + (
         SELECT COALESCE(SUM(ipt."explicitAmount"), 0)
         FROM public."InvoicesProductTax" ipt
         JOIN public."InvoicesProduct" ip ON ipt."invoiceProductId" = ip.id
         WHERE ip."invoiceId" = p_id
-    )
+    ))::numeric, v_decimals)::double precision
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Factura ' || p_id || ' actualizada correctamente.';

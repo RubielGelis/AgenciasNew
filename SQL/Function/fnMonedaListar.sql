@@ -5,7 +5,8 @@ RETURNS TABLE (
     id             INT,
     code           TEXT,
     name           TEXT,
-    "exchangeRate" FLOAT
+    "exchangeRate" FLOAT,
+    decimals       INT
 )
 LANGUAGE plpgsql
 AS $$
@@ -15,7 +16,8 @@ BEGIN
         c.id,
         c.code,
         c.name,
-        c."exchangeRate"
+        c."exchangeRate",
+        c.decimals
     FROM public."Currency" c
     WHERE
         p_id IS NULL

@@ -1688,4 +1688,8 @@ BEGIN
         ALTER TABLE public."User" ADD COLUMN "ticketPrinterId" integer;
     END IF;
 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Currency' AND column_name = 'decimals') THEN
+        ALTER TABLE public."Currency" ADD COLUMN "decimals" integer DEFAULT 2 NOT NULL;
+    END IF;
+
 END $$;

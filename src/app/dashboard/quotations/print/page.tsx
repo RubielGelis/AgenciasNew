@@ -9,11 +9,111 @@ interface HtmlReportJson {
     html: string;
 }
 
+function splitReportHtml(html: string) {
+    if (typeof window === 'undefined') return { bodyHtml: html, footerHtml: '' };
+
+    try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const originalTable = doc.querySelector('.excel-table');
+        if (!originalTable) return { bodyHtml: html, footerHtml: '' };
+
+        const colgroup = originalTable.querySelector('colgroup')?.outerHTML || '';
+        const rows = Array.from(originalTable.querySelectorAll('tbody tr'));
+
+        let productHeaderIdx = -1;
+        let rentabilidadHeaderIdx = -1;
+
+        rows.forEach((row, idx) => {
+            const text = row.textContent || '';
+            const cleanedText = text.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            
+            // Deducir inicio de productos
+            if (productHeaderIdx === -1 && (cleanedText.includes('PROVEEDOR') && cleanedText.includes('DETALLE'))) {
+                productHeaderIdx = idx;
+            }
+
+            // Deducir inicio de rentabilidad negocio
+            if (rentabilidadHeaderIdx === -1 && (cleanedText.includes('RENTABILIDAD NEGOCIO') || cleanedText.includes('RENTABILIDAD'))) {
+                rentabilidadHeaderIdx = idx;
+            }
+        });
+
+        if (productHeaderIdx === -1 && rentabilidadHeaderIdx === -1) {
+            return { bodyHtml: html, footerHtml: '' };
+        }
+
+        const cabeceraRows: string[] = [];
+        const productosRows: string[] = [];
+        const rentabilidadRows: string[] = [];
+
+        rows.forEach((row, idx) => {
+            const trHtml = row.outerHTML;
+            const rowText = (row.textContent || '').trim();
+
+            if (rentabilidadHeaderIdx !== -1 && idx >= rentabilidadHeaderIdx) {
+                if (rowText === '' && idx > rentabilidadHeaderIdx) {
+                    return;
+                }
+                rentabilidadRows.push(trHtml);
+            } else if (productHeaderIdx !== -1 && idx >= productHeaderIdx) {
+                if (rowText === '' && idx > productHeaderIdx) {
+                    return;
+                }
+                productosRows.push(trHtml);
+            } else {
+                cabeceraRows.push(trHtml);
+            }
+        });
+
+        const tableCabecera = `
+            <table class="excel-table table-cabecera border-collapse table-auto mb-4" style="font-family: Arial, sans-serif; border-spacing: 0; border-collapse: collapse; width: fit-content; max-width: 100%;">
+                <tbody>
+                    ${cabeceraRows.join('')}
+                </tbody>
+            </table>
+        `;
+
+        // Tabla de productos con table-fixed para mantener alineación de columnas
+        const tableProductos = `
+            <table class="excel-table table-productos border-collapse table-fixed w-full" style="font-family: Arial, sans-serif; border-spacing: 0; border-collapse: collapse;">
+                ${colgroup}
+                <tbody>
+                    ${productosRows.join('')}
+                </tbody>
+            </table>
+        `;
+
+        let footerHtml = '';
+        if (rentabilidadRows.length > 0) {
+            footerHtml = `
+                <table class="excel-table table-rentabilidad border-collapse table-fixed w-full" style="font-family: Arial, sans-serif; border-spacing: 0; border-collapse: collapse;">
+                    ${colgroup}
+                    <tbody>
+                        ${rentabilidadRows.join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        const bodyHtml = `
+            <div class="report-header-section">${tableCabecera}</div>
+            <div class="report-products-section">${tableProductos}</div>
+        `;
+
+        return { bodyHtml, footerHtml };
+    } catch (e) {
+        console.error("Error splitting report table:", e);
+        return { bodyHtml: html, footerHtml: '' };
+    }
+}
+
 function PrintQuotationsContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
     const idIni = searchParams.get('idIni')
     const idFin = searchParams.get('idFin')
+    const formatId = searchParams.get('formatId')
 
     const [reports, setReports] = useState<HtmlReportJson[]>([])
     const [loading, setLoading] = useState(true)
@@ -26,7 +126,7 @@ function PrintQuotationsContent() {
             return
         }
 
-        fetch(`/api/reports/cotizaciones/export-excel?idIni=${idIni}&idFin=${idFin}&format=html`)
+        fetch(`/api/reports/cotizaciones/export-excel?idIni=${idIni}&idFin=${idFin}&format=html${formatId ? `&formatId=${formatId}` : ''}`)
             .then(res => {
                 if (!res.ok) throw new Error("Error fetching report data")
                 return res.json()
@@ -40,14 +140,14 @@ function PrintQuotationsContent() {
                 setError(err.message)
                 setLoading(false)
             })
-    }, [idIni, idFin])
+    }, [idIni, idFin, formatId])
 
     const handleExportExcel = () => {
         if (!idIni || !idFin) {
             alert("Faltan parámetros idIni o idFin.")
             return
         }
-        window.open(`/api/reports/cotizaciones/export-excel?idIni=${idIni}&idFin=${idFin}`, '_blank')
+        window.open(`/api/reports/cotizaciones/export-excel?idIni=${idIni}&idFin=${idFin}${formatId ? `&formatId=${formatId}` : ''}`, '_blank')
     }
 
     const handleVolver = () => {
@@ -77,33 +177,52 @@ function PrintQuotationsContent() {
     return (
         <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 p-8 print:p-0 print:bg-white text-black">
             <style dangerouslySetInnerHTML={{ __html: `
+                .break-after-page {
+                    position: relative !important;
+                    min-height: 800px !important;
+                    box-sizing: border-box !important;
+                    padding-bottom: 200px !important; /* Space for footer in screen view */
+                }
+                .report-footer-wrapper {
+                    position: absolute !important;
+                    bottom: 0 !important;
+                    left: 0 !important;
+                    right: 0 !important;
+                    width: 100% !important;
+                    box-sizing: border-box !important;
+                }
                 @media print {
                     body {
                         background-color: white !important;
                         color: black !important;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
-                        padding: 10mm !important; /* Keep content margin but without headers/footers */
+                        padding: 0 !important;
+                        margin: 0 !important;
                     }
                     @page {
-                        margin: 0; /* Removes browser headers (KoreX, URL) and footers */
-                        size: portrait;
+                        size: letter portrait;
+                        margin: 10mm 12mm 10mm 12mm; /* Standard page margins */
                     }
                     tr {
                         page-break-inside: avoid !important;
                         break-inside: avoid !important;
                     }
                     .excel-table {
-                        zoom: 68%;
+                        zoom: 69%; /* Fits the letter width perfectly */
                         transform-origin: top left;
-                        height: auto !important;
                         border-collapse: collapse !important;
                     }
                     .break-after-page {
                         width: 100% !important;
-                        overflow: visible !important;
+                        height: 259.4mm !important; /* Letter total height minus top/bottom margins (279.4 - 20) */
+                        min-height: 259.4mm !important;
+                        position: relative !important;
+                        box-sizing: border-box !important;
                         padding: 0 !important;
                         margin: 0 !important;
+                        padding-bottom: 45mm !important; /* Protect table overlap with the absolute footer */
+                        overflow: hidden !important;
                     }
                     .break-after-page:not(:last-child) {
                         page-break-after: always !important;
@@ -148,13 +267,17 @@ function PrintQuotationsContent() {
                 {/* Report Content Container */}
                 <div className="space-y-16 print:space-y-0">
                     {reports.map((report, idx) => {
+                        const { bodyHtml, footerHtml } = splitReportHtml(report.html);
                         return (
                             <div 
                                 key={idx} 
                                 className="bg-white text-black p-8 border border-zinc-200 rounded-2xl print:border-none print:p-0 print:m-0 break-after-page overflow-x-auto"
                             >
                                 <h3 className="text-sm font-bold text-zinc-400 mb-4 print:hidden">Cotización #{report.idCotizacion}</h3>
-                                <div dangerouslySetInnerHTML={{ __html: report.html }} />
+                                <div className="report-body-wrapper" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+                                {footerHtml && (
+                                    <div className="report-footer-wrapper" dangerouslySetInnerHTML={{ __html: footerHtml }} />
+                                )}
                             </div>
                         )
                     })}

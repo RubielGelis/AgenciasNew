@@ -24,6 +24,9 @@ export default function QuotationsListPage() {
     const [isPrintModalOpen, setIsPrintModalOpen] = useState(false)
     const [idIni, setIdIni] = useState('')
     const [idFin, setIdFin] = useState('')
+    const [quotationFormats, setQuotationFormats] = useState<any[]>([])
+    const [selectedFormatId, setSelectedFormatId] = useState<number | null>(null)
+    const [openFormatMenuId, setOpenFormatMenuId] = useState<number | null>(null)
 
     // Para modal de cambio de estado
     const [selectedQuotationForState, setSelectedQuotationForState] = useState<any | null>(null)
@@ -59,9 +62,10 @@ export default function QuotationsListPage() {
 
         Promise.all([
             fetch(url).then(res => res.json()),
-            fetch('/api/config/quotation-states').then(res => res.json()).catch(() => [])
+            fetch('/api/config/quotation-states').then(res => res.json()).catch(() => []),
+            fetch('/api/config/quotation-formats').then(res => res.json()).catch(() => [])
         ])
-            .then(([quoData, stateData]) => {
+            .then(([quoData, stateData, fmtData]) => {
                 if (Array.isArray(quoData)) {
                     setQuotations(quoData)
                 } else {
@@ -75,6 +79,9 @@ export default function QuotationsListPage() {
                         { code: 'NUEVO', name: 'Nuevo', color: 'blue' },
                         { code: 'ENVIADO', name: 'ENVIADO', color: 'emerald' }
                     ])
+                }
+                if (Array.isArray(fmtData)) {
+                    setQuotationFormats(fmtData)
                 }
                 setLoading(false)
             })
@@ -435,7 +442,7 @@ export default function QuotationsListPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 relative">
                                                 <button
                                                     onClick={() => handleExportXml(q)}
                                                     className="p-2 text-zinc-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 rounded-lg transition-all"
@@ -444,12 +451,46 @@ export default function QuotationsListPage() {
                                                     <FileCode className="w-5 h-5" />
                                                 </button>
                                                 <button
-                                                    onClick={() => window.open(`/dashboard/quotations/print?idIni=${q.id}&idFin=${q.id}`, '_blank')}
-                                                    className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all"
+                                                    onClick={() => {
+                                                        if (quotationFormats.length === 0) {
+                                                            window.open(`/dashboard/quotations/print?idIni=${q.id}&idFin=${q.id}`, '_blank')
+                                                        } else {
+                                                            setOpenFormatMenuId(openFormatMenuId === q.id ? null : q.id)
+                                                        }
+                                                    }}
+                                                    className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all relative"
                                                     title="Imprimir Cotización"
                                                 >
                                                     <Printer className="w-5 h-5" />
                                                 </button>
+                                                {openFormatMenuId === q.id && quotationFormats.length > 0 && (
+                                                    <div className="absolute right-0 mt-1 w-52 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl shadow-xl z-20 overflow-hidden"
+                                                        style={{ top: '100%' }}>
+                                                        <div className="p-2 space-y-0.5">
+                                                            <button
+                                                                onClick={() => {
+                                                                    window.open(`/dashboard/quotations/print?idIni=${q.id}&idFin=${q.id}`, '_blank')
+                                                                    setOpenFormatMenuId(null)
+                                                                }}
+                                                                className="w-full text-left px-3 py-2 rounded-xl text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-all"
+                                                            >
+                                                                Formato Predeterminado
+                                                            </button>
+                                                            {quotationFormats.map((fmt: any) => (
+                                                                <button
+                                                                    key={fmt.id}
+                                                                    onClick={() => {
+                                                                        window.open(`/dashboard/quotations/print?idIni=${q.id}&idFin=${q.id}&formatId=${fmt.id}`, '_blank')
+                                                                        setOpenFormatMenuId(null)
+                                                                    }}
+                                                                    className="w-full text-left px-3 py-2 rounded-xl text-sm font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 transition-all"
+                                                                >
+                                                                    {fmt.name}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                                 <button
                                                     onClick={() => router.push(`/dashboard/quotations/${q.id}/edit`)}
                                                     className="p-2 text-zinc-400 hover:text-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 rounded-lg transition-all"
@@ -512,6 +553,23 @@ export default function QuotationsListPage() {
                                     </div>
                                 </div>
 
+                                {/* Selector de Formato de Cotización */}
+                                {quotationFormats.length > 0 && (
+                                    <div className="space-y-2 mb-6">
+                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Formato de Cotización</label>
+                                        <select
+                                            value={selectedFormatId ?? ''}
+                                            onChange={e => setSelectedFormatId(e.target.value ? parseInt(e.target.value) : null)}
+                                            className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-4 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none dark:text-white"
+                                        >
+                                            <option value="">Formato Predeterminado</option>
+                                            {quotationFormats.map((fmt: any) => (
+                                                <option key={fmt.id} value={fmt.id}>{fmt.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
                                 <div className="flex gap-4">
                                     <button
                                         onClick={() => setIsPrintModalOpen(false)}
@@ -522,7 +580,8 @@ export default function QuotationsListPage() {
                                     <button
                                         onClick={() => {
                                             if (idIni && idFin) {
-                                                window.open(`/dashboard/quotations/print?idIni=${idIni}&idFin=${idFin}`, '_blank');
+                                                const fmtParam = selectedFormatId ? `&formatId=${selectedFormatId}` : ''
+                                                window.open(`/dashboard/quotations/print?idIni=${idIni}&idFin=${idFin}${fmtParam}`, '_blank');
                                                 setIsPrintModalOpen(false);
                                             } else {
                                                 alert("Ingresa ambos IDs para continuar.");

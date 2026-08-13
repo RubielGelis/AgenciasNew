@@ -90,6 +90,9 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
     const [uploadingAttachment, setUploadingAttachment] = useState(false)
     const router = useRouter()
 
+    const activeCurrency = data?.currencies?.find((c: any) => c.code === formData.currency);
+    const decimals = activeCurrency ? (activeCurrency.decimals ?? 2) : 2;
+
     
     const getItemTotal = (item: any) => {
         const base = (item.price * item.quantity) || 0;
@@ -332,7 +335,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
             const taxId = rawTaxId != null ? Number(rawTaxId) : null;
             const taxMaster = data.taxes.find((t: any) => Number(t.id) === taxId);
             if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
-                return { ...taxApp, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(2)) };
+                return { ...taxApp, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(decimals)) };
             }
             return taxApp;
         });
@@ -648,13 +651,13 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                     // 2. Los impuestos porcentuales se recalculan sobre la nueva base (Precio Unitario * Cantidad)
                     const taxMaster = data?.taxes?.find((m: any) => Number(m.id) === taxId);
                     if (taxMaster && taxMaster.valueType === 'PERCENTAGE') {
-                        return { ...t, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(2)) };
+                        return { ...t, amount: parseFloat(((baseValue * taxMaster.value) / 100).toFixed(decimals)) };
                     }
 
                     // 3. Otros cargos (fijos o manuales): 
                     // Si cambió la cantidad, escalan proporcionalmente (Ej: $10 -> $20 si duplicas)
                     if (field === 'quantity') {
-                        return { ...t, amount: parseFloat((t.amount * ratio).toFixed(2)) };
+                        return { ...t, amount: parseFloat((t.amount * ratio).toFixed(decimals)) };
                     }
 
                     return t;
@@ -1006,7 +1009,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                     <input
                                                         type="number"
                                                         className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-2 border border-blue-200 dark:border-blue-800 outline-none text-sm font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500 shadow-sm"
-                                                        value={((item.appliedTaxes || []).reduce((acc: number, t: any) => acc + (t.amount || 0), 0)).toFixed(2)}
+                                                        value={((item.appliedTaxes || []).reduce((acc: number, t: any) => acc + (t.amount || 0), 0)).toFixed(decimals)}
                                                         onChange={(e) => {
                                                             const newTotal = parseFloat(e.target.value) || 0;
                                                             const currentTaxes = item.appliedTaxes || [];
@@ -1428,7 +1431,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                 <div>
                                                     <p className="text-[10px] uppercase font-bold text-blue-600 dark:text-blue-400">Pagos Registrados</p>
                                                     <p className="text-xs font-bold text-zinc-600 dark:text-zinc-300">
-                                                        Total: ${getItemTotal(item).toLocaleString(undefined, {minimumFractionDigits: 2})} | Pagado: ${((item.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0)).toLocaleString(undefined, {minimumFractionDigits: 2})}
+                                                        Total: ${getItemTotal(item).toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals})} | Pagado: ${((item.payments || []).reduce((acc: number, p: any) => acc + p.amount, 0)).toLocaleString(undefined, {minimumFractionDigits: decimals, maximumFractionDigits: decimals})}
                                                     </p>
                                                 </div>
                                                 <button type="button" onClick={() => updateItem(index, 'isPaymentModalOpen', true)} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all">
@@ -1689,7 +1692,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                             <Tag className="w-4 h-4 text-emerald-400" />
                                             {name}
                                         </span>
-                                        <span className="text-white">${amount.toLocaleString()}</span>
+                                        <span className="text-white">${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</span>
                                     </div>
                                 ))}
                             </div>
@@ -1700,7 +1703,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                     <span className="text-lg font-bold">Costo Real Total</span>
                                     <div className="text-right">
                                         <div className="text-4xl font-black text-emerald-400">
-                                            ${total.toLocaleString()}
+                                            ${total.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
                                         </div>
                                         <p className="text-[10px] uppercase text-zinc-500 mt-1">Suma exacta en {formData.currency}</p>
                                         <div className="mt-4">

@@ -2,6 +2,7 @@ CREATE OR REPLACE PROCEDURE public.spMonedaCrear(
     p_code         TEXT,
     p_name         TEXT,
     p_exchange_rate FLOAT,
+    p_decimals     INT,
     p_acting_user_id INT,
     INOUT p_currency_id      INT,
     INOUT p_mensaje_resultado TEXT
@@ -14,8 +15,8 @@ BEGIN
         RETURN;
     END IF;
 
-    INSERT INTO public."Currency" (code, name, "exchangeRate")
-    VALUES (p_code, p_name, p_exchange_rate)
+    INSERT INTO public."Currency" (code, name, "exchangeRate", decimals)
+    VALUES (p_code, p_name, p_exchange_rate, COALESCE(p_decimals, 2))
     RETURNING id INTO p_currency_id;
 
     p_mensaje_resultado := 'SUCCESS: Moneda creada con ID ' || p_currency_id;

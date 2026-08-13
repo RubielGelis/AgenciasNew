@@ -27,12 +27,14 @@ import {
     TerminalSquare,
     Copy,
     ArrowUp,
-    ArrowDown
+    ArrowDown,
+    FileText
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SearchSelect } from '@/components/SearchSelect'
+import { QuotationFormatsTab } from '@/components/QuotationFormatsTab'
 
-type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion';
+type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion';
 
 const AVAILABLE_MANDATORY_FIELDS = [
     { key: 'QuotationProduct.passengers', label: 'Pasajeros (Nombre obligatorio)', group: 'Por Producto' },
@@ -247,6 +249,13 @@ export default function SettingsPage() {
             comisionTotalPercentage: 'Comisión Total (%)',
             comisionFreelancePercentage: 'Comisión Freelance (%)',
             comisionPropiaPercentage: 'Comisión Propia (%)',
+            comisionUtilidadPercentage: 'Comisión Utilidad (%)',
+            comisionFreelanceValue: 'Comisión Freelance ($)',
+            comisionPropiaValue: 'Comisión Propia ($)',
+            costoTotal: 'Resumen: Costo Total',
+            valorBase: 'Resumen: Valor Base',
+            utilidad: 'Resumen: Utilidad',
+            totalAmount: 'Resumen: Valor Facturar / Total',
             state: 'Estado de Cotización',
             descripcionPlan: 'Descripción Plan',
             fechasViaje: 'Fechas Viaje',
@@ -268,8 +277,7 @@ export default function SettingsPage() {
             total: 'Total: Total',
             totalPago: 'Total: Total Pago',
             baseComisionable: 'Base Comisión',
-            comisionAsesor: 'Comisión Asesor',
-            baseComisionTop: 'Comisión Top'
+            comisionAsesor: 'Comisión Asesor'
         };
 
         return generalLabels[key] || key;
@@ -291,6 +299,13 @@ export default function SettingsPage() {
             { key: 'comisionTotalPercentage', label: 'Comisión Total (%)' },
             { key: 'comisionFreelancePercentage', label: 'Comisión Freelance (%)' },
             { key: 'comisionPropiaPercentage', label: 'Comisión Propia (%)' },
+            { key: 'comisionUtilidadPercentage', label: 'Comisión Utilidad (%)' },
+            { key: 'comisionFreelanceValue', label: 'Comisión Freelance ($)' },
+            { key: 'comisionPropiaValue', label: 'Comisión Propia ($)' },
+            { key: 'costoTotal', label: 'Resumen: Costo Total' },
+            { key: 'valorBase', label: 'Resumen: Valor Base' },
+            { key: 'utilidad', label: 'Resumen: Utilidad' },
+            { key: 'totalAmount', label: 'Resumen: Valor Facturar / Total' },
             { key: 'state', label: 'Estado de Cotización' },
             { key: 'descripcionPlan', label: 'Descripción Plan' },
             { key: 'fechasViaje', label: 'Fechas Viaje' },
@@ -312,8 +327,7 @@ export default function SettingsPage() {
             { key: 'total', label: 'Total: Total' },
             { key: 'totalPago', label: 'Total: Total Pago' },
             { key: 'baseComisionable', label: 'Base Comisión' },
-            { key: 'comisionAsesor', label: 'Comisión Asesor' },
-            { key: 'baseComisionTop', label: 'Comisión Top' }
+            { key: 'comisionAsesor', label: 'Comisión Asesor' }
         ];
 
         const baseProductFields = [
@@ -400,33 +414,38 @@ export default function SettingsPage() {
             { key: 'productVuelo', label: 'Producto Vuelo' }
         ];
 
+        // Ordenamos alfabéticamente por etiqueta
+        const sortedHeaderFields = [...headerFields].sort((a, b) => a.label.localeCompare(b.label));
+        const sortedGenericProductFields = [...genericProductFields].sort((a, b) => a.label.localeCompare(b.label));
+        const sortedBaseProductFields = [...baseProductFields].sort((a, b) => a.labelSuffix.localeCompare(b.labelSuffix));
+
         return (
             <>
                 <optgroup label="Campos Generales (Cabecera)">
-                    {headerFields.map(f => (
+                    {sortedHeaderFields.map(f => (
                         <option key={f.key} value={`${f.key}|${f.label}`}>{f.label}</option>
                     ))}
                 </optgroup>
 
                 <optgroup label="Campos de Producto (Dinámico / Fila Repetida)">
-                    {genericProductFields.map(f => (
+                    {sortedGenericProductFields.map(f => (
                         <option key={f.key} value={`${f.key}|${f.label}`}>{f.label}</option>
                     ))}
-                    {variables && variables.map((v: any) => (
+                    {variables && [...variables].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((v: any) => (
                         <option key={v.code} value={`${v.code}|Producto: ${v.name}`}>{v.name}</option>
                     ))}
                 </optgroup>
 
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(pNum => (
                     <optgroup key={pNum} label={`Producto ${pNum} (Estático)`}>
-                        {baseProductFields.map(f => {
+                        {sortedBaseProductFields.map(f => {
                             const key = `${f.keyPrefix}${pNum}${f.keySuffix}`;
                             const label = `${f.labelPrefix} ${pNum}: ${f.labelSuffix}`;
                             return (
                                 <option key={key} value={`${key}|${label}`}>{f.labelSuffix}</option>
                             );
                         })}
-                        {variables && variables.map((v: any) => {
+                        {variables && [...variables].sort((a: any, b: any) => a.name.localeCompare(b.name)).map((v: any) => {
                             const key = `prov${pNum}_${v.code}`;
                             const label = `Prov ${pNum}: ${v.name}`;
                             return (
@@ -694,7 +713,7 @@ export default function SettingsPage() {
             } else if (activeTab === 'variables') {
                 setFormData({ code: '', name: '' })
             } else if (activeTab === 'monedas') {
-                setFormData({ code: '', name: '', exchangeRate: '' })
+                setFormData({ code: '', name: '', exchangeRate: '', decimals: 2 })
             } else if (activeTab === 'combos') {
                 setFormData({ code: '', name: '', cupos: 0, currencyId: '', products: [] })
             } else if (activeTab === 'equivalencias') {
@@ -978,6 +997,7 @@ export default function SettingsPage() {
                 <TabButton active={activeTab === 'aeropuertos'} onClick={() => setActiveTab('aeropuertos')} icon={<Tags className="w-4 h-4" />} label="Aeropuertos" />
                 <TabButton active={activeTab === 'tipos-tiquetes'} onClick={() => setActiveTab('tipos-tiquetes')} icon={<Tags className="w-4 h-4" />} label="Tipos Tiquete" />
                 <TabButton active={activeTab === 'estados-cotizacion'} onClick={() => setActiveTab('estados-cotizacion')} icon={<Tags className="w-4 h-4" />} label="Estados Cotiz." />
+                <TabButton active={activeTab === 'formatos-cotizacion'} onClick={() => setActiveTab('formatos-cotizacion')} icon={<FileText className="w-4 h-4" />} label="Formatos Cotiz." />
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
                 <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<TerminalSquare className="w-4 h-4" />} label="Logs del Sistema" />
             </div>
@@ -998,7 +1018,11 @@ export default function SettingsPage() {
 
             {/* Content Area */}
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[500px]">
-                {loading ? (
+                {activeTab === 'formatos-cotizacion' ? (
+                    <div className="p-8">
+                        <QuotationFormatsTab branches={branches} implants={implants} />
+                    </div>
+                ) : loading ? (
                     <div className="flex items-center justify-center h-full p-20">
                         <Loader2 className="animate-spin w-12 h-12 text-blue-600" />
                     </div>
@@ -1059,6 +1083,7 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Moneda</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Tasa Conv.</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Decimales</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : activeTab === 'logs' ? (
@@ -1333,6 +1358,7 @@ export default function SettingsPage() {
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.name}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.exchangeRate}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.decimals ?? 2}</td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
@@ -2173,6 +2199,7 @@ export default function SettingsPage() {
                                                 <Input label="Código de Moneda" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. USD, EUR, PA" />
                                                 <Input label="Nombre de la Moneda" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Dólar Estadounidense" />
                                                 <Input label="Tasa de Cambio (respecto a moneda base)" value={formData.exchangeRate ?? ''} onChange={(v: string) => setFormData({ ...formData, exchangeRate: v === '' ? '' : parseFloat(v) })} type="number" step="0.0001" required placeholder="Ej. 1.000" />
+                                                <Input label="Número de Decimales" value={formData.decimals !== undefined ? formData.decimals : 2} onChange={(v: string) => setFormData({ ...formData, decimals: v === '' ? 2 : parseInt(v) })} type="number" min="0" max="6" step="1" required placeholder="Ej. 2" />
                                             </>
                                         ) : activeTab === 'combos' ? (
                                             <div className="max-h-[70vh] overflow-y-auto pr-4 custom-scrollbar space-y-10 p-2">
@@ -2690,13 +2717,39 @@ export default function SettingsPage() {
                                                             />
                                                         </div>
                                                     </div>
-
                                                     {/* Excel Template and Configuration Section */}
                                                     <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-6 space-y-4">
-                                                        <h4 className="text-sm font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
-                                                            Plantilla de Reporte Excel
-                                                        </h4>
-                                                        
+                                                        <div className="flex items-center justify-between">
+                                                            <h4 className="text-sm font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
+                                                                Plantilla de Reporte Excel
+                                                            </h4>
+                                                            {formData.id && formData.hasTemplate && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={async () => {
+                                                                        try {
+                                                                            const res = await fetch(`/api/config/branches/${formData.id}?export=true`);
+                                                                            if (!res.ok) throw new Error('Error exportando');
+                                                                            const blob = await res.blob();
+                                                                            const url = URL.createObjectURL(blob);
+                                                                            const a = document.createElement('a');
+                                                                            const safe = (formData.name || 'sucursal').replace(/[^a-zA-Z0-9_-]/g, '_');
+                                                                            a.href = url;
+                                                                            a.download = `formato_${safe}.json`;
+                                                                            a.click();
+                                                                            URL.revokeObjectURL(url);
+                                                                        } catch (err: any) {
+                                                                            alert('Error al exportar: ' + err.message);
+                                                                        }
+                                                                    }}
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-xs font-bold transition-all border border-blue-100 shrink-0"
+                                                                    title="Exportar configuración como JSON para importar en Formatos de Cotización"
+                                                                >
+                                                                    <Download className="w-3.5 h-3.5" />
+                                                                    <span>Exportar Configuración</span>
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">
                                                                 Archivo de Plantilla (.xlsx, .xls)

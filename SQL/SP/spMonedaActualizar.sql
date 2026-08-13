@@ -3,6 +3,7 @@ CREATE OR REPLACE PROCEDURE public.spMonedaActualizar(
     p_code          TEXT,
     p_name          TEXT,
     p_exchange_rate FLOAT,
+    p_decimals      INT,
     p_acting_user_id INT,
     INOUT p_mensaje_resultado TEXT
 )
@@ -24,7 +25,8 @@ BEGIN
     SET
         code           = p_code,
         name           = p_name,
-        "exchangeRate" = p_exchange_rate
+        "exchangeRate" = p_exchange_rate,
+        decimals       = COALESCE(p_decimals, 2)
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Moneda ' || p_id || ' actualizada correctamente';
