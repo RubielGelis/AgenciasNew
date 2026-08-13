@@ -109,6 +109,10 @@ export default function SettingsPage() {
     const [totalItems, setTotalItems] = useState(0)
     const [totalPages, setTotalPages] = useState(1)
 
+    // Copy-template feature state
+    const [copyTemplateSrcId, setCopyTemplateSrcId] = useState<string>('')
+    const [copyingTemplate, setCopyingTemplate] = useState(false)
+
     // Form states
     const [formData, setFormData] = useState<any>({})
     const [searchTerm, setSearchTerm] = useState('')
@@ -2798,6 +2802,70 @@ export default function SettingsPage() {
                                                                  )}
                                                             </div>
                                                         </div>
+
+                                                        {/* ── Copiar formato desde otra sucursal ── */}
+                                                        {formData.id && (
+                                                            <div className="border border-dashed border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 rounded-2xl p-4 space-y-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Copy className="w-4 h-4 text-blue-500" />
+                                                                    <span className="text-xs font-black text-blue-700 dark:text-blue-300 uppercase tracking-widest">Copiar formato desde otra sucursal</span>
+                                                                </div>
+                                                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                                    Copia la plantilla Excel y la configuración de celdas de otra sucursal hacia <b>{formData.name}</b>. Esto reemplazará el formato actual de esta sucursal.
+                                                                </p>
+                                                                <div className="flex items-center gap-3 flex-wrap">
+                                                                    <select
+                                                                        value={copyTemplateSrcId}
+                                                                        onChange={e => setCopyTemplateSrcId(e.target.value)}
+                                                                        className="flex-1 min-w-[180px] h-10 px-3 rounded-xl border border-blue-200 dark:border-blue-700 bg-white dark:bg-zinc-900 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                                    >
+                                                                        <option value="">— Seleccionar sucursal origen —</option>
+                                                                        {branches
+                                                                            .filter((b: any) => b.id !== formData.id && b.hasTemplate)
+                                                                            .map((b: any) => (
+                                                                                <option key={b.id} value={b.id}>{b.name}</option>
+                                                                            ))
+                                                                        }
+                                                                    </select>
+                                                                    <button
+                                                                        type="button"
+                                                                        disabled={!copyTemplateSrcId || copyingTemplate}
+                                                                        onClick={async () => {
+                                                                            if (!copyTemplateSrcId) return
+                                                                            const srcBranch = branches.find((b: any) => String(b.id) === String(copyTemplateSrcId))
+                                                                            if (!confirm(`¿Copiar el formato de "${srcBranch?.name}" hacia "${formData.name}"?\n\nEsto reemplazará el formato actual de ${formData.name}.`)) return
+                                                                            setCopyingTemplate(true)
+                                                                            try {
+                                                                                const res = await fetch('/api/config/branches/copy-template', {
+                                                                                    method: 'POST',
+                                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                                    body: JSON.stringify({
+                                                                                        sourceBranchId: parseInt(copyTemplateSrcId),
+                                                                                        targetBranchId: formData.id
+                                                                                    })
+                                                                                })
+                                                                                const result = await res.json()
+                                                                                if (!res.ok) throw new Error(result.message || 'Error')
+                                                                                alert('✅ ' + result.message)
+                                                                                setCopyTemplateSrcId('')
+                                                                                setFormData({ ...formData, hasTemplate: true })
+                                                                            } catch(err: any) {
+                                                                                alert('Error: ' + err.message)
+                                                                            } finally {
+                                                                                setCopyingTemplate(false)
+                                                                            }
+                                                                        }}
+                                                                        className="h-10 px-5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl text-xs font-black flex items-center gap-2 transition-all shrink-0"
+                                                                    >
+                                                                        {copyingTemplate ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Copy className="w-3.5 h-3.5" />}
+                                                                        {copyingTemplate ? 'Copiando...' : 'Copiar Formato'}
+                                                                    </button>
+                                                                </div>
+                                                                {branches.filter((b: any) => b.id !== formData.id && b.hasTemplate).length === 0 && (
+                                                                    <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Ninguna otra sucursal tiene un formato de plantilla configurado.</p>
+                                                                )}
+                                                            </div>
+                                                        )}
 
                                                         {/* Coordinates Editor */}
                                                         <div className="space-y-3">
