@@ -208,6 +208,22 @@ function PrintQuotationsContent() {
         })
     }
 
+    const updateDebugInfo = () => {
+        const dbgEl = document.getElementById('editor-debug-info')
+        if (!dbgEl) return
+        const cell = selectedCellRef.current
+        if (cell) {
+            dbgEl.innerHTML = `
+                <span class="text-blue-500 font-bold">Celda seleccionada:</span> "${cell.innerText.trim().substring(0, 40)}" | 
+                <span class="text-blue-500 font-bold">Alineación:</span> ${cell.style.textAlign || 'Por defecto'} | 
+                <span class="text-blue-500 font-bold">Negrita:</span> ${cell.style.fontWeight || 'Por defecto'} | 
+                <span class="text-blue-500 font-bold">Tamaño:</span> ${cell.style.fontSize || 'Por defecto'}
+            `
+        } else {
+            dbgEl.innerHTML = `<span className="text-zinc-500">Ninguna celda seleccionada. Haz clic en una celda para editar y darle formato.</span>`
+        }
+    }
+
     // Attach click/focus event listeners and contenteditable post-render
     useEffect(() => {
         if (loading || parsedReports.length === 0) return
@@ -235,6 +251,7 @@ function PrintQuotationsContent() {
 
                 // Enable toolbar controls directly in DOM
                 updateToolbarUI(true)
+                updateDebugInfo()
             }
         }
 
@@ -262,6 +279,7 @@ function PrintQuotationsContent() {
             selectedCellRef.current = null
             selectedRowRef.current = null
             updateToolbarUI(false)
+            updateDebugInfo()
         }
 
         return () => {
@@ -280,26 +298,51 @@ function PrintQuotationsContent() {
         setIsEditing(!isEditing)
     }
 
-    // Direct DOM styling handlers (acting on the stable ref)
+    // Direct DOM styling handlers (acting recursively on cells and child text nodes to override inline styles)
     const toggleBold = () => {
         const cell = selectedCellRef.current
         if (!cell) return
+        
         const isBold = cell.style.fontWeight === 'bold' || cell.style.fontWeight === '700'
-        cell.style.fontWeight = isBold ? 'normal' : 'bold'
+        const nextVal = isBold ? 'normal' : 'bold'
+        
+        cell.style.setProperty('font-weight', nextVal, 'important')
+        cell.querySelectorAll('*').forEach((el: any) => {
+            el.style.setProperty('font-weight', nextVal, 'important')
+        })
+        
+        updateDebugInfo()
     }
 
     const setAlign = (align: 'left' | 'center' | 'right' | 'justify') => {
         const cell = selectedCellRef.current
         if (!cell) return
-        cell.style.textAlign = align
+        
+        cell.style.setProperty('text-align', align, 'important')
+        cell.querySelectorAll('*').forEach((el: any) => {
+            el.style.setProperty('text-align', align, 'important')
+            if (el.tagName === 'DIV' || el.tagName === 'P') {
+                el.style.margin = align === 'center' ? '0 auto' : ''
+            }
+        })
+        
+        updateDebugInfo()
     }
 
     const changeFontSize = (delta: number) => {
         const cell = selectedCellRef.current
         if (!cell) return
+        
         const currentSize = window.getComputedStyle(cell).fontSize
         const sizeNum = parseFloat(currentSize) || 12
-        cell.style.fontSize = `${sizeNum + delta}px`
+        const nextVal = `${sizeNum + delta}px`
+        
+        cell.style.setProperty('font-size', nextVal, 'important')
+        cell.querySelectorAll('*').forEach((el: any) => {
+            el.style.setProperty('font-size', nextVal, 'important')
+        })
+        
+        updateDebugInfo()
     }
 
     const moveRow = (direction: 'up' | 'down') => {
@@ -324,15 +367,19 @@ function PrintQuotationsContent() {
             selectedRowRef.current = null
             selectedCellRef.current = null
             updateToolbarUI(false)
+            updateDebugInfo()
         }
     }
 
     const handleFontChange = (font: string) => {
         globalFontRef.current = font
-        // Apply directly to DOM to avoid full React re-render layout overwrite
+        // Apply directly to DOM and recursively override cell-level and span-level fonts
         const tables = document.querySelectorAll('.excel-table')
         tables.forEach((table: any) => {
             table.style.setProperty('font-family', `${font}, Arial, sans-serif`, 'important')
+            table.querySelectorAll('td, td *').forEach((el: any) => {
+                el.style.setProperty('font-family', `${font}, Arial, sans-serif`, 'important')
+            })
         })
     }
 
@@ -594,125 +641,136 @@ function PrintQuotationsContent() {
 
                     {/* Editor Toolbar (Only visible when Editor Mode is active) */}
                     {isEditing && (
-                        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-2 flex flex-wrap items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-2 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
                             
-                            {/* Global Options */}
-                            <div className="flex items-center gap-3">
-                                <span className="text-xs font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                                    <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-                                    Tipografía:
-                                </span>
-                                <select
-                                    defaultValue={globalFontRef.current}
-                                    onChange={(e) => handleFontChange(e.target.value)}
-                                    className="h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
-                                >
-                                    <option value="Arial">Arial (Por defecto)</option>
-                                    <option value="Inter">Inter (Moderna)</option>
-                                    <option value="Georgia">Georgia (Elegante)</option>
-                                    <option value="Times New Roman">Times New Roman</option>
-                                    <option value="Courier New">Courier New (Monospaced)</option>
-                                    <option value="system-ui">Sistema (San Francisco/Segoe UI)</option>
-                                </select>
-                                
-                                <button
-                                    onClick={() => {
-                                        if (confirm('¿Desea restaurar el reporte a su estado original? Se perderán todos los textos y estilos modificados localmente.')) {
-                                            setResetCounter(prev => prev + 1);
-                                        }
-                                    }}
-                                    className="flex items-center gap-1 px-3 h-9 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/20 dark:hover:bg-red-900/30 dark:text-red-400 rounded-lg text-xs font-bold transition-all border border-red-100 dark:border-red-900/35"
-                                    title="Restaurar valores de base de datos"
-                                >
-                                    <RotateCcw className="w-3.5 h-3.5" />
-                                    Restaurar
-                                </button>
+                            {/* Toolbar Buttons Row */}
+                            <div className="flex flex-wrap items-center justify-between gap-4">
+                                {/* Global Options */}
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                                        <Sparkles className="w-3.5 h-3.5 text-blue-500" />
+                                        Tipografía:
+                                    </span>
+                                    <select
+                                        defaultValue={globalFontRef.current}
+                                        onChange={(e) => handleFontChange(e.target.value)}
+                                        className="h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                                    >
+                                        <option value="Arial">Arial (Por defecto)</option>
+                                        <option value="Inter">Inter (Moderna)</option>
+                                        <option value="Georgia">Georgia (Elegante)</option>
+                                        <option value="Times New Roman">Times New Roman</option>
+                                        <option value="Courier New">Courier New (Monospaced)</option>
+                                        <option value="system-ui">Sistema (San Francisco/Segoe UI)</option>
+                                    </select>
+                                    
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('¿Desea restaurar el reporte a su estado original? Se perderán todos los textos y estilos modificados localmente.')) {
+                                                setResetCounter(prev => prev + 1);
+                                            }
+                                        }}
+                                        className="flex items-center gap-1 px-3 h-9 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/20 dark:hover:bg-red-900/30 dark:text-red-400 rounded-lg text-xs font-bold transition-all border border-red-100 dark:border-red-900/35"
+                                        title="Restaurar valores de base de datos"
+                                    >
+                                        <RotateCcw className="w-3.5 h-3.5" />
+                                        Restaurar
+                                    </button>
+                                </div>
+
+                                {/* Active Cell Options */}
+                                <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800">
+                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Formato Celda:</span>
+                                    
+                                    <button
+                                        onClick={toggleBold}
+                                        className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
+                                        title="Negrita"
+                                    >
+                                        <Bold className="w-4 h-4" />
+                                    </button>
+
+                                    <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700"></div>
+
+                                    <button
+                                        onClick={() => setAlign('left')}
+                                        className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
+                                        title="Alinear a la Izquierda"
+                                    >
+                                        <AlignLeft className="w-4 h-4" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setAlign('center')}
+                                        className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
+                                        title="Centrar"
+                                    >
+                                        <AlignCenter className="w-4 h-4" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => setAlign('right')}
+                                        className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
+                                        title="Alinear a la Derecha"
+                                    >
+                                        <AlignRight className="w-4 h-4" />
+                                    </button>
+
+                                    <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700"></div>
+
+                                    <button
+                                        onClick={() => changeFontSize(1)}
+                                        className="cell-ctrl-btn editor-btn-disabled px-2 py-1 rounded-lg text-xs font-bold transition-all text-zinc-800 dark:text-zinc-200"
+                                        title="Aumentar Tamaño Letra"
+                                    >
+                                        A+
+                                    </button>
+
+                                    <button
+                                        onClick={() => changeFontSize(-1)}
+                                        className="cell-ctrl-btn editor-btn-disabled px-2 py-1 rounded-lg text-xs font-bold transition-all text-zinc-800 dark:text-zinc-200"
+                                        title="Disminuir Tamaño Letra"
+                                    >
+                                        A-
+                                    </button>
+                                </div>
+
+                                {/* Active Row Options */}
+                                <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800">
+                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Fila:</span>
+                                    
+                                    <button
+                                        onClick={() => moveRow('up')}
+                                        className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
+                                        title="Subir Fila"
+                                    >
+                                        <ArrowUp className="w-4 h-4" />
+                                    </button>
+
+                                    <button
+                                        onClick={() => moveRow('down')}
+                                        className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
+                                        title="Bajar Fila"
+                                    >
+                                        <ArrowDown className="w-4 h-4" />
+                                    </button>
+
+                                    <button
+                                        onClick={hideRow}
+                                        className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-500 hover:text-red-600"
+                                        title="Ocultar fila completa"
+                                    >
+                                        <EyeOff className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
 
-                            {/* Active Cell Options */}
-                            <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800">
-                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Formato Celda:</span>
-                                
-                                <button
-                                    onClick={toggleBold}
-                                    className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                    title="Negrita"
-                                >
-                                    <Bold className="w-4 h-4" />
-                                </button>
-
-                                <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700"></div>
-
-                                <button
-                                    onClick={() => setAlign('left')}
-                                    className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                    title="Alinear a la Izquierda"
-                                >
-                                    <AlignLeft className="w-4 h-4" />
-                                </button>
-
-                                <button
-                                    onClick={() => setAlign('center')}
-                                    className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                    title="Centrar"
-                                >
-                                    <AlignCenter className="w-4 h-4" />
-                                </button>
-
-                                <button
-                                    onClick={() => setAlign('right')}
-                                    className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                    title="Alinear a la Derecha"
-                                >
-                                    <AlignRight className="w-4 h-4" />
-                                </button>
-
-                                <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700"></div>
-
-                                <button
-                                    onClick={() => changeFontSize(1)}
-                                    className="cell-ctrl-btn editor-btn-disabled px-2 py-1 rounded-lg text-xs font-bold transition-all text-zinc-800 dark:text-zinc-200"
-                                    title="Aumentar Tamaño Letra"
-                                >
-                                    A+
-                                </button>
-
-                                <button
-                                    onClick={() => changeFontSize(-1)}
-                                    className="cell-ctrl-btn editor-btn-disabled px-2 py-1 rounded-lg text-xs font-bold transition-all text-zinc-800 dark:text-zinc-200"
-                                    title="Disminuir Tamaño Letra"
-                                >
-                                    A-
-                                </button>
-                            </div>
-
-                            {/* Active Row Options */}
-                            <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800">
-                                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Fila:</span>
-                                
-                                <button
-                                    onClick={() => moveRow('up')}
-                                    className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                    title="Subir Fila"
-                                >
-                                    <ArrowUp className="w-4 h-4" />
-                                </button>
-
-                                <button
-                                    onClick={() => moveRow('down')}
-                                    className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                    title="Bajar Fila"
-                                >
-                                    <ArrowDown className="w-4 h-4" />
-                                </button>
-
-                                <button
-                                    onClick={hideRow}
-                                    className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-500 hover:text-red-600"
-                                    title="Ocultar fila completa"
-                                >
-                                    <EyeOff className="w-4 h-4" />
-                                </button>
+                            {/* Uncontrolled Dynamic Debugger Status Bar */}
+                            <div 
+                                id="editor-debug-info" 
+                                className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2.5 rounded-xl text-xs text-zinc-600 dark:text-zinc-400"
+                            >
+                                <span className="text-zinc-500">Ninguna celda seleccionada. Haz clic en una celda para editar y darle formato.</span>
                             </div>
 
                         </div>
