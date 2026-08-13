@@ -184,18 +184,15 @@ function PrintQuotationsContent() {
             })
     }, [idIni, idFin, formatId, resetCounter])
 
-    // Enable/disable contentEditable and click selection via global listener
+    // Enable/disable contentEditable and click selection via direct cell listeners
     useEffect(() => {
         if (loading || parsedReports.length === 0) return
 
-        const handleCellClick = (e: MouseEvent) => {
-            if (!isEditing) return
-            const target = e.target as HTMLElement;
-            // Buscar la celda más cercana
-            const cell = target.closest('td') as HTMLTableCellElement;
-            
-            // Verificar que pertenezca a una tabla de reporte Excel
-            if (cell && cell.closest('.excel-table')) {
+        const tables = document.querySelectorAll('.excel-table')
+        
+        const handleCellSelect = (e: Event) => {
+            const cell = e.currentTarget as HTMLTableCellElement
+            if (cell) {
                 // Deseleccionar anteriores
                 const prevActive = document.querySelector('.active-editor-cell')
                 if (prevActive) prevActive.classList.remove('active-editor-cell')
@@ -214,22 +211,19 @@ function PrintQuotationsContent() {
             }
         }
 
-        // Apply contenteditable to all cell elements in DOM
-        const tables = document.querySelectorAll('.excel-table')
+        // Apply contenteditable and listeners to all cells
         tables.forEach(table => {
             const cells = table.querySelectorAll('td')
             cells.forEach(cell => {
                 if (isEditing) {
                     cell.setAttribute('contenteditable', 'true')
+                    cell.addEventListener('click', handleCellSelect)
+                    cell.addEventListener('focus', handleCellSelect)
                 } else {
                     cell.removeAttribute('contenteditable')
                 }
             })
         })
-
-        if (isEditing) {
-            document.addEventListener('click', handleCellClick)
-        }
 
         // Clean up editor highlight classes when editing mode turns off
         if (!isEditing) {
@@ -242,11 +236,12 @@ function PrintQuotationsContent() {
         }
 
         return () => {
-            document.removeEventListener('click', handleCellClick)
             tables.forEach(table => {
                 const cells = table.querySelectorAll('td')
                 cells.forEach(cell => {
                     cell.removeAttribute('contenteditable')
+                    cell.removeEventListener('click', handleCellSelect)
+                    cell.removeEventListener('focus', handleCellSelect)
                 })
             })
         }
