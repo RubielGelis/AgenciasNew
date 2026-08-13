@@ -28,7 +28,8 @@ import {
     Copy,
     ArrowUp,
     ArrowDown,
-    FileText
+    FileText,
+    Upload
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { SearchSelect } from '@/components/SearchSelect'
@@ -2727,32 +2728,86 @@ export default function SettingsPage() {
                                                             <h4 className="text-sm font-black text-zinc-800 dark:text-zinc-200 uppercase tracking-wider">
                                                                 Plantilla de Reporte Excel
                                                             </h4>
-                                                            {formData.id && formData.hasTemplate && (
+                                                            <div className="flex items-center gap-2">
+                                                                <input
+                                                                    type="file"
+                                                                    id="branch-json-import-input"
+                                                                    accept=".json"
+                                                                    className="hidden"
+                                                                    onChange={(e) => {
+                                                                        const file = e.target.files?.[0];
+                                                                        if (!file) return;
+                                                                        const reader = new FileReader();
+                                                                        reader.onload = (evt) => {
+                                                                            try {
+                                                                                const json = JSON.parse(evt.target?.result as string);
+                                                                                if (!json.templateConfig && !json.template && !json.cellCustomizations) {
+                                                                                    alert('El archivo JSON no contiene una configuración de formato válida.');
+                                                                                    return;
+                                                                                }
+
+                                                                                let newConfig = { ...(formData.templateConfig || {}), ...(json.templateConfig || {}) };
+                                                                                if (Array.isArray(json.cellCustomizations)) {
+                                                                                    json.cellCustomizations.forEach((c: any) => {
+                                                                                        if (c.code && c.value) {
+                                                                                            newConfig[c.code] = c.value;
+                                                                                        }
+                                                                                    });
+                                                                                }
+
+                                                                                setFormData((prev: any) => ({
+                                                                                    ...prev,
+                                                                                    template: json.template || prev.template,
+                                                                                    hasTemplate: !!(json.template || prev.hasTemplate),
+                                                                                    templateConfig: newConfig,
+                                                                                    clearTemplate: false,
+                                                                                }));
+
+                                                                                alert(`✅ Configuración importada correctamente desde "${file.name}".\n\nHaga clic en "Confirmar Registro" o "Guardar" para aplicar los cambios en la sucursal.`);
+                                                                            } catch (err: any) {
+                                                                                alert('Error al leer el archivo JSON: ' + err.message);
+                                                                            }
+                                                                        };
+                                                                        reader.readAsText(file);
+                                                                        e.target.value = '';
+                                                                    }}
+                                                                />
                                                                 <button
                                                                     type="button"
-                                                                    onClick={async () => {
-                                                                        try {
-                                                                            const res = await fetch(`/api/config/branches/${formData.id}?export=true`);
-                                                                            if (!res.ok) throw new Error('Error exportando');
-                                                                            const blob = await res.blob();
-                                                                            const url = URL.createObjectURL(blob);
-                                                                            const a = document.createElement('a');
-                                                                            const safe = (formData.name || 'sucursal').replace(/[^a-zA-Z0-9_-]/g, '_');
-                                                                            a.href = url;
-                                                                            a.download = `formato_${safe}.json`;
-                                                                            a.click();
-                                                                            URL.revokeObjectURL(url);
-                                                                        } catch (err: any) {
-                                                                            alert('Error al exportar: ' + err.message);
-                                                                        }
-                                                                    }}
-                                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-xs font-bold transition-all border border-blue-100 shrink-0"
-                                                                    title="Exportar configuración como JSON para importar en Formatos de Cotización"
+                                                                    onClick={() => document.getElementById('branch-json-import-input')?.click()}
+                                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 rounded-xl text-xs font-bold transition-all border border-emerald-200 dark:border-emerald-800 shrink-0"
+                                                                    title="Importar plantilla y mapeo de celdas desde un archivo JSON exportado"
                                                                 >
-                                                                    <Download className="w-3.5 h-3.5" />
-                                                                    <span>Exportar Configuración</span>
+                                                                    <Upload className="w-3.5 h-3.5" />
+                                                                    <span>Importar JSON</span>
                                                                 </button>
-                                                            )}
+                                                                {formData.id && formData.hasTemplate && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={async () => {
+                                                                            try {
+                                                                                const res = await fetch(`/api/config/branches/${formData.id}?export=true`);
+                                                                                if (!res.ok) throw new Error('Error exportando');
+                                                                                const blob = await res.blob();
+                                                                                const url = URL.createObjectURL(blob);
+                                                                                const a = document.createElement('a');
+                                                                                const safe = (formData.name || 'sucursal').replace(/[^a-zA-Z0-9_-]/g, '_');
+                                                                                a.href = url;
+                                                                                a.download = `formato_${safe}.json`;
+                                                                                a.click();
+                                                                                URL.revokeObjectURL(url);
+                                                                            } catch (err: any) {
+                                                                                alert('Error al exportar: ' + err.message);
+                                                                            }
+                                                                        }}
+                                                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-xs font-bold transition-all border border-blue-100 shrink-0"
+                                                                        title="Exportar configuración como JSON para importar en Formatos de Cotización u otra sucursal"
+                                                                    >
+                                                                        <Download className="w-3.5 h-3.5" />
+                                                                        <span>Exportar Configuración</span>
+                                                                    </button>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         <div className="space-y-2">
                                                             <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">
@@ -2823,7 +2878,7 @@ export default function SettingsPage() {
                                                                         {branches
                                                                             .filter((b: any) => b.id !== formData.id && b.hasTemplate)
                                                                             .map((b: any) => (
-                                                                                <option key={b.id} value={b.id}>{b.name}</option>
+                                                                                <option key={b.id} value={b.id}>[{b.code}] {b.name}</option>
                                                                             ))
                                                                         }
                                                                     </select>

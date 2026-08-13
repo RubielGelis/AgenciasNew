@@ -248,17 +248,46 @@ export function QuotationFormatsTab({ branches, implants }: QuotationFormatsTabP
             const data = JSON.parse(text)
             if (!data.name) { alert('Archivo de formato inválido: falta el nombre'); return }
 
-            // Pedir qué sucursal/implant asociar
-            const branchName = prompt(
-                `Importando formato "${data.name}".\n\nIngrese el ID de la Sucursal a la que desea asociarlo (deje vacío para continuar sin sucursal):`
+            // Pedir qué sucursal/implant asociar (por CÓDIGO, Nombre o ID)
+            const inputBranch = prompt(
+                `Importando formato "${data.name}".\n\nIngrese el CÓDIGO de la Sucursal a la que desea asociarlo (ej. MAYOREO, CONTINGENCIA, BOG):\n(Deje vacío si no desea asociar sucursal en este momento)`
             )
-            const implantName = prompt(`Ingrese el ID del Implant a asociar (deje vacío si no aplica):`)
+            const inputImplant = prompt(`Ingrese el CÓDIGO del Implant a asociar (deje vacío si no aplica):`)
 
-            const branchId = branchName ? parseInt(branchName) : null
-            const implantId = implantName ? parseInt(implantName) : null
+            let branchId: number | null = null
+            if (inputBranch?.trim()) {
+                const query = inputBranch.trim().toLowerCase()
+                const found = branches.find(b =>
+                    (b.code && b.code.toLowerCase() === query) ||
+                    (b.name && b.name.toLowerCase() === query) ||
+                    String(b.id) === query
+                )
+                if (found) {
+                    branchId = found.id
+                } else {
+                    alert(`⚠️ No se encontró ninguna sucursal con el código o nombre "${inputBranch}". Lista disponible: ${branches.map(b => b.code || b.name).join(', ')}`)
+                    return
+                }
+            }
+
+            let implantId: number | null = null
+            if (inputImplant?.trim()) {
+                const query = inputImplant.trim().toLowerCase()
+                const found = implants.find(i =>
+                    (i.code && i.code.toLowerCase() === query) ||
+                    (i.name && i.name.toLowerCase() === query) ||
+                    String(i.id) === query
+                )
+                if (found) {
+                    implantId = found.id
+                } else {
+                    alert(`⚠️ No se encontró ningún implant con el código o nombre "${inputImplant}".`)
+                    return
+                }
+            }
 
             if (!branchId && !implantId) {
-                alert('Debe especificar al menos una Sucursal o Implant para importar')
+                alert('Debe especificar al menos una Sucursal o Implant para asociar el formato')
                 return
             }
 
