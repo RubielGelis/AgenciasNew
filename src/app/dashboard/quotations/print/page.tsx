@@ -11,6 +11,14 @@ import {
 interface HtmlReportJson {
     idCotizacion: number;
     html: string;
+    isCustomized?: boolean;
+}
+
+interface ParsedReport {
+    idCotizacion: number;
+    bodyHtml: string;
+    footerHtml: string;
+    isCustomized: boolean;
 }
 
 function splitReportHtml(html: string) {
@@ -117,9 +125,11 @@ function PrintQuotationsContent() {
     const formatId = searchParams.get('formatId')
 
     const [reports, setReports] = useState<HtmlReportJson[]>([])
+    const [parsedReports, setParsedReports] = useState<ParsedReport[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [resetCounter, setResetCounter] = useState(0) // Used to trigger reload / reset
+    const [saving, setSaving] = useState(false)
 
     // Editor States
     const [isEditing, setIsEditing] = useState(false)
@@ -128,7 +138,7 @@ function PrintQuotationsContent() {
     const [globalFont, setGlobalFont] = useState('Arial')
     const [showHelp, setShowHelp] = useState(true)
 
-    // Load reports
+    // Load reports and parse them once to maintain stable state
     useEffect(() => {
         if (!idIni || !idFin) {
             setError("Faltan parámetros idIni o idFin.")
@@ -144,6 +154,25 @@ function PrintQuotationsContent() {
             })
             .then((json: HtmlReportJson[]) => {
                 setReports(json);
+                const parsed = json.map(r => {
+                    if (r.isCustomized) {
+                        return {
+                            idCotizacion: r.idCotizacion,
+                            bodyHtml: r.html,
+                            footerHtml: '',
+                            isCustomized: true
+                        };
+                    } else {
+                        const { bodyHtml, footerHtml } = splitReportHtml(r.html);
+                        return {
+                            idCotizacion: r.idCotizacion,
+                            bodyHtml,
+                            footerHtml,
+                            isCustomized: false
+                        };
+                    }
+                });
+                setParsedReports(parsed);
                 setLoading(false);
                 setSelectedCell(null);
                 setSelectedRow(null);
@@ -155,17 +184,15 @@ function PrintQuotationsContent() {
             })
     }, [idIni, idFin, formatId, resetCounter])
 
-    // Enable/disable contentEditable on cells based on edit mode
+    // Enable/disable contentEditable and click selection via global listener
     useEffect(() => {
-        if (loading || reports.length === 0) return
+        if (loading || parsedReports.length === 0) return
 
-        const tables = document.querySelectorAll('.excel-table')
-        
         const handleCellClick = (e: MouseEvent) => {
             if (!isEditing) return
-            const cell = (e.target as HTMLElement).closest('td')
+            const cell = (e.target as HTMLElement).closest('.excel-table td') as HTMLTableCellElement
             if (cell) {
-                // Remove highlight from previous cell
+                // Remove highlight from previous cell and row
                 const prevActive = document.querySelector('.active-editor-cell')
                 if (prevActive) prevActive.classList.remove('active-editor-cell')
                 
@@ -183,6 +210,8 @@ function PrintQuotationsContent() {
             }
         }
 
+        // Apply contenteditable to all cell elements in DOM
+        const tables = document.querySelectorAll('.excel-table')
         tables.forEach(table => {
             const cells = table.querySelectorAll('td')
             cells.forEach(cell => {
@@ -192,11 +221,11 @@ function PrintQuotationsContent() {
                     cell.removeAttribute('contenteditable')
                 }
             })
-            
-            if (isEditing) {
-                table.addEventListener('click', handleCellClick as any)
-            }
         })
+
+        if (isEditing) {
+            document.addEventListener('click', handleCellClick)
+        }
 
         // Clean up editor highlight classes when editing mode turns off
         if (!isEditing) {
@@ -209,15 +238,15 @@ function PrintQuotationsContent() {
         }
 
         return () => {
+            document.removeEventListener('click', handleCellClick)
             tables.forEach(table => {
-                table.removeEventListener('click', handleCellClick as any)
                 const cells = table.querySelectorAll('td')
                 cells.forEach(cell => {
                     cell.removeAttribute('contenteditable')
                 })
             })
         }
-    }, [isEditing, loading, reports])
+    }, [isEditing, loading, parsedReports])
 
     // Styling Toolbar Handlers
     const toggleBold = () => {
@@ -246,11 +275,8 @@ function PrintQuotationsContent() {
         if (direction === 'up' && selectedRow.previousElementSibling) {
             parent.insertBefore(selectedRow, selectedRow.previousElementSibling)
         } else if (direction === 'down' && selectedRow.nextElementSibling) {
-            // parent.insertBefore inserts before the specified element.
-            // To move down, we insert selectedRow after nextElementSibling, which is equivalent to inserting nextElementSibling before selectedRow.
             parent.insertBefore(selectedRow.nextElementSibling, selectedRow)
         }
-        // Force scroll selection into view
         selectedRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }
 
@@ -260,6 +286,63 @@ function PrintQuotationsContent() {
             selectedRow.style.display = 'none'
             setSelectedRow(null)
             setSelectedCell(null)
+        }
+    }
+
+    // Save modified HTML permanently in DB for this quotation
+    const handleSaveChanges = async () => {
+        setSaving(true)
+        try {
+            for (const report of parsedReports) {
+                const container = document.getElementById(`report-container-${report.idCotizacion}`)
+                if (!container) continue
+
+                const bodyEl = container.querySelector('.report-body-wrapper')
+                const footerEl = container.querySelector('.report-footer-wrapper')
+
+                if (!bodyEl) continue
+                const bodyClone = bodyEl.cloneNode(true) as HTMLElement;
+                const footerClone: HTMLElement | null = footerEl ? (footerEl.cloneNode(true) as HTMLElement) : null;
+
+                // Clean up active classes and contenteditable from clones before saving
+                const nodesToClean: (HTMLElement | null)[] = [bodyClone, footerClone];
+                nodesToClean.forEach((node: HTMLElement | null) => {
+                    if (!node) return;
+                    node.querySelectorAll('td').forEach((cell: any) => {
+                        cell.removeAttribute('contenteditable');
+                        cell.classList.remove('active-editor-cell');
+                    });
+                    node.querySelectorAll('tr').forEach((row: any) => {
+                        row.classList.remove('active-editor-row');
+                    });
+                });
+
+                // Combine them to save as customization
+                const savedHtml = `<div class="report-body-wrapper">${bodyClone.innerHTML}</div>` + 
+                                  (footerClone ? `<div class="report-footer-wrapper">${footerClone.innerHTML}</div>` : '')
+
+                const res = await fetch('/api/quotations/print-customization', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quotationId: report.idCotizacion,
+                        html: savedHtml
+                    })
+                })
+
+                if (!res.ok) {
+                    const errJson = await res.json()
+                    throw new Error(errJson.message || 'Error al guardar')
+                }
+            }
+
+            alert('¡Diseño y cambios guardados correctamente de forma permanente!')
+            setIsEditing(false)
+        } catch (err: any) {
+            console.error(err)
+            alert('Error al guardar cambios: ' + err.message)
+        } finally {
+            setSaving(false)
         }
     }
 
@@ -412,6 +495,17 @@ function PrintQuotationsContent() {
                                 <Edit3 className="w-4 h-4" />
                                 {isEditing ? 'Desactivar Editor' : 'Activar Diseñador / Editor'}
                             </button>
+
+                            {isEditing && (
+                                <button 
+                                    onClick={handleSaveChanges}
+                                    disabled={saving}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 h-11 rounded-xl font-black flex items-center gap-2 transition-colors shadow-lg shadow-blue-500/20 text-sm disabled:opacity-50"
+                                >
+                                    <Check className="w-4 h-4" />
+                                    {saving ? 'Guardando...' : 'Guardar Cambios'}
+                                </button>
+                            )}
 
                             <button 
                                 onClick={handleExportExcel}
@@ -607,9 +701,10 @@ function PrintQuotationsContent() {
                             <div className="flex-1">
                                 <span className="font-bold">Guía Rápida del Diseñador:</span>
                                 <ul className="list-disc list-inside mt-1 space-y-0.5 text-zinc-600 dark:text-zinc-400">
-                                    <li>Haz **doble clic o clic** en cualquier celda para escribir y cambiar la información directamente.</li>
-                                    <li>Selecciona una celda para activar las opciones de formato (Negrita, alineación, tamaño, o subir/bajar la fila).</li>
-                                    <li>Cuando estés satisfecho con el aspecto, haz clic en **"Imprimir / Guardar PDF"** para generar el reporte idéntico a lo que ves.</li>
+                                    <li>Haz **un solo clic** en cualquier celda para escribir y cambiar su contenido.</li>
+                                    <li>Selecciona una celda para activar las opciones de formato en la barra superior (Negrita, alineación, tamaño de letra, mover fila u ocultarla).</li>
+                                    <li>Haz clic en **"Guardar Cambios"** (botón azul de la barra superior) para guardar tus ediciones de forma permanente.</li>
+                                    <li>Cuando estés listo, haz clic en **"Imprimir / Guardar PDF"** para imprimir tu diseño final.</li>
                                 </ul>
                             </div>
                             <button onClick={() => setShowHelp(false)} className="text-blue-500 hover:text-blue-700 font-bold">Entendido</button>
@@ -619,17 +714,17 @@ function PrintQuotationsContent() {
 
                 {/* Report Content Container */}
                 <div className="space-y-16 print:space-y-0">
-                    {reports.map((report, idx) => {
-                        const { bodyHtml, footerHtml } = splitReportHtml(report.html);
+                    {parsedReports.map((report) => {
                         return (
                             <div 
-                                key={idx} 
+                                key={report.idCotizacion} 
                                 className="bg-white text-black p-8 border border-zinc-200 rounded-2xl print:border-none print:p-0 print:m-0 break-after-page overflow-x-auto relative"
+                                id={`report-container-${report.idCotizacion}`}
                             >
                                 <h3 className="text-sm font-bold text-zinc-400 mb-4 print:hidden">Cotización #{report.idCotizacion}</h3>
-                                <div className="report-body-wrapper" dangerouslySetInnerHTML={{ __html: bodyHtml }} />
-                                {footerHtml && (
-                                    <div className="report-footer-wrapper" dangerouslySetInnerHTML={{ __html: footerHtml }} />
+                                <div className="report-body-wrapper" dangerouslySetInnerHTML={{ __html: report.bodyHtml }} />
+                                {report.footerHtml && (
+                                    <div className="report-footer-wrapper" dangerouslySetInnerHTML={{ __html: report.footerHtml }} />
                                 )}
                             </div>
                         )

@@ -927,3 +927,11 @@ model QuotationFormat {
   Branch                  Branch?                   @relation(fields: [branchId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   Implant                 Implant?                  @relation(fields: [implantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
+
+model QuotationPrintCustomization {
+  id          Int      @id @default(autoincrement())
+  quotationId Int      @unique
+  html        String   @db.Text
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @db.Timestamptz(6)
+}

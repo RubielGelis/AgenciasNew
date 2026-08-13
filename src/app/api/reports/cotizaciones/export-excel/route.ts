@@ -956,6 +956,21 @@ export async function GET(req: Request) {
             
             for (const q of groupedList) {
                 const dbInfo = qDbMap.get(q.idCotizacion);
+
+                // Buscar si existe una personalización guardada para esta cotización
+                const savedCustomization = await prisma.quotationPrintCustomization.findUnique({
+                    where: { quotationId: q.idCotizacion }
+                });
+
+                if (savedCustomization) {
+                    htmlReports.push({
+                        idCotizacion: q.idCotizacion,
+                        html: savedCustomization.html,
+                        isCustomized: true
+                    });
+                    continue; // Saltar generación ya que se tiene la versión guardada y personalizada
+                }
+
                 let htmlTemplate = null;
                 let templateBuffer: Buffer | null = null;
                 let config: any = DEFAULT_CONFIG;
