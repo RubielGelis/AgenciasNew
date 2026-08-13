@@ -64,10 +64,11 @@ export async function POST(req: NextRequest) {
             where: { id: targetBranchId },
             data: {
                 template: source.template,
-                templateConfig: source.templateConfig,
+                templateConfig: source.templateConfig ?? undefined,
                 ...(htmlTemplate ? { htmlTemplate } : {})
             }
         })
+
 
         // Copiar también las cellCustomizations (mapeo de celdas individuales)
         if (source.cellCustomizations.length > 0) {
