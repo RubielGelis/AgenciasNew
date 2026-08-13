@@ -210,39 +210,41 @@ function PrintQuotationsContent() {
         })
     }
 
-    const handleCellSelect = (e: Event) => {
-        const cell = e.currentTarget as HTMLTableCellElement
-        if (cell) {
-            // Remove highlight from previous cell and row
-            const prevActive = document.querySelector('.active-editor-cell')
-            if (prevActive) prevActive.classList.remove('active-editor-cell')
-            
-            const prevRowActive = document.querySelector('.active-editor-row')
-            if (prevRowActive) prevRowActive.classList.remove('active-editor-row')
+    // Attach listeners and manage editor elements whenever isEditing or reports loading changes
+    useEffect(() => {
+        if (loading || parsedReports.length === 0) return
 
-            cell.classList.add('active-editor-cell')
-            selectedCellRef.current = cell
-
-            const row = cell.closest('tr')
-            if (row) {
-                row.classList.add('active-editor-row')
-                selectedRowRef.current = row
-            }
-
-            // Enable toolbar controls directly in DOM
-            updateToolbarUI(true)
-        }
-    }
-
-    const handleToggleEdit = () => {
-        const nextEditMode = !isEditing
-        setIsEditing(nextEditMode)
-        
         const tables = document.querySelectorAll('.excel-table')
+
+        const handleCellSelect = (e: Event) => {
+            const cell = e.currentTarget as HTMLTableCellElement
+            if (cell) {
+                // Remove highlight from previous cell and row
+                const prevActive = document.querySelector('.active-editor-cell')
+                if (prevActive) prevActive.classList.remove('active-editor-cell')
+                
+                const prevRowActive = document.querySelector('.active-editor-row')
+                if (prevRowActive) prevRowActive.classList.remove('active-editor-row')
+
+                cell.classList.add('active-editor-cell')
+                selectedCellRef.current = cell
+
+                const row = cell.closest('tr')
+                if (row) {
+                    row.classList.add('active-editor-row')
+                    selectedRowRef.current = row
+                }
+
+                // Enable toolbar controls directly in DOM
+                updateToolbarUI(true)
+            }
+        }
+
+        // Apply contenteditable and click/focus listeners post-render
         tables.forEach(table => {
             const cells = table.querySelectorAll('td')
             cells.forEach(cell => {
-                if (nextEditMode) {
+                if (isEditing) {
                     cell.setAttribute('contenteditable', 'true')
                     cell.addEventListener('click', handleCellSelect)
                     cell.addEventListener('focus', handleCellSelect)
@@ -254,8 +256,8 @@ function PrintQuotationsContent() {
             })
         })
 
-        if (!nextEditMode) {
-            // Reset selection highlights
+        // Clean up highlights if edit mode is turned off
+        if (!isEditing) {
             const prevActive = document.querySelector('.active-editor-cell')
             if (prevActive) prevActive.classList.remove('active-editor-cell')
             const prevRowActive = document.querySelector('.active-editor-row')
@@ -264,6 +266,20 @@ function PrintQuotationsContent() {
             selectedRowRef.current = null
             updateToolbarUI(false)
         }
+
+        return () => {
+            tables.forEach(table => {
+                const cells = table.querySelectorAll('td')
+                cells.forEach(cell => {
+                    cell.removeEventListener('click', handleCellSelect)
+                    cell.removeEventListener('focus', handleCellSelect)
+                })
+            })
+        }
+    }, [isEditing, loading, parsedReports])
+
+    const handleToggleEdit = () => {
+        setIsEditing(!isEditing)
     }
 
     // Direct DOM styling handlers
