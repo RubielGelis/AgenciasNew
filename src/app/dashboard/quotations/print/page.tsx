@@ -1,13 +1,90 @@
 'use client'
 
-import React, { useEffect, useState, Suspense, useRef } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { 
     Printer, FileSpreadsheet, ArrowLeft, AlignLeft, AlignCenter, 
-    AlignRight, Bold, Trash2, ArrowUp, ArrowDown, Sparkles, 
+    AlignRight, Bold, ArrowUp, ArrowDown, Sparkles, 
     Check, Edit3, EyeOff, RotateCcw, HelpCircle
 } from 'lucide-react'
 
+// ============================================================
+// MODULE-LEVEL stable storage: completely bypasses React's
+// rendering cycle, so the selected cell is never lost on re-render
+// ============================================================
+let _activeCell: HTMLElement | null = null
+let _activeRow: HTMLElement | null = null
+
+function getActiveCell() { return _activeCell }
+function getActiveRow() { return _activeRow }
+
+function setActiveCell(cell: HTMLElement | null, row: HTMLElement | null) {
+    // Clear old highlights
+    if (_activeCell) _activeCell.classList.remove('active-editor-cell')
+    if (_activeRow) _activeRow.classList.remove('active-editor-row')
+    
+    _activeCell = cell
+    _activeRow = row
+    
+    // Apply new highlights
+    if (_activeCell) _activeCell.classList.add('active-editor-cell')
+    if (_activeRow) _activeRow.classList.add('active-editor-row')
+
+    // Update status bar in the DOM directly (no React state)
+    const dbgEl = document.getElementById('editor-debug-info')
+    if (dbgEl) {
+        if (cell) {
+            const txt = cell.innerText.trim().substring(0, 60)
+            const align = cell.style.textAlign || 'heredado'
+            const weight = cell.style.fontWeight || 'heredado'
+            const size = cell.style.fontSize || 'heredado'
+            dbgEl.innerHTML = `<span style="color:#3b82f6;font-weight:700">Celda activa:</span> "${txt}" 
+                | <span style="color:#3b82f6;font-weight:700">Alineación:</span> ${align}
+                | <span style="color:#3b82f6;font-weight:700">Negrita:</span> ${weight}
+                | <span style="color:#3b82f6;font-weight:700">Tamaño:</span> ${size}`
+        } else {
+            dbgEl.innerHTML = '<span style="color:#71717a">Ninguna celda seleccionada. Haz clic en una celda del reporte para editarla.</span>'
+        }
+    }
+
+    // Enable/disable toolbar buttons based on selection
+    document.querySelectorAll('.cell-ctrl-btn').forEach((btn: any) => {
+        if (cell) {
+            btn.removeAttribute('data-disabled')
+            btn.style.opacity = '1'
+            btn.style.pointerEvents = 'auto'
+        } else {
+            btn.setAttribute('data-disabled', 'true')
+            btn.style.opacity = '0.3'
+            btn.style.pointerEvents = 'none'
+        }
+    })
+    document.querySelectorAll('.row-ctrl-btn').forEach((btn: any) => {
+        if (row) {
+            btn.removeAttribute('data-disabled')
+            btn.style.opacity = '1'
+            btn.style.pointerEvents = 'auto'
+        } else {
+            btn.setAttribute('data-disabled', 'true')
+            btn.style.opacity = '0.3'
+            btn.style.pointerEvents = 'none'
+        }
+    })
+}
+
+// ============================================================
+// Apply a CSS property recursively to a cell and all children
+// ============================================================
+function applyStyleRecursive(el: HTMLElement, prop: string, value: string) {
+    el.style.setProperty(prop, value, 'important')
+    el.querySelectorAll<HTMLElement>('*').forEach(child => {
+        child.style.setProperty(prop, value, 'important')
+    })
+}
+
+// ============================================================
+// Interfaces
+// ============================================================
 interface HtmlReportJson {
     idCotizacion: number;
     html: string;
@@ -16,107 +93,85 @@ interface HtmlReportJson {
 
 interface ParsedReport {
     idCotizacion: number;
-    bodyHtml: string;
-    footerHtml: string;
+    bodyHtml: string;    // raw inner HTML (without .report-body-wrapper wrapper)
+    footerHtml: string;  // raw inner HTML (without .report-footer-wrapper wrapper)
     isCustomized: boolean;
 }
 
+// ============================================================
+// HTML splitter (first load, non-customized)
+// ============================================================
 function splitReportHtml(html: string) {
-    if (typeof window === 'undefined') return { bodyHtml: html, footerHtml: '' };
+    if (typeof window === 'undefined') return { bodyHtml: html, footerHtml: '' }
 
     try {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        const originalTable = doc.querySelector('.excel-table');
-        if (!originalTable) return { bodyHtml: html, footerHtml: '' };
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(html, 'text/html')
+        const originalTable = doc.querySelector('.excel-table')
+        if (!originalTable) return { bodyHtml: html, footerHtml: '' }
 
-        const colgroup = originalTable.querySelector('colgroup')?.outerHTML || '';
-        const rows = Array.from(originalTable.querySelectorAll('tbody tr'));
+        const colgroup = originalTable.querySelector('colgroup')?.outerHTML || ''
+        const rows = Array.from(originalTable.querySelectorAll('tbody tr'))
 
-        let productHeaderIdx = -1;
-        let rentabilidadHeaderIdx = -1;
+        let productHeaderIdx = -1
+        let rentabilidadHeaderIdx = -1
 
         rows.forEach((row, idx) => {
-            const text = row.textContent || '';
-            const cleanedText = text.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            
-            // Deducir inicio de productos
-            if (productHeaderIdx === -1 && (cleanedText.includes('PROVEEDOR') && cleanedText.includes('DETALLE'))) {
-                productHeaderIdx = idx;
+            const cleanedText = (row.textContent || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            if (productHeaderIdx === -1 && cleanedText.includes('PROVEEDOR') && cleanedText.includes('DETALLE')) {
+                productHeaderIdx = idx
             }
-
-            // Deducir inicio de rentabilidad negocio
             if (rentabilidadHeaderIdx === -1 && (cleanedText.includes('RENTABILIDAD NEGOCIO') || cleanedText.includes('RENTABILIDAD'))) {
-                rentabilidadHeaderIdx = idx;
+                rentabilidadHeaderIdx = idx
             }
-        });
+        })
 
-        if (productHeaderIdx === -1 && rentabilidadHeaderIdx === -1) {
-            return { bodyHtml: html, footerHtml: '' };
-        }
+        if (productHeaderIdx === -1 && rentabilidadHeaderIdx === -1) return { bodyHtml: html, footerHtml: '' }
 
-        const cabeceraRows: string[] = [];
-        const productosRows: string[] = [];
-        const rentabilidadRows: string[] = [];
+        const cabeceraRows: string[] = []
+        const productosRows: string[] = []
+        const rentabilidadRows: string[] = []
 
         rows.forEach((row, idx) => {
-            const trHtml = row.outerHTML;
-            const rowText = (row.textContent || '').trim();
-
+            const rowText = (row.textContent || '').trim()
             if (rentabilidadHeaderIdx !== -1 && idx >= rentabilidadHeaderIdx) {
-                if (rowText === '' && idx > rentabilidadHeaderIdx) {
-                    return;
-                }
-                rentabilidadRows.push(trHtml);
+                if (rowText === '' && idx > rentabilidadHeaderIdx) return
+                rentabilidadRows.push(row.outerHTML)
             } else if (productHeaderIdx !== -1 && idx >= productHeaderIdx) {
-                if (rowText === '' && idx > productHeaderIdx) {
-                    return;
-                }
-                productosRows.push(trHtml);
+                if (rowText === '' && idx > productHeaderIdx) return
+                productosRows.push(row.outerHTML)
             } else {
-                cabeceraRows.push(trHtml);
+                cabeceraRows.push(row.outerHTML)
             }
-        });
-
-        const tableCabecera = `
-            <table class="excel-table table-cabecera border-collapse table-auto mb-4" style="font-family: Arial, sans-serif; border-spacing: 0; border-collapse: collapse; width: fit-content; max-width: 100%;">
-                <tbody>
-                    ${cabeceraRows.join('')}
-                </tbody>
-            </table>
-        `;
-
-        // Tabla de productos con table-fixed para mantener alineación de columnas
-        const tableProductos = `
-            <table class="excel-table table-productos border-collapse table-fixed w-full" style="font-family: Arial, sans-serif; border-spacing: 0; border-collapse: collapse;">
-                ${colgroup}
-                <tbody>
-                    ${productosRows.join('')}
-                </tbody>
-            </table>
-        `;
-
-        const footerHtml = rentabilidadRows.length > 0 ? `
-            <table class="excel-table table-rentabilidad border-collapse table-fixed w-full" style="font-family: Arial, sans-serif; border-spacing: 0; border-collapse: collapse;">
-                ${colgroup}
-                <tbody>
-                    ${rentabilidadRows.join('')}
-                </tbody>
-            </table>
-        ` : '';
+        })
 
         const bodyHtml = `
-            <div class="report-header-section">${tableCabecera}</div>
-            <div class="report-products-section">${tableProductos}</div>
-        `;
+            <div class="report-header-section">
+                <table class="excel-table table-cabecera border-collapse table-auto mb-4" style="font-family:Arial,sans-serif;border-spacing:0;border-collapse:collapse;width:fit-content;max-width:100%">
+                    <tbody>${cabeceraRows.join('')}</tbody>
+                </table>
+            </div>
+            <div class="report-products-section">
+                <table class="excel-table table-productos border-collapse table-fixed w-full" style="font-family:Arial,sans-serif;border-spacing:0;border-collapse:collapse">
+                    ${colgroup}<tbody>${productosRows.join('')}</tbody>
+                </table>
+            </div>`
 
-        return { bodyHtml, footerHtml };
+        const footerHtml = rentabilidadRows.length > 0 ? `
+            <table class="excel-table table-rentabilidad border-collapse table-fixed w-full" style="font-family:Arial,sans-serif;border-spacing:0;border-collapse:collapse">
+                ${colgroup}<tbody>${rentabilidadRows.join('')}</tbody>
+            </table>` : ''
+
+        return { bodyHtml, footerHtml }
     } catch (e) {
-        console.error("Error splitting report table:", e);
-        return { bodyHtml: html, footerHtml: '' };
+        console.error('Error splitting report table:', e)
+        return { bodyHtml: html, footerHtml: '' }
     }
 }
 
+// ============================================================
+// Main component
+// ============================================================
 function PrintQuotationsContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
@@ -124,266 +179,147 @@ function PrintQuotationsContent() {
     const idFin = searchParams.get('idFin')
     const formatId = searchParams.get('formatId')
 
-    const [reports, setReports] = useState<HtmlReportJson[]>([])
     const [parsedReports, setParsedReports] = useState<ParsedReport[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [resetCounter, setResetCounter] = useState(0)
     const [saving, setSaving] = useState(false)
-
-    // Editor Active State
     const [isEditing, setIsEditing] = useState(false)
     const [showHelp, setShowHelp] = useState(true)
+    const [globalFont, setGlobalFont] = useState('Arial')
 
-    // Stable DOM references to prevent React re-render cycle overrides
-    const selectedCellRef = useRef<HTMLElement | null>(null)
-    const selectedRowRef = useRef<HTMLElement | null>(null)
-    const globalFontRef = useRef<string>('Arial')
-
-    // Load reports and parse them once
+    // Load reports
     useEffect(() => {
-        if (!idIni || !idFin) {
-            setError("Faltan parámetros idIni o idFin.")
-            setLoading(false)
-            return
-        }
+        if (!idIni || !idFin) { setError('Faltan parámetros'); setLoading(false); return }
 
         setLoading(true)
+        // Clean up global selection state when reloading
+        setActiveCell(null, null)
+
         fetch(`/api/reports/cotizaciones/export-excel?idIni=${idIni}&idFin=${idFin}&format=html${formatId ? `&formatId=${formatId}` : ''}`)
-            .then(res => {
-                if (!res.ok) throw new Error("Error fetching report data")
-                return res.json()
-            })
+            .then(res => { if (!res.ok) throw new Error('Error fetching report data'); return res.json() })
             .then((json: HtmlReportJson[]) => {
-                setReports(json);
                 const parsed = json.map(r => {
                     if (r.isCustomized) {
-                        return {
-                            idCotizacion: r.idCotizacion,
-                            bodyHtml: r.html,
-                            footerHtml: '',
-                            isCustomized: true
-                        };
+                        // Customized: r.html is the raw inner HTML (previously saved without outer wrapper)
+                        // OR might be wrapped. Let's strip outer .report-body-wrapper if present.
+                        let bodyHtml = r.html
+                        let footerHtml = ''
+                        try {
+                            const p = new DOMParser()
+                            const d = p.parseFromString(r.html, 'text/html')
+                            const bw = d.querySelector('.report-body-wrapper')
+                            const fw = d.querySelector('.report-footer-wrapper')
+                            if (bw) bodyHtml = bw.innerHTML
+                            if (fw) footerHtml = fw.innerHTML
+                            // If no wrappers found, use as-is
+                            if (!bw && !fw) { bodyHtml = r.html; footerHtml = '' }
+                        } catch(e) {}
+                        return { idCotizacion: r.idCotizacion, bodyHtml, footerHtml, isCustomized: true }
                     } else {
-                        const { bodyHtml, footerHtml } = splitReportHtml(r.html);
-                        return {
-                            idCotizacion: r.idCotizacion,
-                            bodyHtml,
-                            footerHtml,
-                            isCustomized: false
-                        };
+                        const { bodyHtml, footerHtml } = splitReportHtml(r.html)
+                        return { idCotizacion: r.idCotizacion, bodyHtml, footerHtml, isCustomized: false }
                     }
-                });
-                setParsedReports(parsed);
-                setLoading(false);
-                setIsEditing(false);
-                selectedCellRef.current = null;
-                selectedRowRef.current = null;
-            })
-            .catch(err => {
-                console.error(err)
-                setError(err.message)
+                })
+                setParsedReports(parsed)
                 setLoading(false)
+                setIsEditing(false)
             })
+            .catch(err => { setError(err.message); setLoading(false) })
     }, [idIni, idFin, formatId, resetCounter])
 
-    // Enable/disable toolbar buttons directly in the DOM (pure CSS pointer-events blocker)
-    const updateToolbarUI = (hasSelection: boolean) => {
-        const cellButtons = document.querySelectorAll('.cell-ctrl-btn')
-        cellButtons.forEach((btn: any) => {
-            if (hasSelection) {
-                btn.classList.remove('editor-btn-disabled')
-            } else {
-                btn.classList.add('editor-btn-disabled')
-            }
-        })
-        
-        const rowButtons = document.querySelectorAll('.row-ctrl-btn')
-        rowButtons.forEach((btn: any) => {
-            if (hasSelection) {
-                btn.classList.remove('editor-btn-disabled')
-            } else {
-                btn.classList.add('editor-btn-disabled')
-            }
-        })
-    }
-
-    const updateDebugInfo = () => {
-        const dbgEl = document.getElementById('editor-debug-info')
-        if (!dbgEl) return
-        const cell = selectedCellRef.current
-        if (cell) {
-            dbgEl.innerHTML = `
-                <span class="text-blue-500 font-bold">Celda seleccionada:</span> "${cell.innerText.trim().substring(0, 40)}" | 
-                <span class="text-blue-500 font-bold">Alineación:</span> ${cell.style.textAlign || 'Por defecto'} | 
-                <span class="text-blue-500 font-bold">Negrita:</span> ${cell.style.fontWeight || 'Por defecto'} | 
-                <span class="text-blue-500 font-bold">Tamaño:</span> ${cell.style.fontSize || 'Por defecto'}
-            `
-        } else {
-            dbgEl.innerHTML = `<span className="text-zinc-500">Ninguna celda seleccionada. Haz clic en una celda para editar y darle formato.</span>`
-        }
-    }
-
-    // Attach click/focus event listeners and contenteditable post-render
+    // Attach/detach cell listeners based on editing mode
     useEffect(() => {
         if (loading || parsedReports.length === 0) return
 
         const tables = document.querySelectorAll('.excel-table')
 
-        const handleCellSelect = (e: Event) => {
+        const onCellClick = (e: Event) => {
             const cell = e.currentTarget as HTMLTableCellElement
-            if (cell) {
-                // Remove highlight from previous cell and row
-                const prevActive = document.querySelector('.active-editor-cell')
-                if (prevActive) prevActive.classList.remove('active-editor-cell')
-                
-                const prevRowActive = document.querySelector('.active-editor-row')
-                if (prevRowActive) prevRowActive.classList.remove('active-editor-row')
-
-                cell.classList.add('active-editor-cell')
-                selectedCellRef.current = cell
-
-                const row = cell.closest('tr')
-                if (row) {
-                    row.classList.add('active-editor-row')
-                    selectedRowRef.current = row
-                }
-
-                // Enable toolbar controls directly in DOM
-                updateToolbarUI(true)
-                updateDebugInfo()
-            }
+            setActiveCell(cell, (cell.closest('tr') as HTMLElement | null))
         }
 
         tables.forEach(table => {
-            const cells = table.querySelectorAll('td')
-            cells.forEach(cell => {
+            table.querySelectorAll('td').forEach(cell => {
                 if (isEditing) {
                     cell.setAttribute('contenteditable', 'true')
-                    cell.addEventListener('click', handleCellSelect)
-                    cell.addEventListener('focus', handleCellSelect)
+                    cell.addEventListener('click', onCellClick)
                 } else {
                     cell.removeAttribute('contenteditable')
-                    cell.removeEventListener('click', handleCellSelect)
-                    cell.removeEventListener('focus', handleCellSelect)
+                    cell.removeEventListener('click', onCellClick)
                 }
             })
         })
 
-        // Clean up highlights if edit mode is turned off
-        if (!isEditing) {
-            const prevActive = document.querySelector('.active-editor-cell')
-            if (prevActive) prevActive.classList.remove('active-editor-cell')
-            const prevRowActive = document.querySelector('.active-editor-row')
-            if (prevRowActive) prevRowActive.classList.remove('active-editor-row')
-            selectedCellRef.current = null
-            selectedRowRef.current = null
-            updateToolbarUI(false)
-            updateDebugInfo()
-        }
+        if (!isEditing) setActiveCell(null, null)
 
         return () => {
             tables.forEach(table => {
-                const cells = table.querySelectorAll('td')
-                cells.forEach(cell => {
-                    cell.removeEventListener('click', handleCellSelect)
-                    cell.removeEventListener('focus', handleCellSelect)
+                table.querySelectorAll('td').forEach(cell => {
+                    cell.removeEventListener('click', onCellClick)
                 })
             })
         }
     }, [isEditing, loading, parsedReports])
 
-    // Toggle editor mode
-    const handleToggleEdit = () => {
-        setIsEditing(!isEditing)
-    }
+    // ── Toolbar action handlers ───────────────────────────────
+    // All use onMouseDown + e.preventDefault() to prevent focus loss from the cell
 
-    // Direct DOM styling handlers (acting recursively on cells and child text nodes to override inline styles)
-    const toggleBold = () => {
-        const cell = selectedCellRef.current
+    const handleToggleBold = (e: React.MouseEvent) => {
+        e.preventDefault()
+        const cell = getActiveCell()
         if (!cell) return
-        
-        const isBold = cell.style.fontWeight === 'bold' || cell.style.fontWeight === '700'
-        const nextVal = isBold ? 'normal' : 'bold'
-        
-        cell.style.setProperty('font-weight', nextVal, 'important')
-        cell.querySelectorAll('*').forEach((el: any) => {
-            el.style.setProperty('font-weight', nextVal, 'important')
-        })
-        
-        updateDebugInfo()
+        const isBold = window.getComputedStyle(cell).fontWeight === '700' || cell.style.fontWeight === 'bold'
+        applyStyleRecursive(cell, 'font-weight', isBold ? 'normal' : 'bold')
+        setActiveCell(cell, getActiveRow())  // refresh status bar
     }
 
-    const setAlign = (align: 'left' | 'center' | 'right' | 'justify') => {
-        const cell = selectedCellRef.current
+    const handleAlign = (e: React.MouseEvent, align: string) => {
+        e.preventDefault()
+        const cell = getActiveCell()
         if (!cell) return
-        
-        cell.style.setProperty('text-align', align, 'important')
-        cell.querySelectorAll('*').forEach((el: any) => {
-            el.style.setProperty('text-align', align, 'important')
-            if (el.tagName === 'DIV' || el.tagName === 'P') {
-                el.style.margin = align === 'center' ? '0 auto' : ''
-            }
-        })
-        
-        updateDebugInfo()
+        applyStyleRecursive(cell, 'text-align', align)
+        setActiveCell(cell, getActiveRow())  // refresh status bar
     }
 
-    const changeFontSize = (delta: number) => {
-        const cell = selectedCellRef.current
+    const handleFontSize = (e: React.MouseEvent, delta: number) => {
+        e.preventDefault()
+        const cell = getActiveCell()
         if (!cell) return
-        
-        const currentSize = window.getComputedStyle(cell).fontSize
-        const sizeNum = parseFloat(currentSize) || 12
-        const nextVal = `${sizeNum + delta}px`
-        
-        cell.style.setProperty('font-size', nextVal, 'important')
-        cell.querySelectorAll('*').forEach((el: any) => {
-            el.style.setProperty('font-size', nextVal, 'important')
-        })
-        
-        updateDebugInfo()
+        const current = parseFloat(window.getComputedStyle(cell).fontSize) || 12
+        applyStyleRecursive(cell, 'font-size', `${current + delta}px`)
+        setActiveCell(cell, getActiveRow())  // refresh status bar
     }
 
-    const moveRow = (direction: 'up' | 'down') => {
-        const row = selectedRowRef.current
-        if (!row) return
-        const parent = row.parentNode
-        if (!parent) return
-
-        if (direction === 'up' && row.previousElementSibling) {
-            parent.insertBefore(row, row.previousElementSibling)
-        } else if (direction === 'down' && row.nextElementSibling) {
-            parent.insertBefore(row.nextElementSibling, row)
+    const handleMoveRow = (e: React.MouseEvent, dir: 'up' | 'down') => {
+        e.preventDefault()
+        const row = getActiveRow()
+        if (!row || !row.parentNode) return
+        if (dir === 'up' && row.previousElementSibling) {
+            row.parentNode.insertBefore(row, row.previousElementSibling)
+        } else if (dir === 'down' && row.nextElementSibling) {
+            row.parentNode.insertBefore(row.nextElementSibling, row)
         }
-        row.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }
 
-    const hideRow = () => {
-        const row = selectedRowRef.current
+    const handleHideRow = (e: React.MouseEvent) => {
+        e.preventDefault()
+        const row = getActiveRow()
         if (!row) return
-        if (confirm('¿Desea ocultar esta fila del reporte? (Se mantendrá oculta al imprimir/guardar PDF)')) {
+        if (confirm('¿Ocultar esta fila del reporte?')) {
             row.style.display = 'none'
-            selectedRowRef.current = null
-            selectedCellRef.current = null
-            updateToolbarUI(false)
-            updateDebugInfo()
+            setActiveCell(null, null)
         }
     }
 
     const handleFontChange = (font: string) => {
-        globalFontRef.current = font
-        // Apply directly to DOM and recursively override cell-level and span-level fonts
-        const tables = document.querySelectorAll('.excel-table')
-        tables.forEach((table: any) => {
-            table.style.setProperty('font-family', `${font}, Arial, sans-serif`, 'important')
-            table.querySelectorAll('td, td *').forEach((el: any) => {
-                el.style.setProperty('font-family', `${font}, Arial, sans-serif`, 'important')
-            })
+        setGlobalFont(font)
+        document.querySelectorAll('.excel-table').forEach((t: any) => {
+            applyStyleRecursive(t, 'font-family', `${font}, Arial, sans-serif`)
         })
     }
 
-    // Save modified HTML permanently in DB for this quotation
+    // ── Save changes ─────────────────────────────────────────
     const handleSaveChanges = async () => {
         setSaving(true)
         try {
@@ -393,426 +329,222 @@ function PrintQuotationsContent() {
 
                 const bodyEl = container.querySelector('.report-body-wrapper')
                 const footerEl = container.querySelector('.report-footer-wrapper')
-
                 if (!bodyEl) continue
 
+                // Clone and clean up editor artifacts
                 const bodyClone = bodyEl.cloneNode(true) as HTMLElement
-                const footerClone: HTMLElement | null = footerEl ? (footerEl.cloneNode(true) as HTMLElement) : null
+                const footerClone = footerEl ? (footerEl.cloneNode(true) as HTMLElement) : null
 
-                // Clean up active classes and contenteditable from clones before saving
-                const nodesToClean: (HTMLElement | null)[] = [bodyClone, footerClone]
-                nodesToClean.forEach((node: HTMLElement | null) => {
+                ;[bodyClone, footerClone].forEach(node => {
                     if (!node) return
-                    node.querySelectorAll('td').forEach((cell: any) => {
-                        cell.removeAttribute('contenteditable')
-                        cell.classList.remove('active-editor-cell')
+                    node.querySelectorAll('td').forEach((td: any) => {
+                        td.removeAttribute('contenteditable')
+                        td.classList.remove('active-editor-cell')
                     })
-                    node.querySelectorAll('tr').forEach((row: any) => {
-                        row.classList.remove('active-editor-row')
-                    })
+                    node.querySelectorAll('tr').forEach((tr: any) => tr.classList.remove('active-editor-row'))
                 })
 
-                // Combine them to save as customization
-                const savedHtml = `<div class="report-body-wrapper">${bodyClone.innerHTML}</div>` + 
-                                  (footerClone ? `<div class="report-footer-wrapper">${footerClone.innerHTML}</div>` : '')
+                // Save INNER html only (no wrapper divs) — prevents double-nesting on re-load
+                const savedHtml =
+                    `<div class="report-body-wrapper">${bodyClone.innerHTML}</div>` +
+                    (footerClone ? `<div class="report-footer-wrapper">${footerClone.innerHTML}</div>` : '')
 
                 const res = await fetch('/api/quotations/print-customization', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        quotationId: report.idCotizacion,
-                        html: savedHtml
-                    })
+                    body: JSON.stringify({ quotationId: report.idCotizacion, html: savedHtml })
                 })
-
-                if (!res.ok) {
-                    const errJson = await res.json()
-                    throw new Error(errJson.message || 'Error al guardar')
-                }
+                if (!res.ok) throw new Error((await res.json()).message || 'Error al guardar')
             }
-
-            alert('¡Diseño y cambios guardados correctamente de forma permanente!')
+            alert('¡Diseño guardado correctamente! Los cambios son permanentes.')
             setIsEditing(false)
-            selectedCellRef.current = null
-            selectedRowRef.current = null
         } catch (err: any) {
-            console.error(err)
-            alert('Error al guardar cambios: ' + err.message)
+            alert('Error al guardar: ' + err.message)
         } finally {
             setSaving(false)
         }
     }
 
     const handleExportExcel = () => {
-        if (!idIni || !idFin) {
-            alert("Faltan parámetros idIni o idFin.")
-            return
-        }
+        if (!idIni || !idFin) return
         window.open(`/api/reports/cotizaciones/export-excel?idIni=${idIni}&idFin=${idFin}${formatId ? `&formatId=${formatId}` : ''}`, '_blank')
     }
 
     const handleVolver = () => {
-        if (window.opener || window.history.length <= 1) {
-            try {
-                window.close();
-            } catch (e) {
-                router.push('/dashboard/quotations');
-            }
-        } else {
-            router.back();
-        }
+        try { window.close() } catch { router.back() }
     }
 
-    if (loading) {
-        return <div className="min-h-screen flex items-center justify-center font-bold text-zinc-500 bg-zinc-50 dark:bg-zinc-950">Cargando reporte...</div>
-    }
-
-    if (error) {
-        return <div className="min-h-screen flex items-center justify-center font-bold text-red-500 bg-zinc-50 dark:bg-zinc-950">Error: {error}</div>
-    }
-
-    if (reports.length === 0) {
-        return <div className="min-h-screen flex items-center justify-center font-bold text-zinc-500 bg-zinc-50 dark:bg-zinc-950">No se encontraron datos para el rango especificado.</div>
-    }
+    if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-zinc-500">Cargando reporte...</div>
+    if (error)   return <div className="min-h-screen flex items-center justify-center font-bold text-red-500">Error: {error}</div>
+    if (parsedReports.length === 0) return <div className="min-h-screen flex items-center justify-center font-bold text-zinc-500">Sin datos.</div>
 
     return (
-        <div className="min-h-screen bg-zinc-100 dark:bg-zinc-950 p-8 print:p-0 print:bg-white text-black">
+        <div className="min-h-screen bg-zinc-100 p-8 print:p-0 print:bg-white text-black">
             <style dangerouslySetInnerHTML={{ __html: `
-                .break-after-page {
-                    position: relative !important;
-                    min-height: 800px !important;
-                    box-sizing: border-box !important;
-                    padding-bottom: 200px !important; /* Space for footer in screen view */
-                }
-                .report-footer-wrapper {
-                    position: absolute !important;
-                    bottom: 0 !important;
-                    left: 0 !important;
-                    right: 0 !important;
-                    width: 100% !important;
-                    box-sizing: border-box !important;
-                }
-                .excel-table {
-                    font-family: ${globalFontRef.current}, Arial, sans-serif !important;
-                    user-select: text !important;
-                    -webkit-user-select: text !important;
-                    -moz-user-select: text !important;
-                    -ms-user-select: text !important;
-                }
-                .excel-table * {
-                    user-select: text !important;
-                    -webkit-user-select: text !important;
-                    -moz-user-select: text !important;
-                    -ms-user-select: text !important;
-                }
-                
-                /* Editor styling - hidden when printing */
+                .excel-table { font-family: ${globalFont}, Arial, sans-serif !important; user-select: text !important; -webkit-user-select: text !important; }
+                .excel-table * { user-select: text !important; -webkit-user-select: text !important; }
+                .break-after-page { position: relative !important; min-height: 800px !important; padding-bottom: 200px !important; }
+                .report-footer-wrapper { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; }
                 @media screen {
-                    .active-editor-cell {
-                        outline: 2px solid #3b82f6 !important;
-                        background-color: rgba(59, 130, 246, 0.08) !important;
-                        box-shadow: inset 0 0 0 1px #3b82f6 !important;
-                    }
-                    .active-editor-row {
-                        background-color: rgba(59, 130, 246, 0.02) !important;
-                        border-left: 3px solid #3b82f6 !important;
-                    }
-                    [contenteditable="true"] {
-                        transition: all 0.15s ease;
-                    }
-                    [contenteditable="true"]:hover {
-                        outline: 1px dashed #3b82f6 !important;
-                        cursor: text;
-                    }
-                    [contenteditable="true"]:focus {
-                        outline: 2px solid #2563eb !important;
-                        background-color: rgba(37, 99, 235, 0.05) !important;
-                        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-                    }
-                    
-                    /* Custom editor button disabled selector */
-                    .editor-btn-disabled {
-                        opacity: 0.3 !important;
-                        pointer-events: none !important;
-                        cursor: not-allowed !important;
-                    }
+                    .active-editor-cell { outline: 2px solid #3b82f6 !important; background: rgba(59,130,246,0.07) !important; }
+                    [contenteditable="true"]:hover { outline: 1px dashed #3b82f6 !important; cursor: text; }
+                    [contenteditable="true"]:focus { outline: 2px solid #2563eb !important; background: rgba(37,99,235,0.05) !important; }
                 }
-                
                 @media print {
-                    body {
-                        background-color: white !important;
-                        color: black !important;
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
-                    }
-                    @page {
-                        size: letter portrait;
-                        margin: 10mm 12mm 10mm 12mm; /* Standard page margins */
-                    }
-                    tr {
-                        page-break-inside: avoid !important;
-                        break-inside: avoid !important;
-                    }
-                    .excel-table {
-                        zoom: 69%; /* Fits the letter width perfectly */
-                        transform-origin: top left;
-                        border-collapse: collapse !important;
-                    }
-                    .break-after-page {
-                        width: 100% !important;
-                        height: 259.4mm !important; /* Letter total height minus top/bottom margins (279.4 - 20) */
-                        min-height: 259.4mm !important;
-                        position: relative !important;
-                        box-sizing: border-box !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
-                        padding-bottom: 45mm !important; /* Protect table overlap with the absolute footer */
-                        overflow: hidden !important;
-                    }
-                    .break-after-page:not(:last-child) {
-                        page-break-after: always !important;
-                        break-after: page !important;
-                    }
-                    .break-after-page:last-child {
-                        page-break-after: avoid !important;
-                        break-after: avoid !important;
-                    }
+                    body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    @page { size: letter portrait; margin: 10mm 12mm; }
+                    .excel-table { zoom: 69%; border-collapse: collapse !important; }
+                    .break-after-page { width:100% !important; height:259.4mm !important; min-height:259.4mm !important; position:relative !important; padding-bottom:45mm !important; overflow:hidden !important; }
+                    .break-after-page:not(:last-child) { page-break-after: always !important; }
+                    .break-after-page:last-child { page-break-after: avoid !important; }
                 }
             `}} />
 
             <div className="max-w-[1200px] mx-auto bg-white p-8 rounded-xl shadow-xl print:shadow-none print:p-0">
-                
-                {/* Print, Editor, and Navigation Action Bar (hidden during print) */}
-                <div className="flex flex-col gap-4 mb-8 print:hidden bg-zinc-50 dark:bg-zinc-900 p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                    
-                    {/* Top Row: Navigation and Actions */}
-                    <div className="flex justify-between items-center">
-                        <button 
-                            onClick={handleVolver}
-                            className="text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white font-black flex items-center gap-2 transition-colors text-sm"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            Volver
+
+                {/* ── Toolbar ── */}
+                <div className="flex flex-col gap-4 mb-8 print:hidden bg-zinc-50 p-5 rounded-2xl border border-zinc-200 shadow-sm">
+
+                    {/* Top row */}
+                    <div className="flex justify-between items-center flex-wrap gap-3">
+                        <button onClick={handleVolver} className="text-zinc-500 hover:text-black font-bold flex items-center gap-2 text-sm">
+                            <ArrowLeft className="w-4 h-4" /> Volver
                         </button>
-                        
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={handleToggleEdit}
-                                className={`px-5 h-11 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm ${
-                                    isEditing 
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white ring-2 ring-blue-500/20' 
-                                    : 'bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200'
-                                }`}
-                            >
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <button onClick={() => setIsEditing(v => !v)}
+                                className={`px-5 h-11 rounded-xl font-bold flex items-center gap-2 transition-all ${isEditing ? 'bg-blue-600 text-white' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'}`}>
                                 <Edit3 className="w-4 h-4" />
                                 {isEditing ? 'Desactivar Editor' : 'Activar Diseñador / Editor'}
                             </button>
-
                             {isEditing && (
-                                <button 
-                                    onClick={handleSaveChanges}
-                                    disabled={saving}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 h-11 rounded-xl font-black flex items-center gap-2 transition-colors shadow-lg shadow-blue-500/20 text-sm disabled:opacity-50"
-                                >
+                                <button onClick={handleSaveChanges} disabled={saving}
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 h-11 rounded-xl font-black flex items-center gap-2 text-sm disabled:opacity-50">
                                     <Check className="w-4 h-4" />
                                     {saving ? 'Guardando...' : 'Guardar Cambios'}
                                 </button>
                             )}
-
-                            <button 
-                                onClick={handleExportExcel}
-                                className="bg-emerald-600 text-white px-5 h-11 rounded-xl font-bold flex items-center gap-2 hover:bg-emerald-700 transition-colors shadow-sm text-sm"
-                            >
-                                <FileSpreadsheet className="w-4 h-4" />
-                                Descargar EXCEL
+                            <button onClick={handleExportExcel}
+                                className="bg-zinc-700 text-white px-5 h-11 rounded-xl font-bold flex items-center gap-2 hover:bg-zinc-800 text-sm">
+                                <FileSpreadsheet className="w-4 h-4" /> Descargar EXCEL
                             </button>
-                            
-                            <button 
-                                onClick={() => window.print()}
-                                className="bg-blue-600 text-white px-5 h-11 rounded-xl font-black flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 text-sm"
-                            >
-                                <Printer className="w-4 h-4" />
-                                Imprimir / Guardar PDF
+                            <button onClick={() => window.print()}
+                                className="bg-blue-600 text-white px-5 h-11 rounded-xl font-black flex items-center gap-2 hover:bg-blue-700 text-sm">
+                                <Printer className="w-4 h-4" /> Imprimir / PDF
                             </button>
                         </div>
                     </div>
 
-                    {/* Editor Toolbar (Only visible when Editor Mode is active) */}
+                    {/* Editor toolbar */}
                     {isEditing && (
-                        <div className="border-t border-zinc-200 dark:border-zinc-800 pt-4 mt-2 flex flex-col gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                            
-                            {/* Toolbar Buttons Row */}
-                            <div className="flex flex-wrap items-center justify-between gap-4">
-                                {/* Global Options */}
-                                <div className="flex items-center gap-3">
-                                    <span className="text-xs font-black text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
-                                        <Sparkles className="w-3.5 h-3.5 text-blue-500" />
-                                        Tipografía:
-                                    </span>
-                                    <select
-                                        defaultValue={globalFontRef.current}
-                                        onChange={(e) => handleFontChange(e.target.value)}
-                                        className="h-9 px-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
-                                    >
-                                        <option value="Arial">Arial (Por defecto)</option>
-                                        <option value="Inter">Inter (Moderna)</option>
-                                        <option value="Georgia">Georgia (Elegante)</option>
+                        <div className="border-t border-zinc-200 pt-4 flex flex-col gap-3">
+                            <div className="flex flex-wrap items-center gap-4">
+
+                                {/* Font selector */}
+                                <div className="flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4 text-blue-500" />
+                                    <select value={globalFont} onChange={e => handleFontChange(e.target.value)}
+                                        className="h-9 px-3 rounded-lg border border-zinc-200 bg-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="Arial">Arial</option>
+                                        <option value="Georgia">Georgia</option>
                                         <option value="Times New Roman">Times New Roman</option>
-                                        <option value="Courier New">Courier New (Monospaced)</option>
-                                        <option value="system-ui">Sistema (San Francisco/Segoe UI)</option>
+                                        <option value="Courier New">Courier New</option>
+                                        <option value="system-ui">Sistema</option>
                                     </select>
-                                    
-                                    <button
-                                        onClick={() => {
-                                            if (confirm('¿Desea restaurar el reporte a su estado original? Se perderán todos los textos y estilos modificados localmente.')) {
-                                                setResetCounter(prev => prev + 1);
-                                            }
-                                        }}
-                                        className="flex items-center gap-1 px-3 h-9 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/20 dark:hover:bg-red-900/30 dark:text-red-400 rounded-lg text-xs font-bold transition-all border border-red-100 dark:border-red-900/35"
-                                        title="Restaurar valores de base de datos"
-                                    >
-                                        <RotateCcw className="w-3.5 h-3.5" />
-                                        Restaurar
-                                    </button>
                                 </div>
 
-                                {/* Active Cell Options */}
-                                <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800">
-                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Formato Celda:</span>
-                                    
-                                    <button
-                                        onClick={toggleBold}
-                                        className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                        title="Negrita"
-                                    >
+                                {/* Cell controls — use onMouseDown + preventDefault so cell never loses focus */}
+                                <div className="flex items-center gap-1 bg-zinc-100 p-1.5 rounded-xl border border-zinc-200">
+                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Celda:</span>
+
+                                    <button className="cell-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                        title="Negrita" onMouseDown={handleToggleBold}>
                                         <Bold className="w-4 h-4" />
                                     </button>
-
-                                    <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700"></div>
-
-                                    <button
-                                        onClick={() => setAlign('left')}
-                                        className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                        title="Alinear a la Izquierda"
-                                    >
+                                    <div className="w-px h-5 bg-zinc-300 mx-0.5" />
+                                    <button className="cell-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                        title="Izquierda" onMouseDown={e => handleAlign(e, 'left')}>
                                         <AlignLeft className="w-4 h-4" />
                                     </button>
-
-                                    <button
-                                        onClick={() => setAlign('center')}
-                                        className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                        title="Centrar"
-                                    >
+                                    <button className="cell-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                        title="Centro" onMouseDown={e => handleAlign(e, 'center')}>
                                         <AlignCenter className="w-4 h-4" />
                                     </button>
-
-                                    <button
-                                        onClick={() => setAlign('right')}
-                                        className="cell-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                        title="Alinear a la Derecha"
-                                    >
+                                    <button className="cell-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                        title="Derecha" onMouseDown={e => handleAlign(e, 'right')}>
                                         <AlignRight className="w-4 h-4" />
                                     </button>
-
-                                    <div className="w-px h-5 bg-zinc-200 dark:bg-zinc-700"></div>
-
-                                    <button
-                                        onClick={() => changeFontSize(1)}
-                                        className="cell-ctrl-btn editor-btn-disabled px-2 py-1 rounded-lg text-xs font-bold transition-all text-zinc-800 dark:text-zinc-200"
-                                        title="Aumentar Tamaño Letra"
-                                    >
-                                        A+
-                                    </button>
-
-                                    <button
-                                        onClick={() => changeFontSize(-1)}
-                                        className="cell-ctrl-btn editor-btn-disabled px-2 py-1 rounded-lg text-xs font-bold transition-all text-zinc-800 dark:text-zinc-200"
-                                        title="Disminuir Tamaño Letra"
-                                    >
-                                        A-
-                                    </button>
+                                    <div className="w-px h-5 bg-zinc-300 mx-0.5" />
+                                    <button className="cell-ctrl-btn px-2 py-1 rounded-lg text-xs font-bold hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                        title="Aumentar letra" onMouseDown={e => handleFontSize(e, 1)}>A+</button>
+                                    <button className="cell-ctrl-btn px-2 py-1 rounded-lg text-xs font-bold hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                        title="Reducir letra" onMouseDown={e => handleFontSize(e, -1)}>A-</button>
                                 </div>
 
-                                {/* Active Row Options */}
-                                <div className="flex items-center gap-3 bg-zinc-100 dark:bg-zinc-800/50 p-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800">
-                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Fila:</span>
-                                    
-                                    <button
-                                        onClick={() => moveRow('up')}
-                                        className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                        title="Subir Fila"
-                                    >
+                                {/* Row controls */}
+                                <div className="flex items-center gap-1 bg-zinc-100 p-1.5 rounded-xl border border-zinc-200">
+                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Fila:</span>
+                                    <button className="row-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                        title="Subir fila" onMouseDown={e => handleMoveRow(e, 'up')}>
                                         <ArrowUp className="w-4 h-4" />
                                     </button>
-
-                                    <button
-                                        onClick={() => moveRow('down')}
-                                        className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-800 dark:text-zinc-200"
-                                        title="Bajar Fila"
-                                    >
+                                    <button className="row-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                        title="Bajar fila" onMouseDown={e => handleMoveRow(e, 'down')}>
                                         <ArrowDown className="w-4 h-4" />
                                     </button>
-
-                                    <button
-                                        onClick={hideRow}
-                                        className="row-ctrl-btn editor-btn-disabled p-2 rounded-lg transition-all text-zinc-500 hover:text-red-600"
-                                        title="Ocultar fila completa"
-                                    >
+                                    <button className="row-ctrl-btn p-2 rounded-lg hover:bg-red-100 text-red-600 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                        title="Ocultar fila" onMouseDown={handleHideRow}>
                                         <EyeOff className="w-4 h-4" />
                                     </button>
                                 </div>
+
+                                {/* Reset */}
+                                <button onClick={() => {
+                                    if (confirm('¿Restaurar el reporte a su estado original? Se perderán los cambios no guardados.'))
+                                        setResetCounter(c => c + 1)
+                                }} className="flex items-center gap-1 px-3 h-9 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold border border-red-100">
+                                    <RotateCcw className="w-3.5 h-3.5" /> Restaurar
+                                </button>
                             </div>
 
-                            {/* Uncontrolled Dynamic Debugger Status Bar */}
-                            <div 
-                                id="editor-debug-info" 
-                                className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 p-2.5 rounded-xl text-xs text-zinc-600 dark:text-zinc-400"
-                            >
-                                <span className="text-zinc-500">Ninguna celda seleccionada. Haz clic en una celda para editar y darle formato.</span>
+                            {/* Status bar — updated directly in DOM, no React state */}
+                            <div id="editor-debug-info"
+                                className="bg-zinc-100 border border-zinc-200 p-2.5 rounded-xl text-xs text-zinc-500">
+                                Ninguna celda seleccionada. Haz clic en una celda del reporte para editarla.
                             </div>
-
                         </div>
                     )}
 
-                    {/* Quick Helper Notice */}
+                    {/* Quick help */}
                     {isEditing && showHelp && (
-                        <div className="bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-400 p-3.5 rounded-xl text-xs flex items-start gap-2.5 border border-blue-100 dark:border-blue-900/50">
+                        <div className="bg-blue-50 text-blue-700 p-3.5 rounded-xl text-xs flex items-start gap-2.5 border border-blue-100">
                             <HelpCircle className="w-4 h-4 shrink-0 mt-0.5" />
                             <div className="flex-1">
-                                <span className="font-bold">Guía Rápida del Diseñador:</span>
-                                <ul className="list-disc list-inside mt-1 space-y-0.5 text-zinc-600 dark:text-zinc-400">
-                                    <li>Haz **un solo clic** en cualquier celda para escribir y cambiar su contenido.</li>
-                                    <li>Selecciona una celda para activar las opciones de formato en la barra superior (Negrita, alineación, tamaño de letra, mover fila u ocultarla).</li>
-                                    <li>Haz clic en **"Guardar Cambios"** (botón azul de la barra superior) para guardar tus ediciones de forma permanente.</li>
-                                    <li>Cuando estés listo, haz clic en **"Imprimir / Guardar PDF"** para imprimir tu diseño final.</li>
+                                <b>Guía rápida:</b>
+                                <ul className="list-disc list-inside mt-1 space-y-0.5 text-zinc-600">
+                                    <li>Haz clic en cualquier celda para seleccionarla (borde azul) y escribir en ella.</li>
+                                    <li>Una vez seleccionada, usa los botones de la barra para cambiar alineación, tamaño de letra, negrita o mover la fila.</li>
+                                    <li>Cuando termines, pulsa <b>"Guardar Cambios"</b> para que el diseño quede permanente.</li>
                                 </ul>
                             </div>
-                            <button onClick={() => setShowHelp(false)} className="text-blue-500 hover:text-blue-700 font-bold">Entendido</button>
+                            <button onClick={() => setShowHelp(false)} className="text-blue-500 hover:text-blue-700 font-bold text-xs">Entendido</button>
                         </div>
                     )}
                 </div>
 
-                {/* Report Content Container */}
+                {/* ── Report Area ── */}
                 <div className="space-y-16 print:space-y-0">
-                    {parsedReports.map((report) => {
-                        return (
-                            <div 
-                                key={report.idCotizacion} 
-                                className="bg-white text-black p-8 border border-zinc-200 rounded-2xl print:border-none print:p-0 print:m-0 break-after-page overflow-x-auto relative"
-                                id={`report-container-${report.idCotizacion}`}
-                            >
-                                <h3 className="text-sm font-bold text-zinc-400 mb-4 print:hidden">Cotización #{report.idCotizacion}</h3>
-                                <div className="report-body-wrapper" dangerouslySetInnerHTML={{ __html: report.bodyHtml }} />
-                                {report.footerHtml && (
-                                    <div className="report-footer-wrapper" dangerouslySetInnerHTML={{ __html: report.footerHtml }} />
-                                )}
-                            </div>
-                        )
-                    })}
+                    {parsedReports.map(report => (
+                        <div key={report.idCotizacion}
+                            id={`report-container-${report.idCotizacion}`}
+                            className="bg-white text-black p-8 border border-zinc-200 rounded-2xl print:border-none print:p-0 print:m-0 break-after-page overflow-x-auto relative">
+                            <p className="text-xs font-bold text-zinc-400 mb-4 print:hidden">Cotización #{report.idCotizacion}</p>
+                            <div className="report-body-wrapper" dangerouslySetInnerHTML={{ __html: report.bodyHtml }} />
+                            {report.footerHtml && (
+                                <div className="report-footer-wrapper" dangerouslySetInnerHTML={{ __html: report.footerHtml }} />
+                            )}
+                        </div>
+                    ))}
                 </div>
-
             </div>
         </div>
     )
@@ -820,7 +552,7 @@ function PrintQuotationsContent() {
 
 export default function PrintQuotationsPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-bold text-zinc-500 bg-zinc-50 dark:bg-zinc-950">Cargando reporte...</div>}>
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center font-bold text-zinc-500">Cargando...</div>}>
             <PrintQuotationsContent />
         </Suspense>
     )
