@@ -5,7 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { 
     Printer, FileSpreadsheet, ArrowLeft, AlignLeft, AlignCenter, 
     AlignRight, Bold, ArrowUp, ArrowDown, Sparkles, 
-    Check, Edit3, EyeOff, RotateCcw, HelpCircle
+    Check, Edit3, EyeOff, RotateCcw, HelpCircle,
+    ChevronLeft, ChevronRight, MoveLeft, MoveRight
 } from 'lucide-react'
 
 // ============================================================
@@ -30,46 +31,24 @@ function setActiveCell(cell: HTMLElement | null, row: HTMLElement | null) {
     if (_activeCell) _activeCell.classList.add('active-editor-cell')
     if (_activeRow) _activeRow.classList.add('active-editor-row')
 
-    // Update status bar in the DOM directly (no React state)
+    // Update status bar in the DOM directly
     const dbgEl = document.getElementById('editor-debug-info')
     if (dbgEl) {
         if (cell) {
             const txt = cell.innerText.trim().substring(0, 60)
-            const align = cell.style.textAlign || 'heredado'
+            const align = cell.style.textAlign || cell.getAttribute('align') || 'heredado'
             const weight = cell.style.fontWeight || 'heredado'
             const size = cell.style.fontSize || 'heredado'
-            dbgEl.innerHTML = `<span style="color:#3b82f6;font-weight:700">Celda activa:</span> "${txt}" 
-                | <span style="color:#3b82f6;font-weight:700">Alineación:</span> ${align}
-                | <span style="color:#3b82f6;font-weight:700">Negrita:</span> ${weight}
-                | <span style="color:#3b82f6;font-weight:700">Tamaño:</span> ${size}`
+            const padding = cell.style.paddingLeft || 'heredado'
+            dbgEl.innerHTML = `<span style="color:#2563eb;font-weight:800">Celda activa:</span> "${txt}" 
+                | <span style="color:#2563eb;font-weight:700">Alineación:</span> <b>${align}</b> 
+                | <span style="color:#2563eb;font-weight:700">Negrita:</span> <b>${weight}</b> 
+                | <span style="color:#2563eb;font-weight:700">Tamaño:</span> <b>${size}</b> 
+                | <span style="color:#2563eb;font-weight:700">Margen Izq:</span> <b>${padding}</b>`
         } else {
-            dbgEl.innerHTML = '<span style="color:#71717a">Ninguna celda seleccionada. Haz clic en una celda del reporte para editarla.</span>'
+            dbgEl.innerHTML = '<span style="color:#2563eb;font-weight:600">Ninguna celda seleccionada. Haz clic en cualquier celda de la cotización para editarla y moverla.</span>'
         }
     }
-
-    // Enable/disable toolbar buttons based on selection
-    document.querySelectorAll('.cell-ctrl-btn').forEach((btn: any) => {
-        if (cell) {
-            btn.removeAttribute('data-disabled')
-            btn.style.opacity = '1'
-            btn.style.pointerEvents = 'auto'
-        } else {
-            btn.setAttribute('data-disabled', 'true')
-            btn.style.opacity = '0.3'
-            btn.style.pointerEvents = 'none'
-        }
-    })
-    document.querySelectorAll('.row-ctrl-btn').forEach((btn: any) => {
-        if (row) {
-            btn.removeAttribute('data-disabled')
-            btn.style.opacity = '1'
-            btn.style.pointerEvents = 'auto'
-        } else {
-            btn.setAttribute('data-disabled', 'true')
-            btn.style.opacity = '0.3'
-            btn.style.pointerEvents = 'none'
-        }
-    })
 }
 
 // ============================================================
@@ -77,8 +56,14 @@ function setActiveCell(cell: HTMLElement | null, row: HTMLElement | null) {
 // ============================================================
 function applyStyleRecursive(el: HTMLElement, prop: string, value: string) {
     el.style.setProperty(prop, value, 'important')
+    if (prop === 'text-align') {
+        el.setAttribute('align', value)
+    }
     el.querySelectorAll<HTMLElement>('*').forEach(child => {
         child.style.setProperty(prop, value, 'important')
+        if (prop === 'text-align') {
+            child.setAttribute('align', value)
+        }
     })
 }
 
@@ -193,7 +178,6 @@ function PrintQuotationsContent() {
         if (!idIni || !idFin) { setError('Faltan parámetros'); setLoading(false); return }
 
         setLoading(true)
-        // Clean up global selection state when reloading
         setActiveCell(null, null)
 
         fetch(`/api/reports/cotizaciones/export-excel?idIni=${idIni}&idFin=${idFin}&format=html${formatId ? `&formatId=${formatId}` : ''}`)
@@ -201,8 +185,6 @@ function PrintQuotationsContent() {
             .then((json: HtmlReportJson[]) => {
                 const parsed = json.map(r => {
                     if (r.isCustomized) {
-                        // Customized: r.html is the raw inner HTML (previously saved without outer wrapper)
-                        // OR might be wrapped. Let's strip outer .report-body-wrapper if present.
                         let bodyHtml = r.html
                         let footerHtml = ''
                         try {
@@ -212,7 +194,6 @@ function PrintQuotationsContent() {
                             const fw = d.querySelector('.report-footer-wrapper')
                             if (bw) bodyHtml = bw.innerHTML
                             if (fw) footerHtml = fw.innerHTML
-                            // If no wrappers found, use as-is
                             if (!bw && !fw) { bodyHtml = r.html; footerHtml = '' }
                         } catch(e) {}
                         return { idCotizacion: r.idCotizacion, bodyHtml, footerHtml, isCustomized: true }
@@ -234,19 +215,27 @@ function PrintQuotationsContent() {
 
         const tables = document.querySelectorAll('.excel-table')
 
-        const onCellClick = (e: Event) => {
-            const cell = e.currentTarget as HTMLTableCellElement
-            setActiveCell(cell, (cell.closest('tr') as HTMLElement | null))
+        const handleCellSelect = (e: Event) => {
+            const target = e.target as HTMLElement | null
+            if (!target) return
+            const cell = target.closest('td') as HTMLTableCellElement | null
+            if (!cell) return
+            const row = cell.closest('tr') as HTMLElement | null
+            setActiveCell(cell, row)
         }
 
         tables.forEach(table => {
             table.querySelectorAll('td').forEach(cell => {
                 if (isEditing) {
                     cell.setAttribute('contenteditable', 'true')
-                    cell.addEventListener('click', onCellClick)
+                    cell.addEventListener('click', handleCellSelect)
+                    cell.addEventListener('focusin', handleCellSelect)
+                    cell.addEventListener('mousedown', handleCellSelect)
                 } else {
                     cell.removeAttribute('contenteditable')
-                    cell.removeEventListener('click', onCellClick)
+                    cell.removeEventListener('click', handleCellSelect)
+                    cell.removeEventListener('focusin', handleCellSelect)
+                    cell.removeEventListener('mousedown', handleCellSelect)
                 }
             })
         })
@@ -256,45 +245,80 @@ function PrintQuotationsContent() {
         return () => {
             tables.forEach(table => {
                 table.querySelectorAll('td').forEach(cell => {
-                    cell.removeEventListener('click', onCellClick)
+                    cell.removeEventListener('click', handleCellSelect)
+                    cell.removeEventListener('focusin', handleCellSelect)
+                    cell.removeEventListener('mousedown', handleCellSelect)
                 })
             })
         }
     }, [isEditing, loading, parsedReports])
 
     // ── Toolbar action handlers ───────────────────────────────
-    // All use onMouseDown + e.preventDefault() to prevent focus loss from the cell
+
+    const ensureActiveCell = (): HTMLElement | null => {
+        const cell = getActiveCell()
+        if (!cell) {
+            alert('Por favor, haz clic primero en la celda que deseas modificar.')
+            return null
+        }
+        return cell
+    }
 
     const handleToggleBold = (e: React.MouseEvent) => {
         e.preventDefault()
-        const cell = getActiveCell()
+        const cell = ensureActiveCell()
         if (!cell) return
         const isBold = window.getComputedStyle(cell).fontWeight === '700' || cell.style.fontWeight === 'bold'
         applyStyleRecursive(cell, 'font-weight', isBold ? 'normal' : 'bold')
-        setActiveCell(cell, getActiveRow())  // refresh status bar
+        setActiveCell(cell, getActiveRow())
     }
 
     const handleAlign = (e: React.MouseEvent, align: string) => {
         e.preventDefault()
-        const cell = getActiveCell()
+        const cell = ensureActiveCell()
         if (!cell) return
         applyStyleRecursive(cell, 'text-align', align)
-        setActiveCell(cell, getActiveRow())  // refresh status bar
+        setActiveCell(cell, getActiveRow())
+    }
+
+    const handleIndent = (e: React.MouseEvent, delta: number) => {
+        e.preventDefault()
+        const cell = ensureActiveCell()
+        if (!cell) return
+        const currentPadding = parseFloat(window.getComputedStyle(cell).paddingLeft) || 0
+        const newPadding = Math.max(0, currentPadding + delta)
+        applyStyleRecursive(cell, 'padding-left', `${newPadding}px`)
+        setActiveCell(cell, getActiveRow())
+    }
+
+    const handleSwapCell = (e: React.MouseEvent, dir: 'left' | 'right') => {
+        e.preventDefault()
+        const cell = ensureActiveCell()
+        if (!cell || !cell.parentNode) return
+        if (dir === 'left' && cell.previousElementSibling) {
+            cell.parentNode.insertBefore(cell, cell.previousElementSibling)
+        } else if (dir === 'right' && cell.nextElementSibling) {
+            cell.parentNode.insertBefore(cell.nextElementSibling, cell)
+        }
+        setActiveCell(cell, getActiveRow())
     }
 
     const handleFontSize = (e: React.MouseEvent, delta: number) => {
         e.preventDefault()
-        const cell = getActiveCell()
+        const cell = ensureActiveCell()
         if (!cell) return
         const current = parseFloat(window.getComputedStyle(cell).fontSize) || 12
         applyStyleRecursive(cell, 'font-size', `${current + delta}px`)
-        setActiveCell(cell, getActiveRow())  // refresh status bar
+        setActiveCell(cell, getActiveRow())
     }
 
     const handleMoveRow = (e: React.MouseEvent, dir: 'up' | 'down') => {
         e.preventDefault()
         const row = getActiveRow()
-        if (!row || !row.parentNode) return
+        if (!row || !row.parentNode) {
+            alert('Por favor, haz clic primero en una celda de la fila que deseas mover.')
+            return
+        }
         if (dir === 'up' && row.previousElementSibling) {
             row.parentNode.insertBefore(row, row.previousElementSibling)
         } else if (dir === 'down' && row.nextElementSibling) {
@@ -305,7 +329,10 @@ function PrintQuotationsContent() {
     const handleHideRow = (e: React.MouseEvent) => {
         e.preventDefault()
         const row = getActiveRow()
-        if (!row) return
+        if (!row) {
+            alert('Por favor, haz clic primero en una celda de la fila que deseas ocultar.')
+            return
+        }
         if (confirm('¿Ocultar esta fila del reporte?')) {
             row.style.display = 'none'
             setActiveCell(null, null)
@@ -323,15 +350,22 @@ function PrintQuotationsContent() {
     const handleSaveChanges = async () => {
         setSaving(true)
         try {
+            const updatedReports: ParsedReport[] = []
+
             for (const report of parsedReports) {
                 const container = document.getElementById(`report-container-${report.idCotizacion}`)
-                if (!container) continue
+                if (!container) {
+                    updatedReports.push(report)
+                    continue
+                }
 
                 const bodyEl = container.querySelector('.report-body-wrapper')
                 const footerEl = container.querySelector('.report-footer-wrapper')
-                if (!bodyEl) continue
+                if (!bodyEl) {
+                    updatedReports.push(report)
+                    continue
+                }
 
-                // Clone and clean up editor artifacts
                 const bodyClone = bodyEl.cloneNode(true) as HTMLElement
                 const footerClone = footerEl ? (footerEl.cloneNode(true) as HTMLElement) : null
 
@@ -344,10 +378,12 @@ function PrintQuotationsContent() {
                     node.querySelectorAll('tr').forEach((tr: any) => tr.classList.remove('active-editor-row'))
                 })
 
-                // Save INNER html only (no wrapper divs) — prevents double-nesting on re-load
+                const savedBodyInner = bodyClone.innerHTML
+                const savedFooterInner = footerClone ? footerClone.innerHTML : ''
+
                 const savedHtml =
-                    `<div class="report-body-wrapper">${bodyClone.innerHTML}</div>` +
-                    (footerClone ? `<div class="report-footer-wrapper">${footerClone.innerHTML}</div>` : '')
+                    `<div class="report-body-wrapper">${savedBodyInner}</div>` +
+                    (footerClone ? `<div class="report-footer-wrapper">${savedFooterInner}</div>` : '')
 
                 const res = await fetch('/api/quotations/print-customization', {
                     method: 'POST',
@@ -355,7 +391,17 @@ function PrintQuotationsContent() {
                     body: JSON.stringify({ quotationId: report.idCotizacion, html: savedHtml })
                 })
                 if (!res.ok) throw new Error((await res.json()).message || 'Error al guardar')
+
+                updatedReports.push({
+                    ...report,
+                    bodyHtml: savedBodyInner,
+                    footerHtml: savedFooterInner,
+                    isCustomized: true
+                })
             }
+
+            setParsedReports(updatedReports)
+            setActiveCell(null, null)
             alert('¡Diseño guardado correctamente! Los cambios son permanentes.')
             setIsEditing(false)
         } catch (err: any) {
@@ -380,15 +426,13 @@ function PrintQuotationsContent() {
 
     return (
         <div className="min-h-screen bg-zinc-100 p-8 print:p-0 print:bg-white text-black">
+
             <style dangerouslySetInnerHTML={{ __html: `
-                .excel-table { font-family: ${globalFont}, Arial, sans-serif !important; user-select: text !important; -webkit-user-select: text !important; }
-                .excel-table * { user-select: text !important; -webkit-user-select: text !important; }
-                .break-after-page { position: relative !important; min-height: 800px !important; padding-bottom: 200px !important; }
-                .report-footer-wrapper { position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; width: 100% !important; }
+                .active-editor-cell { outline: 2px solid #2563eb !important; background: rgba(37,99,235,0.12) !important; }
+                .active-editor-row { background: rgba(37,99,235,0.04) !important; }
                 @media screen {
-                    .active-editor-cell { outline: 2px solid #3b82f6 !important; background: rgba(59,130,246,0.07) !important; }
-                    [contenteditable="true"]:hover { outline: 1px dashed #3b82f6 !important; cursor: text; }
-                    [contenteditable="true"]:focus { outline: 2px solid #2563eb !important; background: rgba(37,99,235,0.05) !important; }
+                    [contenteditable="true"]:hover { outline: 1px dashed #2563eb !important; cursor: text; }
+                    [contenteditable="true"]:focus { outline: 2px solid #1d4ed8 !important; background: rgba(37,99,235,0.08) !important; }
                 }
                 @media print {
                     body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -412,13 +456,13 @@ function PrintQuotationsContent() {
                         </button>
                         <div className="flex items-center gap-3 flex-wrap">
                             <button onClick={() => setIsEditing(v => !v)}
-                                className={`px-5 h-11 rounded-xl font-bold flex items-center gap-2 transition-all ${isEditing ? 'bg-blue-600 text-white' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'}`}>
+                                className={`px-5 h-11 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm ${isEditing ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'}`}>
                                 <Edit3 className="w-4 h-4" />
                                 {isEditing ? 'Desactivar Editor' : 'Activar Diseñador / Editor'}
                             </button>
                             {isEditing && (
                                 <button onClick={handleSaveChanges} disabled={saving}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 h-11 rounded-xl font-black flex items-center gap-2 text-sm disabled:opacity-50">
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 h-11 rounded-xl font-black flex items-center gap-2 text-sm shadow-md disabled:opacity-50">
                                     <Check className="w-4 h-4" />
                                     {saving ? 'Guardando...' : 'Guardar Cambios'}
                                 </button>
@@ -437,13 +481,13 @@ function PrintQuotationsContent() {
                     {/* Editor toolbar */}
                     {isEditing && (
                         <div className="border-t border-zinc-200 pt-4 flex flex-col gap-3">
-                            <div className="flex flex-wrap items-center gap-4">
+                            <div className="flex flex-wrap items-center gap-3">
 
-                                {/* Font selector */}
-                                <div className="flex items-center gap-2">
-                                    <Sparkles className="w-4 h-4 text-blue-500" />
+                                {/* Tipografía */}
+                                <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-zinc-200 shadow-sm">
+                                    <Sparkles className="w-4 h-4 text-blue-500 ml-2" />
                                     <select value={globalFont} onChange={e => handleFontChange(e.target.value)}
-                                        className="h-9 px-3 rounded-lg border border-zinc-200 bg-white text-xs font-bold focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        className="h-8 px-2 rounded-lg bg-transparent text-xs font-bold focus:outline-none cursor-pointer">
                                         <option value="Arial">Arial</option>
                                         <option value="Georgia">Georgia</option>
                                         <option value="Times New Roman">Times New Roman</option>
@@ -452,46 +496,81 @@ function PrintQuotationsContent() {
                                     </select>
                                 </div>
 
-                                {/* Cell controls — use onMouseDown + preventDefault so cell never loses focus */}
-                                <div className="flex items-center gap-1 bg-zinc-100 p-1.5 rounded-xl border border-zinc-200">
-                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Celda:</span>
+                                {/* Formato de Celda */}
+                                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-zinc-200 shadow-sm">
+                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Formato:</span>
 
-                                    <button className="cell-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                    <button 
+                                        className="p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all font-bold"
                                         title="Negrita" onMouseDown={handleToggleBold}>
                                         <Bold className="w-4 h-4" />
                                     </button>
-                                    <div className="w-px h-5 bg-zinc-300 mx-0.5" />
-                                    <button className="cell-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
-                                        title="Izquierda" onMouseDown={e => handleAlign(e, 'left')}>
+                                    <div className="w-px h-5 bg-zinc-200 mx-0.5" />
+                                    <button 
+                                        className="p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all"
+                                        title="Alinear a la Izquierda" onMouseDown={e => handleAlign(e, 'left')}>
                                         <AlignLeft className="w-4 h-4" />
                                     </button>
-                                    <button className="cell-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
-                                        title="Centro" onMouseDown={e => handleAlign(e, 'center')}>
+                                    <button 
+                                        className="p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all"
+                                        title="Centrar" onMouseDown={e => handleAlign(e, 'center')}>
                                         <AlignCenter className="w-4 h-4" />
                                     </button>
-                                    <button className="cell-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
-                                        title="Derecha" onMouseDown={e => handleAlign(e, 'right')}>
+                                    <button 
+                                        className="p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all"
+                                        title="Alinear a la Derecha" onMouseDown={e => handleAlign(e, 'right')}>
                                         <AlignRight className="w-4 h-4" />
                                     </button>
-                                    <div className="w-px h-5 bg-zinc-300 mx-0.5" />
-                                    <button className="cell-ctrl-btn px-2 py-1 rounded-lg text-xs font-bold hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
-                                        title="Aumentar letra" onMouseDown={e => handleFontSize(e, 1)}>A+</button>
-                                    <button className="cell-ctrl-btn px-2 py-1 rounded-lg text-xs font-bold hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
-                                        title="Reducir letra" onMouseDown={e => handleFontSize(e, -1)}>A-</button>
+                                    <div className="w-px h-5 bg-zinc-200 mx-0.5" />
+                                    <button 
+                                        className="px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all"
+                                        title="Aumentar tamaño de letra" onMouseDown={e => handleFontSize(e, 1)}>A+</button>
+                                    <button 
+                                        className="px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all"
+                                        title="Reducir tamaño de letra" onMouseDown={e => handleFontSize(e, -1)}>A-</button>
                                 </div>
 
-                                {/* Row controls */}
-                                <div className="flex items-center gap-1 bg-zinc-100 p-1.5 rounded-xl border border-zinc-200">
-                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">Fila:</span>
-                                    <button className="row-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                {/* Posicionamiento Horizontal de Celda (Mover Izq / Der) */}
+                                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-zinc-200 shadow-sm">
+                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Posición:</span>
+                                    <button 
+                                        className="px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all flex items-center gap-1"
+                                        title="Mover texto a la izquierda (-15px)" onMouseDown={e => handleIndent(e, -15)}>
+                                        <MoveLeft className="w-3.5 h-3.5" /> Izq (-15px)
+                                    </button>
+                                    <button 
+                                        className="px-2.5 py-1 rounded-lg text-xs font-bold hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all flex items-center gap-1"
+                                        title="Mover texto a la derecha (+15px)" onMouseDown={e => handleIndent(e, 15)}>
+                                        <MoveRight className="w-3.5 h-3.5" /> Der (+15px)
+                                    </button>
+                                    <div className="w-px h-5 bg-zinc-200 mx-0.5" />
+                                    <button 
+                                        className="p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all"
+                                        title="Mover columna celda a la izquierda" onMouseDown={e => handleSwapCell(e, 'left')}>
+                                        <ChevronLeft className="w-4 h-4" />
+                                    </button>
+                                    <button 
+                                        className="p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all"
+                                        title="Mover columna celda a la derecha" onMouseDown={e => handleSwapCell(e, 'right')}>
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {/* Control de Filas */}
+                                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-zinc-200 shadow-sm">
+                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-2">Fila:</span>
+                                    <button 
+                                        className="p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all"
                                         title="Subir fila" onMouseDown={e => handleMoveRow(e, 'up')}>
                                         <ArrowUp className="w-4 h-4" />
                                     </button>
-                                    <button className="row-ctrl-btn p-2 rounded-lg hover:bg-zinc-200 text-zinc-800 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                    <button 
+                                        className="p-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 text-zinc-700 transition-all"
                                         title="Bajar fila" onMouseDown={e => handleMoveRow(e, 'down')}>
                                         <ArrowDown className="w-4 h-4" />
                                     </button>
-                                    <button className="row-ctrl-btn p-2 rounded-lg hover:bg-red-100 text-red-600 transition-all" style={{opacity:0.3,pointerEvents:'none'}}
+                                    <button 
+                                        className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-all"
                                         title="Ocultar fila" onMouseDown={handleHideRow}>
                                         <EyeOff className="w-4 h-4" />
                                     </button>
@@ -501,15 +580,15 @@ function PrintQuotationsContent() {
                                 <button onClick={() => {
                                     if (confirm('¿Restaurar el reporte a su estado original? Se perderán los cambios no guardados.'))
                                         setResetCounter(c => c + 1)
-                                }} className="flex items-center gap-1 px-3 h-9 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold border border-red-100">
+                                }} className="flex items-center gap-1 px-3 h-9 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold border border-red-100 ml-auto">
                                     <RotateCcw className="w-3.5 h-3.5" /> Restaurar
                                 </button>
                             </div>
 
-                            {/* Status bar — updated directly in DOM, no React state */}
+                            {/* Status bar */}
                             <div id="editor-debug-info"
-                                className="bg-zinc-100 border border-zinc-200 p-2.5 rounded-xl text-xs text-zinc-500">
-                                Ninguna celda seleccionada. Haz clic en una celda del reporte para editarla.
+                                className="bg-blue-50/50 border border-blue-100 p-2.5 rounded-xl text-xs text-blue-900 font-medium">
+                                Ninguna celda seleccionada. Haz clic en cualquier celda de la cotización para editarla y moverla.
                             </div>
                         </div>
                     )}
@@ -519,11 +598,13 @@ function PrintQuotationsContent() {
                         <div className="bg-blue-50 text-blue-700 p-3.5 rounded-xl text-xs flex items-start gap-2.5 border border-blue-100">
                             <HelpCircle className="w-4 h-4 shrink-0 mt-0.5" />
                             <div className="flex-1">
-                                <b>Guía rápida:</b>
+                                <b>Guía rápida del Diseñador / Editor:</b>
                                 <ul className="list-disc list-inside mt-1 space-y-0.5 text-zinc-600">
-                                    <li>Haz clic en cualquier celda para seleccionarla (borde azul) y escribir en ella.</li>
-                                    <li>Una vez seleccionada, usa los botones de la barra para cambiar alineación, tamaño de letra, negrita o mover la fila.</li>
-                                    <li>Cuando termines, pulsa <b>"Guardar Cambios"</b> para que el diseño quede permanente.</li>
+                                    <li>Haz clic en cualquier celda para seleccionarla (se resaltará en azul) y edita su texto directamente.</li>
+                                    <li>Usa los botones <b>Alinear Izq / Centro / Der</b> para cambiar la alineación del texto.</li>
+                                    <li>Usa los botones <b>Izq (-15px) / Der (+15px)</b> para desplazar horizontalmente cualquier celda a tu gusto.</li>
+                                    <li>Usa los botones <b>Columna ← / →</b> para cambiar el orden horizontal de celdas y los botones <b>Fila ⬆️ / ⬇️</b> para subir o bajar filas.</li>
+                                    <li>Cuando termines, pulsa el botón verde <b>"Guardar Cambios"</b> para guardar el diseño de forma permanente.</li>
                                 </ul>
                             </div>
                             <button onClick={() => setShowHelp(false)} className="text-blue-500 hover:text-blue-700 font-bold text-xs">Entendido</button>

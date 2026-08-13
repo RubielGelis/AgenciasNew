@@ -12,7 +12,11 @@ import {
     Edit,
     Trash2,
     Printer,
-    Receipt
+    Receipt,
+    Copy,
+    FileSpreadsheet,
+    ArrowUp,
+    ArrowDown
 } from 'lucide-react'
 import { format } from 'date-fns'
 import Link from 'next/link'
@@ -32,6 +36,9 @@ export default function QuotationsHistoryPage() {
     const [filterElaboradoPor, setFilterElaboradoPor] = useState('')
     const [filterMontoTotal, setFilterMontoTotal] = useState('')
     const [filterEstado, setFilterEstado] = useState('')
+
+    // Ordenamiento por ID (Por defecto DESC por ID de mayor a menor)
+    const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
     const [selectedIds, setSelectedIds] = useState<number[]>([])
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
@@ -109,7 +116,17 @@ export default function QuotationsHistoryPage() {
         fetchQuotations()
     }, [])
 
-    const filteredQs = quotations
+    // Aplicar ordenamiento por ID
+    const sortedQs = [...quotations].sort((a, b) => {
+        if (sortDirection === 'asc') return a.id - b.id
+        return b.id - a.id
+    })
+
+    const filteredQs = sortedQs
+
+    const handleToggleSort = () => {
+        setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')
+    }
 
     const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
@@ -125,9 +142,103 @@ export default function QuotationsHistoryPage() {
         )
     }
 
-    const handleExport = async () => {
+    // Copiar resultado completo a Excel (Portapapeles TSV/HTML)
+    const handleCopyToClipboard = () => {
+        const listToCopy = selectedIds.length > 0
+            ? filteredQs.filter(q => selectedIds.includes(q.id))
+            : filteredQs;
+
+        if (listToCopy.length === 0) {
+            alert('No hay cotizaciones para copiar.')
+            return
+        }
+
+        const headers = ['ID', 'No. Interno', 'Fecha', 'Cliente', 'Pasajero / Titular', 'Elaborado por', 'Proveedor', 'Noches', 'Monto Total', 'Moneda', 'Estado']
+        
+        const rows = listToCopy.map(q => [
+            q.id,
+            q.internalNumber || '',
+            format(new Date(q.createdAt || new Date()), 'dd/MM/yyyy'),
+            q.clientName || '',
+            q.passengerName || 'Mismo titular',
+            q.userName || '',
+            q.providerName || '',
+            q.nights || 1,
+            q.totalAmount,
+            q.currency || 'USD',
+            q.state || 'NUEVO'
+        ])
+
+        const tsvContent = [
+            headers.join('\t'),
+            ...rows.map(row => row.join('\t'))
+        ].join('\n')
+
+        const htmlContent = `
+            <table>
+                <thead>
+                    <tr>${headers.map(h => `<th style="background-color:#f4f4f5;font-weight:bold;">${h}</th>`).join('')}</tr>
+                </thead>
+                <tbody>
+                    ${rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`).join('')}
+                </tbody>
+            </table>
+        `
+
+        try {
+            const blobText = new Blob([tsvContent], { type: 'text/plain' })
+            const blobHtml = new Blob([htmlContent], { type: 'text/html' })
+            const clipboardItem = new ClipboardItem({
+                'text/plain': blobText,
+                'text/html': blobHtml
+            })
+            navigator.clipboard.write([clipboardItem]).then(() => {
+                alert(`✅ ${listToCopy.length} cotización(es) copiada(s) al portapapeles. ¡Puedes pegarlas directamente en Excel (Ctrl+V)!`)
+            }).catch(() => {
+                navigator.clipboard.writeText(tsvContent)
+                alert(`✅ ${listToCopy.length} cotización(es) copiada(s) al portapapeles. ¡Puedes pegarlas directamente en Excel (Ctrl+V)!`)
+            })
+        } catch (err) {
+            navigator.clipboard.writeText(tsvContent)
+            alert(`✅ ${listToCopy.length} cotización(es) copiada(s) al portapapeles. ¡Puedes pegarlas directamente en Excel (Ctrl+V)!`)
+        }
+    }
+
+    // Exportar a Excel (.xlsx)
+    const handleDownloadExcel = () => {
+        const listToDownload = selectedIds.length > 0
+            ? filteredQs.filter(q => selectedIds.includes(q.id))
+            : filteredQs;
+
+        if (listToDownload.length === 0) {
+            alert('No hay cotizaciones para exportar a Excel.')
+            return
+        }
+
+        const dataForExcel = listToDownload.map(q => ({
+            'Referencia ID': q.id,
+            'No. Interno': q.internalNumber || '',
+            'Fecha': format(new Date(q.createdAt || new Date()), 'dd/MM/yyyy'),
+            'Cliente': q.clientName || '',
+            'Pasajero / Titular': q.passengerName || 'Mismo titular',
+            'Elaborado por': q.userName || '',
+            'Proveedor': q.providerName || '',
+            'Noches': q.nights || 1,
+            'Monto Total': parseFloat(q.totalAmount) || 0,
+            'Moneda': q.currency || 'USD',
+            'Estado': q.state || 'NUEVO'
+        }))
+
+        const worksheet = XLSX.utils.json_to_sheet(dataForExcel)
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Cotizaciones')
+        XLSX.writeFile(workbook, `Historial_Cotizaciones_${format(new Date(), 'yyyyMMdd_HHmmss')}.xlsx`)
+    }
+
+    // Exportar a Zeus ERP
+    const handleExportZeus = async () => {
         if (selectedIds.length === 0) {
-            alert('Por favor selecciona al menos una cotización para exportar.')
+            alert('Por favor selecciona al menos una cotización para exportar a Zeus ERP.')
             return
         }
 
@@ -137,7 +248,7 @@ export default function QuotationsHistoryPage() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    ids: selectedIds, // Enviamos como arreglo
+                    ids: selectedIds,
                     userId: user.id || 1,
                     exportType: 'QUOTATION'
                 })
@@ -146,13 +257,12 @@ export default function QuotationsHistoryPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                alert("ERROR DE EXPORTACIÓN:\n" + (data.message || "Error desconocido") + (data.details ? "\nDetalles: " + data.details : ""));
+                alert("ERROR DE EXPORTACIÓN ZEUS ERP:\n" + (data.message || "Error desconocido") + (data.details ? "\nDetalles: " + data.details : ""));
                 return;
             }
 
             if (data.success) {
-                // Construir detalle del resultado del SP
-                let detalle = "✅ EXPORTACIÓN EXITOSA\n\n";
+                let detalle = "✅ EXPORTACIÓN A ZEUS ERP EXITOSA\n\n";
                 if (data.spResult && data.spResult.length > 0) {
                     detalle += "Resultado por cotización:\n";
                     data.spResult.forEach((row: any) => {
@@ -162,9 +272,9 @@ export default function QuotationsHistoryPage() {
                     detalle += "Cotización enviada a SQL Server correctamente.";
                 }
                 alert(detalle);
-                fetchQuotations(); // Recargar la lista para ver los estados actualizados
+                fetchQuotations();
             } else {
-                alert("❌ ERROR EN SQL SERVER:\n" + data.message);
+                alert("❌ ERROR EN ZEUS ERP:\n" + data.message);
             }
 
         } catch (error: any) {
@@ -196,30 +306,42 @@ export default function QuotationsHistoryPage() {
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-8 md:p-12">
-            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
+            <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
                 <div>
                     <h1 className="text-4xl font-black text-zinc-900 dark:text-white mb-2 flex items-center gap-3 tracking-tight">
                         <FileText className="w-9 h-9 text-blue-600" /> Historial de Cotizaciones
                     </h1>
                     <p className="text-zinc-500 dark:text-zinc-400 font-medium text-lg">Consulta y administra todas las cotizaciones emitidas</p>
                 </div>
-                <div className="flex gap-4">
-                    <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleExport}
-                        className="px-6 h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-xl shadow-emerald-500/20 font-bold transition-all flex items-center gap-3 shrink-0"
+                <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        onClick={handleCopyToClipboard}
+                        className="px-5 h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-lg font-bold transition-all flex items-center gap-2 text-sm cursor-pointer"
+                        title="Copiar cotizaciones al portapapeles para pegar en Excel (Ctrl+V)"
                     >
-                        <Download className="w-5 h-5" /> Exportar
-                    </motion.button>
+                        <Copy className="w-4 h-4" /> Copiar a Excel
+                    </button>
+
+                    <button
+                        onClick={handleDownloadExcel}
+                        className="px-5 h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl shadow-lg font-bold transition-all flex items-center gap-2 text-sm cursor-pointer"
+                        title="Descargar archivo Excel (.xlsx)"
+                    >
+                        <FileSpreadsheet className="w-4 h-4" /> Excel (.xlsx)
+                    </button>
+
+                    <button
+                        onClick={handleExportZeus}
+                        className="px-5 h-12 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl shadow-lg font-bold transition-all flex items-center gap-2 text-sm cursor-pointer"
+                        title="Exportar cotizaciones seleccionadas a Zeus ERP"
+                    >
+                        <Download className="w-4 h-4" /> Exportar Zeus ERP
+                    </button>
+
                     <Link href="/dashboard/quotations/new">
-                        <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="px-8 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl shadow-blue-500/20 font-bold transition-all flex items-center gap-3 shrink-0"
-                        >
-                            Nueva Cotización <ArrowRight className="w-5 h-5" />
-                        </motion.button>
+                        <button className="px-6 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg font-bold transition-all flex items-center gap-2 text-sm cursor-pointer">
+                            Nueva Cotización <ArrowRight className="w-4 h-4" />
+                        </button>
                     </Link>
                 </div>
             </header>
@@ -237,11 +359,12 @@ export default function QuotationsHistoryPage() {
                         <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest pl-1">Referencia / ID</label>
                         <input
                             type="text"
-                            placeholder="Ej. #12 o COT-001..."
+                            placeholder="Ej. 5 o 01-10..."
                             className="h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-100 dark:border-zinc-700/50 text-sm outline-none focus:ring-2 focus:ring-blue-500 text-zinc-700 dark:text-zinc-200 font-medium"
                             value={filterReferencia}
                             onChange={(e) => setFilterReferencia(e.target.value)}
                         />
+                        <span className="text-[10px] text-zinc-400 font-medium pl-1">Busca una (ej: 5) o rango (ej: 01-10)</span>
                     </div>
                     
                     {/* Cliente */}
@@ -336,7 +459,38 @@ export default function QuotationsHistoryPage() {
                 </div>
             </div>
 
+            {/* Contenedor de Tabla con Barra de Herramientas de Exportación */}
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[500px]">
+                {/* Barra Superior de Herramientas Excel */}
+                <div className="flex flex-wrap items-center justify-between gap-4 px-8 py-5 bg-zinc-50 dark:bg-zinc-800/40 border-b border-zinc-200 dark:border-zinc-800">
+                    <div className="flex items-center gap-3 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                        <span>Total cotizaciones: <strong className="text-blue-600 dark:text-blue-400 font-black text-base">{filteredQs.length}</strong></span>
+                        {selectedIds.length > 0 && (
+                            <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 text-xs font-bold">
+                                {selectedIds.length} seleccionada(s)
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleCopyToClipboard}
+                            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-md font-bold transition-all flex items-center gap-2 text-xs cursor-pointer active:scale-95"
+                            title="Copiar cotizaciones al portapapeles para pegar en Excel (Ctrl+V)"
+                        >
+                            <Copy className="w-4 h-4" /> Copiar a Excel
+                        </button>
+
+                        <button
+                            onClick={handleDownloadExcel}
+                            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md font-bold transition-all flex items-center gap-2 text-xs cursor-pointer active:scale-95"
+                            title="Descargar archivo Excel (.xlsx)"
+                        >
+                            <FileSpreadsheet className="w-4 h-4" /> Excel (.xlsx)
+                        </button>
+                    </div>
+                </div>
+
                 {loading ? (
                     <div className="flex items-center justify-center h-[500px]">
                         <Loader2 className="animate-spin w-12 h-12 text-blue-600" />
@@ -350,7 +504,7 @@ export default function QuotationsHistoryPage() {
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
-                            <thead className="bg-zinc-50 dark:bg-zinc-800/30">
+                            <thead className="bg-zinc-50/50 dark:bg-zinc-800/20">
                                 <tr>
                                     <th className="px-8 py-6 w-10 border-b border-zinc-100 dark:border-zinc-800">
                                         <input
@@ -360,7 +514,16 @@ export default function QuotationsHistoryPage() {
                                             onChange={handleSelectAll}
                                         />
                                     </th>
-                                    <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Referencia</th>
+                                    <th 
+                                        onClick={handleToggleSort} 
+                                        className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800 cursor-pointer hover:text-blue-600 transition-colors select-none"
+                                        title="Hacer clic para alternar orden por Referencia / ID"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <span>Referencia / ID</span>
+                                            {sortDirection === 'asc' ? <ArrowUp className="w-4 h-4 text-blue-600" /> : <ArrowDown className="w-4 h-4 text-blue-600" />}
+                                        </div>
+                                    </th>
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Fecha</th>
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Cliente</th>
                                     <th className="px-8 py-6 text-xs font-bold text-zinc-400 uppercase tracking-widest border-b border-zinc-100 dark:border-zinc-800">Elaborado por</th>

@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.fnCotizacionHistorial(VARCHAR, DATE, DATE, VARCHAR, VARCHAR, NUMERIC, VARCHAR);
 DROP FUNCTION IF EXISTS public.fnCotizacionHistorial();
 
 CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial(
@@ -12,7 +13,33 @@ CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial(
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
 AS $$
+DECLARE
+    v_ref_clean VARCHAR;
+    v_range_match TEXT[];
+    v_id_start INT := NULL;
+    v_id_end INT := NULL;
+    v_single_id INT := NULL;
 BEGIN
+    IF p_referencia IS NOT NULL AND TRIM(p_referencia) <> '' THEN
+        v_ref_clean := TRIM(p_referencia);
+        -- Regex match for range e.g. "1-10", "01-10", "1 a 10", "1..10", "#1 - #10"
+        v_range_match := regexp_match(v_ref_clean, '^\s*#?\s*(\d+)\s*(?:-|a|\.\.|\:|\s+a\s+)\s*#?\s*(\d+)\s*$', 'i');
+        
+        IF v_range_match IS NOT NULL THEN
+            v_id_start := v_range_match[1]::INT;
+            v_id_end := v_range_match[2]::INT;
+            -- Ensure start is <= end
+            IF v_id_start > v_id_end THEN
+                v_single_id := v_id_start;
+                v_id_start := v_id_end;
+                v_id_end := v_single_id;
+                v_single_id := NULL;
+            END IF;
+        ELSIF v_ref_clean ~ '^\s*#?\s*(\d+)\s*$' THEN
+            v_single_id := (regexp_match(v_ref_clean, '(\d+)'))[1]::INT;
+        END IF;
+    END IF;
+
     RETURN QUERY
     SELECT 
         jsonb_build_object(
@@ -52,13 +79,20 @@ BEGIN
     JOIN public."Client" c ON q."clientId" = c.id
     LEFT JOIN public."User" u ON q."userId" = u.id
     WHERE 
-        (p_referencia IS NULL OR q.id::text ILIKE '%' || p_referencia || '%')
+        (
+            p_referencia IS NULL OR TRIM(p_referencia) = ''
+            OR (v_id_start IS NOT NULL AND v_id_end IS NOT NULL AND q.id BETWEEN v_id_start AND v_id_end)
+            OR (v_single_id IS NOT NULL AND q.id = v_single_id)
+            OR (v_id_start IS NULL AND v_single_id IS NULL AND (
+                q.id::text ILIKE '%' || p_referencia || '%' OR q."internalNumber" ILIKE '%' || p_referencia || '%'
+            ))
+        )
         AND (p_fecha_desde IS NULL OR q.date::date >= p_fecha_desde)
         AND (p_fecha_hasta IS NULL OR q.date::date <= p_fecha_hasta)
         AND (p_cliente IS NULL OR c.name ILIKE '%' || p_cliente || '%')
         AND (p_elaborado_por IS NULL OR u.name ILIKE '%' || p_elaborado_por || '%')
         AND (p_monto_total IS NULL OR q."totalAmount" = p_monto_total)
         AND (p_estado IS NULL OR q.state ILIKE '%' || p_estado || '%')
-    ORDER BY q.date DESC;
+    ORDER BY q.id DESC;
 END;
 $$;
