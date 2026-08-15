@@ -1,0 +1,3 @@
+{
+  "/api/quotations/[id]/fn-cotizacion/route": "app/api/quotations/[id]/fn-cotizacion/route.js"
+}

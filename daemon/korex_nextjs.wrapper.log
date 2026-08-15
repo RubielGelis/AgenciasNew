@@ -1,0 +1,36 @@
+2026-08-08 18:44:13 - Starting C:\Program Files\nodejs\node.exe  --harmony F:\Proyectos\AgenciasNew\node_modules\node-windows\lib\wrapper.js --file F:\Proyectos\AgenciasNew\server.js --scriptoptions= --log "Korex_NextJS wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-08-08 18:44:13 - Started 10504
+2026-08-08 18:45:54 - Stopping korex_nextjs.exe
+2026-08-08 18:45:54 - ProcessKill 10504
+2026-08-08 18:45:54 - Found child process: 18796 Name: conhost.exe
+2026-08-08 18:45:54 - Found child process: 10748 Name: node.exe
+2026-08-08 18:45:54 - Stopping process 18796
+2026-08-08 18:45:54 - Send SIGINT 18796
+2026-08-08 18:45:54 - SIGINT to 18796 failed - Killing as fallback
+2026-08-08 18:45:54 - Stopping process 10748
+2026-08-08 18:45:54 - Send SIGINT 10748
+2026-08-08 18:45:54 - SIGINT to 10748 failed - Killing as fallback
+2026-08-08 18:45:54 - Stopping process 10504
+2026-08-08 18:45:54 - Send SIGINT 10504
+2026-08-08 18:45:54 - SIGINT to 10504 failed - Killing as fallback
+2026-08-08 18:45:54 - Finished korex_nextjs.exe
+2026-08-08 18:45:55 - Starting C:\Program Files\nodejs\node.exe  --harmony F:\Proyectos\AgenciasNew\node_modules\node-windows\lib\wrapper.js --file F:\Proyectos\AgenciasNew\server.js --scriptoptions= --log "Korex_NextJS wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-08-08 18:45:55 - Started 3076
+2026-08-09 19:32:07 - Starting C:\Program Files\nodejs\node.exe  --harmony F:\Proyectos\AgenciasNew\node_modules\node-windows\lib\wrapper.js --file F:\Proyectos\AgenciasNew\server.js --scriptoptions= --log "Korex_NextJS wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-08-09 19:32:07 - Started 11356
+2026-08-10 09:16:39 - Starting C:\Program Files\nodejs\node.exe  --harmony F:\Proyectos\AgenciasNew\node_modules\node-windows\lib\wrapper.js --file F:\Proyectos\AgenciasNew\server.js --scriptoptions= --log "Korex_NextJS wrapper" --grow 0.25 --wait 1 --maxrestarts 3 --abortonerror n --stopparentfirst undefined
+2026-08-10 09:16:39 - Started 11072
+2026-08-10 12:37:33 - Stopping korex_nextjs.exe
+2026-08-10 12:37:33 - ProcessKill 11072
+2026-08-10 12:37:33 - Found child process: 11192 Name: conhost.exe
+2026-08-10 12:37:33 - Found child process: 13112 Name: node.exe
+2026-08-10 12:37:33 - Stopping process 11192
+2026-08-10 12:37:33 - Send SIGINT 11192
+2026-08-10 12:37:33 - SIGINT to 11192 failed - Killing as fallback
+2026-08-10 12:37:34 - Stopping process 13112
+2026-08-10 12:37:34 - Send SIGINT 13112
+2026-08-10 12:37:34 - SIGINT to 13112 failed - Killing as fallback
+2026-08-10 12:37:34 - Stopping process 11072
+2026-08-10 12:37:34 - Send SIGINT 11072
+2026-08-10 12:37:34 - SIGINT to 11072 failed - Killing as fallback
+2026-08-10 12:37:34 - Finished korex_nextjs.exe

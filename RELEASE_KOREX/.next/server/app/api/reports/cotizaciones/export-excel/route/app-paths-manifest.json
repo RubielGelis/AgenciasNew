@@ -1,0 +1,3 @@
+{
+  "/api/reports/cotizaciones/export-excel/route": "app/api/reports/cotizaciones/export-excel/route.js"
+}

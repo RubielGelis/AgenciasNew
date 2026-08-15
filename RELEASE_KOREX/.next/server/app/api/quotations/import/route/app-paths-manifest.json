@@ -1,0 +1,3 @@
+{
+  "/api/quotations/import/route": "app/api/quotations/import/route.js"
+}

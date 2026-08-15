@@ -1,0 +1,78 @@
+◇ injected env (3) from .env // tip: ⌁ auth for agents [www.vestauth.com]
+▲ Next.js 16.1.6
+- Local:         http://localhost:3001
+- Network:       http://0.0.0.0:3001
+
+✓ Starting...
+✓ Ready in 439ms
+--- Instantiating NEW PrismaClient (v15) ---
+◇ injected env (3) from .env // tip: ⌘ override existing { override: true }
+▲ Next.js 16.1.6
+- Local:         http://localhost:3001
+- Network:       http://0.0.0.0:3001
+
+✓ Starting...
+✓ Ready in 456ms
+--- Instantiating NEW PrismaClient (v15) ---
+◇ injected env (3) from .env // tip: ⌘ suppress logs { quiet: true }
+▲ Next.js 16.1.6
+- Local:         http://localhost:3001
+- Network:       http://0.0.0.0:3001
+
+✓ Starting...
+✓ Ready in 3.9s
+--- Instantiating NEW PrismaClient (v15) ---
+◇ injected env (3) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+▲ Next.js 16.1.6
+- Local:         http://localhost:3001
+- Network:       http://0.0.0.0:3001
+
+✓ Starting...
+✓ Ready in 5.2s
+--- Instantiating NEW PrismaClient (v15) ---
+[PRISMA_SQL] Consulta: CALL public.spExportQuotation($1, $2, $3) | Params: ["24",5,""] | Duración: 786.9383999984711ms
+[EXPORT_API] Iniciando carga en SQL Server para ID: 24 como QUOTATION
+[SQL_SERVER_EXEC] Procedimiento: spCotizacionesCrear | Parámetros: {"xml":"ERROR: el valor es demasiado largo para el tipo character varying(25) | EN LÍNEA:  | ESTADO: 22001"}
+[SQL_CONN] Llamando a "fnGetSQLServerConfig"() en Postgres...
+[PRISMA_SQL] Consulta: SELECT * FROM "fnGetSQLServerConfig"() | Params: [] | Duración: 10.821699999272823ms
+[SQL_DEBUG] Conectando por DEFECTO (1433): ZEUSAGENCIAS10
+[SQL_CONN] ¡EXITO!
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnCotizacionHistorial($1::varchar, $2::date, $3::date, $4::varchar, $5::varchar, $6::numeric, $7::varchar) | Params: [null,null,null,null,null,null,null] | Duración: 334.21130000054836ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnMenu() | Params: [] | Duración: 210.25749999843538ms
+[PRISMA_SQL] Consulta: SELECT COUNT(*) AS "_count$_all" FROM (SELECT "public"."QuotationState"."id" FROM "public"."QuotationState" WHERE 1=1 OFFSET $1) AS "sub" | Params: ["0"] | Duración: 275.6062000002712ms
+[PRISMA_SQL] Consulta: SELECT "public"."QuotationState"."id", "public"."QuotationState"."code", "public"."QuotationState"."name", "public"."QuotationState"."color", "public"."QuotationState"."createdAt" FROM "public"."QuotationState" WHERE 1=1 ORDER BY "public"."QuotationState"."id" ASC OFFSET $1 | Params: ["0"] | Duración: 3.243199998512864ms
+[AuditLog_DEBUG] Intentando registrar: QUOTATION - EXPORT_SUCCESS: ID 24: Enviado exitosamente a SQL Server
+[PRISMA_SQL] Consulta: INSERT INTO "public"."SystemLog" ("userId","action","module","description","metadata","createdAt") VALUES ($1,$2,$3,$4,$5,$6) RETURNING "public"."SystemLog"."id", "public"."SystemLog"."userId", "public"."SystemLog"."action", "public"."SystemLog"."module", "public"."SystemLog"."description", "public"."SystemLog"."metadata", "public"."SystemLog"."createdAt" | Params: [5,"EXPORT_SUCCESS","QUOTATION","ID 24: Enviado exitosamente a SQL Server","{\"spResult\":[],\"xml\":\"ERROR: el valor es demasiado largo para el tipo character varying(25) | EN LÍNEA:  | ESTADO: 22001\"}","2026-08-10T17:32:53.559Z"] | Duración: 109.81919999979436ms
+[AuditLog_SUCCESS] Evento registrado ID: 452
+[PRISMA_SQL] Consulta: SELECT COUNT(*) AS "_count$_all" FROM (SELECT "public"."QuotationState"."id" FROM "public"."QuotationState" WHERE 1=1 OFFSET $1) AS "sub" | Params: ["0"] | Duración: 10.568900000303984ms
+[PRISMA_SQL] Consulta: SELECT "public"."QuotationState"."id", "public"."QuotationState"."code", "public"."QuotationState"."name", "public"."QuotationState"."color", "public"."QuotationState"."createdAt" FROM "public"."QuotationState" WHERE 1=1 ORDER BY "public"."QuotationState"."id" ASC OFFSET $1 | Params: ["0"] | Duración: 2.9592000003904104ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnMenu() | Params: [] | Duración: 29.80409999936819ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnCotizacionHistorial($1::varchar, $2::date, $3::date, $4::varchar, $5::varchar, $6::numeric, $7::varchar) | Params: [null,null,null,null,null,null,null] | Duración: 64.90630000084639ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnCotizacionHistorial($1::varchar, $2::date, $3::date, $4::varchar, $5::varchar, $6::numeric, $7::varchar) | Params: [null,null,null,null,null,null,null] | Duración: 10.233500000089407ms
+[PRISMA_SQL] Consulta: SELECT COUNT(*) AS "_count$_all" FROM (SELECT "public"."QuotationState"."id" FROM "public"."QuotationState" WHERE 1=1 OFFSET $1) AS "sub" | Params: ["0"] | Duración: 1.4400999993085861ms
+[PRISMA_SQL] Consulta: SELECT "public"."QuotationState"."id", "public"."QuotationState"."code", "public"."QuotationState"."name", "public"."QuotationState"."color", "public"."QuotationState"."createdAt" FROM "public"."QuotationState" WHERE 1=1 ORDER BY "public"."QuotationState"."id" ASC OFFSET $1 | Params: ["0"] | Duración: 1.451400000602007ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnMenu() | Params: [] | Duración: 12.143999999389052ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnCotizacionHistorial($1::varchar, $2::date, $3::date, $4::varchar, $5::varchar, $6::numeric, $7::varchar) | Params: [null,null,null,null,null,null,null] | Duración: 10.18830000050366ms
+[PRISMA_SQL] Consulta: SELECT COUNT(*) AS "_count$_all" FROM (SELECT "public"."QuotationState"."id" FROM "public"."QuotationState" WHERE 1=1 OFFSET $1) AS "sub" | Params: ["0"] | Duración: 12.104799998924136ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnMenu() | Params: [] | Duración: 8.137600000947714ms
+[PRISMA_SQL] Consulta: SELECT "public"."QuotationState"."id", "public"."QuotationState"."code", "public"."QuotationState"."name", "public"."QuotationState"."color", "public"."QuotationState"."createdAt" FROM "public"."QuotationState" WHERE 1=1 ORDER BY "public"."QuotationState"."id" ASC OFFSET $1 | Params: ["0"] | Duración: 12.604400001466274ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnCotizacionHistorial($1::varchar, $2::date, $3::date, $4::varchar, $5::varchar, $6::numeric, $7::varchar) | Params: [null,null,null,null,null,null,null] | Duración: 12.65769999846816ms
+[PRISMA_SQL] Consulta: SELECT COUNT(*) AS "_count$_all" FROM (SELECT "public"."QuotationState"."id" FROM "public"."QuotationState" WHERE 1=1 OFFSET $1) AS "sub" | Params: ["0"] | Duración: 1.547800000756979ms
+[PRISMA_SQL] Consulta: SELECT "public"."QuotationState"."id", "public"."QuotationState"."code", "public"."QuotationState"."name", "public"."QuotationState"."color", "public"."QuotationState"."createdAt" FROM "public"."QuotationState" WHERE 1=1 ORDER BY "public"."QuotationState"."id" ASC OFFSET $1 | Params: ["0"] | Duración: 3.481300000101328ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnMenu() | Params: [] | Duración: 1.942400000989437ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnCotizacionHistorial($1::varchar, $2::date, $3::date, $4::varchar, $5::varchar, $6::numeric, $7::varchar) | Params: [null,null,null,null,null,null,null] | Duración: 18.832200000062585ms
+[PRISMA_SQL] Consulta: SELECT COUNT(*) AS "_count$_all" FROM (SELECT "public"."QuotationState"."id" FROM "public"."QuotationState" WHERE 1=1 OFFSET $1) AS "sub" | Params: ["0"] | Duración: 17.343600001186132ms
+[PRISMA_SQL] Consulta: SELECT "public"."QuotationState"."id", "public"."QuotationState"."code", "public"."QuotationState"."name", "public"."QuotationState"."color", "public"."QuotationState"."createdAt" FROM "public"."QuotationState" WHERE 1=1 ORDER BY "public"."QuotationState"."id" ASC OFFSET $1 | Params: ["0"] | Duración: 23.88869999907911ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnMenu() | Params: [] | Duración: 10.764599999412894ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnCotizacionHistorial($1::varchar, $2::date, $3::date, $4::varchar, $5::varchar, $6::numeric, $7::varchar) | Params: [null,null,null,null,null,null,null] | Duración: 15.14890000037849ms
+[PRISMA_SQL] Consulta: SELECT COUNT(*) AS "_count$_all" FROM (SELECT "public"."QuotationState"."id" FROM "public"."QuotationState" WHERE 1=1 OFFSET $1) AS "sub" | Params: ["0"] | Duración: 9.236299999058247ms
+[PRISMA_SQL] Consulta: SELECT "public"."QuotationState"."id", "public"."QuotationState"."code", "public"."QuotationState"."name", "public"."QuotationState"."color", "public"."QuotationState"."createdAt" FROM "public"."QuotationState" WHERE 1=1 ORDER BY "public"."QuotationState"."id" ASC OFFSET $1 | Params: ["0"] | Duración: 4.2416999991983175ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnMenu() | Params: [] | Duración: 17.05650000087917ms
+[PRISMA_SQL] Consulta: SELECT COUNT(*) AS "_count$_all" FROM (SELECT "public"."QuotationState"."id" FROM "public"."QuotationState" WHERE 1=1 OFFSET $1) AS "sub" | Params: ["0"] | Duración: 20.46009999886155ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnMenu() | Params: [] | Duración: 20.09750000014901ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnCotizacionHistorial($1::varchar, $2::date, $3::date, $4::varchar, $5::varchar, $6::numeric, $7::varchar) | Params: [null,null,null,null,null,null,null] | Duración: 36.2082000002265ms
+[PRISMA_SQL] Consulta: SELECT "public"."QuotationState"."id", "public"."QuotationState"."code", "public"."QuotationState"."name", "public"."QuotationState"."color", "public"."QuotationState"."createdAt" FROM "public"."QuotationState" WHERE 1=1 ORDER BY "public"."QuotationState"."id" ASC OFFSET $1 | Params: ["0"] | Duración: 11.8141999989748ms
+[PRISMA_SQL] Consulta: SELECT COUNT(*) AS "_count$_all" FROM (SELECT "public"."QuotationState"."id" FROM "public"."QuotationState" WHERE 1=1 OFFSET $1) AS "sub" | Params: ["0"] | Duración: 4.730200000107288ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnCotizacionHistorial($1::varchar, $2::date, $3::date, $4::varchar, $5::varchar, $6::numeric, $7::varchar) | Params: [null,null,null,null,null,null,null] | Duración: 13.645299999043345ms
+[PRISMA_SQL] Consulta: SELECT "public"."QuotationState"."id", "public"."QuotationState"."code", "public"."QuotationState"."name", "public"."QuotationState"."color", "public"."QuotationState"."createdAt" FROM "public"."QuotationState" WHERE 1=1 ORDER BY "public"."QuotationState"."id" ASC OFFSET $1 | Params: ["0"] | Duración: 9.387000000104308ms
+[PRISMA_SQL] Consulta: SELECT * FROM public.fnMenu() | Params: [] | Duración: 10.529699999839067ms
