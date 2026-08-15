@@ -1,9 +1,9 @@
 import { paginateArray } from '@/lib/pagination'
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
 
 export const dynamic = 'force-dynamic'
-import bcrypt from 'bcryptjs'
 
 export async function GET(req: NextRequest) {
     try {
@@ -33,7 +33,8 @@ export async function POST(req: NextRequest) {
                 roleId: parseInt(body.roleId),
                 branchId: body.branchId ? parseInt(body.branchId) : undefined,
                 implantId: body.implantId ? parseInt(body.implantId) : undefined,
-                ticketPrinterId: body.ticketPrinterId ? parseInt(body.ticketPrinterId) : undefined
+                ticketPrinterId: body.ticketPrinterId ? parseInt(body.ticketPrinterId) : undefined,
+                canEditReports: Boolean(body.canEditReports)
             }
         }) as any)
 
@@ -65,7 +66,8 @@ export async function PUT(req: NextRequest) {
             roleId: parseInt(body.roleId),
             branchId: body.branchId ? parseInt(body.branchId) : null,
             implantId: body.implantId ? parseInt(body.implantId) : null,
-            ticketPrinterId: body.ticketPrinterId ? parseInt(body.ticketPrinterId) : null
+            ticketPrinterId: body.ticketPrinterId ? parseInt(body.ticketPrinterId) : null,
+            canEditReports: body.canEditReports !== undefined ? Boolean(body.canEditReports) : undefined
         }
 
         if (body.password) {

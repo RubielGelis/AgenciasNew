@@ -1399,6 +1399,30 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'updatedAt') THEN
         ALTER TABLE public."QuotationFormat" ADD COLUMN "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationManualService" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'quotationId') THEN
+        ALTER TABLE public."QuotationManualService" ADD COLUMN "quotationId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'providerName') THEN
+        ALTER TABLE public."QuotationManualService" ADD COLUMN "providerName" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'serviceName') THEN
+        ALTER TABLE public."QuotationManualService" ADD COLUMN "serviceName" character varying(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'cost') THEN
+        ALTER TABLE public."QuotationManualService" ADD COLUMN "cost" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'salePrice') THEN
+        ALTER TABLE public."QuotationManualService" ADD COLUMN "salePrice" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'utility') THEN
+        ALTER TABLE public."QuotationManualService" ADD COLUMN "utility" double precision DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."QuotationManualService" ADD COLUMN "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'id') THEN
         ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "id" integer NOT NULL;
     END IF;
@@ -1413,6 +1437,21 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'updatedAt') THEN
         ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintDefaultTemplate' AND column_name = 'id') THEN
+        ALTER TABLE public."QuotationPrintDefaultTemplate" ADD COLUMN "id" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintDefaultTemplate' AND column_name = 'html') THEN
+        ALTER TABLE public."QuotationPrintDefaultTemplate" ADD COLUMN "html" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintDefaultTemplate' AND column_name = 'name') THEN
+        ALTER TABLE public."QuotationPrintDefaultTemplate" ADD COLUMN "name" character varying(100) DEFAULT 'Default'::character varying;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintDefaultTemplate' AND column_name = 'createdAt') THEN
+        ALTER TABLE public."QuotationPrintDefaultTemplate" ADD COLUMN "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintDefaultTemplate' AND column_name = 'updatedAt') THEN
+        ALTER TABLE public."QuotationPrintDefaultTemplate" ADD COLUMN "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'id') THEN
         ALTER TABLE public."QuotationProduct" ADD COLUMN "id" integer NOT NULL;
@@ -1779,6 +1818,9 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'ticketPrinterId') THEN
         ALTER TABLE public."User" ADD COLUMN "ticketPrinterId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'canEditReports') THEN
+        ALTER TABLE public."User" ADD COLUMN "canEditReports" boolean DEFAULT false;
     END IF;
 
 END $$;

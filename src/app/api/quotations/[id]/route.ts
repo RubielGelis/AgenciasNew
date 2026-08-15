@@ -13,6 +13,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             where: { id },
             include: {
                 client: true,
+                manualServices: true,
                 products: {
                     include: {
                         appliedTaxes: true,

@@ -11,6 +11,7 @@ import { SearchSelect } from '@/components/SearchSelect'
 import ItemPaymentModal from '@/app/dashboard/invoices/new/ItemPaymentModal'
 import GlobalPaymentModal from '@/app/dashboard/invoices/new/GlobalPaymentModal'
 import QuotationInvoiceModal from '../QuotationInvoiceModal'
+import ManualServicesModal, { ManualServiceItem } from './ManualServicesModal'
 
 
 interface QuotationFormData {
@@ -35,6 +36,7 @@ interface QuotationFormData {
     reservationCode?: string;
     copyFieldsToProducts?: boolean;
     manualDescription?: string;
+    manualServices?: ManualServiceItem[];
     items: {
         productId: string;
         quantity: number;
@@ -126,6 +128,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         reservationCode: '',
         copyFieldsToProducts: true,
         manualDescription: '',
+        manualServices: [],
         items: [],
         selectedCombos: [],
         state: 'Nuevo',
@@ -136,6 +139,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     const [saving, setSaving] = useState(false)
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
     const [isGlobalPaymentOpen, setIsGlobalPaymentOpen] = useState(false)
+    const [isManualServicesModalOpen, setIsManualServicesModalOpen] = useState(false)
     const [attachments, setAttachments] = useState<any[]>([])
     const [uploadingAttachment, setUploadingAttachment] = useState(false)
     const [focusedTax, setFocusedTax] = useState<{ itemIdx: number, taxId: number, rawValue?: string } | null>(null)
@@ -493,6 +497,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                             reservationCode: qData.reservationCode || '',
                             copyFieldsToProducts: qData.copyFieldsToProducts ?? true,
                             manualDescription: qData.manualDescription || '',
+                            manualServices: qData.manualServices || [],
                             state: qData.state || 'Nuevo',
                             stateDescription: qData.stateDescription || '',
                             stateUpdatedAt: qData.stateUpdatedAt || null,
@@ -1164,18 +1169,34 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
                     {/* Section: Products Grid */}
                     <div className="bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                        <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
                             <h3 className="text-lg font-bold flex items-center gap-2 dark:text-white">
                                 <Tag className="w-5 h-5 text-emerald-500" />
                                 Desglose de Productos
                             </h3>
-                            <button
-                                type="button"
-                                onClick={addItem}
-                                className="text-emerald-600 font-bold flex items-center gap-1 hover:underline text-sm"
-                            >
-                                <Plus className="w-4 h-4" /> Agregar Producto
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsManualServicesModalOpen(true)}
+                                    className="text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-2 text-xs md:text-sm bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 px-3.5 py-2 rounded-xl border border-emerald-200 dark:border-emerald-800/80 transition-all shadow-xs hover:shadow-sm"
+                                    title="Digitar y consultar información manual de Proveedores, Servicios, Costos, Venta y Utilidad"
+                                >
+                                    <Calculator className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                                    <span>Servicios / Proveedores Manuales</span>
+                                    {formData.manualServices && formData.manualServices.length > 0 && (
+                                        <span className="ml-1 text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-600 text-white dark:bg-emerald-500">
+                                            {formData.manualServices.length}
+                                        </span>
+                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={addItem}
+                                    className="text-emerald-600 font-bold flex items-center gap-1 hover:underline text-xs md:text-sm px-2 py-2"
+                                >
+                                    <Plus className="w-4 h-4" /> Agregar Producto
+                                </button>
+                            </div>
                         </div>
 
                         <div className="space-y-4">
@@ -1960,6 +1981,13 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                 onApplyPayment={applyGlobalPayment}
                 creditCards={data?.creditCards || []}
                 paymentsList={data?.payments || []}
+            />
+            <ManualServicesModal
+                isOpen={isManualServicesModalOpen}
+                onClose={() => setIsManualServicesModalOpen(false)}
+                services={formData.manualServices || []}
+                onChange={(updatedServices) => setFormData({ ...formData, manualServices: updatedServices })}
+                currency={formData.currency}
             />
         </form >
     )

@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { 
     Printer, FileSpreadsheet, ArrowLeft, AlignLeft, AlignCenter, 
     AlignRight, Bold, ArrowUp, ArrowDown, Sparkles, 
-    Check, Edit3, EyeOff, RotateCcw, HelpCircle,
+    Check, Edit3, EyeOff, RotateCcw, HelpCircle, Star,
     ChevronLeft, ChevronRight, MoveLeft, MoveRight
 } from 'lucide-react'
 
@@ -172,6 +172,16 @@ function PrintQuotationsContent() {
     const [isEditing, setIsEditing] = useState(false)
     const [showHelp, setShowHelp] = useState(true)
     const [globalFont, setGlobalFont] = useState('Arial')
+    const [canEditReports, setCanEditReports] = useState(false)
+
+    useEffect(() => {
+        try {
+            const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
+            if (loggedUser && loggedUser.canEditReports) {
+                setCanEditReports(true)
+            }
+        } catch (e) {}
+    }, [])
 
     // Load reports
     useEffect(() => {
@@ -411,6 +421,56 @@ function PrintQuotationsContent() {
         }
     }
 
+    const handleSaveAsDefault = async () => {
+        if (!confirm('¿Deseas guardar este diseño como el formato PREdeterminado para todas las cotizaciones del sistema?')) return
+        setSaving(true)
+        try {
+            const report = parsedReports[0]
+            if (!report) return
+
+            const container = document.getElementById(`report-container-${report.idCotizacion}`)
+            if (!container) return
+
+            const bodyEl = container.querySelector('.report-body-wrapper')
+            const footerEl = container.querySelector('.report-footer-wrapper')
+            if (!bodyEl) return
+
+            const bodyClone = bodyEl.cloneNode(true) as HTMLElement
+            const footerClone = footerEl ? (footerEl.cloneNode(true) as HTMLElement) : null
+
+            ;[bodyClone, footerClone].forEach(node => {
+                if (!node) return
+                node.querySelectorAll('td').forEach((td: any) => {
+                    td.removeAttribute('contenteditable')
+                    td.classList.remove('active-editor-cell')
+                })
+                node.querySelectorAll('tr').forEach((tr: any) => tr.classList.remove('active-editor-row'))
+            })
+
+            const savedBodyInner = bodyClone.innerHTML
+            const savedFooterInner = footerClone ? footerClone.innerHTML : ''
+
+            const savedHtml =
+                `<div class="report-body-wrapper">${savedBodyInner}</div>` +
+                (footerClone ? `<div class="report-footer-wrapper">${savedFooterInner}</div>` : '')
+
+            const res = await fetch('/api/quotations/print-default-template', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ quotationId: report.idCotizacion, html: savedHtml })
+            })
+            if (!res.ok) throw new Error((await res.json()).message || 'Error al guardar formato predeterminado')
+
+            setActiveCell(null, null)
+            alert('¡Formato guardado como PREDETERMINADO con éxito! Todas las cotizaciones usarán esta plantilla.')
+            setIsEditing(false)
+        } catch (err: any) {
+            alert('Error al guardar formato predeterminado: ' + err.message)
+        } finally {
+            setSaving(false)
+        }
+    }
+
     const handleExportExcel = () => {
         if (!idIni || !idFin) return
         window.open(`/api/reports/cotizaciones/export-excel?idIni=${idIni}&idFin=${idFin}${formatId ? `&formatId=${formatId}` : ''}`, '_blank')
@@ -455,17 +515,28 @@ function PrintQuotationsContent() {
                             <ArrowLeft className="w-4 h-4" /> Volver
                         </button>
                         <div className="flex items-center gap-3 flex-wrap">
-                            <button onClick={() => setIsEditing(v => !v)}
-                                className={`px-5 h-11 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm ${isEditing ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'}`}>
-                                <Edit3 className="w-4 h-4" />
-                                {isEditing ? 'Desactivar Editor' : 'Activar Diseñador / Editor'}
-                            </button>
-                            {isEditing && (
-                                <button onClick={handleSaveChanges} disabled={saving}
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 h-11 rounded-xl font-black flex items-center gap-2 text-sm shadow-md disabled:opacity-50">
-                                    <Check className="w-4 h-4" />
-                                    {saving ? 'Guardando...' : 'Guardar Cambios'}
+                            {canEditReports && (
+                                <button onClick={() => setIsEditing(v => !v)}
+                                    className={`px-5 h-11 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm ${isEditing ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-zinc-200 text-zinc-800 hover:bg-zinc-300'}`}>
+                                    <Edit3 className="w-4 h-4" />
+                                    {isEditing ? 'Desactivar Editor' : 'Activar Diseñador / Editor'}
                                 </button>
+                            )}
+                            {isEditing && (
+                                <>
+                                    <button onClick={handleSaveChanges} disabled={saving}
+                                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 h-11 rounded-xl font-black flex items-center gap-2 text-sm shadow-md disabled:opacity-50"
+                                        title="Guarda los cambios únicamente para esta cotización específica">
+                                        <Check className="w-4 h-4" />
+                                        {saving ? 'Guardando...' : 'Guardar Cotización'}
+                                    </button>
+                                    <button onClick={handleSaveAsDefault} disabled={saving}
+                                        className="bg-amber-500 hover:bg-amber-600 text-white px-4 h-11 rounded-xl font-black flex items-center gap-2 text-sm shadow-md disabled:opacity-50"
+                                        title="Establece este diseño como el formato predeterminado para todas las cotizaciones del sistema">
+                                        <Star className="w-4 h-4" />
+                                        {saving ? 'Guardando...' : 'Guardar como Predeterminado'}
+                                    </button>
+                                </>
                             )}
                             <button onClick={handleExportExcel}
                                 className="bg-zinc-700 text-white px-5 h-11 rounded-xl font-bold flex items-center gap-2 hover:bg-zinc-800 text-sm">

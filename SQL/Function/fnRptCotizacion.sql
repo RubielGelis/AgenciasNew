@@ -1,3 +1,5 @@
+DROP FUNCTION IF EXISTS public."fnRptCotizacion"(integer, integer);
+
 CREATE OR REPLACE FUNCTION public."fnRptCotizacion"(
 	p_id_ini integer,
 	p_id_fin integer)
@@ -41,6 +43,14 @@ CREATE OR REPLACE FUNCTION public."fnRptCotizacion"(
         "hotelesServicios" text,
         "vendedor" text,
         "logo" bytea,
+        "destinoCabecera" text,
+        "fechaInicioCabecera" timestamp without time zone,
+        "fechaFinCabecera" timestamp without time zone,
+        "pasajeroCabecera" text,
+        "paxAdultosCabecera" integer,
+        "paxNinosCabecera" integer,
+        "reservacionCabecera" text,
+        "descripcionManualCabecera" text,
 
         -- Datos del Producto/Item
         "idProducto" integer,
@@ -137,6 +147,14 @@ BEGIN
         COALESCE(prod.description, '')::text AS "hotelesServicios",
         COALESCE(sel.name, '')::text AS "vendedor",
         COALESCE(i.logo, b.logo) AS "logo",
+        COALESCE(q.destination, '')::text AS "destinoCabecera",
+        q."startDate" AS "fechaInicioCabecera",
+        q."endDate" AS "fechaFinCabecera",
+        COALESCE(q.passenger, '')::text AS "pasajeroCabecera",
+        COALESCE(q."paxAdults", 0)::integer AS "paxAdultosCabecera",
+        COALESCE(q."paxChildren", 0)::integer AS "paxNinosCabecera",
+        COALESCE(q."reservationCode", '')::text AS "reservacionCabecera",
+        COALESCE(q."manualDescription", '')::text AS "descripcionManualCabecera",
 
         -- Datos del Producto/Item
         qp.id AS "idProducto",

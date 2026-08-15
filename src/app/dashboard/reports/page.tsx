@@ -2,15 +2,39 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { FileText, Plus, Database, Table as TableIcon, X, Check, Calculator, Download, Play, Save, Loader2, Trash2, PieChart, Edit, Eye, EyeOff, Filter, Search, Printer, FileSpreadsheet } from 'lucide-react'
+import { 
+    FileText, 
+    Plus, 
+    Database, 
+    Table as TableIcon, 
+    X, 
+    Check, 
+    Calculator, 
+    Download, 
+    Play, 
+    Save, 
+    Loader2, 
+    Trash2, 
+    PieChart, 
+    Edit, 
+    Eye, 
+    EyeOff, 
+    Filter, 
+    Search, 
+    Printer, 
+    FileSpreadsheet,
+    ArrowUp,
+    ArrowDown,
+    Copy,
+    CheckSquare,
+    Square,
+    Users,
+    Building2,
+    SlidersHorizontal,
+    Layers
+} from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { cn } from '@/lib/utils'
-
-
-
-
-// Icon for Users (missing from initial import)
-import { Users } from 'lucide-react'
 
 export default function ReportsPage() {
     const [reports, setReports] = useState<any[]>([])
@@ -20,13 +44,18 @@ export default function ReportsPage() {
     
     // Builder State
     const [templateName, setTemplateName] = useState('')
-    const [baseTable, setBaseTable] = useState<string>('')
+    const [baseTable, setBaseTable] = useState<string>('Quotation')
     const [selectedColumns, setSelectedColumns] = useState<any[]>([])
     const [reportFilters, setReportFilters] = useState<any[]>([])
     const [isCustomSql, setIsCustomSql] = useState(false)
     const [customSql, setCustomSql] = useState('')
     const [editingReportId, setEditingReportId] = useState<number | null>(null)
     
+    // Field Selector Modal State (Selector de Campos tipo chequeo estilo Sucursales)
+    const [isFieldSelectorModalOpen, setIsFieldSelectorModalOpen] = useState(false)
+    const [fieldSearchTerm, setFieldSearchTerm] = useState('')
+    const [activeFieldCategory, setActiveFieldCategory] = useState<'all' | 'cabecera' | 'productos'>('all')
+
     // Manual Filter Modal
     const [isManualFilterModalOpen, setIsManualFilterModalOpen] = useState(false)
     const [manualFilterField, setManualFilterField] = useState('')
@@ -41,6 +70,76 @@ export default function ReportsPage() {
     const [sorts, setSorts] = useState<any[]>([])
     const [runtimeFilterValues, setRuntimeFilterValues] = useState<Record<string, any>>({})
     const [isRuntimeFilterModalOpen, setIsRuntimeFilterModalOpen] = useState(false)
+    const [copiedToClipboard, setCopiedToClipboard] = useState(false)
+
+    // Lookup Helper Modal State (Activado por la Lupa en los filtros)
+    const [isLookupModalOpen, setIsLookupModalOpen] = useState(false)
+    const [lookupFilter, setLookupFilter] = useState<any>(null)
+    const [lookupSearchTerm, setLookupSearchTerm] = useState('')
+    const [lookupData, setLookupData] = useState<any[]>([])
+    const [loadingLookup, setLoadingLookup] = useState(false)
+
+    const openLookupHelper = async (f: any) => {
+        setLookupFilter(f)
+        setLookupSearchTerm('')
+        setLoadingLookup(true)
+        setIsLookupModalOpen(true)
+
+        const tableAlias = (f.table_alias || '').toLowerCase()
+        const columnName = (f.column_name || '').toLowerCase()
+        const label = (f.filter_label || '').toLowerCase()
+
+        let endpoint = ''
+
+        if (tableAlias.includes('client') || columnName.includes('client') || label.includes('cliente')) {
+            endpoint = '/api/clients'
+        } else if (tableAlias.includes('seller') || columnName.includes('seller') || label.includes('vendedor') || label.includes('asesor')) {
+            endpoint = '/api/config/sellers'
+        } else if (tableAlias.includes('ticketprinter') || columnName.includes('ticketprinter') || label.includes('tiqueteador')) {
+            endpoint = '/api/config/ticket-printers'
+        } else if (tableAlias.includes('provider') || columnName.includes('provider') || label.includes('proveedor')) {
+            endpoint = '/api/providers'
+        } else if (tableAlias.includes('prestadora') || columnName.includes('prestadora') || label.includes('hotel')) {
+            endpoint = '/api/config/prestadoras'
+        } else if (tableAlias.includes('branch') || columnName.includes('branch') || label.includes('sucursal')) {
+            endpoint = '/api/config/branches'
+        } else if (tableAlias.includes('implant') || columnName.includes('implant')) {
+            endpoint = '/api/config/implants'
+        } else if (columnName.includes('state') || label.includes('estado')) {
+            endpoint = '/api/config/quotation-states'
+        } else if (columnName.includes('currency') || label.includes('moneda')) {
+            endpoint = '/api/config/currencies'
+        } else if (tableAlias.includes('product') || columnName.includes('product') || label.includes('producto')) {
+            endpoint = '/api/products'
+        }
+
+        try {
+            if (endpoint) {
+                const res = await fetch(endpoint)
+                if (res.ok) {
+                    const data = await res.json()
+                    const list = Array.isArray(data) ? data : data.data || []
+                    setLookupData(list)
+                } else {
+                    setLookupData([])
+                }
+            } else {
+                setLookupData([])
+            }
+        } catch (err) {
+            console.error('Error fetching lookup helper options:', err)
+            setLookupData([])
+        } finally {
+            setLoadingLookup(false)
+        }
+    }
+
+    const selectLookupValue = (val: string) => {
+        if (!lookupFilter) return
+        const key = `${lookupFilter.table_alias}.${lookupFilter.column_name}`
+        setRuntimeFilterValues(prev => ({ ...prev, [key]: val }))
+        setIsLookupModalOpen(false)
+    }
 
     // Formula Modal
     const [isFormulaModalOpen, setIsFormulaModalOpen] = useState(false)
@@ -82,6 +181,35 @@ export default function ReportsPage() {
         } finally {
             setLoading(false)
         }
+    }
+
+    // Default configuration for initial new report
+    const initDefaultQuotationReport = () => {
+        setBaseTable('Quotation')
+        setTemplateName('Reporte Cotizaciones Personalizado')
+        setEditingReportId(null)
+        setIsCustomSql(false)
+        setCustomSql('')
+        setSorts([{ columnExpr: 't1."id"', direction: 'DESC' }])
+
+        // Add standard columns default
+        const defaultCols = [
+            { id: 't1.internalNumber', tableAlias: 't1', columnName: 'internalNumber', alias: 'Número Cotización', isCalculated: false, isVisible: true, type: 'character varying' },
+            { id: 't1.date', tableAlias: 't1', columnName: 'date', alias: 'Fecha', isCalculated: false, isVisible: true, type: 'timestamp without time zone' },
+            { id: 't1.state', tableAlias: 't1', columnName: 'state', alias: 'Estado', isCalculated: false, isVisible: true, type: 'character varying' },
+            { id: 't_client.name', tableAlias: 't_client', columnName: 'name', alias: 'Cliente', isCalculated: false, isVisible: true, type: 'character varying' },
+            { id: 't_seller.name', tableAlias: 't_seller', columnName: 'name', alias: 'Vendedor / Asesor', isCalculated: false, isVisible: true, type: 'character varying' },
+            { id: 't1.totalAmount', tableAlias: 't1', columnName: 'totalAmount', alias: 'Valor Total', isCalculated: false, isVisible: true, type: 'double precision' }
+        ]
+        setSelectedColumns(defaultCols)
+
+        // Add default configurable filters (Cotización ID / Número range & Dates)
+        setReportFilters([
+            { tableAlias: 't1', columnName: 'internalNumber', filterLabel: 'Código / Número Cotización', filterType: 'text', operator: 'LIKE' },
+            { tableAlias: 't1', columnName: 'date', filterLabel: 'Fecha Cotización (Desde/Hasta)', filterType: 'date', operator: '=' }
+        ])
+
+        setView('builder')
     }
 
     // Toggle column selection
@@ -136,6 +264,19 @@ export default function ReportsPage() {
         setIsFormulaModalOpen(true);
     }
 
+    const moveColumnPosition = (fromIdx: number, toIdx: number) => {
+        if (toIdx < 0 || toIdx >= selectedColumns.length) return;
+        const newCols = [...selectedColumns];
+        const [moved] = newCols.splice(fromIdx, 1);
+        newCols.splice(toIdx, 0, moved);
+        setSelectedColumns(newCols);
+    }
+
+    const changeColumnOrder = (idx: number, newPos: number) => {
+        if (isNaN(newPos) || newPos < 1 || newPos > selectedColumns.length) return;
+        moveColumnPosition(idx, newPos - 1);
+    }
+
     const handleEdit = async (reportId: number) => {
         try {
             setLoading(true)
@@ -144,7 +285,7 @@ export default function ReportsPage() {
                 const data = await res.json()
                 setEditingReportId(reportId)
                 setTemplateName(data.name)
-                setBaseTable(data.base_table)
+                setBaseTable(data.base_table || 'Quotation')
                 setCustomSql(data.custom_sql || '')
                 setIsCustomSql(!!data.custom_sql)
                 setSorts(data.sorts.map((s: any) => ({
@@ -166,7 +307,7 @@ export default function ReportsPage() {
                     isCalculated: c.is_calculated,
                     isVisible: c.is_visible,
                     formulaExpression: c.formula_expression,
-                    type: c.data_type // We might need to ensure this is returned by API
+                    type: c.data_type
                 })))
                 setView('builder')
             }
@@ -177,22 +318,13 @@ export default function ReportsPage() {
         }
     }
 
-    const changeColumnOrder = (idx: number, newPos: number) => {
-        if (newPos < 1 || newPos > selectedColumns.length) return;
-        const targetIdx = newPos - 1;
-        const newCols = [...selectedColumns];
-        const [movedCol] = newCols.splice(idx, 1);
-        newCols.splice(targetIdx, 0, movedCol);
-        setSelectedColumns(newCols);
-    }
-
     const saveTemplate = async () => {
         if (!templateName || (!isCustomSql && (!baseTable || selectedColumns.length === 0))) {
-            alert('Debes ponerle nombre al reporte y seleccionar al menos una tabla/columna (o usar un script SQL).');
+            alert('Debes ponerle un nombre al reporte y seleccionar al menos una columna.');
             return;
         }
 
-        // Determinar relaciones automáticamente basado en las columnas seleccionadas
+        // Automatic table joins resolution
         const requiredAliases = new Set(selectedColumns.filter(c => !c.isCalculated).map(c => c.tableAlias));
         requiredAliases.delete('t1');
         
@@ -200,6 +332,7 @@ export default function ReportsPage() {
         const addedAliases = new Set();
 
         const processRelation = (table: string, currentRelations: any[], parentAlias: string) => {
+            if (!currentRelations) return;
             currentRelations.forEach(rel => {
                 if (requiredAliases.has(rel.alias) && !addedAliases.has(rel.alias)) {
                     finalJoins.push({
@@ -212,7 +345,6 @@ export default function ReportsPage() {
                     });
                     addedAliases.add(rel.alias);
                     
-                    // Recursively check relations of the table we just joined
                     const nextModule = modules[rel.table];
                     if (nextModule && nextModule.relations) {
                         processRelation(rel.table, nextModule.relations, rel.alias);
@@ -318,6 +450,22 @@ export default function ReportsPage() {
         XLSX.utils.book_append_sheet(wb, ws, "Reporte");
         XLSX.writeFile(wb, `${activeReport?.name || 'Reporte'}.xlsx`);
     }
+
+    const copyToClipboardExcel = () => {
+        if (!reportResult || reportResult.length === 0) return;
+        const headers = Object.keys(reportResult[0]);
+        const rows = reportResult.map(row => 
+            headers.map(h => {
+                const val = row[h];
+                if (val === null || val === undefined) return '';
+                return String(val).replace(/\t/g, ' ').replace(/\n/g, ' ');
+            }).join('\t')
+        );
+        const tsvContent = [headers.join('\t'), ...rows].join('\n');
+        navigator.clipboard.writeText(tsvContent);
+        setCopiedToClipboard(true);
+        setTimeout(() => setCopiedToClipboard(false), 3500);
+    }
     
     const handleDelete = async (id: number) => {
         if (!confirm('¿Eliminar este reporte permanentemente?')) return;
@@ -325,24 +473,63 @@ export default function ReportsPage() {
         fetchReports();
     }
 
-    // Builder helpers
     const currentModule = baseTable ? modules[baseTable] : null;
+
+    // Helper for rendering available fields inside the checklist modal
+    const getCategorizedFields = () => {
+        const cabeceraTables = ['Quotation', 'Client', 'Seller', 'TicketPrinter', 'Branch', 'Implant', 'User'];
+        const productoTables = ['QuotationProduct', 'Product', 'Provider', 'Prestadora', 'QuotationManualService'];
+
+        const result: { category: 'Cabecera' | 'Productos'; tableKey: string; tableAlias: string; tableName: string; col: any }[] = [];
+
+        Object.keys(modules).forEach(tKey => {
+            const mod = modules[tKey];
+            if (!mod || !mod.columns) return;
+
+            let cat: 'Cabecera' | 'Productos' = cabeceraTables.includes(tKey) ? 'Cabecera' : 'Productos';
+            let alias = 't1';
+
+            if (tKey === 'Quotation') alias = 't1';
+            else if (tKey === 'QuotationProduct') alias = 't_quotationproduct';
+            else alias = `t_${tKey.toLowerCase()}`;
+
+            mod.columns.forEach((col: any) => {
+                const searchLower = fieldSearchTerm.toLowerCase();
+                const matchesSearch = !searchLower || col.name.toLowerCase().includes(searchLower);
+
+                if (matchesSearch) {
+                    if (activeFieldCategory === 'all' || (activeFieldCategory === 'cabecera' && cat === 'Cabecera') || (activeFieldCategory === 'productos' && cat === 'Productos')) {
+                        result.push({
+                            category: cat,
+                            tableKey: tKey,
+                            tableAlias: alias,
+                            tableName: mod.name,
+                            col
+                        });
+                    }
+                }
+            });
+        });
+
+        return result;
+    }
 
     return (
         <div className="p-4 md:p-8 max-w-[100rem] mx-auto space-y-8">
+            {/* Encabezado */}
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-zinc-900 p-8 rounded-[2.5rem] shadow-sm border border-zinc-200 dark:border-zinc-800">
                 <div>
                     <div className="flex items-center gap-3 mb-2">
                         <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-xl flex items-center justify-center">
                             <PieChart className="w-5 h-5" />
                         </div>
-                        <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">Centro de Reportes</h1>
+                        <h1 className="text-3xl font-black tracking-tight text-zinc-900 dark:text-white">Centro y Diseñador de Reportes</h1>
                     </div>
-                    <p className="text-zinc-500 dark:text-zinc-400 font-medium">Extrae inteligencia y analiza tus datos de forma dinámica</p>
+                    <p className="text-zinc-500 dark:text-zinc-400 font-medium">Crea, personaliza y exporta tus informes de cotizaciones y productos a tu medida</p>
                 </div>
                 
                 {view === 'list' && (
-                    <div className="flex gap-4">
+                    <div className="flex flex-wrap gap-4">
                         <button
                             onClick={() => {
                                 setBatchIdIni('');
@@ -355,19 +542,11 @@ export default function ReportsPage() {
                             Reporte Dinámico (Lote)
                         </button>
                         <button
-                            onClick={() => {
-                                setBaseTable('');
-                                setSelectedColumns([]);
-                                setTemplateName('');
-                                setEditingReportId(null);
-                                setSorts([]);
-                                setReportFilters([]);
-                                setView('builder');
-                            }}
+                            onClick={initDefaultQuotationReport}
                             className="px-6 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl flex items-center gap-3 shadow-xl shadow-blue-500/20 font-bold transition-all"
                         >
                             <Plus className="w-5 h-5" />
-                            Crear Nuevo Reporte
+                            Diseñar Nuevo Reporte
                         </button>
                     </div>
                 )}
@@ -378,34 +557,48 @@ export default function ReportsPage() {
                 )}
             </header>
 
+            {/* Vista Lista de Reportes */}
             {view === 'list' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {loading ? (
                         <div className="col-span-full py-20 flex justify-center"><Loader2 className="w-10 h-10 animate-spin text-blue-600" /></div>
                     ) : reports.length === 0 ? (
-                        <div className="col-span-full py-20 text-center text-zinc-500 bg-white dark:bg-zinc-900 rounded-[2rem] border border-dashed border-zinc-300 dark:border-zinc-800">
-                            Aún no tienes reportes creados.
+                        <div className="col-span-full py-20 text-center text-zinc-500 bg-white dark:bg-zinc-900 rounded-[2rem] border border-dashed border-zinc-300 dark:border-zinc-800 space-y-4">
+                            <TableIcon className="w-12 h-12 mx-auto text-zinc-300" />
+                            <p className="font-bold text-lg text-zinc-700 dark:text-zinc-300">Aún no tienes reportes personalizados guardados</p>
+                            <button onClick={initDefaultQuotationReport} className="px-6 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all">
+                                Crear Primer Reporte
+                            </button>
                         </div>
                     ) : (
                         reports.map(rep => (
-                            <div key={rep.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden">
-                                <div className="absolute top-0 right-0 p-6 flex items-center gap-2">
-                                    <button onClick={() => runReport(rep.id)} className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors" title="Ejecutar Reporte">
-                                        <Play className="w-4 h-4 ml-1" />
-                                    </button>
-                                    <button onClick={() => handleEdit(rep.id)} className="w-10 h-10 bg-zinc-50 text-zinc-600 rounded-full flex items-center justify-center hover:bg-zinc-600 hover:text-white transition-colors" title="Editar Reporte">
-                                        <Edit className="w-4 h-4" />
-                                    </button>
-                                    <button onClick={() => handleDelete(rep.id)} className="w-10 h-10 bg-red-50 text-red-600 rounded-full flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
+                            <div key={rep.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden flex flex-col justify-between">
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="w-12 h-12 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded-2xl flex items-center justify-center">
+                                            <TableIcon className="w-6 h-6" />
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={() => runReport(rep.id)} className="w-10 h-10 bg-blue-600 text-white rounded-xl flex items-center justify-center hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20" title="Ejecutar Reporte">
+                                                <Play className="w-4 h-4 ml-0.5" />
+                                            </button>
+                                            <button onClick={() => handleEdit(rep.id)} className="w-10 h-10 bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 rounded-xl flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors" title="Editar Reporte">
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => handleDelete(rep.id)} className="w-10 h-10 bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 rounded-xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors" title="Eliminar Reporte">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <h3 className="text-xl font-black text-zinc-900 dark:text-white mb-2">{rep.name}</h3>
                                 </div>
-                                <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-2xl flex items-center justify-center mb-6">
-                                    <TableIcon className="w-6 h-6" />
-                                </div>
-                                <h3 className="text-xl font-black text-zinc-900 dark:text-white mb-2">{rep.name}</h3>
-                                <div className="text-xs font-bold uppercase tracking-widest text-zinc-400 bg-zinc-100 dark:bg-zinc-800 inline-block px-3 py-1 rounded-lg">
-                                    Fuente: {modules[rep.base_table]?.name || rep.base_table}
+                                <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                                        Fuente: {modules[rep.base_table]?.name || rep.base_table || 'Cotizaciones'}
+                                    </span>
+                                    <button onClick={() => runReport(rep.id)} className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                                        Generar <Play className="w-3 h-3" />
+                                    </button>
                                 </div>
                             </div>
                         ))
@@ -413,454 +606,610 @@ export default function ReportsPage() {
                 </div>
             )}
 
+            {/* Diseñador / Builder Panel */}
             {view === 'builder' && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Panel Izquierdo: Selección de Origen */}
+                    {/* Panel Izquierdo: Configuración General del Reporte */}
                     <div className="lg:col-span-1 space-y-6">
-                        <div className="bg-white dark:bg-zinc-900 rounded-[2rem] p-6 shadow-sm border border-zinc-200 dark:border-zinc-800">
-                            <h3 className="text-lg font-black mb-6">1. Origen de Datos</h3>
-                            <div className="flex gap-4 mb-6">
+                        <div className="bg-white dark:bg-zinc-900 rounded-[2rem] p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 space-y-6">
+                            <div>
+                                <h3 className="text-lg font-black mb-1">1. Origen de Datos</h3>
+                                <p className="text-xs text-zinc-400 font-medium">Selecciona la tabla principal para tu reporte</p>
+                            </div>
+
+                            <div className="flex gap-2">
                                 <button 
                                     onClick={() => setIsCustomSql(false)}
-                                    className={cn("flex-1 h-14 rounded-2xl font-bold transition-all border-2", !isCustomSql ? "bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20" : "bg-white text-zinc-500 border-zinc-100 hover:border-zinc-200")}
+                                    className={cn("flex-1 h-12 rounded-xl font-bold text-xs transition-all border", !isCustomSql ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/20" : "bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-zinc-300")}
                                 >
                                     Asistente Visual
                                 </button>
                                 <button 
                                     onClick={() => setIsCustomSql(true)}
-                                    className={cn("flex-1 h-14 rounded-2xl font-bold transition-all border-2", isCustomSql ? "bg-purple-600 text-white border-purple-600 shadow-lg shadow-purple-500/20" : "bg-white text-zinc-500 border-zinc-100 hover:border-zinc-200")}
+                                    className={cn("flex-1 h-12 rounded-xl font-bold text-xs transition-all border", isCustomSql ? "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/20" : "bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-zinc-300")}
                                 >
-                                    Script SQL Personalizado
+                                    Script SQL
                                 </button>
                             </div>
 
                             {!isCustomSql ? (
-                                <div className="space-y-3">
-                                    {Object.keys(modules).map(key => (
-                                        <button
-                                            key={key}
-                                            onClick={() => { setBaseTable(key); setSelectedColumns([]) }}
-                                            className={cn(
-                                                "w-full p-4 rounded-2xl border text-left flex items-center gap-4 transition-all",
-                                                baseTable === key ? "bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800" : "bg-zinc-50 border-zinc-200 text-zinc-700 hover:bg-zinc-100 dark:bg-zinc-800/50 dark:border-zinc-800 dark:text-zinc-300"
-                                            )}
-                                        >
-                                            <div className={cn("p-2 rounded-lg", baseTable === key ? "bg-blue-100 text-blue-600" : "bg-zinc-200 text-zinc-500")}>
-                                                {modules[key].icon || <Database className="w-5 h-5" />}
-                                            </div>
-                                            <span className="font-bold">{modules[key].name}</span>
-                                            {baseTable === key && <Check className="w-5 h-5 ml-auto" />}
-                                        </button>
-                                    ))}
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Tabla Base</label>
+                                    <select
+                                        value={baseTable}
+                                        onChange={(e) => setBaseTable(e.target.value)}
+                                        className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 font-bold text-sm border border-zinc-200 dark:border-zinc-700 outline-none text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="Quotation">Cotizaciones (Cabecera Principal)</option>
+                                        <option value="QuotationProduct">Productos de Cotización</option>
+                                        {Object.keys(modules).filter(k => k !== 'Quotation' && k !== 'QuotationProduct').map(k => (
+                                            <option key={k} value={k}>{modules[k].name || k}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-2xl border border-purple-100 dark:border-purple-800">
-                                        <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">
-                                            Escribe tu consulta SQL completa. El sistema la ejecutará como fuente de datos.
-                                        </p>
-                                    </div>
                                     <textarea 
-                                        rows={12}
+                                        rows={10}
                                         value={customSql}
                                         onChange={(e) => setCustomSql(e.target.value)}
                                         placeholder="SELECT q.*, c.name FROM public.Quotation q JOIN public.Client c ON q.clientId = c.id"
-                                        className="w-full bg-zinc-50 dark:bg-zinc-800 rounded-2xl p-4 font-mono text-sm border-none shadow-inner focus:ring-2 focus:ring-purple-500 transition-all outline-none"
+                                        className="w-full bg-zinc-50 dark:bg-zinc-800 rounded-2xl p-4 font-mono text-xs border border-zinc-200 dark:border-zinc-700 shadow-inner focus:ring-2 focus:ring-purple-500 outline-none"
                                     />
                                     
-                                    <div className="pt-4 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-xs font-black text-purple-600 uppercase tracking-widest">Filtros para el Script</h4>
-                                            <button 
-                                                onClick={() => setIsManualFilterModalOpen(true)}
-                                                className="flex items-center gap-2 text-[10px] font-black bg-purple-50 text-purple-600 px-3 py-2 rounded-xl hover:bg-purple-100 transition-colors"
-                                            >
-                                                <Plus className="w-3 h-3" /> Agregar Filtro Manual
-                                            </button>
-                                        </div>
-                                        <div className="space-y-2">
-                                            {reportFilters.map((f, i) => (
-                                                <div key={i} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-700">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] font-black text-zinc-400 uppercase">{f.filterType}</span>
-                                                        <span className="text-sm font-bold">{f.filterLabel} <span className="text-zinc-400 font-normal">({f.columnName})</span></span>
-                                                    </div>
-                                                    <div className="flex gap-1">
-                                                        <button 
-                                                            onClick={() => {
-                                                                setManualFilterField(f.columnName);
-                                                                setManualFilterLabel(f.filterLabel);
-                                                                setManualFilterType(f.filterType);
-                                                                setManualFilterIndex(i);
-                                                                setIsManualFilterModalOpen(true);
-                                                            }} 
-                                                            className="text-blue-500 p-1 hover:bg-blue-50 rounded-lg"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                        <button onClick={() => setReportFilters(reportFilters.filter((_, idx) => idx !== i))} className="text-red-500 p-1 hover:bg-red-50 rounded-lg">
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="text-xs font-black text-purple-600 uppercase tracking-widest">Filtros para el Script</h4>
+                                        <button 
+                                            onClick={() => setIsManualFilterModalOpen(true)}
+                                            className="flex items-center gap-1.5 text-[10px] font-black bg-purple-50 text-purple-600 px-3 py-1.5 rounded-xl hover:bg-purple-100 transition-colors"
+                                        >
+                                            <Plus className="w-3 h-3" /> Agregar Filtro
+                                        </button>
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        {(baseTable || isCustomSql) && (
-                            <div className="bg-white dark:bg-zinc-900 rounded-[2rem] p-6 shadow-sm border border-zinc-200 dark:border-zinc-800">
-                                <h3 className="text-lg font-black mb-4">Guardar Plantilla</h3>
-                                <div className="space-y-2">
-                                    <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Nombre del Reporte</label>
-                                    <input type="text" placeholder="Ej. Ventas Generales" value={templateName} onChange={e => setTemplateName(e.target.value)} className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none text-zinc-900 dark:text-white" required />
-                                </div>
-                                <button onClick={saveTemplate} disabled={running} className="w-full h-14 mt-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 transition-all">
-                                    {running ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                    Guardar Reporte
-                                </button>
+                        {/* Guardar Plantilla */}
+                        <div className="bg-white dark:bg-zinc-900 rounded-[2rem] p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 space-y-4">
+                            <div>
+                                <h3 className="text-lg font-black">2. Guardar Plantilla</h3>
+                                <p className="text-xs text-zinc-400 font-medium">Guarda tu diseño para ejecutarlo cuantas veces quieras</p>
                             </div>
-                        )}
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Nombre del Reporte</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="Ej. Reporte General de Cotizaciones" 
+                                    value={templateName} 
+                                    onChange={e => setTemplateName(e.target.value)} 
+                                    className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border border-zinc-200 dark:border-zinc-700 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white" 
+                                    required 
+                                />
+                            </div>
+
+                            <button onClick={saveTemplate} disabled={running} className="w-full h-14 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all">
+                                {running ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                Guardar Reporte por Defecto
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Panel Derecho: Selección de Columnas */}
-                    <div className="lg:col-span-2">
-                        {baseTable ? (
-                            <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-                                <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-800/20">
-                                    <div>
-                                        <h2 className="text-xl font-black">2. Selecciona las Columnas</h2>
-                                        <p className="text-zinc-500 text-sm font-medium mt-1">Elige qué información quieres mostrar en las columnas de tu Excel.</p>
-                                    </div>
-                                    <button onClick={() => setIsFormulaModalOpen(true)} className="px-4 h-10 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors">
+                    {/* Panel Derecho: Selección y Personalización de Columnas */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
+                            <div className="p-6 md:p-8 border-b border-zinc-100 dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-zinc-50/50 dark:bg-zinc-800/20">
+                                <div>
+                                    <h2 className="text-xl font-black">3. Selección y Personalización de Columnas</h2>
+                                    <p className="text-zinc-500 text-sm font-medium mt-1">Escoge los campos de cabecera y productos, modifica sus nombres y ajusta el orden de izquierda a derecha.</p>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button 
+                                        onClick={() => setIsFieldSelectorModalOpen(true)}
+                                        className="px-5 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        Seleccionar Campos (Chequeo)
+                                    </button>
+                                    <button onClick={() => setIsFormulaModalOpen(true)} className="px-4 h-12 bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-xl text-xs font-bold flex items-center gap-2 transition-colors">
                                         <Calculator className="w-4 h-4" />
                                         Fórmula Matemática
                                     </button>
                                 </div>
-                                <div className="p-8 space-y-8">
-                                    
-                                    {/* Tabla Base */}
+                            </div>
+
+                            <div className="p-6 md:p-8 space-y-6">
+                                {/* Tabla de Columnas Seleccionadas (Con edición de nombre y orden) */}
+                                {selectedColumns.length === 0 ? (
+                                    <div className="py-12 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 space-y-3">
+                                        <Layers className="w-10 h-10 mx-auto text-zinc-300" />
+                                        <p className="text-zinc-500 font-bold text-sm">No has agregado ninguna columna al reporte</p>
+                                        <button onClick={() => setIsFieldSelectorModalOpen(true)} className="px-4 h-10 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-xl text-xs font-bold transition-colors">
+                                            Abrir Selector de Campos
+                                        </button>
+                                    </div>
+                                ) : (
                                     <div className="space-y-4">
-                                        <h4 className="text-sm font-black uppercase tracking-widest text-zinc-400">Campos de {currentModule.name}</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                            {currentModule.columns.map((col: any) => {
-                                                const isSelected = selectedColumns.some(c => c.id === `t1.${col.id}`);
-                                                return (
-                                                    <button key={`t1.${col.id}`} onClick={() => toggleColumn('t1', 't1', col)} className={cn("p-3 rounded-xl border flex items-center gap-3 text-left transition-colors", isSelected ? "bg-blue-600 border-blue-600 text-white" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300")}>
-                                                        <div className={cn("w-5 h-5 rounded flex items-center justify-center border", isSelected ? "bg-white/20 border-white/30 text-white" : "border-zinc-300 text-transparent")}>
-                                                            <Check className="w-3 h-3" />
-                                                        </div>
-                                                        <span className="font-bold text-sm">{col.name}</span>
-                                                    </button>
-                                                )
-                                            })}
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs font-black uppercase tracking-widest text-zinc-400">
+                                                Columnas del Reporte ({selectedColumns.length})
+                                            </span>
+                                            <span className="text-[10px] text-zinc-400 font-medium italic">
+                                                Usa los botones de flecha o el número para cambiar la posición
+                                            </span>
+                                        </div>
+
+                                        <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-2xl">
+                                            <table className="w-full text-left text-xs border-collapse">
+                                                <thead>
+                                                    <tr className="bg-zinc-100 dark:bg-zinc-800 text-zinc-500 font-bold uppercase tracking-wider border-b border-zinc-200 dark:border-zinc-700">
+                                                        <th className="py-3 px-3 w-16 text-center">Orden</th>
+                                                        <th className="py-3 px-3">Campo / Origen DB</th>
+                                                        <th className="py-3 px-3">Nombre Columna (Alias)</th>
+                                                        <th className="py-3 px-3 w-32 text-center">Filtro / Opciones</th>
+                                                        <th className="py-3 px-3 w-28 text-center">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                                    {selectedColumns.map((col, idx) => {
+                                                        const isFilter = reportFilters.some(f => f.tableAlias === col.tableAlias && f.columnName === col.columnName);
+                                                        return (
+                                                            <tr key={col.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors">
+                                                                <td className="py-2 px-3 text-center">
+                                                                    <div className="flex items-center justify-center gap-1">
+                                                                        <input 
+                                                                            type="number" 
+                                                                            value={idx + 1} 
+                                                                            onChange={(e) => changeColumnOrder(idx, parseInt(e.target.value))}
+                                                                            className="w-10 h-8 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-center font-bold text-xs outline-none focus:ring-1 focus:ring-blue-500"
+                                                                            min="1"
+                                                                            max={selectedColumns.length}
+                                                                        />
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-2 px-3">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-bold text-zinc-900 dark:text-zinc-100">{col.alias || col.columnName}</span>
+                                                                        <span className="font-mono text-[10px] text-zinc-400">{col.tableAlias}.{col.columnName}</span>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-2 px-3">
+                                                                    <input 
+                                                                        type="text"
+                                                                        value={col.alias || ''}
+                                                                        onChange={(e) => {
+                                                                            const newCols = [...selectedColumns];
+                                                                            newCols[idx].alias = e.target.value;
+                                                                            setSelectedColumns(newCols);
+                                                                        }}
+                                                                        placeholder="Nombre personalizado"
+                                                                        className="w-full h-8 px-3 rounded-lg bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-xs font-bold focus:ring-1 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
+                                                                    />
+                                                                </td>
+                                                                <td className="py-2 px-3 text-center">
+                                                                    <button 
+                                                                        onClick={() => {
+                                                                            if (isFilter) {
+                                                                                setReportFilters(reportFilters.filter(f => !(f.tableAlias === col.tableAlias && f.columnName === col.columnName)));
+                                                                            } else {
+                                                                                const type = col.type?.toLowerCase() || '';
+                                                                                const isNum = type.includes('int') || type.includes('numeric') || type.includes('decimal') || type.includes('float') || type === 'number';
+                                                                                const isDate = type.includes('date') || type.includes('time') || type.includes('timestamp');
+                                                                                
+                                                                                setReportFilters([...reportFilters, {
+                                                                                    tableAlias: col.tableAlias || 't1',
+                                                                                    columnName: col.columnName,
+                                                                                    filterLabel: col.alias,
+                                                                                    filterType: isNum ? 'number' : isDate ? 'date' : 'text',
+                                                                                    operator: (isNum || isDate) ? '=' : 'LIKE'
+                                                                                }]);
+                                                                            }
+                                                                        }}
+                                                                        className={cn("px-2 py-1 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 transition-all", isFilter ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300" : "bg-zinc-100 text-zinc-500 dark:bg-zinc-800")}
+                                                                        title="Activar como filtro de búsqueda en ejecución"
+                                                                    >
+                                                                        <Filter className="w-3 h-3" />
+                                                                        {isFilter ? 'Es Filtro' : '+ Filtro'}
+                                                                    </button>
+                                                                </td>
+                                                                <td className="py-2 px-3 text-center">
+                                                                    <div className="flex items-center justify-center gap-1">
+                                                                        <button
+                                                                            type="button"
+                                                                            disabled={idx === 0}
+                                                                            onClick={() => moveColumnPosition(idx, idx - 1)}
+                                                                            className="p-1 text-zinc-400 hover:text-blue-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-20 disabled:pointer-events-none"
+                                                                            title="Subir Posición"
+                                                                        >
+                                                                            <ArrowUp className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            disabled={idx === selectedColumns.length - 1}
+                                                                            onClick={() => moveColumnPosition(idx, idx + 1)}
+                                                                            className="p-1 text-zinc-400 hover:text-blue-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all disabled:opacity-20 disabled:pointer-events-none"
+                                                                            title="Bajar Posición"
+                                                                        >
+                                                                            <ArrowDown className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                        {col.isCalculated && (
+                                                                            <button 
+                                                                                onClick={() => editFormula(idx)}
+                                                                                className="p-1 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                                                                title="Editar Fórmula"
+                                                                            >
+                                                                                <Edit className="w-3.5 h-3.5" />
+                                                                            </button>
+                                                                        )}
+                                                                        <button 
+                                                                            onClick={() => removeColumn(idx)}
+                                                                            className="p-1 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                                            title="Quitar Columna"
+                                                                        >
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        )
+                                                    })}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
+                                )}
 
-                                    {/* Tablas Relacionadas Recursivas */}
-                                    {(() => {
-                                        const rendered = new Set();
-                                        const toProcess = [{ table: baseTable, alias: 't1' }];
-                                        const rows = [];
-                                        
-                                        while (toProcess.length > 0) {
-                                            const current = toProcess.shift()!;
-                                            const moduleDef = modules[current.table];
-                                            if (!moduleDef || !moduleDef.relations) continue;
-                                            
-                                            for (const rel of moduleDef.relations) {
-                                                if (rendered.has(rel.alias)) continue;
-                                                rendered.add(rel.alias);
-                                                
-                                                const relatedModule = modules[rel.table];
-                                                if (!relatedModule) continue;
-                                                
-                                                rows.push(
-                                                    <div key={rel.alias} className="space-y-4 pt-6 border-t border-dashed border-zinc-200 dark:border-zinc-800">
-                                                        <h4 className="text-sm font-black uppercase tracking-widest text-purple-400">Desde {current.table}: {rel.name}</h4>
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                            {relatedModule.columns.map((col: any) => {
-                                                                const isSelected = selectedColumns.some(c => c.id === `${rel.alias}.${col.id}`);
-                                                                return (
-                                                                    <button key={`${rel.alias}.${col.id}`} onClick={() => toggleColumn(rel.table, rel.alias, col, rel.name)} className={cn("p-3 rounded-xl border flex items-center gap-3 text-left transition-colors", isSelected ? "bg-purple-600 border-purple-600 text-white" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300")}>
-                                                                        <div className={cn("w-5 h-5 rounded flex items-center justify-center border", isSelected ? "bg-white/20 border-white/30 text-white" : "border-zinc-300 text-transparent")}>
-                                                                            <Check className="w-3 h-3" />
-                                                                        </div>
-                                                                        <span className="font-bold text-sm">{col.name}</span>
-                                                                    </button>
-                                                                )
-                                                            })}
+                                {/* Configuración de Filtros de Ejecución */}
+                                <div className="space-y-4 pt-6 border-t border-zinc-100 dark:border-zinc-800">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h3 className="text-base font-black">Filtros de Ejecución Disponibles</h3>
+                                            <p className="text-xs text-zinc-400">Estos campos solicitarán valores al usuario al presionar "Ejecutar Reporte"</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => setIsManualFilterModalOpen(true)}
+                                            className="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" /> Nuevo Filtro Manual
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {reportFilters.length === 0 ? (
+                                            <div className="col-span-full text-center py-6 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl text-zinc-400 text-xs font-bold border border-dashed border-zinc-200 dark:border-zinc-700">
+                                                No se han configurado filtros. Se mostrarán todos los registros al ejecutar.
+                                            </div>
+                                        ) : (
+                                            reportFilters.map((filter, idx) => (
+                                                <div key={idx} className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700 flex items-center justify-between gap-3">
+                                                    <div className="flex-1">
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder="Etiqueta del Filtro"
+                                                            className="w-full bg-white dark:bg-zinc-900 rounded-lg px-2 py-1 text-xs font-bold border border-zinc-200 dark:border-zinc-700 outline-none"
+                                                            value={filter.filterLabel}
+                                                            onChange={(e) => {
+                                                                const newFilters = [...reportFilters];
+                                                                newFilters[idx].filterLabel = e.target.value;
+                                                                setReportFilters(newFilters);
+                                                            }}
+                                                        />
+                                                        <div className="flex items-center gap-2 mt-1 text-[10px] text-zinc-400">
+                                                            <span className="font-mono">{filter.tableAlias}.{filter.columnName}</span>
+                                                            <span>•</span>
+                                                            <span className="uppercase font-bold">{filter.filterType}</span>
                                                         </div>
                                                     </div>
-                                                );
-                                                
-                                                // If this relation is selected, we can also explore its relations
-                                                if (selectedColumns.some(c => c.tableAlias === rel.alias)) {
-                                                    toProcess.push({ table: rel.table, alias: rel.alias });
-                                                }
-                                            }
-                                        }
-                                        return rows;
-                                    })()}
+                                                    <button onClick={() => setReportFilters(reportFilters.filter((_, i) => i !== idx))} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"><X className="w-4 h-4" /></button>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
 
-                                    {/* Ordenamiento de Columnas y Filas */}
-                                    <div className="space-y-6 pt-10 border-t-2 border-zinc-100 dark:border-zinc-800">
-                                        <div>
-                                            <h3 className="text-lg font-black">3. Personalización del Reporte</h3>
-                                            <p className="text-zinc-500 text-sm font-medium">Configura el orden de las columnas y el ordenamiento de los datos.</p>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                            {/* Orden de Columnas */}
-                                            <div className="space-y-4">
-                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest">Orden de Columnas (Izquierda a Derecha)</label>
-                                                <div className="space-y-2 max-h-[400px] overflow-auto pr-2 custom-scrollbar">
-                                                    {selectedColumns.map((col, idx) => (
-                                                        <div key={col.id} className="flex items-center gap-3 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700 shadow-sm">
-                                                            <input 
-                                                                type="number" 
-                                                                value={idx + 1} 
-                                                                onChange={(e) => changeColumnOrder(idx, parseInt(e.target.value))}
-                                                                className="w-12 h-10 bg-white dark:bg-zinc-900 rounded-lg text-center font-bold text-sm border-none shadow-sm focus:ring-2 focus:ring-blue-500"
-                                                                min="1"
-                                                                max={selectedColumns.length}
-                                                            />
-                                                            <div className="flex-1 flex flex-col gap-0.5">
-                                                                <div className="flex items-center justify-between">
-                                                                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-tighter">Etiqueta / Alias</label>
-                                                                    <span className="text-[9px] text-zinc-400 font-mono italic">Origen: {col.tableAlias}.{col.columnName}</span>
-                                                                </div>
-                                                                <input 
-                                                                    type="text"
-                                                                    value={col.alias || ''}
-                                                                    onChange={(e) => {
-                                                                        const newCols = [...selectedColumns];
-                                                                        newCols[idx].alias = e.target.value;
-                                                                        setSelectedColumns(newCols);
-                                                                    }}
-                                                                    placeholder="Sin alias"
-                                                                    className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                                                                />
-                                                            </div>
-                                                            <button 
-                                                                onClick={() => {
-                                                                    const isFilter = reportFilters.some(f => f.tableAlias === col.tableAlias && f.columnName === col.columnName);
-                                                                    if (isFilter) {
-                                                                        setReportFilters(reportFilters.filter(f => !(f.tableAlias === col.tableAlias && f.columnName === col.columnName)));
-                                                                    } else {
-                                                                        const type = col.type?.toLowerCase() || '';
-                                                                        const isNum = type.includes('int') || type.includes('numeric') || type.includes('decimal') || type.includes('float') || type === 'number';
-                                                                        const isDate = type.includes('date') || type.includes('time') || type.includes('timestamp');
-                                                                        
-                                                                        setReportFilters([...reportFilters, {
-                                                                            tableAlias: col.tableAlias || 't1',
-                                                                            columnName: col.columnName,
-                                                                            filterLabel: col.alias,
-                                                                            filterType: isNum ? 'number' : isDate ? 'date' : 'text',
-                                                                            operator: (isNum || isDate) ? '=' : 'LIKE'
-                                                                        }]);
-                                                                    }
-                                                                }}
-                                                                className={cn("p-2 rounded-lg transition-colors", reportFilters.some(f => f.tableAlias === col.tableAlias && f.columnName === col.columnName) ? "text-purple-600 bg-purple-50" : "text-zinc-400 bg-zinc-100")}
-                                                                title="Usar como Filtro en ejecución"
-                                                            >
-                                                                <Filter className="w-4 h-4" />
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => {
-                                                                    const newCols = [...selectedColumns];
-                                                                    newCols[idx].isVisible = !newCols[idx].isVisible;
-                                                                    setSelectedColumns(newCols);
-                                                                }}
-                                                                className={cn("p-2 rounded-lg transition-colors", col.isVisible ? "text-blue-600 bg-blue-50" : "text-zinc-400 bg-zinc-100")}
-                                                                title={col.isVisible ? "Visible en Reporte" : "Oculto (Solo para Joins/Fórmulas)"}
-                                                            >
-                                                                {col.isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                                                            </button>
-                                                            {col.isCalculated && (
-                                                                <button 
-                                                                    onClick={() => editFormula(idx)}
-                                                                    className="p-2 text-purple-600 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors"
-                                                                    title="Editar Fórmula"
-                                                                >
-                                                                    <Edit className="w-4 h-4" />
-                                                                </button>
-                                                            )}
-                                                            <button 
-                                                                onClick={() => removeColumn(idx)}
-                                                                className="p-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                                                                title="Quitar Columna"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Filtros de Ejecución */}
-                                            <div className="space-y-4">
-                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest">Campos para Filtrar (En Ejecución)</label>
-                                                <div className="space-y-3">
-                                                    {reportFilters.length === 0 && (
-                                                        <div className="text-center py-8 bg-zinc-50 dark:bg-zinc-800/30 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-700 text-zinc-400 text-xs font-bold uppercase">
-                                                            No se han definido filtros
-                                                        </div>
-                                                    )}
-                                                    {reportFilters.map((filter, idx) => (
-                                                        <div key={idx} className="p-4 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-3">
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="text-xs font-black text-purple-600 uppercase">{filter.tableAlias}.{filter.columnName}</span>
-                                                                <button onClick={() => setReportFilters(reportFilters.filter((_, i) => i !== idx))} className="text-red-500 hover:bg-red-50 p-1 rounded-lg"><X className="w-4 h-4" /></button>
-                                                            </div>
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                <input 
-                                                                    type="text" 
-                                                                    placeholder="Etiqueta del Filtro"
-                                                                    className="h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg px-3 text-xs font-bold border-none outline-none"
-                                                                    value={filter.filterLabel}
-                                                                    onChange={(e) => {
-                                                                        const newFilters = [...reportFilters];
-                                                                        newFilters[idx].filterLabel = e.target.value;
-                                                                        setReportFilters(newFilters);
-                                                                    }}
-                                                                />
-                                                                <select 
-                                                                    className="h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2 border-none outline-none font-bold text-xs"
-                                                                    value={filter.filterType}
-                                                                    onChange={(e) => {
-                                                                        const newFilters = [...reportFilters];
-                                                                        newFilters[idx].filterType = e.target.value;
-                                                                        setReportFilters(newFilters);
-                                                                    }}
-                                                                >
-                                                                    <option value="text">Texto</option>
-                                                                    <option value="date">Fecha</option>
-                                                                    <option value="number">Número</option>
-                                                                </select>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Ordenamiento de Filas (Movido abajo) */}
-                                            <div className="space-y-4 lg:col-span-2">
-                                                <div className="flex items-center justify-between">
-                                                    <label className="text-xs font-black text-zinc-400 uppercase tracking-widest">Ordenamiento de Datos</label>
-                                                    <button 
-                                                        onClick={() => setSorts([...sorts, { columnExpr: '', direction: 'ASC' }])}
-                                                        className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                                                    >
-                                                        <Plus className="w-3 h-3" /> Agregar Criterio
-                                                    </button>
-                                                </div>
-                                                
-                                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                                    {sorts.map((sort, idx) => (
-                                                        <div key={idx} className="flex items-center gap-2 p-3 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                                                            <select 
-                                                                className="flex-1 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2 border-none outline-none font-bold text-xs"
-                                                                value={sort.columnExpr}
-                                                                onChange={(e) => {
-                                                                    const newSorts = [...sorts];
-                                                                    newSorts[idx].columnExpr = e.target.value;
-                                                                    setSorts(newSorts);
-                                                                }}
-                                                            >
-                                                                <option value="">Seleccionar Campo</option>
-                                                                {selectedColumns.filter(c => !c.isCalculated).map(c => (
-                                                                    <option key={c.id} value={`${c.tableAlias}."${c.columnName}"`}>{c.alias}</option>
-                                                                ))}
-                                                            </select>
-                                                            <select 
-                                                                className="w-24 h-10 bg-zinc-50 dark:bg-zinc-800 rounded-lg px-2 border-none outline-none font-bold text-xs"
-                                                                value={sort.direction}
-                                                                onChange={(e) => {
-                                                                    const newSorts = [...sorts];
-                                                                    newSorts[idx].direction = e.target.value;
-                                                                    setSorts(newSorts);
-                                                                }}
-                                                            >
-                                                                <option value="ASC">ASC</option>
-                                                                <option value="DESC">DESC</option>
-                                                            </select>
-                                                            <button 
-                                                                onClick={() => setSorts(sorts.filter((_, i) => i !== idx))}
-                                                                className="text-red-500 hover:bg-red-50 p-1 rounded-lg"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
+                                {/* Criterios de Ordenamiento */}
+                                <div className="space-y-4 pt-6 border-t border-zinc-100 dark:border-zinc-800">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-base font-black">Ordenamiento de los Datos</h3>
+                                        <button 
+                                            onClick={() => setSorts([...sorts, { columnExpr: selectedColumns[0]?.id || 't1."id"', direction: 'DESC' }])}
+                                            className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                        >
+                                            <Plus className="w-3.5 h-3.5" /> Agregar Criterio
+                                        </button>
                                     </div>
 
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {sorts.map((sort, idx) => (
+                                            <div key={idx} className="flex items-center gap-2 p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                                                <select 
+                                                    className="flex-1 h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none font-bold text-xs"
+                                                    value={sort.columnExpr}
+                                                    onChange={(e) => {
+                                                        const newSorts = [...sorts];
+                                                        newSorts[idx].columnExpr = e.target.value;
+                                                        setSorts(newSorts);
+                                                    }}
+                                                >
+                                                    <option value="">Seleccionar Campo</option>
+                                                    {selectedColumns.filter(c => !c.isCalculated).map(c => (
+                                                        <option key={c.id} value={`${c.tableAlias}."${c.columnName}"`}>{c.alias || c.columnName}</option>
+                                                    ))}
+                                                </select>
+                                                <select 
+                                                    className="w-24 h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none font-bold text-xs"
+                                                    value={sort.direction}
+                                                    onChange={(e) => {
+                                                        const newSorts = [...sorts];
+                                                        newSorts[idx].direction = e.target.value;
+                                                        setSorts(newSorts);
+                                                    }}
+                                                >
+                                                    <option value="ASC">ASC (A-Z)</option>
+                                                    <option value="DESC">DESC (Z-A)</option>
+                                                </select>
+                                                <button 
+                                                    onClick={() => setSorts(sorts.filter((_, i) => i !== idx))}
+                                                    className="text-red-500 hover:bg-red-50 p-1 rounded-lg"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Viewer Panel - Visualización de Resultados */}
+            {view === 'viewer' && (
+                <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col h-[75vh]">
+                    <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h2 className="text-xl font-black">{activeReport?.name}</h2>
+                            <p className="text-zinc-500 text-xs font-medium">{reportResult.length} registros generados</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button 
+                                onClick={copyToClipboardExcel} 
+                                className="px-5 h-12 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 hover:bg-blue-100 rounded-xl font-bold flex items-center gap-2 transition-all border border-blue-200 dark:border-blue-800 text-xs"
+                            >
+                                <Copy className="w-4 h-4" /> 
+                                {copiedToClipboard ? '¡Copiado a Excel!' : 'Copiar a Excel'}
+                            </button>
+                            <button onClick={exportToExcel} className="px-6 h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-2 transition-all shadow-md shadow-emerald-500/20 text-xs">
+                                <Download className="w-4 h-4" /> Descargar Excel (.xlsx)
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div className="flex-1 overflow-auto bg-zinc-50 dark:bg-zinc-950 p-6 custom-scrollbar">
+                        {reportResult.length === 0 ? (
+                            <div className="h-full flex flex-col items-center justify-center text-zinc-400 font-bold space-y-2">
+                                <TableIcon className="w-12 h-12 text-zinc-300" />
+                                <p>No se encontraron registros con los filtros aplicados</p>
+                            </div>
                         ) : (
-                            <div className="h-full bg-zinc-50 dark:bg-zinc-800/30 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] flex flex-col items-center justify-center text-center p-12">
-                                <TableIcon className="w-16 h-16 text-zinc-300 mb-6" />
-                                <h2 className="text-xl font-black text-zinc-400">Selecciona un Origen de Datos</h2>
-                                <p className="text-zinc-500 font-medium max-w-sm mt-2">Para empezar a armar tu reporte, elige de dónde quieres sacar la información en el panel izquierdo.</p>
+                            <div className="overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900 shadow-sm">
+                                <table className="w-full border-collapse">
+                                    <thead className="bg-zinc-100 dark:bg-zinc-800 sticky top-0 z-10">
+                                        <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                                            {Object.keys(reportResult[0]).map(key => (
+                                                <th key={key} className="px-6 py-4 text-xs font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-300 text-left whitespace-nowrap">
+                                                    {key}
+                                                </th>
+                                            ))}
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
+                                        {reportResult.map((row, idx) => (
+                                            <tr key={idx} className="hover:bg-blue-50/50 dark:hover:bg-zinc-800/40 transition-colors">
+                                                {Object.values(row).map((val: any, j) => (
+                                                    <td key={j} className="px-6 py-4 text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
+                                                        {val === null ? '-' : String(val)}
+                                                    </td>
+                                                ))}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         )}
                     </div>
                 </div>
             )}
 
-            {/* Viewer Panel */}
-            {view === 'viewer' && (
-                <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden flex flex-col h-[70vh]">
-                    <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-                        <div>
-                            <h2 className="text-xl font-black">{activeReport?.name}</h2>
-                            <p className="text-zinc-500 text-sm font-medium">{reportResult.length} registros encontrados</p>
-                        </div>
-                        <button onClick={exportToExcel} className="px-6 h-12 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold flex items-center gap-2 transition-all">
-                            <Download className="w-4 h-4" /> Exportar a Excel
-                        </button>
+            {/* Field Selector Modal (Selección de Campos estilo chequeo similar a Sucursales) */}
+            <AnimatePresence>
+                {isFieldSelectorModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div 
+                            initial={{ scale: 0.95, opacity: 0 }} 
+                            animate={{ scale: 1, opacity: 1 }} 
+                            exit={{ scale: 0.95, opacity: 0 }} 
+                            className="bg-white dark:bg-zinc-900 rounded-[2.5rem] max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800"
+                        >
+                            {/* Modal Header */}
+                            <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-800/30">
+                                <div>
+                                    <h3 className="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                                        <SlidersHorizontal className="w-5 h-5 text-blue-600" />
+                                        Seleccionar Campos para el Reporte
+                                    </h3>
+                                    <p className="text-xs text-zinc-400 font-medium mt-0.5">Marca los campos de Cabecera y Productos que deseas incluir</p>
+                                </div>
+                                <button onClick={() => setIsFieldSelectorModalOpen(false)} className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                            {/* Search and Category Filter Bar */}
+                            <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 flex flex-col md:flex-row gap-3">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Buscar por nombre de campo (ej. Cliente, Total, Fecha, Vendedor)..." 
+                                        value={fieldSearchTerm} 
+                                        onChange={(e) => setFieldSearchTerm(e.target.value)} 
+                                        className="w-full h-11 pl-10 pr-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                </div>
+                                <div className="flex gap-1.5">
+                                    <button 
+                                        onClick={() => setActiveFieldCategory('all')} 
+                                        className={cn("px-4 h-11 rounded-xl text-xs font-bold transition-all", activeFieldCategory === 'all' ? "bg-blue-600 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400")}
+                                    >
+                                        Todos
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveFieldCategory('cabecera')} 
+                                        className={cn("px-4 h-11 rounded-xl text-xs font-bold transition-all", activeFieldCategory === 'cabecera' ? "bg-blue-600 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400")}
+                                    >
+                                        Cabecera
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveFieldCategory('productos')} 
+                                        className={cn("px-4 h-11 rounded-xl text-xs font-bold transition-all", activeFieldCategory === 'productos' ? "bg-blue-600 text-white" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400")}
+                                    >
+                                        Productos
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Checklist Field Grid */}
+                            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+                                {(() => {
+                                    const fields = getCategorizedFields();
+                                    if (fields.length === 0) {
+                                        return (
+                                            <div className="py-20 text-center text-zinc-400 font-bold">
+                                                No se encontraron campos con el término de búsqueda.
+                                            </div>
+                                        );
+                                    }
+
+                                    const cabeceraFields = fields.filter(f => f.category === 'Cabecera');
+                                    const productoFields = fields.filter(f => f.category === 'Productos');
+
+                                    return (
+                                        <>
+                                            {cabeceraFields.length > 0 && (
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">
+                                                        <h4 className="text-xs font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                                                            <Building2 className="w-4 h-4" />
+                                                            Campos Generales (Cabecera de Cotización)
+                                                        </h4>
+                                                        <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">
+                                                            {cabeceraFields.length} campos
+                                                        </span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                                        {cabeceraFields.map((item, idx) => {
+                                                            const colId = `${item.tableAlias}.${item.col.id}`;
+                                                            const isChecked = selectedColumns.some(c => c.id === colId);
+                                                            return (
+                                                                <button
+                                                                    key={`${colId}_${idx}`}
+                                                                    onClick={() => toggleColumn(item.tableKey, item.tableAlias, item.col, item.tableAlias !== 't1' ? item.tableName : '')}
+                                                                    className={cn(
+                                                                        "p-3 rounded-xl border flex items-center justify-between text-left transition-all",
+                                                                        isChecked 
+                                                                            ? "bg-blue-50 border-blue-300 text-blue-900 dark:bg-blue-950/40 dark:border-blue-800 dark:text-blue-200 font-bold shadow-sm" 
+                                                                            : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        {isChecked ? (
+                                                                            <CheckSquare className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+                                                                        ) : (
+                                                                            <Square className="w-5 h-5 text-zinc-300 dark:text-zinc-700 shrink-0" />
+                                                                        )}
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-xs font-bold">{item.col.name}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {productoFields.length > 0 && (
+                                                <div className="space-y-3 pt-4">
+                                                    <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">
+                                                        <h4 className="text-xs font-black uppercase tracking-widest text-purple-600 dark:text-purple-400 flex items-center gap-1.5">
+                                                            <Layers className="w-4 h-4" />
+                                                            Campos de Productos / Servicios
+                                                        </h4>
+                                                        <span className="text-[10px] font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md">
+                                                            {productoFields.length} campos
+                                                        </span>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                                                        {productoFields.map((item, idx) => {
+                                                            const colId = `${item.tableAlias}.${item.col.id}`;
+                                                            const isChecked = selectedColumns.some(c => c.id === colId);
+                                                            return (
+                                                                <button
+                                                                    key={`${colId}_${idx}`}
+                                                                    onClick={() => toggleColumn(item.tableKey, item.tableAlias, item.col, item.tableName)}
+                                                                    className={cn(
+                                                                        "p-3 rounded-xl border flex items-center justify-between text-left transition-all",
+                                                                        isChecked 
+                                                                            ? "bg-purple-50 border-purple-300 text-purple-900 dark:bg-purple-950/40 dark:border-purple-800 dark:text-purple-200 font-bold shadow-sm" 
+                                                                            : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        {isChecked ? (
+                                                                            <CheckSquare className="w-5 h-5 text-purple-600 dark:text-purple-400 shrink-0" />
+                                                                        ) : (
+                                                                            <Square className="w-5 h-5 text-zinc-300 dark:text-zinc-700 shrink-0" />
+                                                                        )}
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-xs font-bold">{item.col.name}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    );
+                                })()}
+                            </div>
+
+                            {/* Modal Footer */}
+                            <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-800/30">
+                                <span className="text-xs font-bold text-zinc-500">
+                                    {selectedColumns.length} columnas seleccionadas
+                                </span>
+                                <button 
+                                    onClick={() => setIsFieldSelectorModalOpen(false)}
+                                    className="px-8 h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-500/20"
+                                >
+                                    Confirmar Selección
+                                </button>
+                            </div>
+                        </motion.div>
                     </div>
-                    <div className="flex-1 overflow-auto bg-zinc-50 dark:bg-zinc-950 p-6 custom-scrollbar">
-                        {reportResult.length === 0 ? (
-                            <div className="h-full flex items-center justify-center text-zinc-400 font-bold">No hay datos para mostrar</div>
-                        ) : (
-                            <table className="w-full border-collapse bg-white dark:bg-zinc-900 rounded-2xl overflow-hidden shadow-sm">
-                                <thead className="bg-zinc-100 dark:bg-zinc-800 sticky top-0">
-                                    <tr>
-                                        {Object.keys(reportResult[0]).map(key => (
-                                            <th key={key} className="px-6 py-4 text-xs font-black uppercase tracking-widest text-zinc-500 text-left whitespace-nowrap">
-                                                {key}
-                                            </th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                                    {reportResult.map((row, idx) => (
-                                        <tr key={idx} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
-                                            {Object.values(row).map((val: any, j) => (
-                                                <td key={j} className="px-6 py-4 text-sm font-medium text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
-                                                    {val === null ? '-' : String(val)}
-                                                </td>
-                                            ))}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        )}
-                    </div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
 
             {/* Formula Modal */}
             <AnimatePresence>
                 {isFormulaModalOpen && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-zinc-900 rounded-[2rem] p-8 max-w-lg w-full shadow-2xl">
+                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-white dark:bg-zinc-900 rounded-[2rem] p-8 max-w-lg w-full shadow-2xl border border-zinc-200 dark:border-zinc-800">
                             <div className="flex justify-between items-center mb-6">
                                 <h3 className="text-xl font-black">Campo Calculado / Expresión SQL</h3>
                                 <button onClick={() => setIsFormulaModalOpen(false)} className="text-zinc-400 hover:text-zinc-600"><X className="w-6 h-6" /></button>
@@ -868,42 +1217,25 @@ export default function ReportsPage() {
                             <form onSubmit={addFormula} className="space-y-6">
                                 <div className="space-y-2">
                                     <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Nombre de la Columna (Alias)</label>
-                                    <input type="text" placeholder="Ej. Utilidad Total" value={formulaAlias} onChange={e => setFormulaAlias(e.target.value)} className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none text-zinc-900 dark:text-white" required />
+                                    <input type="text" placeholder="Ej. Utilidad Total" value={formulaAlias} onChange={e => setFormulaAlias(e.target.value)} className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border border-zinc-200 dark:border-zinc-700 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white" required />
                                 </div>
 
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Expresión SQL</label>
                                         <div className="flex gap-2">
-                                            <button type="button" onClick={() => setFormulaExpression("(t1.precio * 1.15)")} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">Ejemplo Mate</button>
-                                            <button type="button" onClick={() => setFormulaExpression("CASE WHEN t1.tax = 'IVA' THEN t1.valor ELSE 0 END")} className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded">Ejemplo Lógico</button>
+                                            <button type="button" onClick={() => setFormulaExpression("(t1.\"totalAmount\" - t1.\"costoTotal\")")} className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded">Utilidad</button>
+                                            <button type="button" onClick={() => setFormulaExpression("CASE WHEN t1.state = 'Aprobado' THEN t1.\"totalAmount\" ELSE 0 END")} className="text-[10px] font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded">Ejemplo Lógico</button>
                                         </div>
                                     </div>
                                     <textarea 
                                         rows={4}
-                                        placeholder="Escribe tu expresión SQL. Ejemplo: CASE WHEN t1.col = 'A' THEN t1.val1 ELSE t1.val2 END"
+                                        placeholder="Ejemplo: (t1.&quot;totalAmount&quot; * 0.10)"
                                         value={formulaExpression}
                                         onChange={e => setFormulaExpression(e.target.value)}
-                                        className="w-full bg-zinc-50 dark:bg-zinc-800 rounded-2xl p-5 border-none shadow-inner text-sm font-mono focus:ring-2 focus:ring-blue-500 transition-all outline-none text-zinc-900 dark:text-white"
+                                        className="w-full bg-zinc-50 dark:bg-zinc-800 rounded-2xl p-5 border border-zinc-200 dark:border-zinc-700 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
                                         required
                                     />
-                                    <p className="text-[10px] text-zinc-400 px-1 italic">Puedes usar operadores matemáticos (+, -, *, /) y funciones de PostgreSQL como CASE, COALESCE, etc. Usa los alias de tabla (t1, t_quotation, etc.)</p>
-                                </div>
-
-                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
-                                    <p className="text-[10px] font-bold text-blue-600 uppercase mb-2">Columnas Disponibles (Copiar/Pegar):</p>
-                                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto custom-scrollbar">
-                                        {selectedColumns.filter(c => !c.isCalculated).map(c => (
-                                            <button 
-                                                key={c.id}
-                                                type="button"
-                                                onClick={() => setFormulaExpression(prev => prev + ` ${c.tableAlias}."${c.columnName}"`)}
-                                                className="text-[9px] bg-white dark:bg-zinc-800 border border-blue-100 dark:border-blue-900 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
-                                            >
-                                                {c.alias} ({c.tableAlias}.{c.columnName})
-                                            </button>
-                                        ))}
-                                    </div>
                                 </div>
 
                                 <button type="submit" className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold transition-colors shadow-xl shadow-blue-500/20">
@@ -914,6 +1246,7 @@ export default function ReportsPage() {
                     </div>
                 )}
             </AnimatePresence>
+
             {/* Runtime Filter Modal */}
             <AnimatePresence>
                 {isRuntimeFilterModalOpen && (
@@ -922,7 +1255,7 @@ export default function ReportsPage() {
                             <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
                                 <div>
                                     <h2 className="text-2xl font-black">Filtros de Ejecución</h2>
-                                    <p className="text-zinc-500 text-sm font-medium">Ingresa los parámetros para este reporte.</p>
+                                    <p className="text-zinc-500 text-sm font-medium">Ingresa los parámetros para consultar el reporte.</p>
                                 </div>
                                 <button onClick={() => setIsRuntimeFilterModalOpen(false)} className="w-12 h-12 flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 rounded-2xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
                                     <X className="w-6 h-6" />
@@ -931,8 +1264,8 @@ export default function ReportsPage() {
                             
                             <div className="p-8 space-y-6">
                                 {activeReport?.filters?.map((f: any) => (
-                                    <div key={`${f.table_alias}.${f.column_name}`} className="space-y-2 p-4 bg-white dark:bg-zinc-900 rounded-[1.5rem] border border-zinc-100 dark:border-zinc-800 shadow-sm">
-                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">{f.filter_label || f.column_name}</label>
+                                    <div key={`${f.table_alias}.${f.column_name}`} className="space-y-2 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700 shadow-sm">
+                                        <label className="text-xs font-black text-zinc-700 dark:text-zinc-300 uppercase tracking-widest pl-1">{f.filter_label || f.column_name}</label>
                                         
                                         {f.filter_type === 'date' ? (
                                             <div className="grid grid-cols-2 gap-4">
@@ -940,7 +1273,7 @@ export default function ReportsPage() {
                                                     <span className="text-[10px] font-bold text-zinc-400 pl-1">Desde</span>
                                                     <input 
                                                         type="date" 
-                                                        className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 font-bold text-xs border-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                                        className="w-full h-12 bg-white dark:bg-zinc-900 rounded-xl px-4 font-bold text-xs border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                                                         onChange={(e) => setRuntimeFilterValues({ ...runtimeFilterValues, [`${f.table_alias}.${f.column_name}`]: e.target.value })}
                                                     />
                                                 </div>
@@ -948,7 +1281,7 @@ export default function ReportsPage() {
                                                     <span className="text-[10px] font-bold text-zinc-400 pl-1">Hasta</span>
                                                     <input 
                                                         type="date" 
-                                                        className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 font-bold text-xs border-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                                        className="w-full h-12 bg-white dark:bg-zinc-900 rounded-xl px-4 font-bold text-xs border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                                                         onChange={(e) => setRuntimeFilterValues({ ...runtimeFilterValues, [`${f.table_alias}.${f.column_name}_to`]: e.target.value })}
                                                     />
                                                 </div>
@@ -956,31 +1289,39 @@ export default function ReportsPage() {
                                         ) : f.filter_type === 'number' ? (
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-1">
-                                                    <span className="text-[10px] font-bold text-zinc-400 pl-1">Mínimo</span>
+                                                    <span className="text-[10px] font-bold text-zinc-400 pl-1">Inicial / Mínimo</span>
                                                     <input 
                                                         type="number" 
-                                                        placeholder="0"
-                                                        className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 font-bold text-xs border-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                                        placeholder="Ej: 1"
+                                                        className="w-full h-12 bg-white dark:bg-zinc-900 rounded-xl px-4 font-bold text-xs border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                                                         onChange={(e) => setRuntimeFilterValues({ ...runtimeFilterValues, [`${f.table_alias}.${f.column_name}`]: e.target.value })}
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <span className="text-[10px] font-bold text-zinc-400 pl-1">Máximo</span>
+                                                    <span className="text-[10px] font-bold text-zinc-400 pl-1">Final / Máximo</span>
                                                     <input 
                                                         type="number" 
-                                                        placeholder="99999"
-                                                        className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 font-bold text-xs border-none focus:ring-2 focus:ring-blue-500 transition-all"
+                                                        placeholder="Ej: 100"
+                                                        className="w-full h-12 bg-white dark:bg-zinc-900 rounded-xl px-4 font-bold text-xs border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                                                         onChange={(e) => setRuntimeFilterValues({ ...runtimeFilterValues, [`${f.table_alias}.${f.column_name}_to`]: e.target.value })}
                                                     />
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="relative">
-                                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                                            <div className="relative flex items-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => openLookupHelper(f)}
+                                                    className="absolute left-2.5 z-10 p-2 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-zinc-400 hover:text-blue-600 rounded-lg transition-all"
+                                                    title={`Abrir ayuda de búsqueda y selección para ${f.filter_label || f.column_name}`}
+                                                >
+                                                    <Search className="w-4 h-4" />
+                                                </button>
                                                 <input 
                                                     type="text" 
-                                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl pl-10 pr-4 font-bold text-xs border-none focus:ring-2 focus:ring-blue-500 transition-all"
-                                                    placeholder={`Buscar por texto...`}
+                                                    className="w-full h-12 bg-white dark:bg-zinc-900 rounded-xl pl-11 pr-4 font-bold text-xs border border-zinc-200 dark:border-zinc-700 focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                                                    placeholder={`Filtrar por ${f.filter_label || f.column_name}...`}
+                                                    value={runtimeFilterValues[`${f.table_alias}.${f.column_name}`] || ''}
                                                     onChange={(e) => setRuntimeFilterValues({ ...runtimeFilterValues, [`${f.table_alias}.${f.column_name}`]: e.target.value })}
                                                 />
                                             </div>
@@ -1001,6 +1342,92 @@ export default function ReportsPage() {
                                     {running ? <Loader2 className="w-5 h-5 animate-spin" /> : <Play className="w-5 h-5" />}
                                     Ejecutar Reporte
                                 </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Lookup Helper Modal (Ayuda de Búsqueda y Selección activada por la Lupa) */}
+            <AnimatePresence>
+                {isLookupModalOpen && (
+                    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-lg h-[75vh] flex flex-col overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800">
+                            <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-800/30">
+                                <div>
+                                    <h3 className="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                                        <Search className="w-5 h-5 text-blue-600" />
+                                        Ayuda de Selección
+                                    </h3>
+                                    <p className="text-xs text-zinc-400 font-bold mt-0.5">
+                                        {lookupFilter?.filter_label || lookupFilter?.column_name}
+                                    </p>
+                                </div>
+                                <button onClick={() => setIsLookupModalOpen(false)} className="w-10 h-10 flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-xl transition-colors">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
+
+                            <div className="p-4 border-b border-zinc-100 dark:border-zinc-800">
+                                <div className="relative">
+                                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Buscar en la lista de catálogo..."
+                                        value={lookupSearchTerm}
+                                        onChange={(e) => setLookupSearchTerm(e.target.value)}
+                                        className="w-full h-11 pl-10 pr-4 bg-zinc-50 dark:bg-zinc-800 rounded-xl font-bold text-xs border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
+                                {loadingLookup ? (
+                                    <div className="py-16 text-center font-bold text-zinc-400 animate-pulse">Cargando opciones del catálogo...</div>
+                                ) : (() => {
+                                    const searchLower = lookupSearchTerm.toLowerCase()
+                                    const filtered = lookupData.filter((item: any) => {
+                                        if (!searchLower) return true
+                                        const text = `${item.name || ''} ${item.code || ''} ${item.document || ''} ${item.email || ''} ${item.location || ''}`.toLowerCase()
+                                        return text.includes(searchLower)
+                                    })
+
+                                    if (filtered.length === 0) {
+                                        return (
+                                            <div className="py-16 text-center space-y-3">
+                                                <p className="text-zinc-400 font-bold text-sm">No se encontraron opciones coincidentes.</p>
+                                                <p className="text-zinc-400 text-xs">Puedes ingresar el valor directamente en la casilla del filtro.</p>
+                                            </div>
+                                        )
+                                    }
+
+                                    return filtered.map((item: any, idx: number) => {
+                                        const mainLabel = item.name || item.code || item.document || String(item.id)
+                                        const subLabel = item.document || item.code || item.email || item.location || ''
+                                        const valueToUse = item.name || item.code || item.document || String(item.id)
+
+                                        return (
+                                            <button
+                                                key={item.id || idx}
+                                                onClick={() => selectLookupValue(valueToUse)}
+                                                className="w-full p-3.5 bg-white hover:bg-blue-50/70 dark:bg-zinc-900 dark:hover:bg-blue-950/40 rounded-2xl border border-zinc-200 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-800 text-left transition-all flex items-center justify-between group"
+                                            >
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-black text-zinc-800 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                        {mainLabel}
+                                                    </span>
+                                                    {subLabel && subLabel !== mainLabel && (
+                                                        <span className="text-[10px] font-bold text-zinc-400">
+                                                            {subLabel}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <Check className="w-4 h-4 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </button>
+                                        )
+                                    })
+                                })()}
                             </div>
                         </motion.div>
                     </div>
@@ -1030,19 +1457,19 @@ export default function ReportsPage() {
                                             type="text" 
                                             value={manualFilterField}
                                             onChange={(e) => setManualFilterField(e.target.value)}
-                                            placeholder="ej: idcliente, fecha, total"
-                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-purple-500 transition-all outline-none"
+                                            placeholder="ej: internalNumber, date, totalAmount"
+                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-purple-500 outline-none"
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Etiqueta (Lo que verá el usuario)</label>
+                                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Etiqueta para el Usuario</label>
                                         <input 
                                             type="text" 
                                             value={manualFilterLabel}
                                             onChange={(e) => setManualFilterLabel(e.target.value)}
-                                            placeholder="ej: Nombre del Cliente"
-                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-purple-500 transition-all outline-none"
+                                            placeholder="ej: Código / Número Cotización"
+                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-purple-500 outline-none"
                                         />
                                     </div>
 
@@ -1051,10 +1478,10 @@ export default function ReportsPage() {
                                         <select 
                                             value={manualFilterType}
                                             onChange={(e) => setManualFilterType(e.target.value)}
-                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-purple-500 transition-all outline-none appearance-none cursor-pointer"
+                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-purple-500 outline-none"
                                         >
                                             <option value="text">Texto (Búsqueda parcial)</option>
-                                            <option value="number">Número (Rango Mín/Máx)</option>
+                                            <option value="number">Número / ID (Rango Mín/Máx)</option>
                                             <option value="date">Fecha (Rango Desde/Hasta)</option>
                                         </select>
                                     </div>
@@ -1127,7 +1554,7 @@ export default function ReportsPage() {
                                             value={batchIdIni}
                                             onChange={(e) => setBatchIdIni(e.target.value)}
                                             placeholder="Ej: 1"
-                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none text-zinc-900 dark:text-white"
+                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
                                         />
                                     </div>
 
@@ -1138,7 +1565,7 @@ export default function ReportsPage() {
                                             value={batchIdFin}
                                             onChange={(e) => setBatchIdFin(e.target.value)}
                                             placeholder="Ej: 10"
-                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none text-zinc-900 dark:text-white"
+                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 font-bold text-sm focus:ring-2 focus:ring-blue-500 outline-none text-zinc-900 dark:text-white"
                                         />
                                     </div>
                                 </div>

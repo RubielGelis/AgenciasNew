@@ -269,6 +269,14 @@ export default function SettingsPage() {
             pasajeros: 'Pasajeros',
             totalAdultos: 'Total Adultos',
             totalNinos: 'Total Niños',
+            destinoCabecera: 'Destino (Cabecera)',
+            fechaInicioCabecera: 'Fecha Inicio (Cabecera)',
+            fechaFinCabecera: 'Fecha Fin (Cabecera)',
+            pasajeroCabecera: 'Pasajero Principal (Cabecera)',
+            paxAdultosCabecera: 'Cantidad Adultos (Cabecera)',
+            paxNinosCabecera: 'Cantidad Niños (Cabecera)',
+            reservacionCabecera: 'Reservación / Localizador (Cabecera)',
+            descripcionManualCabecera: 'Descripción Manual (Cabecera)',
             tarifaNeta: 'Total: Tarifa Neta',
             tarifaNetaPago: 'Total: Tarifa Neta Pago',
             impuestos: 'Total: Impuestos',
@@ -319,6 +327,14 @@ export default function SettingsPage() {
             { key: 'pasajeros', label: 'Pasajeros' },
             { key: 'totalAdultos', label: 'Total Adultos' },
             { key: 'totalNinos', label: 'Total Niños' },
+            { key: 'destinoCabecera', label: 'Destino (Cabecera)' },
+            { key: 'fechaInicioCabecera', label: 'Fecha Inicio (Cabecera)' },
+            { key: 'fechaFinCabecera', label: 'Fecha Fin (Cabecera)' },
+            { key: 'pasajeroCabecera', label: 'Pasajero Principal (Cabecera)' },
+            { key: 'paxAdultosCabecera', label: 'Cantidad Adultos (Cabecera)' },
+            { key: 'paxNinosCabecera', label: 'Cantidad Niños (Cabecera)' },
+            { key: 'reservacionCabecera', label: 'Reservación / Localizador (Cabecera)' },
+            { key: 'descripcionManualCabecera', label: 'Descripción Manual (Cabecera)' },
             { key: 'tarifaNeta', label: 'Total: Tarifa Neta' },
             { key: 'tarifaNetaPago', label: 'Total: Tarifa Neta Pago' },
             { key: 'impuestos', label: 'Total: Impuestos' },
@@ -702,7 +718,7 @@ export default function SettingsPage() {
 
         } else {
             if (activeTab === 'usuarios') {
-                setFormData({ name: '', email: '', password: '', roleId: roles[0]?.id || '', branchId: '', implantId: '', ticketPrinterId: '' })
+                setFormData({ name: '', email: '', password: '', roleId: roles[0]?.id || '', branchId: '', implantId: '', ticketPrinterId: '', canEditReports: false })
             } else if (activeTab === 'impuestos') {
                 setFormData({ code: '', name: '', type: 'TAX', valueType: 'PERCENTAGE', value: '', isEditable: true })
             } else if (activeTab === 'vendedores' || activeTab === 'tiqueteadores') {
@@ -1041,6 +1057,7 @@ export default function SettingsPage() {
                                         <>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Usuario</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Rol</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Edición Reportes</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : activeTab === 'impuestos' ? (
@@ -1184,6 +1201,15 @@ export default function SettingsPage() {
                                         <td className="px-8 py-6">
                                             <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 text-[10px] font-black rounded-lg uppercase tracking-wider border border-blue-100 dark:border-blue-900/30">
                                                 {user.role.name}
+                                            </span>
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            <span className={`px-3 py-1 text-[10px] font-black rounded-lg uppercase tracking-wider border ${
+                                                user.canEditReports 
+                                                    ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' 
+                                                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700'
+                                            }`}>
+                                                {user.canEditReports ? 'Permitido' : 'No permitido'}
                                             </span>
                                         </td>
                                         <td className="px-8 py-6 text-right">
@@ -1593,6 +1619,24 @@ export default function SettingsPage() {
                                                     placeholder="Ninguno / No aplica"
                                                 />
                                             </div>
+                                        </div>
+                                        <div className="pt-2">
+                                            <label className="flex items-center gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-700 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.canEditReports || false}
+                                                    onChange={(e) => setFormData({ ...formData, canEditReports: e.target.checked })}
+                                                    className="w-5 h-5 text-blue-600 rounded-lg focus:ring-blue-500 cursor-pointer"
+                                                />
+                                                <div>
+                                                    <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 block">
+                                                        Permitir edición de reportes / cotizaciones (Botón Activar Editor)
+                                                    </span>
+                                                    <span className="text-[11px] text-zinc-400 font-normal">
+                                                        Habilita la capacidad de modificar visualmente celdas, estilos y márgenes en los reportes de impresión.
+                                                    </span>
+                                                </div>
+                                            </label>
                                         </div>
                                     </>
                                 ) : activeTab === 'impuestos' ? (

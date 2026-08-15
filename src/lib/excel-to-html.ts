@@ -119,6 +119,14 @@ const FIELD_KEYWORDS: Record<string, string[]> = {
     pasajeros: ['pasajeros', 'pasajero', 'nombre pasajero'],
     totalAdultos: ['total adultos', 'adultos', 'totaladultos'],
     totalNinos: ['total ninos', 'ninos', 'totalninos'],
+    destinoCabecera: ['destino cabecera', 'destino viaje', 'destino general'],
+    fechaInicioCabecera: ['fecha inicio cabecera', 'fecha inicio viaje'],
+    fechaFinCabecera: ['fecha fin cabecera', 'fecha fin viaje'],
+    pasajeroCabecera: ['pasajero principal', 'pasajero cabecera'],
+    paxAdultosCabecera: ['adultos cabecera', 'cantidad adultos cabecera'],
+    paxNinosCabecera: ['ninos cabecera', 'cantidad ninos cabecera'],
+    reservacionCabecera: ['reservacion cabecera', 'localizador cabecera', 'codigo reserva cabecera'],
+    descripcionManualCabecera: ['descripcion manual cabecera'],
     observaciones: ['observaciones', 'notas'],
     idCotizacion: ['id cotizacion', 'cotizacion', 'numero cotizacion', 'num cotizacion']
 };

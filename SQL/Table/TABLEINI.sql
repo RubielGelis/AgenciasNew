@@ -919,6 +919,24 @@ BEGIN
         NO MAXVALUE
         CACHE 1;
     ALTER SEQUENCE public."QuotationFormat_id_seq" OWNED BY public."QuotationFormat".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationManualService" (
+        id integer NOT NULL,
+        "quotationId" integer NOT NULL,
+        "providerName" character varying(255),
+        "serviceName" character varying(255),
+        cost double precision DEFAULT 0,
+        "salePrice" double precision DEFAULT 0,
+        utility double precision DEFAULT 0,
+        "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationManualService_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationManualService_id_seq" OWNED BY public."QuotationManualService".id;
     CREATE TABLE IF NOT EXISTS public."QuotationPrintCustomization" (
         id integer NOT NULL,
         "quotationId" integer NOT NULL,
@@ -934,6 +952,21 @@ BEGIN
         NO MAXVALUE
         CACHE 1;
     ALTER SEQUENCE public."QuotationPrintCustomization_id_seq" OWNED BY public."QuotationPrintCustomization".id;
+    CREATE TABLE IF NOT EXISTS public."QuotationPrintDefaultTemplate" (
+        id integer NOT NULL,
+        html text NOT NULL,
+        name character varying(100) DEFAULT 'Default'::character varying,
+        "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    );
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationPrintDefaultTemplate_id_seq"
+        AS integer
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1;
+    ALTER SEQUENCE public."QuotationPrintDefaultTemplate_id_seq" OWNED BY public."QuotationPrintDefaultTemplate".id;
     CREATE TABLE IF NOT EXISTS public."QuotationProduct" (
         id integer NOT NULL,
         "quotationId" integer NOT NULL,
@@ -1227,7 +1260,8 @@ BEGIN
         "roleId" integer NOT NULL,
         "branchId" integer,
         "implantId" integer,
-        "ticketPrinterId" integer
+        "ticketPrinterId" integer,
+        "canEditReports" boolean DEFAULT false
     );
     CREATE SEQUENCE IF NOT EXISTS public."User_id_seq"
         START WITH 1
@@ -1285,7 +1319,9 @@ BEGIN
     ALTER TABLE ONLY public."Quotation" ALTER COLUMN id SET DEFAULT nextval('public."Quotation_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationCombo" ALTER COLUMN id SET DEFAULT nextval('public."QuotationCombo_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationFormat" ALTER COLUMN id SET DEFAULT nextval('public."QuotationFormat_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationManualService" ALTER COLUMN id SET DEFAULT nextval('public."QuotationManualService_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationPrintCustomization" ALTER COLUMN id SET DEFAULT nextval('public."QuotationPrintCustomization_id_seq"'::regclass);
+    ALTER TABLE ONLY public."QuotationPrintDefaultTemplate" ALTER COLUMN id SET DEFAULT nextval('public."QuotationPrintDefaultTemplate_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationProduct" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProduct_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationProductPassenger" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductPassenger_id_seq"'::regclass);
     ALTER TABLE ONLY public."QuotationProductPayment" ALTER COLUMN id SET DEFAULT nextval('public."QuotationProductPayment_id_seq"'::regclass);
@@ -1607,6 +1643,12 @@ BEGIN
     END $con$;
     DO $con$
     BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationManualService_pkey') THEN
+            ALTER TABLE ONLY public."QuotationManualService" ADD CONSTRAINT "QuotationManualService_pkey" PRIMARY KEY (id);
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationPrintCustomization_pkey') THEN
             ALTER TABLE ONLY public."QuotationPrintCustomization" ADD CONSTRAINT "QuotationPrintCustomization_pkey" PRIMARY KEY (id);
         END IF;
@@ -1615,6 +1657,12 @@ BEGIN
     BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationPrintCustomization_quotationId_key') THEN
             ALTER TABLE ONLY public."QuotationPrintCustomization" ADD CONSTRAINT "QuotationPrintCustomization_quotationId_key" UNIQUE ("quotationId");
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationPrintDefaultTemplate_pkey') THEN
+            ALTER TABLE ONLY public."QuotationPrintDefaultTemplate" ADD CONSTRAINT "QuotationPrintDefaultTemplate_pkey" PRIMARY KEY (id);
         END IF;
     END $con$;
     DO $con$
@@ -1992,6 +2040,12 @@ BEGIN
     BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationFormat_implantId_fkey') THEN
             ALTER TABLE ONLY public."QuotationFormat" ADD CONSTRAINT "QuotationFormat_implantId_fkey" FOREIGN KEY ("implantId") REFERENCES public."Implant"(id) ON DELETE CASCADE;
+        END IF;
+    END $con$;
+    DO $con$
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationManualService_quotationId_fkey') THEN
+            ALTER TABLE ONLY public."QuotationManualService" ADD CONSTRAINT "QuotationManualService_quotationId_fkey" FOREIGN KEY ("quotationId") REFERENCES public."Quotation"(id) ON DELETE CASCADE;
         END IF;
     END $con$;
     DO $con$

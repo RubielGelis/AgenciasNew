@@ -490,6 +490,14 @@ export async function GET(req: Request) {
                     hotelesServicios: row.hotelesServicios || '',
                     vendedor: row.vendedor || '',
                     logo: row.logo || null,
+                    destinoCabecera: row.destinoCabecera || '',
+                    fechaInicioCabecera: row.fechaInicioCabecera || '',
+                    fechaFinCabecera: row.fechaFinCabecera || '',
+                    pasajeroCabecera: row.pasajeroCabecera || '',
+                    paxAdultosCabecera: row.paxAdultosCabecera || 0,
+                    paxNinosCabecera: row.paxNinosCabecera || 0,
+                    reservacionCabecera: row.reservacionCabecera || '',
+                    descripcionManualCabecera: row.descripcionManualCabecera || '',
                     products: []
                 };
             }
@@ -771,6 +779,14 @@ export async function GET(req: Request) {
             setVal((config as any).comisionPropiaPercentage, q.comisionPropiaPercentage || 0);
             setVal((config as any).comisionUtilidadPercentage, q.comisionUtilidadPercentage || 0);
             setVal((config as any).vendedor, q.vendedor || '');
+            setVal((config as any).destinoCabecera, q.destinoCabecera || '');
+            setVal((config as any).fechaInicioCabecera, q.fechaInicioCabecera ? new Date(q.fechaInicioCabecera) : '');
+            setVal((config as any).fechaFinCabecera, q.fechaFinCabecera ? new Date(q.fechaFinCabecera) : '');
+            setVal((config as any).pasajeroCabecera, q.pasajeroCabecera || '');
+            setVal((config as any).paxAdultosCabecera, q.paxAdultosCabecera || 0);
+            setVal((config as any).paxNinosCabecera, q.paxNinosCabecera || 0);
+            setVal((config as any).reservacionCabecera, q.reservacionCabecera || '');
+            setVal((config as any).descripcionManualCabecera, q.descripcionManualCabecera || '');
 
             // Process dynamic product rows
             // 1. Identify product start row number from config
@@ -1006,6 +1022,15 @@ export async function GET(req: Request) {
                             ...(templateConfigRaw as any || {}), 
                             ...(physicalConfig || {}) 
                         };
+                    }
+                }
+
+                if (!htmlTemplate) {
+                    const defaultSystemTemplate = await prisma.quotationPrintDefaultTemplate.findFirst({
+                        orderBy: { id: 'asc' }
+                    });
+                    if (defaultSystemTemplate && defaultSystemTemplate.html) {
+                        htmlTemplate = defaultSystemTemplate.html;
                     }
                 }
 

@@ -1,3 +1,4 @@
+DROP FUNCTION IF EXISTS public.fnCotizacionHistorial(VARCHAR, DATE, DATE, VARCHAR, VARCHAR, NUMERIC, VARCHAR, VARCHAR, VARCHAR);
 DROP FUNCTION IF EXISTS public.fnCotizacionHistorial(VARCHAR, DATE, DATE, VARCHAR, VARCHAR, NUMERIC, VARCHAR);
 DROP FUNCTION IF EXISTS public.fnCotizacionHistorial();
 
@@ -8,7 +9,9 @@ CREATE OR REPLACE FUNCTION public.fnCotizacionHistorial(
     p_cliente VARCHAR DEFAULT NULL,
     p_elaborado_por VARCHAR DEFAULT NULL,
     p_monto_total NUMERIC DEFAULT NULL,
-    p_estado VARCHAR DEFAULT NULL
+    p_estado VARCHAR DEFAULT NULL,
+    p_reserva VARCHAR DEFAULT NULL,
+    p_pasajero VARCHAR DEFAULT NULL
 )
 RETURNS SETOF JSONB
 LANGUAGE plpgsql
@@ -66,14 +69,35 @@ BEGIN
                 WHERE qp."quotationId" = q.id
                 LIMIT 1
             ), 1),
-            'passengerName', COALESCE((
-                SELECT qpax.name 
-                FROM public."QuotationProduct" qp
-                JOIN public."QuotationProductPassenger" qpax ON qpax."quotationProductId" = qp.id
-                WHERE qp."quotationId" = q.id
-                ORDER BY qpax.id ASC
-                LIMIT 1
-            ), 'Mismo titular')
+            'reservationCode', COALESCE(
+                NULLIF(q."reservationCode", ''),
+                (
+                    SELECT qp."reservationCode" 
+                    FROM public."QuotationProduct" qp 
+                    WHERE qp."quotationId" = q.id 
+                    AND NULLIF(qp."reservationCode", '') IS NOT NULL 
+                    LIMIT 1
+                ),
+                ''
+            ),
+            'passengerName', COALESCE(
+                NULLIF(q.passenger, ''),
+                (
+                    SELECT qpax.name 
+                    FROM public."QuotationProduct" qp
+                    JOIN public."QuotationProductPassenger" qpax ON qpax."quotationProductId" = qp.id
+                    WHERE qp."quotationId" = q.id
+                    ORDER BY qpax.id ASC
+                    LIMIT 1
+                ),
+                COALESCE((
+                    SELECT qp.passenger 
+                    FROM public."QuotationProduct" qp 
+                    WHERE qp."quotationId" = q.id 
+                    AND NULLIF(qp.passenger, '') IS NOT NULL 
+                    LIMIT 1
+                ), 'Mismo titular')
+            )
         )
     FROM public."Quotation" q
     JOIN public."Client" c ON q."clientId" = c.id
@@ -93,6 +117,24 @@ BEGIN
         AND (p_elaborado_por IS NULL OR u.name ILIKE '%' || p_elaborado_por || '%')
         AND (p_monto_total IS NULL OR q."totalAmount" = p_monto_total)
         AND (p_estado IS NULL OR q.state ILIKE '%' || p_estado || '%')
+        AND (
+            p_reserva IS NULL OR TRIM(p_reserva) = ''
+            OR q."reservationCode" ILIKE '%' || TRIM(p_reserva) || '%'
+            OR EXISTS (
+                SELECT 1 FROM public."QuotationProduct" qp 
+                WHERE qp."quotationId" = q.id AND qp."reservationCode" ILIKE '%' || TRIM(p_reserva) || '%'
+            )
+        )
+        AND (
+            p_pasajero IS NULL OR TRIM(p_pasajero) = ''
+            OR q.passenger ILIKE '%' || TRIM(p_pasajero) || '%'
+            OR EXISTS (
+                SELECT 1 FROM public."QuotationProduct" qp 
+                LEFT JOIN public."QuotationProductPassenger" qpax ON qpax."quotationProductId" = qp.id
+                WHERE qp."quotationId" = q.id 
+                AND (qpax.name ILIKE '%' || TRIM(p_pasajero) || '%' OR qp.passenger ILIKE '%' || TRIM(p_pasajero) || '%')
+            )
+        )
     ORDER BY q.id DESC;
 END;
 $$;

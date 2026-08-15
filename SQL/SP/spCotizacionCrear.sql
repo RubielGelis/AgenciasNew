@@ -15,6 +15,7 @@ DECLARE
     v_var RECORD;
     v_pmt RECORD;
     v_combo RECORD;
+    v_manual RECORD;
     v_quotation_product_id INT;
     -- Variables para validación de campos obligatorios dinámicos
     v_val_item JSONB;
@@ -229,6 +230,24 @@ BEGIN
             UPDATE public."Combo" SET "cupos" = "cupos" - 1 WHERE id = v_combo_real_id;
         END;
     END LOOP;
+
+    IF p_data->'manualServices' IS NOT NULL AND jsonb_typeof(p_data->'manualServices') = 'array' THEN
+        FOR v_manual IN SELECT * FROM jsonb_to_recordset(p_data->'manualServices') AS x(
+            "providerName" TEXT, "serviceName" TEXT, "cost" FLOAT, "salePrice" FLOAT, "utility" FLOAT
+        )
+        LOOP
+            INSERT INTO public."QuotationManualService" (
+                "quotationId", "providerName", "serviceName", "cost", "salePrice", "utility"
+            ) VALUES (
+                v_quotation_id, 
+                v_manual."providerName", 
+                v_manual."serviceName", 
+                COALESCE(v_manual."cost", 0), 
+                COALESCE(v_manual."salePrice", 0), 
+                COALESCE(v_manual."utility", COALESCE(v_manual."salePrice", 0) - COALESCE(v_manual."cost", 0))
+            );
+        END LOOP;
+    END IF;
 
     FOR v_item IN SELECT * FROM jsonb_to_recordset(p_data->'items') AS x(
                       "productId" INT, quantity INT, price FLOAT, cost FLOAT, "providerId" TEXT, "prestadoraId" TEXT,

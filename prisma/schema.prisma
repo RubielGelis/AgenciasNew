@@ -32,6 +32,7 @@ model User {
   branchId             Int?
   implantId            Int?
   ticketPrinterId      Int?
+  canEditReports       Boolean?                @default(false)
   quotations           Quotation[]
   stateHistories       QuotationStateHistory[]
   logs                 SystemLog[]
@@ -147,9 +148,9 @@ model Product {
 }
 
 model Quotation {
-  id                          Int                     @id @default(autoincrement())
-  internalNumber              String                  @unique
-  date                        DateTime                @default(now())
+  id                          Int                      @id @default(autoincrement())
+  internalNumber              String                   @unique
+  date                        DateTime                 @default(now())
   clientId                    Int
   currency                    String
   exchangeRate                Float
@@ -162,37 +163,50 @@ model Quotation {
   chargesAndTaxes             Float
   totalAmount                 Float
   userId                      Int?
-  state                       String?                 @default("Nuevo") @db.VarChar(25)
+  state                       String?                  @default("Nuevo") @db.VarChar(25)
   stateDescription            String?
-  stateUpdatedAt              DateTime?               @db.Timestamp(6)
-  costoTotal                  Float?                  @default(0)
-  valorBase                   Float?                  @default(0)
-  utilidad                    Float?                  @default(0)
-  comisionTotalPercentage     Float?                  @default(0)
-  comisionFreelancePercentage Float?                  @default(0)
-  comisionFreelanceValue      Float?                  @default(0)
-  comisionPropiaPercentage    Float?                  @default(0)
-  comisionPropiaValue         Float?                  @default(0)
-  comisionUtilidadPercentage  Float?                  @default(0)
-  destination                 String?                 @db.VarChar(255)
-  startDate                   DateTime?               @db.Timestamp(6)
-  endDate                     DateTime?               @db.Timestamp(6)
-  passenger                   String?                 @db.VarChar(255)
+  stateUpdatedAt              DateTime?                @db.Timestamp(6)
+  costoTotal                  Float?                   @default(0)
+  valorBase                   Float?                   @default(0)
+  utilidad                    Float?                   @default(0)
+  comisionTotalPercentage     Float?                   @default(0)
+  comisionFreelancePercentage Float?                   @default(0)
+  comisionFreelanceValue      Float?                   @default(0)
+  comisionPropiaPercentage    Float?                   @default(0)
+  comisionPropiaValue         Float?                   @default(0)
+  comisionUtilidadPercentage  Float?                   @default(0)
+  destination                 String?                  @db.VarChar(255)
+  startDate                   DateTime?                @db.Timestamp(6)
+  endDate                     DateTime?                @db.Timestamp(6)
+  passenger                   String?                  @db.VarChar(255)
   paxAdults                   Int?
   paxChildren                 Int?
-  reservationCode             String?                 @db.VarChar(255)
-  copyFieldsToProducts        Boolean?                @default(true)
+  reservationCode             String?                  @db.VarChar(255)
+  copyFieldsToProducts        Boolean?                 @default(true)
   manualDescription           String?
   attachments                 Attachment[]
-  branch                      Branch                  @relation(fields: [branchId], references: [id])
-  client                      Client                  @relation(fields: [clientId], references: [id])
-  implant                     Implant?                @relation(fields: [implantId], references: [id])
-  seller                      Seller?                 @relation(fields: [sellerId], references: [id])
-  ticketPrinter               TicketPrinter?          @relation(fields: [ticketPrinterId], references: [id])
-  user                        User?                   @relation(fields: [userId], references: [id])
+  branch                      Branch                   @relation(fields: [branchId], references: [id])
+  client                      Client                   @relation(fields: [clientId], references: [id])
+  implant                     Implant?                 @relation(fields: [implantId], references: [id])
+  seller                      Seller?                  @relation(fields: [sellerId], references: [id])
+  ticketPrinter               TicketPrinter?           @relation(fields: [ticketPrinterId], references: [id])
+  user                        User?                    @relation(fields: [userId], references: [id])
   combos                      QuotationCombo[]
+  manualServices              QuotationManualService[]
   products                    QuotationProduct[]
   stateHistory                QuotationStateHistory[]
+}
+
+model QuotationManualService {
+  id           Int       @id @default(autoincrement())
+  quotationId  Int
+  providerName String?   @db.VarChar(255)
+  serviceName  String?   @db.VarChar(255)
+  cost         Float?    @default(0)
+  salePrice    Float?    @default(0)
+  utility      Float?    @default(0)
+  createdAt    DateTime? @default(now()) @db.Timestamp(6)
+  quotation    Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 model QuotationCombo {
@@ -944,4 +958,12 @@ model QuotationPrintCustomization {
   html        String
   createdAt   DateTime @default(now()) @db.Timestamptz(6)
   updatedAt   DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model QuotationPrintDefaultTemplate {
+  id        Int      @id @default(autoincrement())
+  html      String
+  name      String?  @default("Default") @db.VarChar(100)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @db.Timestamptz(6)
 }

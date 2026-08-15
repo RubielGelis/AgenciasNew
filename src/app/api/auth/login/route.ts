@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
                 role: user.role.name,
                 branchId: user.branchId,
                 implantId: user.implantId,
-                ticketPrinterId: user.ticketPrinterId
+                ticketPrinterId: user.ticketPrinterId,
+                canEditReports: user.canEditReports ?? false
             },
         })
 
