@@ -100,7 +100,7 @@ BEGIN
             )
         )
     FROM public."Quotation" q
-    JOIN public."Client" c ON q."clientId" = c.id
+    LEFT JOIN public."Client" c ON q."clientId" = c.id
     LEFT JOIN public."User" u ON q."userId" = u.id
     WHERE 
         (
@@ -113,10 +113,10 @@ BEGIN
         )
         AND (p_fecha_desde IS NULL OR q.date::date >= p_fecha_desde)
         AND (p_fecha_hasta IS NULL OR q.date::date <= p_fecha_hasta)
-        AND (p_cliente IS NULL OR c.name ILIKE '%' || p_cliente || '%')
-        AND (p_elaborado_por IS NULL OR u.name ILIKE '%' || p_elaborado_por || '%')
+        AND (p_cliente IS NULL OR TRIM(p_cliente) = '' OR (c.name IS NOT NULL AND c.name ILIKE '%' || TRIM(p_cliente) || '%'))
+        AND (p_elaborado_por IS NULL OR TRIM(p_elaborado_por) = '' OR (u.name IS NOT NULL AND u.name ILIKE '%' || TRIM(p_elaborado_por) || '%'))
         AND (p_monto_total IS NULL OR q."totalAmount" = p_monto_total)
-        AND (p_estado IS NULL OR q.state ILIKE '%' || p_estado || '%')
+        AND (p_estado IS NULL OR TRIM(p_estado) = '' OR q.state ILIKE '%' || TRIM(p_estado) || '%')
         AND (
             p_reserva IS NULL OR TRIM(p_reserva) = ''
             OR q."reservationCode" ILIKE '%' || TRIM(p_reserva) || '%'

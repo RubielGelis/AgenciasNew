@@ -35,7 +35,7 @@ import { cn } from '@/lib/utils'
 import { SearchSelect } from '@/components/SearchSelect'
 import { QuotationFormatsTab } from '@/components/QuotationFormatsTab'
 
-type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion';
+type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion' | 'modulos-sitio';
 
 const AVAILABLE_MANDATORY_FIELDS = [
     { key: 'QuotationProduct.passengers', label: 'Pasajeros (Nombre obligatorio)', group: 'Por Producto' },
@@ -74,6 +74,103 @@ export default function SettingsPage() {
     const [submitting, setSubmitting] = useState(false)
     const [uploading, setUploading] = useState(false)
     const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+    // Site Modules & Masters State
+    const [siteModules, setSiteModules] = useState<any[]>([])
+    const [siteMasters, setSiteMasters] = useState<any[]>([])
+    const [loadingSiteModules, setLoadingSiteModules] = useState(false)
+
+    const fetchSiteModulesAndMasters = async () => {
+        setLoadingSiteModules(true)
+        try {
+            const res = await fetch('/api/config/site-modules')
+            if (res.ok) {
+                const data = await res.json()
+                setSiteModules(data.modules || [])
+                setSiteMasters(data.masters || [])
+            }
+        } catch (err) {
+            console.error('Error fetching site modules and masters:', err)
+        } finally {
+            setLoadingSiteModules(false)
+        }
+    }
+
+    const handleToggleSiteItem = async (type: 'MENU' | 'MASTER', id: number, currentActive: boolean) => {
+        try {
+            const res = await fetch('/api/config/site-modules', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type, id, active: !currentActive })
+            })
+            if (res.ok) {
+                fetchSiteModulesAndMasters()
+            }
+        } catch (err) {
+            console.error('Error toggling site item:', err)
+        }
+    }
+
+    const handleResetAllSiteItems = async () => {
+        try {
+            const res = await fetch('/api/config/site-modules', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'RESET_ALL' })
+            })
+            if (res.ok) {
+                fetchSiteModulesAndMasters()
+            }
+        } catch (err) {
+            console.error('Error resetting all site items:', err)
+        }
+    }
+
+    const isMasterTabEnabled = (tabKey: Tab) => {
+        if (tabKey === 'modulos-sitio') return true;
+        if (!siteMasters || siteMasters.length === 0) return true;
+
+        const tabCodeMap: Record<string, string[]> = {
+            'parametros': ['systemparameter', 'parametros'],
+            'usuarios': ['user', 'usuarios'],
+            'sucursales': ['branch', 'sucursales', 'sucursal'],
+            'implants': ['implant', 'implantes', 'implante'],
+            'impuestos': ['chargeandtax', 'impuestos', 'cargos e impuesto'],
+            'vendedores': ['seller', 'vendedores', 'vendedor'],
+            'tiqueteadores': ['ticketprinter', 'tiqueteadores', 'tiqueteador'],
+            'prestadoras': ['prestadora', 'prestadoras'],
+            'clientes': ['client', 'clientes'],
+            'proveedores': ['provider', 'proveedores', 'proveedor'],
+            'productos': ['product', 'productos', 'producto'],
+            'variables': ['mastervariable', 'variables'],
+            'combos': ['combo', 'combos'],
+            'logs': ['systemlog', 'logs'],
+            'monedas': ['currency', 'monedas', 'moneda'],
+            'equivalencias': ['equivalences', 'equivalencias'],
+            'tarjetas-credito': ['creditcard', 'tarjetas-credito'],
+            'formas-pago': ['payment', 'formas-pago'],
+            'paises': ['countries', 'paises'],
+            'ciudades': ['cities', 'ciudades'],
+            'aeropuertos': ['airports', 'aeropuertos'],
+            'tipos-tiquetes': ['tickettype', 'tipos-tiquetes'],
+            'estados-cotizacion': ['quotationstate', 'estados-cotizacion'],
+            'formatos-cotizacion': ['quotationformat', 'formatos-cotizacion']
+        };
+
+        const keysToMatch = tabCodeMap[tabKey] || [tabKey.toLowerCase()];
+        const master = siteMasters.find(m =>
+            keysToMatch.includes((m.code || '').toLowerCase()) ||
+            keysToMatch.includes((m.name || '').toLowerCase())
+        );
+
+        return master ? !master.inactivo : true;
+    };
+
+    useEffect(() => {
+        fetchSiteModulesAndMasters()
+    }, [])
+
+
 
     // Data states
     const [users, setUsers] = useState<any[]>([])
@@ -995,33 +1092,37 @@ export default function SettingsPage() {
 
             {/* Tabs Layout */}
             <div className="flex flex-wrap items-center gap-1 p-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl mb-8 shadow-sm">
-                <TabButton active={activeTab === 'parametros'} onClick={() => setActiveTab('parametros')} icon={<Settings className="w-4 h-4" />} label="Parámetros" />
-                <TabButton active={activeTab === 'usuarios'} onClick={() => setActiveTab('usuarios')} icon={<Users className="w-4 h-4" />} label="Usuarios" />
-                <TabButton active={activeTab === 'sucursales'} onClick={() => setActiveTab('sucursales')} icon={<Building2 className="w-4 h-4" />} label="Sucursales" />
-                <TabButton active={activeTab === 'implants'} onClick={() => setActiveTab('implants')} icon={<Database className="w-4 h-4" />} label="Implants" />
-                <TabButton active={activeTab === 'impuestos'} onClick={() => setActiveTab('impuestos')} icon={<Tags className="w-4 h-4" />} label="Cargos e Impuestos" />
-                <TabButton active={activeTab === 'vendedores'} onClick={() => setActiveTab('vendedores')} icon={<UserCheck className="w-4 h-4" />} label="Vendedores" />
-                <TabButton active={activeTab === 'tiqueteadores'} onClick={() => setActiveTab('tiqueteadores')} icon={<Printer className="w-4 h-4" />} label="Tiqueteadores" />
-                <TabButton active={activeTab === 'prestadoras'} onClick={() => setActiveTab('prestadoras')} icon={<HotelIcon className="w-4 h-4" />} label="Prestadoras" />
-                <TabButton active={activeTab === 'clientes'} onClick={() => setActiveTab('clientes')} icon={<Users className="w-4 h-4" />} label="Clientes" />
-                <TabButton active={activeTab === 'proveedores'} onClick={() => setActiveTab('proveedores')} icon={<Building2 className="w-4 h-4" />} label="Proveedores" />
-                <TabButton active={activeTab === 'productos'} onClick={() => setActiveTab('productos')} icon={<Tags className="w-4 h-4" />} label="Productos" />
-                <TabButton active={activeTab === 'variables'} onClick={() => setActiveTab('variables')} icon={<Tags className="w-4 h-4" />} label="Variables Adic." />
-                <TabButton active={activeTab === 'combos'} onClick={() => setActiveTab('combos')} icon={<Database className="w-4 h-4" />} label="Combos" />
-                <TabButton active={activeTab === 'monedas'} onClick={() => setActiveTab('monedas')} icon={<DollarSign className="w-4 h-4" />} label="Monedas" />
-                <TabButton active={activeTab === 'equivalencias'} onClick={() => setActiveTab('equivalencias')} icon={<Tags className="w-4 h-4" />} label="Equivalencias" />
+                <TabButton active={activeTab === 'modulos-sitio'} onClick={() => setActiveTab('modulos-sitio')} icon={<ShieldCheck className="w-4 h-4 text-amber-500" />} label="Módulos del Sitio" />
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
-                <TabButton active={activeTab === 'tarjetas-credito'} onClick={() => setActiveTab('tarjetas-credito')} icon={<Tags className="w-4 h-4" />} label="Tarjetas de Crédito" />
-                <TabButton active={activeTab === 'formas-pago'} onClick={() => setActiveTab('formas-pago')} icon={<Tags className="w-4 h-4" />} label="Formas de Pago" />
-                <TabButton active={activeTab === 'paises'} onClick={() => setActiveTab('paises')} icon={<Tags className="w-4 h-4" />} label="Países" />
-                <TabButton active={activeTab === 'ciudades'} onClick={() => setActiveTab('ciudades')} icon={<Tags className="w-4 h-4" />} label="Ciudades" />
-                <TabButton active={activeTab === 'aeropuertos'} onClick={() => setActiveTab('aeropuertos')} icon={<Tags className="w-4 h-4" />} label="Aeropuertos" />
-                <TabButton active={activeTab === 'tipos-tiquetes'} onClick={() => setActiveTab('tipos-tiquetes')} icon={<Tags className="w-4 h-4" />} label="Tipos Tiquete" />
-                <TabButton active={activeTab === 'estados-cotizacion'} onClick={() => setActiveTab('estados-cotizacion')} icon={<Tags className="w-4 h-4" />} label="Estados Cotiz." />
-                <TabButton active={activeTab === 'formatos-cotizacion'} onClick={() => setActiveTab('formatos-cotizacion')} icon={<FileText className="w-4 h-4" />} label="Formatos Cotiz." />
+                {isMasterTabEnabled('parametros') && <TabButton active={activeTab === 'parametros'} onClick={() => setActiveTab('parametros')} icon={<Settings className="w-4 h-4" />} label="Parámetros" />}
+                {isMasterTabEnabled('usuarios') && <TabButton active={activeTab === 'usuarios'} onClick={() => setActiveTab('usuarios')} icon={<Users className="w-4 h-4" />} label="Usuarios" />}
+                {isMasterTabEnabled('sucursales') && <TabButton active={activeTab === 'sucursales'} onClick={() => setActiveTab('sucursales')} icon={<Building2 className="w-4 h-4" />} label="Sucursales" />}
+                {isMasterTabEnabled('implants') && <TabButton active={activeTab === 'implants'} onClick={() => setActiveTab('implants')} icon={<Database className="w-4 h-4" />} label="Implants" />}
+                {isMasterTabEnabled('impuestos') && <TabButton active={activeTab === 'impuestos'} onClick={() => setActiveTab('impuestos')} icon={<Tags className="w-4 h-4" />} label="Cargos e Impuestos" />}
+                {isMasterTabEnabled('vendedores') && <TabButton active={activeTab === 'vendedores'} onClick={() => setActiveTab('vendedores')} icon={<UserCheck className="w-4 h-4" />} label="Vendedores" />}
+                {isMasterTabEnabled('tiqueteadores') && <TabButton active={activeTab === 'tiqueteadores'} onClick={() => setActiveTab('tiqueteadores')} icon={<Printer className="w-4 h-4" />} label="Tiqueteadores" />}
+                {isMasterTabEnabled('prestadoras') && <TabButton active={activeTab === 'prestadoras'} onClick={() => setActiveTab('prestadoras')} icon={<HotelIcon className="w-4 h-4" />} label="Prestadoras" />}
+                {isMasterTabEnabled('clientes') && <TabButton active={activeTab === 'clientes'} onClick={() => setActiveTab('clientes')} icon={<Users className="w-4 h-4" />} label="Clientes" />}
+                {isMasterTabEnabled('proveedores') && <TabButton active={activeTab === 'proveedores'} onClick={() => setActiveTab('proveedores')} icon={<Building2 className="w-4 h-4" />} label="Proveedores" />}
+                {isMasterTabEnabled('productos') && <TabButton active={activeTab === 'productos'} onClick={() => setActiveTab('productos')} icon={<Tags className="w-4 h-4" />} label="Productos" />}
+                {isMasterTabEnabled('variables') && <TabButton active={activeTab === 'variables'} onClick={() => setActiveTab('variables')} icon={<Tags className="w-4 h-4" />} label="Variables Adic." />}
+                {isMasterTabEnabled('combos') && <TabButton active={activeTab === 'combos'} onClick={() => setActiveTab('combos')} icon={<Database className="w-4 h-4" />} label="Combos" />}
+                {isMasterTabEnabled('monedas') && <TabButton active={activeTab === 'monedas'} onClick={() => setActiveTab('monedas')} icon={<DollarSign className="w-4 h-4" />} label="Monedas" />}
+                {isMasterTabEnabled('equivalencias') && <TabButton active={activeTab === 'equivalencias'} onClick={() => setActiveTab('equivalencias')} icon={<Tags className="w-4 h-4" />} label="Equivalencias" />}
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
-                <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<TerminalSquare className="w-4 h-4" />} label="Logs del Sistema" />
+                {isMasterTabEnabled('tarjetas-credito') && <TabButton active={activeTab === 'tarjetas-credito'} onClick={() => setActiveTab('tarjetas-credito')} icon={<Tags className="w-4 h-4" />} label="Tarjetas de Crédito" />}
+                {isMasterTabEnabled('formas-pago') && <TabButton active={activeTab === 'formas-pago'} onClick={() => setActiveTab('formas-pago')} icon={<Tags className="w-4 h-4" />} label="Formas de Pago" />}
+                {isMasterTabEnabled('paises') && <TabButton active={activeTab === 'paises'} onClick={() => setActiveTab('paises')} icon={<Tags className="w-4 h-4" />} label="Países" />}
+                {isMasterTabEnabled('ciudades') && <TabButton active={activeTab === 'ciudades'} onClick={() => setActiveTab('ciudades')} icon={<Tags className="w-4 h-4" />} label="Ciudades" />}
+                {isMasterTabEnabled('aeropuertos') && <TabButton active={activeTab === 'aeropuertos'} onClick={() => setActiveTab('aeropuertos')} icon={<Tags className="w-4 h-4" />} label="Aeropuertos" />}
+                {isMasterTabEnabled('tipos-tiquetes') && <TabButton active={activeTab === 'tipos-tiquetes'} onClick={() => setActiveTab('tipos-tiquetes')} icon={<Tags className="w-4 h-4" />} label="Tipos Tiquete" />}
+                {isMasterTabEnabled('estados-cotizacion') && <TabButton active={activeTab === 'estados-cotizacion'} onClick={() => setActiveTab('estados-cotizacion')} icon={<Tags className="w-4 h-4" />} label="Estados Cotiz." />}
+                {isMasterTabEnabled('formatos-cotizacion') && <TabButton active={activeTab === 'formatos-cotizacion'} onClick={() => setActiveTab('formatos-cotizacion')} icon={<FileText className="w-4 h-4" />} label="Formatos Cotiz." />}
+                <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
+                {isMasterTabEnabled('logs') && <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<TerminalSquare className="w-4 h-4" />} label="Logs del Sistema" />}
             </div>
+
+
 
             {/* Barra de Búsqueda */}
             <div className="mb-8 flex items-center gap-4">
@@ -1039,7 +1140,121 @@ export default function SettingsPage() {
 
             {/* Content Area */}
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[500px]">
-                {activeTab === 'formatos-cotizacion' ? (
+                {activeTab === 'modulos-sitio' ? (
+                    <div className="p-8 space-y-8">
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-xl font-bold dark:text-white flex items-center gap-2">
+                                    <ShieldCheck className="w-6 h-6 text-blue-600" />
+                                    Módulos de Navegación del Sitio (Menú Principal)
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={handleResetAllSiteItems}
+                                    className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
+                                >
+                                    <Settings className="w-4 h-4" />
+                                    Restablecer Todos a Activo
+                                </button>
+                            </div>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                                Activa o desactiva las secciones principales visibles en la barra lateral del sistema para este sitio.
+                            </p>
+
+                            {loadingSiteModules ? (
+                                <div className="flex items-center justify-center p-12">
+                                    <Loader2 className="animate-spin w-8 h-8 text-blue-600" />
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {siteModules.map((mod: any) => (
+                                        <div key={mod.id} className="flex items-center justify-between p-5 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm">
+                                            <div>
+                                                <div className="font-bold dark:text-white text-base">{mod.name}</div>
+                                                <div className="text-xs text-zinc-400 font-mono mt-0.5">{mod.action}</div>
+                                                <div className="mt-2">
+                                                    <span className={cn(
+                                                        "text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider",
+                                                        mod.activo ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-zinc-500/10 text-zinc-500"
+                                                    )}>
+                                                        {mod.activo ? 'Activo' : 'Inactivo'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleToggleSiteItem('MENU', mod.id, mod.activo)}
+                                                className={cn(
+                                                    "relative inline-flex h-8 w-16 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                                    mod.activo ? "bg-emerald-600" : "bg-zinc-300 dark:bg-zinc-700"
+                                                )}
+                                            >
+                                                <span
+                                                    className={cn(
+                                                        "pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                                        mod.activo ? "translate-x-8" : "translate-x-0"
+                                                    )}
+                                                />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <hr className="border-zinc-200 dark:border-zinc-800" />
+
+                        <div>
+                            <h3 className="text-xl font-bold dark:text-white mb-2 flex items-center gap-2">
+                                <Database className="w-6 h-6 text-amber-500" />
+                                Tablas Maestras y Pestañas de Configuración (Sitio)
+                            </h3>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+                                Habilita o deshabilita los maestros disponibles en este panel de configuración.
+                            </p>
+                            {loadingSiteModules ? (
+                                <div className="flex items-center justify-center p-12">
+                                    <Loader2 className="animate-spin w-8 h-8 text-amber-500" />
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                    {siteMasters.map((mst: any) => (
+                                        <div key={mst.id} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm">
+                                            <div>
+                                                <div className="font-bold dark:text-white capitalize text-sm">{mst.name}</div>
+                                                <div className="text-[11px] text-zinc-400 font-mono mt-0.5">{mst.code}</div>
+                                                <div className="mt-1.5">
+                                                    <span className={cn(
+                                                        "text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider",
+                                                        !mst.inactivo ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-red-500/10 text-red-500"
+                                                    )}>
+                                                        {!mst.inactivo ? 'Habilitado' : 'Deshabilitado'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleToggleSiteItem('MASTER', mst.id, !mst.inactivo)}
+                                                className={cn(
+                                                    "relative inline-flex h-7 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                                    !mst.inactivo ? "bg-emerald-600" : "bg-zinc-300 dark:bg-zinc-700"
+                                                )}
+                                            >
+                                                <span
+                                                    className={cn(
+                                                        "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                                        !mst.inactivo ? "translate-x-7" : "translate-x-0"
+                                                    )}
+                                                />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ) : activeTab === 'formatos-cotizacion' ? (
+
                     <div className="p-8">
                         <QuotationFormatsTab branches={branches} implants={implants} />
                     </div>

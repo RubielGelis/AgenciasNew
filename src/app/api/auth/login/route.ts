@@ -42,8 +42,20 @@ export async function POST(req: NextRequest) {
             },
         })
 
-        // (Dummy) Set a simple session cookie if needed
-        // response.cookies.set('authenticated', 'true', { httpOnly: true, path: '/' })
+        // Consultar fecha de expiración de la licencia para adjuntarla en cookie
+        try {
+            const { getStoredLicenseStatus } = await import('@/lib/license');
+            const licenseStatus = await getStoredLicenseStatus();
+            if (licenseStatus.expirationDate) {
+                response.cookies.set('korex_lic_exp', licenseStatus.expirationDate, {
+                    path: '/',
+                    httpOnly: true,
+                    sameSite: 'lax'
+                });
+            }
+        } catch (licErr) {
+            console.error('Error adjuntando cookie de licencia:', licErr);
+        }
 
         // Log the successful login
         import('@/lib/logger').then(({ registerLog }) => {

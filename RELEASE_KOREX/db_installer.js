@@ -71,26 +71,10 @@ async function run() {
         process.exit(1);
     }
 
-    // 3. Ejecutar Actualizador.SQL (si existe) para inicializar/actualizar la estructura base
-    const actFile = resolvePath('SQL', 'Actualizador.SQL');
-    if (fs.existsSync(actFile)) {
-        console.log(`\n${colors.bright}[1/4] Inyectando esquema estructural base (Actualizador.SQL)...${colors.reset}`);
-        try {
-            const sql = fs.readFileSync(actFile, 'utf8');
-            await dbClient.query(sql);
-            console.log(`  ${colors.green}[OK] Estructuras cargadas correctamente.${colors.reset}`);
-        } catch (e) {
-            console.warn(`  ${colors.yellow}[!] Advertencia ejecutando Actualizador.SQL: ${e.message}${colors.reset}`);
-            if (e.position) console.warn(`      Posición aproximada: ${e.position}`);
-        }
-    } else {
-        console.log(`\n${colors.yellow}[!] No se encontró Actualizador.SQL. Se omitió la inyección estructural inicial.${colors.reset}`);
-    }
-
-    // 4. Comparador de Esquemas Inteligente (schema_reference.json)
+    // 3. Comparador de Esquemas Inteligente (schema_reference.json) - EJECUTADO PRIMERO
     const schemaFile = resolvePath('SQL', 'schema_reference.json');
     if (fs.existsSync(schemaFile)) {
-        console.log(`\n${colors.bright}[2/4] Iniciando comparación de esquemas con el perfil de desarrollo...${colors.reset}`);
+        console.log(`\n${colors.bright}[1/4] Iniciando comparación de esquemas con el perfil de desarrollo...${colors.reset}`);
         try {
             const refSchema = JSON.parse(fs.readFileSync(schemaFile, 'utf8'));
             
@@ -130,6 +114,19 @@ async function run() {
                 if (!liveSchema[tblName]) {
                     console.log(`  ${colors.yellow}[ADD TABLE] Creando tabla faltante: public."${tblName}"...${colors.reset}`);
                     
+                    // Crear secuencias previas si hay columnas de tipo nextval
+                    for (const [colName, colMeta] of Object.entries(tblMeta.columns)) {
+                        if (colMeta.columnDefault && colMeta.columnDefault.includes('nextval')) {
+                            const seqMatch = colMeta.columnDefault.match(/nextval\('"?([^"']+)"?'::regclass\)/i);
+                            if (seqMatch) {
+                                const seqName = seqMatch[1].replace(/^public\./, '').replace(/"/g, '');
+                                try {
+                                    await dbClient.query(`CREATE SEQUENCE IF NOT EXISTS public."${seqName}";`);
+                                } catch (seqErr) {}
+                            }
+                        }
+                    }
+
                     // Reconstruir CREATE TABLE desde el descriptor
                     const colDefs = [];
                     for (const [colName, colMeta] of Object.entries(tblMeta.columns)) {
@@ -160,7 +157,7 @@ async function run() {
                     
                     // Si la columna no existe en el cliente
                     if (!liveCol) {
-                        const colDefSql = getColumnSqlDefinition(colName, colMeta);
+                        const colDefSql = getColumnSqlDefinitionForAdd(colName, colMeta);
                         const addColSql = `ALTER TABLE public."${tblName}" ADD COLUMN ${colDefSql};`;
                         console.log(`  ${colors.yellow}[ADD COLUMN] Tabla "${tblName}": agregando campo faltante "${colName}"...${colors.reset}`);
                         try {
@@ -177,7 +174,6 @@ async function run() {
                     // Comparar tipo de datos, nullability y valor por defecto
                     let needsAlterType = false;
                     let needsAlterNull = false;
-                    let needsAlterDefault = false;
 
                     // Normalizar tipos comunes para evitar falsos positivos
                     const refType = normalizeDataType(colMeta.dataType);
@@ -203,7 +199,6 @@ async function run() {
                             changesApplied++;
                         } catch (err) {
                             console.error(`    ${colors.red}[AVISO] No se pudo cambiar tipo automáticamente en "${tblName}.${colName}": ${err.message}${colors.reset}`);
-                            console.log(`      ${colors.gray}Consola SQL sugerida: ${alterTypeSql}${colors.reset}`);
                             warningsCount++;
                         }
                     }
@@ -225,16 +220,22 @@ async function run() {
             }
 
             // C. Sincronizar Routines (Funciones y Procedimientos)
-            console.log(`\n${colors.bright}[3/4] Sincronizando Funciones y Procedimientos Almacenados...${colors.reset}`);
+            console.log(`\n${colors.bright}[2/4] Sincronizando Funciones y Procedimientos Almacenados...${colors.reset}`);
             for (const [rtName, rtMeta] of Object.entries(refSchema.routines)) {
                 try {
                     await dbClient.query(rtMeta.definition);
-                    // Log silencioso o sutil para no saturar pantalla
                     process.stdout.write(`${colors.gray}.`);
                 } catch (err) {
-                    process.stdout.write(`\n`);
-                    console.error(`  ${colors.red}[ERROR SP] Error al recrear routine "${rtName}": ${err.message}${colors.reset}`);
-                    warningsCount++;
+                    try {
+                        const kind = rtMeta.kind || 'FUNCTION';
+                        await dbClient.query(`DROP ${kind} IF EXISTS public."${rtName}" CASCADE;`);
+                        await dbClient.query(rtMeta.definition);
+                        process.stdout.write(`${colors.gray}.`);
+                    } catch (retryErr) {
+                        process.stdout.write(`\n`);
+                        console.error(`  ${colors.red}[ERROR SP] Error al recrear routine "${rtName}": ${retryErr.message}${colors.reset}`);
+                        warningsCount++;
+                    }
                 }
             }
             console.log(`\n  ${colors.green}[OK] Funciones y SPs procesados.${colors.reset}`);
@@ -299,9 +300,38 @@ function getColumnSqlDefinition(colName, colMeta) {
     }
     
     // Valor por defecto
+    return sql;
+}
+
+// Función auxiliar para agregar columnas a tablas existentes sin romper por NOT NULL
+function getColumnSqlDefinitionForAdd(colName, colMeta) {
+    let sql = `"${colName}" ${colMeta.dataType}`;
+    
+    if (colMeta.maxLength && colMeta.dataType.includes('char')) {
+        sql += `(${colMeta.maxLength})`;
+    }
+    
     if (colMeta.columnDefault !== null && colMeta.columnDefault !== undefined) {
-        // El default de postgres a veces viene con casts como: '3'::integer, 'text'::text
         sql += ` DEFAULT ${colMeta.columnDefault}`;
+    } else if (colMeta.isNullable === 'NO') {
+        const t = colMeta.dataType.toLowerCase();
+        if (t.includes('int') || t.includes('double') || t.includes('float') || t.includes('numeric')) {
+            sql += ` DEFAULT 0`;
+        } else if (t.includes('bool')) {
+            sql += ` DEFAULT false`;
+        } else if (t.includes('timestamp') || t.includes('date')) {
+            sql += ` DEFAULT CURRENT_TIMESTAMP`;
+        } else if (t.includes('json')) {
+            sql += ` DEFAULT '{}'::jsonb`;
+        } else {
+            sql += ` DEFAULT ''`;
+        }
+    }
+
+    if (colMeta.isNullable === 'NO') {
+        sql += ' NOT NULL';
+    } else {
+        sql += ' NULL';
     }
     
     return sql;

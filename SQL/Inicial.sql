@@ -2,10 +2,11 @@
 -- RUTA: c:\Proyectos\AgenciasNew\SQL\Data\Inicial.sql
 -- IDEMPOTENTE: Puede ejecutarse múltiples veces sin errores
 
--- 1. Rol Admin
+-- 1. Rol Admin y Superadministrador
 INSERT INTO public."Role" (name)
-VALUES ('Admin')
+VALUES ('Admin'), ('Superadministrador')
 ON CONFLICT (name) DO NOTHING;
+
 
 -- 2. Sucursal
 INSERT INTO public."Branch" (code, name)
@@ -41,6 +42,20 @@ VALUES (
     (SELECT id FROM public."TicketPrinter" WHERE code = '73009263')
 )
 ON CONFLICT (email) DO NOTHING;
+
+-- 4.1 Usuario Superadministrador (Contraseña: 123456789)
+INSERT INTO public."User" (email, name, "passwordHash", "roleId", "branchId")
+VALUES (
+    'ebarrera@zagencias.com',
+    'Superadministrador',
+    '$2b$10$EvqWyDZ9b/rcMCNNuSdplOyS/NooFO.keByM/UsOgJ6Zy8tgqSYxS',
+    (SELECT id FROM public."Role" WHERE name = 'Superadministrador'),
+    (SELECT id FROM public."Branch" WHERE code = 'BOG')
+)
+ON CONFLICT (email) DO UPDATE SET
+    "passwordHash" = EXCLUDED."passwordHash",
+    "roleId" = EXCLUDED."roleId";
+
 
 -- 5. Productos
 
@@ -122,17 +137,31 @@ ON CONFLICT (code) DO NOTHING;
 INSERT INTO public."Master" (code, name, "inactivo")
 VALUES
     ('SystemParameter', 'parametros', false),
+    ('User', 'usuarios', false),
+    ('Branch', 'sucursales', false),
+    ('Implant', 'implantes', false),
+    ('ChargeAndTax', 'impuestos', false),
+    ('Seller', 'vendedores', false),
+    ('TicketPrinter', 'tiqueteadores', false),
+    ('Prestadora', 'prestadoras', false),
     ('Client', 'clientes', false),
-    ('Provider', 'proveedor', false),
-	('Seller', 'vendedor', false),
-	('TicketPrinter', 'tiqueteador', false),
-	('Prestadora', 'prestadora', false),
-	('Branch', 'sucursal', false),
-	('Implant', 'implante', false),
-	('Product', 'producto', false),
-	('ChargeAndTax', 'cargos e impuesto', false),
-	('Currency', 'moneda', false)
+    ('Provider', 'proveedores', false),
+    ('Product', 'productos', false),
+    ('MasterVariable', 'variables', false),
+    ('Combo', 'combos', false),
+    ('SystemLog', 'logs', false),
+    ('Currency', 'monedas', false),
+    ('Equivalences', 'equivalencias', false),
+    ('CreditCard', 'tarjetas-credito', false),
+    ('Payment', 'formas-pago', false),
+    ('Countries', 'paises', false),
+    ('Cities', 'ciudades', false),
+    ('Airports', 'aeropuertos', false),
+    ('TicketType', 'tipos-tiquetes', false),
+    ('QuotationState', 'estados-cotizacion', false),
+    ('QuotationFormat', 'formatos-cotizacion', false)
 ON CONFLICT (code) DO NOTHING;
+
 
 -- 12. Paises Iniciales
 INSERT INTO public."Countries" (code, name, dane, region, prefix, "curencyId")

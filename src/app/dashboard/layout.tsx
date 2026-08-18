@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Users, FileText, ShoppingCart, Settings, LogOut, Search, PlusCircle, PieChart, Receipt, Shield, Compass } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, ShoppingCart, Settings, LogOut, Search, PlusCircle, PieChart, Receipt, Shield, Compass, Play, Database } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 
@@ -54,10 +54,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { id: 2, code: 'COTIZACIONES', name: 'Cotizaciones', parent: null, action: '/dashboard/quotations/history', activo: true },
         { id: 3, code: 'FACTURACION', name: 'Facturación', parent: null, action: '/dashboard/invoices/history', activo: true },
         { id: 4, code: 'MAESTROS', name: 'Maestros', parent: null, action: '/dashboard/settings', activo: true },
-        { id: 5, code: 'REPORTES', name: 'Reportes', parent: null, action: '/dashboard/reports', activo: true }
+        { id: 5, code: 'REPORTES', name: 'Reportes', parent: null, action: '/dashboard/reports', activo: true },
+        { id: 6, code: 'EJECUCIONES', name: 'Ejecuciones', parent: null, action: '/dashboard/executions', activo: true }
     ]
 
-    const itemsToRender = menuList.length > 0 ? menuList : defaultMenuItems
+    const baseItems = menuList.length > 0 ? menuList : defaultMenuItems
+    const hasMaestros = baseItems.some(item => (item.code || '').toUpperCase().includes('MAESTRO') || (item.action || '').includes('settings'))
+    const itemsToRender = hasMaestros 
+        ? baseItems 
+        : [...baseItems, { id: 999, code: 'MAESTROS', name: 'Maestros', parent: null, action: '/dashboard/settings', activo: true }]
+
 
     const getMenuIcon = (code: string, action: string) => {
         const uCode = (code || '').toUpperCase()
@@ -68,6 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (uCode.includes('FACTURA') || uAction.includes('invoices')) return <Receipt className="w-5 h-5" />
         if (uCode.includes('MAESTRO') || uCode.includes('SETTING') || uAction.includes('settings')) return <Settings className="w-5 h-5" />
         if (uCode.includes('REPORTE') || uAction.includes('reports')) return <PieChart className="w-5 h-5" />
+        if (uCode.includes('EJECUCION') || uAction.includes('executions')) return <Play className="w-5 h-5" />
         if (uCode.includes('USER') || uCode.includes('CLIENT')) return <Users className="w-5 h-5" />
         return <Compass className="w-5 h-5" />
     }
@@ -79,6 +86,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (action.includes('/invoices')) return pathname.includes('/dashboard/invoices')
         if (action.includes('/settings')) return pathname.includes('/dashboard/settings')
         if (action.includes('/reports')) return pathname.includes('/dashboard/reports')
+        if (action.includes('/executions')) return pathname.includes('/dashboard/executions')
         return pathname === action
     }
 

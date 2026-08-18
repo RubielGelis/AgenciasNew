@@ -27,11 +27,11 @@ BEGIN
             'stateDescription', q."stateDescription",
             'stateUpdatedAt', q."stateUpdatedAt",
             'user', CASE WHEN u.id IS NOT NULL THEN jsonb_build_object('id', u.id, 'name', u.name) ELSE NULL END,
-            'client', jsonb_build_object(
+            'client', CASE WHEN c.id IS NOT NULL THEN jsonb_build_object(
                 'id', c.id,
                 'name', c.name,
                 'document', c.document
-            ),
+            ) ELSE jsonb_build_object('id', null, 'name', 'Cliente desconocido', 'document', '') END,
             'products', COALESCE(
                 (
                     SELECT jsonb_agg(
@@ -77,16 +77,16 @@ BEGIN
             )
         )
     FROM public."Quotation" q
-    JOIN public."Client" c ON q."clientId" = c.id
+    LEFT JOIN public."Client" c ON q."clientId" = c.id
     LEFT JOIN public."User" u ON q."userId" = u.id
     WHERE 
         (p_referencia IS NULL OR q.id::text ILIKE '%' || p_referencia || '%')
         AND (p_fecha_desde IS NULL OR q.date::date >= p_fecha_desde)
         AND (p_fecha_hasta IS NULL OR q.date::date <= p_fecha_hasta)
-        AND (p_cliente IS NULL OR c.name ILIKE '%' || p_cliente || '%')
-        AND (p_elaborado_por IS NULL OR u.name ILIKE '%' || p_elaborado_por || '%')
+        AND (p_cliente IS NULL OR TRIM(p_cliente) = '' OR (c.name IS NOT NULL AND c.name ILIKE '%' || TRIM(p_cliente) || '%'))
+        AND (p_elaborado_por IS NULL OR TRIM(p_elaborado_por) = '' OR (u.name IS NOT NULL AND u.name ILIKE '%' || TRIM(p_elaborado_por) || '%'))
         AND (p_monto_total IS NULL OR q."totalAmount" = p_monto_total)
-        AND (p_estado IS NULL OR q.state ILIKE '%' || p_estado || '%')
+        AND (p_estado IS NULL OR TRIM(p_estado) = '' OR q.state ILIKE '%' || TRIM(p_estado) || '%')
     ORDER BY q.date DESC;
 END;
 $$;

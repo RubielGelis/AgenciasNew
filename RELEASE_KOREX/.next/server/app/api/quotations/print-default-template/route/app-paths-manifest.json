@@ -1,0 +1,3 @@
+{
+  "/api/quotations/print-default-template/route": "app/api/quotations/print-default-template/route.js"
+}

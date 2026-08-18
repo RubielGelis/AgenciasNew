@@ -78,6 +78,14 @@
       "namedRegex": "^/api/quotations/(?<nxtPid>[^/]+?)/attachments(?:/)?$"
     },
     {
+      "page": "/api/quotations/[id]/duplicate",
+      "regex": "^/api/quotations/([^/]+?)/duplicate(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/quotations/(?<nxtPid>[^/]+?)/duplicate(?:/)?$"
+    },
+    {
       "page": "/api/quotations/[id]/fn-cotizacion",
       "regex": "^/api/quotations/([^/]+?)/fn\\-cotizacion(?:/)?$",
       "routeKeys": {
@@ -186,6 +194,12 @@
       "regex": "^/api/config/branches(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/config/branches(?:/)?$"
+    },
+    {
+      "page": "/api/config/branches/copy-template",
+      "regex": "^/api/config/branches/copy\\-template(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/config/branches/copy\\-template(?:/)?$"
     },
     {
       "page": "/api/config/bulk-upload",
@@ -338,6 +352,24 @@
       "namedRegex": "^/api/config/variables(?:/)?$"
     },
     {
+      "page": "/api/executions/lookup",
+      "regex": "^/api/executions/lookup(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/executions/lookup(?:/)?$"
+    },
+    {
+      "page": "/api/executions/procedures",
+      "regex": "^/api/executions/procedures(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/executions/procedures(?:/)?$"
+    },
+    {
+      "page": "/api/executions/run",
+      "regex": "^/api/executions/run(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/executions/run(?:/)?$"
+    },
+    {
       "page": "/api/invoices",
       "regex": "^/api/invoices(?:/)?$",
       "routeKeys": {},
@@ -440,6 +472,12 @@
       "namedRegex": "^/api/quotations/print\\-customization(?:/)?$"
     },
     {
+      "page": "/api/quotations/print-default-template",
+      "regex": "^/api/quotations/print\\-default\\-template(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/quotations/print\\-default\\-template(?:/)?$"
+    },
+    {
       "page": "/api/reports",
       "regex": "^/api/reports(?:/)?$",
       "routeKeys": {},
@@ -486,6 +524,12 @@
       "regex": "^/dashboard(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/dashboard(?:/)?$"
+    },
+    {
+      "page": "/dashboard/executions",
+      "regex": "^/dashboard/executions(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard/executions(?:/)?$"
     },
     {
       "page": "/dashboard/invoices",

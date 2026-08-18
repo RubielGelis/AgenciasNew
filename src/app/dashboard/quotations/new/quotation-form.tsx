@@ -464,17 +464,24 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
                 if (quotationId) {
                     fetchAttachments()
-                    const qRes = await fetch(`/api/quotations/${quotationId}`)
+                    let qRes = await fetch(`/api/quotations/${quotationId}`)
+                    if (!qRes.ok) {
+                        // Fallback to fn-cotizacion endpoint
+                        qRes = await fetch(`/api/quotations/${quotationId}/fn-cotizacion`)
+                    }
+
                     if (qRes.ok) {
                         const qData = await qRes.json()
                         setOriginalState(qData.state || 'Nuevo')
                         setStateHistoryList(qData.stateHistory || [])
-                        if (qData.client) {
-                            setData((prev: any) => ({
-                                ...prev,
-                                clients: [qData.client]
-                            }));
-                        }
+                        setData((prev: any) => ({
+                            ...prev,
+                            clients: qData.client ? [...(prev?.clients || []).filter((c: any) => String(c.id) !== String(qData.client.id)), qData.client] : prev?.clients,
+                            sellers: qData.seller ? [...(prev?.sellers || []).filter((s: any) => String(s.id) !== String(qData.seller.id)), qData.seller] : prev?.sellers,
+                            branches: qData.branch ? [...(prev?.branches || []).filter((b: any) => String(b.id) !== String(qData.branch.id)), qData.branch] : prev?.branches,
+                            implants: qData.implant ? [...(prev?.implants || []).filter((i: any) => String(i.id) !== String(qData.implant.id)), qData.implant] : prev?.implants,
+                            ticketPrinters: qData.ticketPrinter ? [...(prev?.ticketPrinters || []).filter((t: any) => String(t.id) !== String(qData.ticketPrinter.id)), qData.ticketPrinter] : prev?.ticketPrinters
+                        }));
                         setFormData({
                             clientId: qData.clientId?.toString() || '',
                             branchId: qData.branchId?.toString() || '',

@@ -39,14 +39,41 @@ Cualquier cambio realizado en los SPs principales (`spCotizacionesCrear.sql`, `s
 
 ---
 
-## 3. Pruebas de Integración y Diagnóstico
+## 4. Regla Crítica: Uso de LEFT JOIN en Funciones de Consulta PostgreSQL
 
-Para validar el flujo completo de exportación de cotizaciones y facturas, puedes hacer uso de los scripts de prueba en `tmp/`:
-- **Exportar e importar cotización 3 de Postgres a SQL Server**:
-  ```bash
-  node tmp/test_q3_full.mjs
-  ```
-- **Verificar que la cotización e inserciones en SQL Server sean correctas**:
-  ```bash
-  node tmp/verify_q3_inserted.mjs
-  ```
+Al escribir o modificar funciones SQL de listado e historial (`fnCotizacionListar`, `fnCotizacionHistorial`, `fnCotizacion`, `spExportQuotation`, etc.):
+
+1. **Usar siempre `LEFT JOIN` para tablas maestras relacionables** (`public."Client"`, `public."User"`, `public."Branch"`, `public."Provider"`, `public."Prestadora"`).
+2. **NUNCA usar `INNER JOIN` (`JOIN`) en la tabla `Client` o `User`**. 
+   - *Causa*: Si una cotización tiene `clientId` nulo, no asignado o con un ID no coincidente en la tabla `Client` (común tras restauraciones de base de datos o migraciones externas), un `INNER JOIN` descarta la fila por completo.
+   - *Síntoma*: La interfaz muestra **"Total cotizaciones: 0"** o **"No hay cotizaciones"** en la vista de historial (`/dashboard/quotations/history`), a pesar de que los registros sí existen en la tabla `Quotation`.
+3. **Manejo seguro de Nulos en JSON**: Formatear el objeto JSON retornado usando `CASE WHEN c.id IS NOT NULL THEN jsonb_build_object(...) ELSE jsonb_build_object('id', null, 'name', 'Cliente desconocido', 'document', '') END` o `COALESCE(c.name, 'Cliente desconocido')`.
+
+---
+
+## 5. Sincronización Completa del Actualizador Local y Remoto
+
+Tras escribir o modificar cualquier función o SP en PostgreSQL:
+
+1. **Ejecutar la generación de esquemas (que incluye el validador automático)**:
+   ```bash
+   node deploy/gen_schema_json.js
+   ```
+
+2. **Compilar el actualizador o instalador**:
+   ```bash
+   powershell.exe -ExecutionPolicy Bypass -File deploy/Generar_Empaquetado.ps1 -SkipBuild
+   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" deploy/Korex_Update.iss
+   ```
+
+---
+
+## 6. Validación Automatizada Pre-Compilación (`validate_schema_before_package.js`)
+
+El generador de esquema ([`deploy/gen_schema_json.js`](file:///f:/Proyectos/AgenciasNew/deploy/gen_schema_json.js)) ejecuta automáticamente el script de validación pre-compilación ([`deploy/validate_schema_before_package.js`](file:///f:/Proyectos/AgenciasNew/deploy/validate_schema_before_package.js)) **antes de empaquetar o regenerar cualquier versión**, realizando las siguientes tareas automáticamente:
+
+1. **Despliegue Automático en Postgres Local**: Compila todos los `.sql` de `SQL/Function/` y `SQL/SP/` en la BD local para asegurar que las DDL extraídas a `schema_reference.json` sean 100% actuales.
+2. **Inspección de Tablas Referenciadas (`CREATE TABLE IF NOT EXISTS`)**: Escanea todos los SPs y funciones buscando tablas referenciadas (p. ej. `QuotationManualService`, `QuotationPrintCustomization`, etc.). Si falta la sentencia `CREATE TABLE IF NOT EXISTS` en [`Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql), **la crea e inyecta de forma automática**, previniendo errores de `relation "public.TableName" does not exist` en clientes.
+3. **Verificación de `LEFT JOIN` Obligatorio**: Escanea las funciones de consulta e historial y valida que relacionen `Client` y `User` mediante `LEFT JOIN`.
+4. **Sincronización de Actualizadores**: Actualiza automáticamente los archivos de texto [`Actualizador.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Actualizador/Actualizador.sql) y [`Actualizador.SQL`](file:///f:/Proyectos/AgenciasNew/SQL/Actualizador.SQL).
+

@@ -4,13 +4,6 @@ generator client {
   previewFeatures = ["partialIndexes"]
 }
 
-generator erd {
-  provider        = "prisma-erd-generator"
-  output          = "./ERD.svg"
-  previewFeatures = ["partialIndexes"]
-  theme           = "neutral"
-}
-
 datasource db {
   provider = "postgresql"
 }
@@ -526,7 +519,7 @@ model TicketType {
 
 model Airports {
   id       Int    @id @default(autoincrement())
-  code     String @unique(map: "airports_code_key") @db.VarChar(10)
+  code     String @unique @db.VarChar(10)
   name     String @db.VarChar(150)
   citiesId Int
   Cities   Cities @relation(fields: [citiesId], references: [id], onDelete: Cascade)
@@ -534,7 +527,7 @@ model Airports {
 
 model BookingGDS {
   id                Int                 @id @default(autoincrement())
-  code              String              @unique(map: "bookingds_code_key") @db.VarChar(25)
+  code              String              @unique @db.VarChar(25)
   type              String              @db.VarChar(25)
   blanch            String              @db.VarChar(25)
   implant           String?             @db.VarChar(25)
@@ -730,7 +723,7 @@ model BranchGDSInvoiceAuto {
 
 model Cities {
   id          Int        @id @default(autoincrement())
-  code        String     @unique(map: "cities_code_key") @db.VarChar(10)
+  code        String     @unique @db.VarChar(10)
   name        String     @db.VarChar(100)
   countriesId Int
   statecode   String?    @db.VarChar(25)
@@ -741,7 +734,7 @@ model Cities {
 
 model Countries {
   id        Int       @id @default(autoincrement())
-  code      String    @unique(map: "countries_code_key") @db.VarChar(10)
+  code      String    @unique @db.VarChar(10)
   name      String    @db.VarChar(100)
   dane      String?   @db.VarChar(25)
   region    String?   @db.VarChar(50)
@@ -788,12 +781,12 @@ model EquivalenciasInterfaces_Log {
 
 model GDS {
   id   Int    @id @default(autoincrement())
-  name String @unique(map: "gds_name_key")
+  name String @unique
 }
 
 model Interfaces {
   id                              Int                      @id(map: "interfaces_pkey") @default(autoincrement())
-  code                            String                   @unique(map: "interfaces_code_key")
+  code                            String                   @unique
   name                            String
   inactivo                        Boolean                  @default(false)
   bl_genera_archivoplano          Boolean                  @default(false)
@@ -807,7 +800,7 @@ model Interfaces {
 
 model Master {
   id                     Int                      @id(map: "master_pkey") @default(autoincrement())
-  code                   String                   @unique(map: "master_code_key")
+  code                   String                   @unique
   name                   String
   inactivo               Boolean                  @default(false)
   EquivalencesInterfaces EquivalencesInterfaces[]
@@ -889,6 +882,31 @@ model Menu {
   activo Boolean? @default(true)
 }
 
+model ExecutionProcedure {
+  id          Int               @id @default(autoincrement())
+  name        String            @db.VarChar(255)
+  spName      String            @db.VarChar(255)
+  description String?
+  parameters  Json?
+  createdAt   DateTime?         @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime?         @default(now()) @updatedAt @db.Timestamp(6)
+  presets     ExecutionPreset[]
+}
+
+model ExecutionPreset {
+  id             Int                @id @default(autoincrement())
+  name           String             @db.VarChar(255)
+  procedureId    Int
+  description    String?
+  filterValues   Json?
+  filterConfig   Json?
+  columnConfigs  Json?
+  selectedTotals Json?
+  createdAt      DateTime?          @default(now()) @db.Timestamp(6)
+  updatedAt      DateTime?          @default(now()) @updatedAt @db.Timestamp(6)
+  procedure      ExecutionProcedure @relation(fields: [procedureId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
 model QuotationProductPayment {
   id                 Int              @id @default(autoincrement())
   quotationProductId Int
@@ -938,7 +956,7 @@ model FormatCellCustomization {
 
 model QuotationFormat {
   id                      Int                       @id @default(autoincrement())
-  name                    String                    @db.VarChar(100)
+  name                    String                    @unique @db.VarChar(100)
   description             String?                   @db.VarChar(255)
   template                Bytes?
   templateConfig          Json?

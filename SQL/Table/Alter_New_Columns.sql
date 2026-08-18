@@ -1,6 +1,490 @@
 DO $$
 BEGIN
 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ReportSorts') THEN
+        CREATE TABLE public."ReportSorts" (
+            "id" integer DEFAULT nextval('"ReportSorts_id_seq"'::regclass) NOT NULL,
+            "report_id" integer NOT NULL,
+            "column_expr" text NOT NULL,
+            "direction" character varying DEFAULT 'ASC'::character varying,
+            "sort_order" integer DEFAULT 0
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ReportFilters') THEN
+        CREATE TABLE public."ReportFilters" (
+            "id" integer DEFAULT nextval('"ReportFilters_id_seq"'::regclass) NOT NULL,
+            "report_id" integer NOT NULL,
+            "table_alias" character varying,
+            "column_name" character varying NOT NULL,
+            "filter_label" character varying,
+            "filter_type" character varying NOT NULL,
+            "operator" character varying DEFAULT '='::character varying,
+            "sort_order" integer DEFAULT 0
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ReportJoins') THEN
+        CREATE TABLE public."ReportJoins" (
+            "id" integer DEFAULT nextval('"ReportJoins_id_seq"'::regclass) NOT NULL,
+            "report_id" integer NOT NULL,
+            "table_name" character varying NOT NULL,
+            "alias" character varying NOT NULL,
+            "join_type" character varying DEFAULT 'INNER JOIN'::character varying NOT NULL,
+            "join_condition" text NOT NULL,
+            "sort_order" integer DEFAULT 0
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ReportColumns') THEN
+        CREATE TABLE public."ReportColumns" (
+            "id" integer DEFAULT nextval('"ReportColumns_id_seq"'::regclass) NOT NULL,
+            "report_id" integer NOT NULL,
+            "table_alias" character varying,
+            "column_name" character varying NOT NULL,
+            "alias" character varying,
+            "is_calculated" boolean DEFAULT false,
+            "is_visible" boolean DEFAULT true,
+            "formula_expression" text,
+            "sort_order" integer DEFAULT 0
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Report') THEN
+        CREATE TABLE public."Report" (
+            "id" integer DEFAULT nextval('"Report_id_seq"'::regclass) NOT NULL,
+            "name" character varying NOT NULL,
+            "base_table" character varying,
+            "description" text,
+            "custom_sql" text,
+            "created_at" timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Menu') THEN
+        CREATE TABLE public."Menu" (
+            "id" integer DEFAULT nextval('"Menu_id_seq"'::regclass) NOT NULL,
+            "code" character varying NOT NULL,
+            "name" character varying NOT NULL,
+            "parent" integer,
+            "action" character varying NOT NULL,
+            "activo" boolean DEFAULT true
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Currency') THEN
+        CREATE TABLE public."Currency" (
+            "id" integer DEFAULT nextval('"Currency_id_seq"'::regclass) NOT NULL,
+            "code" text NOT NULL,
+            "name" text NOT NULL,
+            "exchangeRate" double precision NOT NULL,
+            "decimals" integer DEFAULT 2 NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Role') THEN
+        CREATE TABLE public."Role" (
+            "id" integer DEFAULT nextval('"Role_id_seq"'::regclass) NOT NULL,
+            "name" text NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'SystemLog') THEN
+        CREATE TABLE public."SystemLog" (
+            "id" integer DEFAULT nextval('"SystemLog_id_seq"'::regclass) NOT NULL,
+            "userId" integer,
+            "action" text NOT NULL,
+            "module" text NOT NULL,
+            "description" text NOT NULL,
+            "metadata" jsonb,
+            "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductCombo') THEN
+        CREATE TABLE public."InvoicesProductCombo" (
+            "id" integer DEFAULT nextval('"InvoicesProductCombo_id_seq"'::regclass) NOT NULL,
+            "invoiceId" integer NOT NULL,
+            "comboId" integer NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary') THEN
+        CREATE TABLE public."InvoicesProductItinerary" (
+            "id" integer DEFAULT nextval('"InvoicesProductItinerary_id_seq"'::regclass) NOT NULL,
+            "invoiceProductId" integer NOT NULL,
+            "orden" integer,
+            "origin" character varying NOT NULL,
+            "destination" character varying NOT NULL,
+            "class" character varying,
+            "checkInDate" timestamp without time zone,
+            "checkOutDate" timestamp without time zone,
+            "terminal" character varying,
+            "prestadoraCode" character varying,
+            "farebasis" character varying,
+            "Numflight" character varying,
+            "Typeflight" character varying,
+            "amount" double precision
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'TicketType') THEN
+        CREATE TABLE public."TicketType" (
+            "id" integer DEFAULT nextval('"TicketType_id_seq"'::regclass) NOT NULL,
+            "code" character varying NOT NULL,
+            "name" character varying NOT NULL,
+            "description" text,
+            "isActive" boolean DEFAULT true
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Payment') THEN
+        CREATE TABLE public."Payment" (
+            "id" integer DEFAULT nextval('"Payment_id_seq"'::regclass) NOT NULL,
+            "code" text NOT NULL,
+            "name" text NOT NULL,
+            "inactive" boolean DEFAULT false NOT NULL,
+            "iscash" boolean DEFAULT false NOT NULL,
+            "iscredit" boolean DEFAULT false NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable') THEN
+        CREATE TABLE public."InvoicesProductVariable" (
+            "id" integer DEFAULT nextval('"InvoicesProductVariable_id_seq"'::regclass) NOT NULL,
+            "invoiceProductId" integer NOT NULL,
+            "masterVariableId" integer NOT NULL,
+            "value" character varying NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger') THEN
+        CREATE TABLE public."InvoicesProductPasenger" (
+            "id" integer DEFAULT nextval('"InvoicesProductPasenger_id_seq"'::regclass) NOT NULL,
+            "invoiceProductId" integer NOT NULL,
+            "name" character varying NOT NULL,
+            "document" character varying NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProduct') THEN
+        CREATE TABLE public."InvoicesProduct" (
+            "id" integer DEFAULT nextval('"InvoicesProduct_id_seq"'::regclass) NOT NULL,
+            "invoiceId" integer NOT NULL,
+            "productId" integer NOT NULL,
+            "quantity" integer NOT NULL,
+            "price" double precision NOT NULL,
+            "cost" double precision DEFAULT 0,
+            "providerId" integer,
+            "prestadoraId" integer,
+            "checkInDate" timestamp without time zone,
+            "checkOutDate" timestamp without time zone,
+            "nights" integer,
+            "paxAdults" integer,
+            "paxChildren" integer,
+            "serviceType" character varying,
+            "destination" character varying,
+            "reservationCode" character varying,
+            "sellerCommission" double precision,
+            "ticketPrinterCommission" double precision,
+            "comboId" integer,
+            "mainTaxId" integer,
+            "inNationality" integer DEFAULT 1,
+            "servicios" text,
+            "descripcion" text,
+            "itinerary" text,
+            "class" character varying,
+            "ticketTypeId" integer,
+            "airline" character varying
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment') THEN
+        CREATE TABLE public."InvoicesProductPayment" (
+            "id" integer DEFAULT nextval('"InvoicesProductPayment_id_seq"'::regclass) NOT NULL,
+            "invoiceProductId" integer NOT NULL,
+            "amount" double precision NOT NULL,
+            "paymentMethod" character varying,
+            "date" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+            "reference" character varying,
+            "authorizationCode" text,
+            "cardNumber" text,
+            "creditCardId" integer,
+            "expirationDate" text,
+            "voucher" text
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax') THEN
+        CREATE TABLE public."InvoicesProductTax" (
+            "id" integer DEFAULT nextval('"InvoicesProductTax_id_seq"'::regclass) NOT NULL,
+            "invoiceProductId" integer NOT NULL,
+            "chargeAndTaxId" integer NOT NULL,
+            "valueSnapshot" double precision NOT NULL,
+            "valueTypeSnapshot" character varying NOT NULL,
+            "explicitAmount" double precision,
+            "isMain" boolean DEFAULT false
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Implant') THEN
+        CREATE TABLE public."Implant" (
+            "id" integer DEFAULT nextval('"Implant_id_seq"'::regclass) NOT NULL,
+            "code" text NOT NULL,
+            "name" text NOT NULL,
+            "branchId" integer,
+            "logo" bytea,
+            "template" bytea,
+            "templateConfig" jsonb,
+            "htmlTemplate" text,
+            "Logo" bytea
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Invoices') THEN
+        CREATE TABLE public."Invoices" (
+            "id" integer DEFAULT nextval('"Invoices_id_seq"'::regclass) NOT NULL,
+            "internalNumber" character varying NOT NULL,
+            "date" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            "clientId" integer NOT NULL,
+            "currency" character varying NOT NULL,
+            "exchangeRate" double precision NOT NULL,
+            "branchId" integer NOT NULL,
+            "implantId" integer,
+            "sellerId" integer,
+            "ticketPrinterId" integer,
+            "baseCommissionable" double precision NOT NULL,
+            "commissionPercentage" double precision NOT NULL,
+            "chargesAndTaxes" double precision NOT NULL,
+            "totalAmount" double precision NOT NULL,
+            "userId" integer,
+            "state" character varying DEFAULT 'NUEVO'::character varying
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Master') THEN
+        CREATE TABLE public."Master" (
+            "id" integer DEFAULT nextval('"Master_id_seq"'::regclass) NOT NULL,
+            "code" text NOT NULL,
+            "name" text NOT NULL,
+            "inactivo" boolean DEFAULT false NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Interfaces') THEN
+        CREATE TABLE public."Interfaces" (
+            "id" integer DEFAULT nextval('"Interfaces_id_seq"'::regclass) NOT NULL,
+            "code" text NOT NULL,
+            "name" text NOT NULL,
+            "inactivo" boolean DEFAULT false NOT NULL,
+            "bl_genera_archivoplano" boolean DEFAULT false NOT NULL,
+            "ds_storedprocedure_archivoplano" text,
+            "bl_job" boolean DEFAULT false NOT NULL,
+            "ds_namejob" text,
+            "bl_facturador" boolean DEFAULT false NOT NULL,
+            "id_gds" integer
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'EquivalencesInterfaces') THEN
+        CREATE TABLE public."EquivalencesInterfaces" (
+            "id" integer DEFAULT nextval('"EquivalencesInterfaces_id_seq"'::regclass) NOT NULL,
+            "id_interfaces" integer NOT NULL,
+            "id_master" integer NOT NULL,
+            "cd_maestro" text NOT NULL,
+            "cd_codigo" text NOT NULL,
+            "cd_codigointe" text NOT NULL,
+            "dt_fecha" timestamp without time zone DEFAULT now()
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'CreditCard') THEN
+        CREATE TABLE public."CreditCard" (
+            "id" integer DEFAULT nextval('"CreditCard_id_seq"'::regclass) NOT NULL,
+            "code" text NOT NULL,
+            "name" text NOT NULL,
+            "type" text NOT NULL,
+            "inactive" boolean DEFAULT false NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Countries') THEN
+        CREATE TABLE public."Countries" (
+            "id" integer DEFAULT nextval('"Countries_id_seq"'::regclass) NOT NULL,
+            "code" character varying NOT NULL,
+            "name" character varying NOT NULL,
+            "dane" character varying,
+            "region" character varying,
+            "prefix" character varying,
+            "curencyId" integer
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationState') THEN
+        CREATE TABLE public."QuotationState" (
+            "id" integer DEFAULT nextval('"QuotationState_id_seq"'::regclass) NOT NULL,
+            "code" character varying NOT NULL,
+            "name" character varying NOT NULL,
+            "color" character varying,
+            "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'SystemParameter') THEN
+        CREATE TABLE public."SystemParameter" (
+            "id" integer DEFAULT nextval('"SystemParameter_id_seq"'::regclass) NOT NULL,
+            "code" text NOT NULL,
+            "name" text NOT NULL,
+            "value" text NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment') THEN
+        CREATE TABLE public."QuotationProductPayment" (
+            "id" integer DEFAULT nextval('"QuotationProductPayment_id_seq"'::regclass) NOT NULL,
+            "quotationProductId" integer NOT NULL,
+            "amount" double precision NOT NULL,
+            "paymentMethod" character varying,
+            "date" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+            "reference" character varying,
+            "creditCardId" integer,
+            "cardNumber" character varying,
+            "authorizationCode" character varying,
+            "voucher" character varying,
+            "expirationDate" character varying
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationProductVariable') THEN
+        CREATE TABLE public."QuotationProductVariable" (
+            "id" integer DEFAULT nextval('"QuotationProductVariable_id_seq"'::regclass) NOT NULL,
+            "quotationProductId" integer NOT NULL,
+            "masterVariableId" integer NOT NULL,
+            "value" text NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ChargeAndTax') THEN
+        CREATE TABLE public."ChargeAndTax" (
+            "id" integer DEFAULT nextval('"ChargeAndTax_id_seq"'::regclass) NOT NULL,
+            "name" text NOT NULL,
+            "type" text NOT NULL,
+            "valueType" text NOT NULL,
+            "value" double precision NOT NULL,
+            "isEditable" boolean DEFAULT true NOT NULL,
+            "code" text
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationProductTax') THEN
+        CREATE TABLE public."QuotationProductTax" (
+            "id" integer DEFAULT nextval('"QuotationProductTax_id_seq"'::regclass) NOT NULL,
+            "quotationProductId" integer NOT NULL,
+            "chargeAndTaxId" integer NOT NULL,
+            "valueSnapshot" double precision NOT NULL,
+            "valueTypeSnapshot" text NOT NULL,
+            "explicitAmount" double precision,
+            "isMain" boolean DEFAULT false NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationProductPassenger') THEN
+        CREATE TABLE public."QuotationProductPassenger" (
+            "id" integer DEFAULT nextval('"QuotationProductPassenger_id_seq"'::regclass) NOT NULL,
+            "quotationProductId" integer NOT NULL,
+            "name" text NOT NULL,
+            "document" text NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationProduct') THEN
+        CREATE TABLE public."QuotationProduct" (
+            "id" integer DEFAULT nextval('"QuotationProduct_id_seq"'::regclass) NOT NULL,
+            "quotationId" integer NOT NULL,
+            "productId" integer NOT NULL,
+            "quantity" integer NOT NULL,
+            "price" double precision NOT NULL,
+            "cost" double precision DEFAULT 0,
+            "providerId" integer,
+            "prestadoraId" integer,
+            "checkInDate" timestamp without time zone,
+            "checkOutDate" timestamp without time zone,
+            "nights" integer,
+            "paxAdults" integer,
+            "paxChildren" integer,
+            "serviceType" text,
+            "destination" text,
+            "reservationCode" text,
+            "sellerCommission" double precision,
+            "ticketPrinterCommission" double precision,
+            "comboId" integer,
+            "mainTaxId" integer,
+            "inNationality" integer DEFAULT 1,
+            "service" text,
+            "description" text,
+            "servicios" text,
+            "descripcion" text,
+            "passenger" character varying
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationCombo') THEN
+        CREATE TABLE public."QuotationCombo" (
+            "id" integer DEFAULT nextval('"QuotationCombo_id_seq"'::regclass) NOT NULL,
+            "quotationId" integer NOT NULL,
+            "comboId" integer NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationStateHistory') THEN
+        CREATE TABLE public."QuotationStateHistory" (
+            "id" integer DEFAULT nextval('"QuotationStateHistory_id_seq"'::regclass) NOT NULL,
+            "quotationId" integer NOT NULL,
+            "state" character varying NOT NULL,
+            "description" text,
+            "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            "userId" integer
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'MasterVariable') THEN
+        CREATE TABLE public."MasterVariable" (
+            "id" integer DEFAULT nextval('"MasterVariable_id_seq"'::regclass) NOT NULL,
+            "code" text NOT NULL,
+            "name" text NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ComboProduct') THEN
+        CREATE TABLE public."ComboProduct" (
+            "id" integer DEFAULT nextval('"ComboProduct_id_seq"'::regclass) NOT NULL,
+            "comboId" integer NOT NULL,
+            "productId" integer NOT NULL,
+            "price" double precision NOT NULL,
+            "cost" double precision DEFAULT 0,
+            "checkInDate" timestamp without time zone,
+            "checkOutDate" timestamp without time zone,
+            "prestadoraId" integer,
+            "mainTaxId" integer,
+            "paxAdults" integer,
+            "paxChildren" integer,
+            "providerId" integer,
+            "inNationality" integer DEFAULT 1,
+            "quantity" integer DEFAULT 1 NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ComboProductTax') THEN
+        CREATE TABLE public."ComboProductTax" (
+            "id" integer DEFAULT nextval('"ComboProductTax_id_seq"'::regclass) NOT NULL,
+            "comboProductId" integer NOT NULL,
+            "chargeAndTaxId" integer NOT NULL,
+            "amount" double precision NOT NULL,
+            "isMain" boolean DEFAULT false NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Combo') THEN
+        CREATE TABLE public."Combo" (
+            "id" integer DEFAULT nextval('"Combo_id_seq"'::regclass) NOT NULL,
+            "code" text NOT NULL,
+            "name" text NOT NULL,
+            "cupos" integer DEFAULT 0,
+            "currencyId" integer,
+            "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            "updatedAt" timestamp without time zone DEFAULT now()
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Cities') THEN
+        CREATE TABLE public."Cities" (
+            "id" integer DEFAULT nextval('"Cities_id_seq"'::regclass) NOT NULL,
+            "code" character varying NOT NULL,
+            "name" character varying NOT NULL,
+            "countriesId" integer NOT NULL,
+            "statecode" character varying,
+            "iata" character varying
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'CellCustomization') THEN
+        CREATE TABLE public."CellCustomization" (
+            "id" integer DEFAULT nextval('"CellCustomization_id_seq"'::regclass) NOT NULL,
+            "code" character varying NOT NULL,
+            "name" character varying NOT NULL,
+            "value" character varying,
+            "branchId" integer,
+            "implantId" integer
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Airports') THEN
+        CREATE TABLE public."Airports" (
+            "id" integer DEFAULT nextval('"Airports_id_seq"'::regclass) NOT NULL,
+            "code" character varying NOT NULL,
+            "name" character varying NOT NULL,
+            "citiesId" integer NOT NULL
+        );
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'id') THEN
         ALTER TABLE public."Branch" ADD COLUMN "id" integer NOT NULL;
     END IF;
@@ -1396,62 +1880,64 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'createdAt') THEN
         ALTER TABLE public."QuotationFormat" ADD COLUMN "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationFormat') THEN
+        CREATE TABLE public."QuotationFormat" (
+            id SERIAL PRIMARY KEY,
+            "code" text NOT NULL DEFAULT '',
+            "name" character varying(100) NOT NULL,
+            "description" character varying(255),
+            "template" bytea,
+            "templateConfig" jsonb,
+            "htmlTemplate" text,
+            "branchId" integer,
+            "implantId" integer,
+            "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+        );
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationFormat' AND column_name = 'updatedAt') THEN
         ALTER TABLE public."QuotationFormat" ADD COLUMN "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'id') THEN
-        ALTER TABLE public."QuotationManualService" ADD COLUMN "id" integer NOT NULL;
+
+    CREATE SEQUENCE IF NOT EXISTS public."QuotationManualService_id_seq";
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationManualService') THEN
+        CREATE TABLE public."QuotationManualService" (
+            id SERIAL PRIMARY KEY,
+            "quotationId" integer NOT NULL REFERENCES public."Quotation"(id) ON DELETE CASCADE,
+            "providerName" character varying(255),
+            "serviceName" character varying(255),
+            "cost" double precision DEFAULT 0 NOT NULL,
+            "salePrice" double precision DEFAULT 0 NOT NULL,
+            "utility" double precision DEFAULT 0 NOT NULL,
+            "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+        );
+    ELSE
+        ALTER TABLE public."QuotationManualService" ALTER COLUMN id SET DEFAULT nextval('public."QuotationManualService_id_seq"'::regclass);
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'quotationId') THEN
-        ALTER TABLE public."QuotationManualService" ADD COLUMN "quotationId" integer NOT NULL;
+    ALTER SEQUENCE public."QuotationManualService_id_seq" OWNED BY public."QuotationManualService".id;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization') THEN
+        CREATE TABLE public."QuotationPrintCustomization" (
+            id SERIAL PRIMARY KEY,
+            "quotationId" integer NOT NULL UNIQUE REFERENCES public."Quotation"(id) ON DELETE CASCADE,
+            "html" text NOT NULL,
+            "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    ELSE
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationPrintCustomization_quotationId_key') THEN
+            ALTER TABLE public."QuotationPrintCustomization" ADD CONSTRAINT "QuotationPrintCustomization_quotationId_key" UNIQUE ("quotationId");
+        END IF;
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'providerName') THEN
-        ALTER TABLE public."QuotationManualService" ADD COLUMN "providerName" character varying(255);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'serviceName') THEN
-        ALTER TABLE public."QuotationManualService" ADD COLUMN "serviceName" character varying(255);
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'cost') THEN
-        ALTER TABLE public."QuotationManualService" ADD COLUMN "cost" double precision DEFAULT 0;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'salePrice') THEN
-        ALTER TABLE public."QuotationManualService" ADD COLUMN "salePrice" double precision DEFAULT 0;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'utility') THEN
-        ALTER TABLE public."QuotationManualService" ADD COLUMN "utility" double precision DEFAULT 0;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationManualService' AND column_name = 'createdAt') THEN
-        ALTER TABLE public."QuotationManualService" ADD COLUMN "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'id') THEN
-        ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "id" integer NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'quotationId') THEN
-        ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "quotationId" integer NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'html') THEN
-        ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "html" text NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'createdAt') THEN
-        ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintCustomization' AND column_name = 'updatedAt') THEN
-        ALTER TABLE public."QuotationPrintCustomization" ADD COLUMN "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintDefaultTemplate' AND column_name = 'id') THEN
-        ALTER TABLE public."QuotationPrintDefaultTemplate" ADD COLUMN "id" integer NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintDefaultTemplate' AND column_name = 'html') THEN
-        ALTER TABLE public."QuotationPrintDefaultTemplate" ADD COLUMN "html" text NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintDefaultTemplate' AND column_name = 'name') THEN
-        ALTER TABLE public."QuotationPrintDefaultTemplate" ADD COLUMN "name" character varying(100) DEFAULT 'Default'::character varying;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintDefaultTemplate' AND column_name = 'createdAt') THEN
-        ALTER TABLE public."QuotationPrintDefaultTemplate" ADD COLUMN "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
-    END IF;
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationPrintDefaultTemplate' AND column_name = 'updatedAt') THEN
-        ALTER TABLE public."QuotationPrintDefaultTemplate" ADD COLUMN "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationPrintDefaultTemplate') THEN
+        CREATE TABLE public."QuotationPrintDefaultTemplate" (
+            id SERIAL PRIMARY KEY,
+            "html" text NOT NULL,
+            "name" character varying(100) DEFAULT 'Default'::character varying,
+            "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'id') THEN
         ALTER TABLE public."QuotationProduct" ADD COLUMN "id" integer NOT NULL;

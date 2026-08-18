@@ -18,11 +18,12 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ message: 'quotationId debe ser un número' }, { status: 400 })
         }
 
-        const customization = await prisma.quotationPrintCustomization.findUnique({
-            where: { quotationId }
-        })
+        const rows: any[] = await prisma.$queryRawUnsafe(
+            `SELECT "html" FROM public."QuotationPrintCustomization" WHERE "quotationId" = $1::INT LIMIT 1`,
+            quotationId
+        );
 
-        return NextResponse.json({ html: customization?.html || null })
+        return NextResponse.json({ html: rows[0]?.html || null })
     } catch (error: any) {
         console.error('Error fetching print customization:', error)
         return NextResponse.json({ message: 'Error al obtener personalización de impresión', error: error.message }, { status: 500 })
@@ -44,22 +45,41 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'quotationId debe ser un número' }, { status: 400 })
         }
 
-        // Upsert the customization
-        const customization = await prisma.quotationPrintCustomization.upsert({
-            where: { quotationId: id },
-            create: {
-                quotationId: id,
-                html,
-            },
-            update: {
-                html,
-                updatedAt: new Date(),
-            }
-        })
+        // Asegurar que la secuencia, tabla, default autoincremental y restricción UNIQUE existan antes de ejecutar
+        await prisma.$executeRawUnsafe(`
+            CREATE SEQUENCE IF NOT EXISTS public."QuotationPrintCustomization_id_seq";
+            CREATE TABLE IF NOT EXISTS public."QuotationPrintCustomization" (
+                id SERIAL PRIMARY KEY,
+                "quotationId" INTEGER NOT NULL UNIQUE,
+                "html" TEXT NOT NULL,
+                "createdAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
+                "updatedAt" TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL
+            );
+            ALTER TABLE public."QuotationPrintCustomization" ALTER COLUMN id SET DEFAULT nextval('public."QuotationPrintCustomization_id_seq"'::regclass);
+            ALTER SEQUENCE public."QuotationPrintCustomization_id_seq" OWNED BY public."QuotationPrintCustomization".id;
+            DO $$ BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuotationPrintCustomization_quotationId_key') THEN
+                    ALTER TABLE public."QuotationPrintCustomization" ADD CONSTRAINT "QuotationPrintCustomization_quotationId_key" UNIQUE ("quotationId");
+                END IF;
+            END $$;
+        `);
 
-        return NextResponse.json({ message: 'Personalización de impresión guardada correctamente', id: customization.id })
+        // Ejecutar upsert atómico mediante ON CONFLICT
+        await prisma.$executeRawUnsafe(
+            `INSERT INTO public."QuotationPrintCustomization" ("quotationId", "html", "createdAt", "updatedAt")
+             VALUES ($1::INT, $2::TEXT, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+             ON CONFLICT ("quotationId")
+             DO UPDATE SET "html" = EXCLUDED."html", "updatedAt" = CURRENT_TIMESTAMP`,
+            id,
+            html
+        );
+
+        return NextResponse.json({ message: 'Personalización de impresión guardada correctamente', quotationId: id })
     } catch (error: any) {
         console.error('Error saving print customization:', error)
-        return NextResponse.json({ message: 'Error al guardar la personalización de impresión', error: error.message }, { status: 500 })
+        return NextResponse.json({ 
+            message: 'Error al guardar la personalización de impresión',
+            detail: error?.message || String(error)
+        }, { status: 500 })
     }
 }

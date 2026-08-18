@@ -32,6 +32,19 @@ if (process.env.DATABASE_URL) {
 }
 
 async function exportSchema() {
+    // 0. Ejecutar validación y preparación automatizada de esquema antes de compilar
+    try {
+        const validatorPath = path.join(__dirname, 'validate_schema_before_package.js');
+        if (fs.existsSync(validatorPath)) {
+            const { execSync } = require('child_process');
+            console.log("[Schema Generator] Ejecutando validación pre-compilación de esquema...");
+            execSync(`node "${validatorPath}"`, { stdio: 'inherit', cwd: rootPath });
+        }
+    } catch (valErr) {
+        console.error("[Schema Generator] ERROR EN VALIDADOR PRE-COMPILACION:", valErr.message);
+        process.exit(1);
+    }
+
     console.log(`[Schema Generator] Conectando a la base de datos de desarrollo: ${database} en ${host}:${port}...`);
     const client = new Client({
         connectionString: process.env.DATABASE_URL

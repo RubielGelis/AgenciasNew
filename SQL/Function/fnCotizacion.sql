@@ -23,11 +23,11 @@ BEGIN
             'state', q.state,
             'stateDescription', q."stateDescription",
             'stateUpdatedAt', q."stateUpdatedAt",
-            'client', jsonb_build_object(
+            'client', CASE WHEN c.id IS NOT NULL THEN jsonb_build_object(
                 'id', c.id,
                 'name', c.name,
                 'document', c.document
-            ),
+            ) ELSE jsonb_build_object('id', null, 'name', 'Cliente desconocido', 'document', '') END,
             'combos', COALESCE((
                 SELECT jsonb_agg(jsonb_build_object('id', qc."comboId", 'comboId', qc."comboId", 'name', cb.name))
                 FROM public."QuotationCombo" qc
@@ -112,7 +112,7 @@ BEGIN
         )
     INTO v_result
     FROM public."Quotation" q
-    JOIN public."Client" c ON q."clientId" = c.id
+    LEFT JOIN public."Client" c ON q."clientId" = c.id
     WHERE q.id = p_quotation_id;
 
     RETURN v_result;

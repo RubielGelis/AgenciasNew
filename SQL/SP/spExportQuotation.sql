@@ -411,8 +411,8 @@ BEGIN
         '' as cd_Evento, 
         q.id as orig_id_ref
     FROM public."Quotation" q
-    JOIN public."Client" c ON q."clientId" = c.id
-    JOIN public."Branch" b ON q."branchId" = b.id
+    LEFT JOIN public."Client" c ON q."clientId" = c.id
+    LEFT JOIN public."Branch" b ON q."branchId" = b.id
     LEFT JOIN public."Implant" i ON q."implantId" = i.id
     LEFT JOIN public."Seller" s ON q."sellerId" = s.id
     LEFT JOIN public."TicketPrinter" t ON q."ticketPrinterId" = t.id

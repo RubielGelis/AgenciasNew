@@ -13,6 +13,10 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             where: { id },
             include: {
                 client: true,
+                seller: true,
+                branch: true,
+                implant: true,
+                ticketPrinter: true,
                 manualServices: true,
                 products: {
                     include: {
@@ -48,10 +52,15 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             return NextResponse.json({ message: 'Cotización no encontrada' }, { status: 404 })
         }
 
-        const stateHistory = await prisma.$queryRawUnsafe(
-            `SELECT * FROM public.fn_obtener_historial_estados($1::INT)`,
-            id
-        );
+        let stateHistory: any[] = [];
+        try {
+            stateHistory = await prisma.$queryRawUnsafe(
+                `SELECT * FROM public.fn_obtener_historial_estados($1::INT)`,
+                id
+            );
+        } catch (shErr: any) {
+            console.warn('Warning: Could not fetch stateHistory for quotation ' + id + ':', shErr.message);
+        }
 
         return NextResponse.json({
             ...quotation,
