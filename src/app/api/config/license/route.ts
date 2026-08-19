@@ -6,7 +6,17 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
     try {
         const status = await getStoredLicenseStatus();
-        return NextResponse.json(status);
+        const response = NextResponse.json(status);
+
+        if (status.expirationDate) {
+            response.cookies.set('korex_lic_exp', status.expirationDate, {
+                path: '/',
+                httpOnly: true,
+                sameSite: 'lax'
+            });
+        }
+
+        return response;
     } catch (error: any) {
         console.error('Error in GET /api/config/license:', error);
         return NextResponse.json({ message: 'Error consultando estado de licencia' }, { status: 500 });
@@ -26,10 +36,19 @@ export async function POST(req: NextRequest) {
 
         const payload = await applyLicenseKey(licenseKey, actingUserId);
 
-        return NextResponse.json({
+        const response = NextResponse.json({
             message: 'Licencia actualizada con éxito',
             license: payload
         });
+
+        // Actualizar Cookie de Expiración en el Navegador inmediatamente
+        response.cookies.set('korex_lic_exp', payload.expirationDate, {
+            path: '/',
+            httpOnly: true,
+            sameSite: 'lax'
+        });
+
+        return response;
     } catch (error: any) {
         console.error('Error in POST /api/config/license:', error);
         return NextResponse.json(

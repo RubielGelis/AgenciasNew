@@ -1,6 +1,42 @@
 DO $$
 BEGIN
 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'PreQuotationStateHistory') THEN
+        CREATE TABLE public."PreQuotationStateHistory" (
+            "id" integer DEFAULT nextval('"PreQuotationStateHistory_id_seq"'::regclass) NOT NULL,
+            "preQuotationId" integer NOT NULL,
+            "state" character varying NOT NULL,
+            "description" text,
+            "userId" integer NOT NULL,
+            "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'PreQuotation') THEN
+        CREATE TABLE public."PreQuotation" (
+            "id" integer DEFAULT nextval('"PreQuotation_id_seq"'::regclass) NOT NULL,
+            "consecutivo" integer NOT NULL,
+            "clientNameText" text,
+            "clientId" integer,
+            "headerDescription" text,
+            "providerId" integer,
+            "ticketPrinterId" integer,
+            "sellerId" integer,
+            "branchId" integer NOT NULL,
+            "preQuotationType" character varying,
+            "quotationNotice" text,
+            "noticeResponse" text,
+            "startDate" timestamp without time zone,
+            "endDate" timestamp without time zone,
+            "customFields" jsonb,
+            "state" character varying DEFAULT 'POR COTIZAR'::character varying,
+            "convertedQuotationId" integer,
+            "convertedAt" timestamp without time zone,
+            "convertedUserId" integer,
+            "userId" integer NOT NULL,
+            "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+        );
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ReportSorts') THEN
         CREATE TABLE public."ReportSorts" (
             "id" integer DEFAULT nextval('"ReportSorts_id_seq"'::regclass) NOT NULL,

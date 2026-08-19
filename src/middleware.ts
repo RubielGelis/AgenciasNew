@@ -15,7 +15,7 @@ export async function middleware(req: NextRequest) {
         return NextResponse.next();
     }
 
-    // 1. Verificación de Expiración de Licencia mediante Cookie o Parámetro de Encabezado
+    // 1. Verificación de Expiración de Licencia mediante Cookie en Edge Runtime
     const licExpCookie = req.cookies.get('korex_lic_exp')?.value;
 
     if (licExpCookie) {
@@ -35,9 +35,7 @@ export async function middleware(req: NextRequest) {
 
     // 2. Verificación de Token de Autenticación de Usuario (Si se requiere)
     const authToken = req.cookies.get('auth_token')?.value;
-    
-    // Si la ruta es del Dashboard y no hay token de autenticación (cuando esté activado auth estricto)
-    // Para no interrumpir flujos de desarrollo locales sin login forzado, permitimos navegación si auth_token no es obligatorio en dev
+
     if (!authToken && process.env.REQUIRE_AUTH === 'true') {
         if (pathname.startsWith('/api')) {
             return NextResponse.json({ message: 'No autorizado' }, { status: 401 });

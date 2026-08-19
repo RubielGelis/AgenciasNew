@@ -1,0 +1,732 @@
+export interface ManualField {
+    name: string;
+    type: string;
+    description: string;
+}
+
+export interface ManualStep {
+    number: number;
+    title: string;
+    description: string;
+    codeSnippet?: string;
+    tip?: string;
+}
+
+export interface ManualProcedure {
+    code?: string;
+    masterCode?: string; // Código de correspondencia con fnMasterList() (ej: 'User', 'Branch', 'Client', etc.)
+    name: string;
+    summary: string;
+    concept: string;
+    fields?: ManualField[];
+    steps: ManualStep[];
+    businessRules?: string[];
+}
+
+export interface ManualModule {
+    id: string;
+    title: string;
+    iconName: string;
+    category: string;
+    description: string;
+    overview: string;
+    procedures: ManualProcedure[];
+}
+
+export const MANUAL_MODULES: ManualModule[] = [
+    {
+        id: 'prequotations',
+        title: 'Gestión de Pre-Cotizaciones y Trazabilidad',
+        iconName: 'FilePlus',
+        category: 'Operaciones Comerciales',
+        description: 'Manual de procedimiento para el registro básico de pre-cotizaciones, avisos destacados para cotización, consecutivo compartido y seguimiento de ciclo de vida.',
+        overview: 'El módulo de Pre-Cotizaciones permite capturar solicitudes preliminares con datos básicos (cliente digitado o seleccionado, sucursal, fechas, prestador y observaciones). Comparte el mismo consecutivo numérico con las Cotizaciones y permite realizar el seguimiento completo del ciclo de vida (Pre-Cotización ➔ Cotización ➔ Factura ERP).',
+        procedures: [
+            {
+                code: 'PRE-01',
+                name: 'Registro de Nueva Pre-Cotización',
+                summary: 'Captura rápida de solicitudes preliminares asignando automáticamente el consecutivo unificado.',
+                concept: 'Permite registrar la solicitud de un cliente (nombre digitado libremente o seleccionado), adjuntando datos de encabezado, avisos especiales de atención para el cotizador y fechas estimadas.',
+                fields: [
+                    { name: 'Sucursal', type: 'Selección Obligatoria', description: 'Sucursal de la agencia responsable de atender la solicitud.' },
+                    { name: 'Cliente', type: 'Texto / Selección', description: 'Permite digitar el nombre del cliente libremente o elegir un cliente ya registrado.' },
+                    { name: 'Datos de Cotización', type: 'Texto Multilínea', description: 'Instrucciones preliminares que viajarán al encabezado de la cotización.' },
+                    { name: 'Aviso para Cotización', type: 'Texto Destacado', description: 'Mensaje de advertencia o recomendación especial que aparecerá de forma prominente en la pantalla del cotizador.' },
+                    { name: 'Fecha Inicio / Fin', type: 'Fechas', description: 'Rango de fechas solicitadas para el viaje o servicio.' }
+                ],
+                businessRules: [
+                    'El consecutivo numérico asignado a la pre-cotización se reservará y compartirá exactamente con la cotización que se genere posteriormente.',
+                    'Si el cliente fue digitado como texto libre, la validación y selección del cliente en la base de datos se requerirá al convertir la solicitud en Cotización.'
+                ],
+                steps: [
+                    { number: 1, title: 'Ingresar a Pre-Cotizaciones', description: 'Haga clic en la opción "Pre-Cotizaciones" del menú lateral principal.' },
+                    { number: 2, title: 'Crear Registro', description: 'Haga clic en "+ Nueva Pre-Cotización", complete la sucursal y los datos del cliente.' },
+                    { number: 3, title: 'Guardar Solicitud', description: 'Haga clic en "Crear Pre-Cotización". El sistema asignará el número consecutivo correspondiente.' }
+                ]
+            },
+            {
+                code: 'PRE-02',
+                name: 'Conversión a Cotización y Respuesta al Aviso',
+                summary: 'Transformación de Pre-Cotización a Cotización con transferencia de datos, aviso prominente y respuesta.',
+                concept: 'Proceso por el cual el asesor toma la pre-cotización, visualiza el aviso destacado del solicitante, ingresa su respuesta y guarda la cotización manteniendo el consecutivo numérico.',
+                fields: [
+                    { name: 'Aviso Especial', type: 'Banner de Alerta', description: 'Mensaje de atención cargado de forma prominente en la pantalla de cotización.' },
+                    { name: 'Respuesta al Aviso', type: 'Texto', description: 'Aclaración o respuesta digitada por la persona que armó la cotización.' }
+                ],
+                businessRules: [
+                    'Al guardar la cotización, la Pre-Cotización cambiará automáticamente su estado a "COTIZADA" y vinculará el ID de la cotización creada.',
+                    'La respuesta digitada quedará registrada en el historial de la pre-cotización para consulta del solicitante original.'
+                ],
+                steps: [
+                    { number: 1, title: 'Seleccionar Pre-Cotización', description: 'En la lista de Pre-Cotizaciones con estado "POR COTIZAR", haga clic en el botón "Convertir".' },
+                    { number: 2, title: 'Atender el Aviso', description: 'Lea el banner destacado de aviso especial e ingrese su respuesta aclaratoria.' },
+                    { number: 3, title: 'Completar Productos y Guardar', description: 'Adicione los servicios solicitados y guarde la cotización. El estado se actualizará automáticamente a "COTIZADA".' }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'licensing',
+        title: 'Licenciamiento y Seguridad por Fecha',
+        iconName: 'ShieldCheck',
+        category: 'Administración y Seguridad (Exclusivo SUPERADMINISTRADOR)',
+        description: 'Manual de funcionamiento del control de expiración por fecha, autenticidad por NIT de empresa y renovación del servicio.',
+        overview: 'El módulo de Licenciamiento garantiza que el sistema funcione únicamente dentro de la fecha contratada y en la infraestructura de la agencia autorizada. Utiliza un empaquetado seguro de certificado de licencia con prefijo KOR1 que vincula la razón social, el NIT de la empresa y la fecha de vencimiento.',
+        procedures: [
+            {
+                code: 'LIC-01',
+                name: 'Generación de Claves de Licencia (Herramienta Proveedor)',
+                summary: 'Emisión de certificados de licencia cifrados para entregar al cliente.',
+                concept: 'Cada clave generada constituye un certificado digital que empaqueta los tres datos de validación: Razón Social, NIT del cliente y Fecha de Vencimiento.',
+                fields: [
+                    { name: 'Nombre / Razón Social', type: 'Texto', description: 'Nombre oficial de la agencia cliente autorizada.' },
+                    { name: 'NIT / Cédula', type: 'Texto Alfanumérico', description: 'Identificación tributaria única de la empresa para amarrar la licencia.' },
+                    { name: 'Fecha Expiración', type: 'Fecha (Año-Mes-Día)', description: 'Fecha límite exacta en la cual el sistema solicitará renovación.' }
+                ],
+                businessRules: [
+                    'Si el NIT grabado en el certificado no coincide con el NIT registrado en la agencia, el sistema bloqueará la activación por seguridad.',
+                    'Modificar manualmente los caracteres del certificado invalidará la licencia.'
+                ],
+                steps: [
+                    {
+                        number: 1,
+                        title: 'Iniciar el Programa Generador',
+                        description: 'En el equipo del proveedor, ejecute GenerarLicencia.bat ubicado en la carpeta principal del sistema.',
+                        codeSnippet: 'GenerarLicencia.bat'
+                    },
+                    {
+                        number: 2,
+                        title: 'Diligenciar Datos del Contrato',
+                        description: 'Escriba el Nombre de la Agencia, el NIT sin puntos ni guiones, y la fecha límite acordada (formato YYYY-MM-DD).'
+                    },
+                    {
+                        number: 3,
+                        title: 'Copiar y Entregar el Certificado KOR1',
+                        description: 'Copie el texto completo generado con el prefijo KOR1... y entréguelo a la agencia para su activación.'
+                    }
+                ]
+            },
+            {
+                code: 'LIC-02',
+                name: 'Activación y Renovación del Servicio',
+                summary: 'Aplicación de la clave de renovación en la pantalla web o mediante ejecutable local.',
+                concept: 'Al ingresar un nuevo certificado KOR1, el sistema descifra el contenido, verifica que pertenezca a la empresa y actualiza la fecha de vencimiento sin requerir reiniciar el servidor.',
+                fields: [
+                    { name: 'Clave de Licencia (Token)', type: 'Texto Largo', description: 'Cadena completa emitida por el soporte técnico que inicia con el prefijo KOR1.' }
+                ],
+                businessRules: [
+                    'Si la fecha expira, la plataforma redirige automáticamente a la pantalla de renovación.',
+                    'Al activar con éxito, el sistema desbloquea la navegación de inmediato.'
+                ],
+                steps: [
+                    {
+                        number: 1,
+                        title: 'Activación desde la Pantalla Web',
+                        description: 'Pega la clave KOR1 en el formulario de la pantalla de bloqueo y presione "Activar Nueva Licencia".'
+                    },
+                    {
+                        number: 2,
+                        title: 'Activación por Ejecutable de Consola',
+                        description: 'En el servidor de la agencia, ejecute ActivarLicencia.bat, pegue la clave y presione Enter.',
+                        codeSnippet: 'ActivarLicencia.bat'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'quotations',
+        title: 'Módulo de Cotizaciones',
+        iconName: 'FileText',
+        category: 'Operaciones Comerciales',
+        description: 'Manual descriptivo para el ciclo completo de cotizaciones: creación, liquidación de margen, comisiones e impresión de propuestas.',
+        overview: 'El módulo de Cotizaciones gestiona el ciclo comercial completo para agencias de viajes. Permite estructurar cotizaciones de tiquetes aéreos, servicios terrestres, hoteles y paquetes, calculando automáticamente comisiones, impuestos e itinerarios.',
+        procedures: [
+            {
+                code: 'COT-01',
+                name: 'Consulta e Historial de Cotizaciones',
+                summary: 'Consola principal para buscar, filtrar, editar, duplicar, imprimir y facturar cotizaciones.',
+                concept: 'Muestra el listado de propuestas comerciales de la agencia con filtros por cliente, consecutivo, asesor comercial o estado.',
+                fields: [
+                    { name: 'Buscador General', type: 'Campo Texto', description: 'Filtra en tiempo real por consecutivo, cliente o destino.' },
+                    { name: 'Filtro por Estado', type: 'Selector', description: 'Permite acotar por estado (Nuevo, Aprobado, Facturado, Cancelado).' },
+                    { name: 'Botón + Nueva Cotización', type: 'Botón Acción', description: 'Abre el formulario de registro de cotizaciones desde cero.' },
+                    { name: 'Acción Editar', type: 'Botón Fila', description: 'Abre el formulario para ajustar precios, productos o pasajeros.' },
+                    { name: 'Acción Duplicar', type: 'Botón Fila', description: 'Crea una copia idéntica de la cotización con un consecutivo nuevo.' },
+                    { name: 'Acción Imprimir', type: 'Botón Fila', description: 'Genera la propuesta en formato PDF o Excel listo para enviar al cliente.' },
+                    { name: 'Acción Facturar', type: 'Botón Fila', description: 'Convierte la cotización en factura de venta conectada con la contabilidad.' }
+                ],
+                businessRules: [
+                    'Una cotización facturada preserva su registro para auditoría contable.',
+                    'Duplicar una cotización genera un nuevo consecutivo conservando los pasajeros y productos.'
+                ],
+                steps: [
+                    {
+                        number: 1,
+                        title: 'Navegar al Historial de Cotizaciones',
+                        description: 'En el menú lateral, seleccione Cotizaciones > Historial.'
+                    },
+                    {
+                        number: 2,
+                        title: 'Filtrar y Buscar Cotizaciones',
+                        description: 'Escriba el nombre del cliente o filtre por estado para ubicar la propuesta.'
+                    },
+                    {
+                        number: 3,
+                        title: 'Ejecutar Acciones Comerciales',
+                        description: 'Utilice los botones de acción para editar, imprimir en PDF o convertir la cotización a factura.'
+                    }
+                ]
+            },
+            {
+                code: 'COT-02',
+                name: 'Formulario de Creación de Cotizaciones',
+                summary: 'Registro detallado de cliente, divisa, productos, liquidación de costos, utilidades e itinerarios.',
+                concept: 'Calcula en tiempo real los costos, precios de venta, utilidades, comisiones de asesores e impuestos aplicables.',
+                fields: [
+                    { name: 'Cliente', type: 'Buscador / Selector', description: 'Selecciona el cliente de la base de datos o permite crear uno nuevo.' },
+                    { name: 'Moneda y Tasa de Cambio', type: 'Selector / Numérico', description: 'Define la divisa de la transacción (COP, USD, EUR) y la tasa de conversión.' },
+                    { name: 'Sucursal / Implant', type: 'Selector', description: 'Asigna la sucursal emisora para definir logos y plantillas.' },
+                    { name: 'Vendedor', type: 'Selector', description: 'Asigna el asesor comercial para el cálculo de comisiones de venta.' },
+                    { name: 'Productos y Servicios', type: 'Grilla de Ítems', description: 'Permite incorporar vuelos, hoteles, tours o servicios manuales.' },
+                    { name: 'Pasajeros e Itinerarios', type: 'Detalle de Ítem', description: 'Especifica nombres, documentos, fechas de viaje y trayectos.' }
+                ],
+                steps: [
+                    {
+                        number: 1,
+                        title: 'Diligenciar Encabezado y Cliente',
+                        description: 'Seleccione el cliente, la moneda de cotización y la sucursal correspondiente.'
+                    },
+                    {
+                        number: 2,
+                        title: 'Agregar Servicios o Productos',
+                        description: 'Haga clic en "+ Agregar Producto", especifique el tipo de servicio, costo y precio de venta.'
+                    },
+                    {
+                        number: 3,
+                        title: 'Guardar y Generar Propuesta',
+                        description: 'Presione "Guardar Cotización" para emitir la propuesta oficial.'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'invoices',
+        title: 'Módulo de Facturación ERP',
+        iconName: 'Receipt',
+        category: 'Contabilidad e Integración ERP',
+        description: 'Manual de funcionamiento para la emisión de facturas de venta, carga masiva de tiquetes e integración contable.',
+        overview: 'Automatiza el flujo de facturación de la agencia. Permite emitir facturas individuales desde cotizaciones aprobadas o procesar cargas masivas de tiquetes desde archivos de Excel.',
+        procedures: [
+            {
+                code: 'FAC-01',
+                name: 'Emisión e Historial de Facturas',
+                summary: 'Gestión del historial de facturación de venta y estado contable.',
+                concept: 'Registra los movimientos contables de venta, cartera, cuentas por cobrar e impuestos a partir de las cotizaciones aprobadas.',
+                fields: [
+                    { name: 'Buscador de Facturas', type: 'Texto', description: 'Busca facturas por número de consecutivo, cliente o estado.' },
+                    { name: 'Estado Contable', type: 'Indicador', description: 'Muestra el estado de la factura (Nuevo, Facturado, Cancelado).' },
+                    { name: 'Forma de Pago', type: 'Selector', description: 'Define la modalidad de pago (Efectivo, Tarjeta, Transferencia, Crédito).' }
+                ],
+                steps: [
+                    {
+                        number: 1,
+                        title: 'Facturar desde Cotización',
+                        description: 'En el historial de cotizaciones, ubique una propuesta aprobada y presione "Facturar".'
+                    },
+                    {
+                        number: 2,
+                        title: 'Confirmar Datos de Pago y Emitir',
+                        description: 'Verifique la forma de pago y emita la factura oficial.'
+                    }
+                ]
+            },
+            {
+                code: 'FAC-02',
+                name: 'Importación Masiva desde Excel / GDS',
+                summary: 'Carga de lotes de tiquetes y servicios procedentes de sistemas de reserva.',
+                concept: 'Lee archivos de Excel estandarizados y genera automáticamente las cotizaciones y facturas en lote.',
+                fields: [
+                    { name: 'Archivo Excel', type: 'Selector Archivo', description: 'Archivo con la estructura de tiquetes o ventas a importar.' }
+                ],
+                steps: [
+                    {
+                        number: 1,
+                        title: 'Cargar el Archivo',
+                        description: 'En Facturación > Importar Excel, arrastre el archivo de ventas.'
+                    },
+                    {
+                        number: 2,
+                        title: 'Validar y Procesar Lote',
+                        description: 'Verifique la vista previa sin errores y presione "Procesar Lote".'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'executions',
+        title: 'Ejecución Interactiva de Procedimientos',
+        iconName: 'PlaySquare',
+        category: 'Herramientas de Consulta y Procesos',
+        description: 'Manual de funcionamiento de la consola interactiva de consultas, filtros dinámicos y plantillas de pruebas.',
+        overview: 'Permite a los administradores ejecutar consultas avanzadas y procesos del sistema mediante formularios interactivos construidos dinámicamente.',
+        procedures: [
+            {
+                code: 'EJE-01',
+                name: 'Consola de Ejecuciones y Consultas',
+                summary: 'Ejecución interactiva de procedimientos con resultados en tabla y exportación.',
+                concept: 'Construye automáticamente formularios con selectores de fecha, listas desplegables o cajas de texto según la consulta seleccionada.',
+                fields: [
+                    { name: 'Lista de Consultas', type: 'Desplegable', description: 'Lista de los procedimientos y reportes de consulta registrados.' },
+                    { name: 'Filtros Dinámicos', type: 'Formulario Mixto', description: 'Campos de fecha, cliente o sucursal requeridos por la consulta.' },
+                    { name: 'Botón Cargar Preset', type: 'Botón Acción', description: 'Carga filtros predeterminados para pruebas frecuentes.' }
+                ],
+                steps: [
+                    {
+                        number: 1,
+                        title: 'Seleccionar la Consulta',
+                        description: 'En Ejecuciones > Procedimientos, escoja la consulta en la lista desplegable.'
+                    },
+                    {
+                        number: 2,
+                        title: 'Diligenciar Filtros y Ejecutar',
+                        description: 'Complete los filtros requeridos y presione "Ejecutar".'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'reports',
+        title: 'Reportes y Diseñador de Informes',
+        iconName: 'BarChart3',
+        category: 'Analítica e Informes Gerenciales',
+        description: 'Manual de funcionamiento del centro de informes estadísticos, producción por cliente y rentabilidad.',
+        overview: 'Ofrece informes consolidados de ventas por asesor, rentabilidad por producto e indicadores comerciales con exportación a Excel corporativo.',
+        procedures: [
+            {
+                code: 'REP-01',
+                name: 'Informes Gerenciales y de Ventas',
+                summary: 'Generación de reportes de producción con filtros por fechas y sucursales.',
+                concept: 'Calcula totales de ventas, utilidad, comisiones y niveles de conversión comercial.',
+                fields: [
+                    { name: 'Tipo de Reporte', type: 'Selector', description: 'Elija entre Ventas por Vendedor, Producción por Cliente o Rentabilidad.' },
+                    { name: 'Rango de Fechas', type: 'Fechas', description: 'Período de inicio y fin a consultar.' }
+                ],
+                steps: [
+                    {
+                        number: 1,
+                        title: 'Seleccionar el Reporte',
+                        description: 'En el menú Reportes, elija el tipo de informe deseado.'
+                    },
+                    {
+                        number: 2,
+                        title: 'Establecer Fechas y Exportar',
+                        description: 'Alique el rango de fechas y presione "Descargar Excel Corporativo".'
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        id: 'config',
+        title: 'Configuración del Sistema y Maestros',
+        iconName: 'Settings',
+        category: 'Configuración Global',
+        description: 'Manual de funcionamiento detallado para cada una de las 25 tablas maestras, parámetros, usuarios y módulos del sitio.',
+        overview: 'El módulo de Configuración (/dashboard/settings) administra todas las tablas maestras de la plataforma. A continuación se describe el funcionamiento detallado de cada una de las pestañas maestras activas.',
+        procedures: [
+            {
+                code: 'MAE-01',
+                masterCode: 'User',
+                name: 'Maestro de Usuarios y Control de Acceso',
+                summary: 'Administración de cuentas de usuarios, credenciales, sucursales y roles de acceso.',
+                concept: 'Define el registro de colaboradores de la agencia asignando su rol (SUPERADMINISTRADOR, ADMIN, VENDEDOR) para controlar la visibilidad de pantallas y permisos.',
+                fields: [
+                    { name: 'Nombre de Usuario', type: 'Texto', description: 'Nombre completo del colaborador.' },
+                    { name: 'Correo Electrónico', type: 'Email', description: 'Usuario de ingreso a la plataforma.' },
+                    { name: 'Rol Asignado', type: 'Selector', description: 'Nivel de acceso en la plataforma (SUPERADMINISTRADOR, ADMIN, VENDEDOR).' },
+                    { name: 'Sucursal / Implant', type: 'Selector', description: 'Sucursal a la cual está vinculado el usuario.' },
+                    { name: 'Edición de Reportes', type: 'Switch', description: 'Autoriza al usuario a modificar diseños de plantilla.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Abrir pestaña Usuarios', description: 'En Ajustes (/dashboard/settings), seleccione la pestaña "Usuarios".' },
+                    { number: 2, title: 'Crear o Modificar', description: 'Haga clic en "+ Nuevo Usuario", complete el formulario con datos y rol, y guarde.' }
+                ]
+            },
+            {
+                code: 'MAE-02',
+                masterCode: 'Branch',
+                name: 'Maestro de Sucursales',
+                summary: 'Registro de agencias físicas o virtuales, logos y datos de contacto para encabezados de cotización.',
+                concept: 'Permite administrar las diferentes sucursales de la empresa para personalizar el logo, la plantilla HTML y la información legal impresos en los documentos.',
+                fields: [
+                    { name: 'Código Sucursal', type: 'Texto Único', description: 'Identificador corto de la sucursal.' },
+                    { name: 'Nombre Sucursal', type: 'Texto', description: 'Nombre de la agencia o punto de atención.' },
+                    { name: 'Logo Corporativo', type: 'Imagen', description: 'Logo que aparecerá en los PDF de cotizaciones de esta sucursal.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Gestión de Sucursal', description: 'Seleccione la pestaña "Sucursales", cargue el logo institucional y configure los datos de contacto.' }
+                ]
+            },
+            {
+                code: 'MAE-03',
+                masterCode: 'Implant',
+                name: 'Maestro de Implants',
+                summary: 'Administración de oficinas implantadas en clientes corporativos.',
+                concept: 'Gestiona los puntos de atención ubicados dentro de las instalaciones de clientes empresariales.',
+                fields: [
+                    { name: 'Nombre Implant', type: 'Texto', description: 'Denominación de la oficina implantada.' },
+                    { name: 'Sucursal Padre', type: 'Selector', description: 'Sucursal a la que pertenece operativamente el implant.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Configurar Implant', description: 'En la pestaña "Implants", agregue o edite el punto corporativo asignando su sucursal.' }
+                ]
+            },
+            {
+                code: 'MAE-04',
+                masterCode: 'Client',
+                name: 'Maestro de Clientes',
+                summary: 'Base de datos de clientes individuales y corporativos con NIT/Cédula y contactos.',
+                concept: 'Almacena la información de los clientes para agilizar la emisión de cotizaciones y facturas contables.',
+                fields: [
+                    { name: 'Nombre / Razón Social', type: 'Texto', description: 'Nombre completo o razón social del cliente.' },
+                    { name: 'Documento / NIT', type: 'Texto Único', description: 'Cédula o NIT único para facturación.' },
+                    { name: 'Información de Contacto', type: 'Texto / Email', description: 'Teléfonos, dirección y correo electrónico de notificación.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Registrar Cliente', description: 'En la pestaña "Clientes", presione "+ Nuevo Cliente" e ingrese el documento y contacto.' }
+                ]
+            },
+            {
+                code: 'MAE-05',
+                masterCode: 'Provider',
+                name: 'Maestro de Proveedores',
+                summary: 'Administración de proveedores de servicios turísticos y aerolíneas.',
+                concept: 'Registra los proveedores con los cuales la agencia contrata servicios (consolidadores, mayoristas, aerolíneas).',
+                fields: [
+                    { name: 'Código Proveedor', type: 'Texto', description: 'Código asignado al proveedor.' },
+                    { name: 'Nombre Proveedor', type: 'Texto', description: 'Razón social del proveedor o mayorista.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Administrar Proveedor', description: 'En la pestaña "Proveedores", agregue la información comercial del proveedor.' }
+                ]
+            },
+            {
+                code: 'MAE-06',
+                masterCode: 'Prestadora',
+                name: 'Maestro de Prestadoras y Hoteles',
+                summary: 'Catálogo de hoteles, cadenas hoteleras y operadores locales de servicios.',
+                concept: 'Permite asociar hoteles y prestadoras de servicios a los productos cotizados.',
+                fields: [
+                    { name: 'Nombre Prestadora', type: 'Texto', description: 'Nombre del hotel o prestadora turística.' },
+                    { name: 'Código IATA / Ciudad', type: 'Texto', description: 'Ubicación geográfica o código de destino.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Cargar Prestadora', description: 'En la pestaña "Prestadoras", cree la ficha del hotel u operador.' }
+                ]
+            },
+            {
+                code: 'MAE-07',
+                masterCode: 'Product',
+                name: 'Maestro de Productos y Catálogo',
+                summary: 'Catálogo de productos (vuelos, paquetes, seguros, hoteles) con precios base y tarifas.',
+                concept: 'Almacena los productos recurrentes que ofrece la agencia para ser añadidos rápidamente a las cotizaciones.',
+                fields: [
+                    { name: 'Tipo de Producto', type: 'Selector', description: 'Vuelo, Hotel, Asistencia, Paquete, Tour.' },
+                    { name: 'Descripción / Tarifa', type: 'Texto / Numérico', description: 'Detalle del servicio y costo de referencia.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Gestionar Producto', description: 'En la pestaña "Productos", configure las tarifas base del catálogo.' }
+                ]
+            },
+            {
+                code: 'MAE-08',
+                masterCode: 'Seller',
+                name: 'Maestro de Vendedores / Asesores',
+                summary: 'Registro de asesores comerciales y vendedores para cálculo de producción y comisiones.',
+                concept: 'Permite asignar el vendedor a cada cotización y liquidar sus métricas comerciales.',
+                fields: [
+                    { name: 'Nombre Vendedor', type: 'Texto', description: 'Nombre del asesor comercial.' },
+                    { name: 'Correo / Código', type: 'Email / Texto', description: 'Correo del asesor e identificador interno.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Registrar Vendedor', description: 'En la pestaña "Vendedores", agregue al nuevo asesor comercial.' }
+                ]
+            },
+            {
+                code: 'MAE-09',
+                masterCode: 'TicketPrinter',
+                name: 'Maestro de Tiqueteadores',
+                summary: 'Registro de asesores tiqueteadores responsables de la emisión de billetes aéreos.',
+                concept: 'Identifica al tiqueteador que emitió la reserva o el boleto aéreo.',
+                fields: [
+                    { name: 'Nombre Tiqueteador', type: 'Texto', description: 'Nombre del emisor de tiquetes.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Configurar Tiqueteador', description: 'En la pestaña "Tiqueteadores", registre los usuarios emisores.' }
+                ]
+            },
+            {
+                code: 'MAE-10',
+                masterCode: 'ChargeAndTax',
+                name: 'Maestro de Cargos e Impuestos',
+                summary: 'Configuración de impuestos (IVA, FEE, Tasas aeroportuarias) aplicables a productos.',
+                concept: 'Define las reglas de impuestos y cargos administrativos de la agencia.',
+                fields: [
+                    { name: 'Nombre Impuesto', type: 'Texto', description: 'IVA 19%, FEE Agencia, Tasa Administrativa.' },
+                    { name: 'Tipo y Valor', type: 'Porcentaje / Monto', description: 'Porcentaje o tarifa fija del cargo.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Crear Impuesto', description: 'En la pestaña "Cargos e Impuestos", defina el porcentaje y comportamiento del cargo.' }
+                ]
+            },
+            {
+                code: 'MAE-11',
+                masterCode: 'Combo',
+                name: 'Maestro de Combos y Paquetes',
+                summary: 'Agrupación de múltiples productos en paquetes promocionales con cupos.',
+                concept: 'Permite empaquetar vuelo + hotel + seguro bajo una tarifa combo preferencial.',
+                fields: [
+                    { name: 'Nombre Combo', type: 'Texto', description: 'Ej. Cancún Todo Incluido 5 Días.' },
+                    { name: 'Cupos Disponibles', type: 'Numérico', description: 'Cantidad de cupos inventariados para el paquete.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Diseñar Combo', description: 'En la pestaña "Combos", cree el paquete y asocie los productos que lo integran.' }
+                ]
+            },
+            {
+                code: 'MAE-12',
+                masterCode: 'Currency',
+                name: 'Maestro de Monedas y Divisas',
+                summary: 'Administración de divisas (COP, USD, EUR) y sus tasas de cambio operativas.',
+                concept: 'Gestión multimoneda para realizar cotizaciones y facturas en moneda extranjera.',
+                fields: [
+                    { name: 'Código Moneda', type: 'Texto (3 letras)', description: 'COP, USD, EUR.' },
+                    { name: 'Tasa de Cambio', type: 'Decimal', description: 'Valor de conversión respecto a la moneda base.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Actualizar Tasa', description: 'En la pestaña "Monedas", ajuste la tasa de cambio vigente.' }
+                ]
+            },
+            {
+                code: 'MAE-13',
+                masterCode: 'CreditCard',
+                name: 'Maestro de Tarjetas de Crédito',
+                summary: 'Registro de franquicias de tarjetas de crédito aceptadas como medio de pago.',
+                concept: 'Administra las franquicias (Visa, Mastercard, American Express) para conciliar cobros.',
+                fields: [
+                    { name: 'Nombre Franquicia', type: 'Texto', description: 'Visa, Mastercard, Diners, Amex.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Administrar Franquicia', description: 'En la pestaña "Tarjetas de Crédito", habilite las franquicias recibidas.' }
+                ]
+            },
+            {
+                code: 'MAE-14',
+                masterCode: 'Payment',
+                name: 'Maestro de Formas de Pago',
+                summary: 'Configuración de modalidades de pago (Efectivo, Transferencia, Crédito).',
+                concept: 'Especifica las alternativas de recaudación disponibles en facturación.',
+                fields: [
+                    { name: 'Nombre Medio', type: 'Texto', description: 'Efectivo, Consignación, Crédito 30 días.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Configurar Medio', description: 'En la pestaña "Formas de Pago", administre las opciones activas.' }
+                ]
+            },
+            {
+                code: 'MAE-15',
+                masterCode: 'Countries',
+                name: 'Maestro de Países',
+                summary: 'Catálogo de países para la clasificación de destinos y clientes.',
+                concept: 'Base geográfica de países para itinerarios y reportes de producción por destino.',
+                fields: [
+                    { name: 'Código País', type: 'Texto', description: 'Código ISO del país (ej. CO, US, ES).' },
+                    { name: 'Nombre País', type: 'Texto', description: 'Nombre oficial del país.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Gestionar País', description: 'En la pestaña "Países", consulte o edite la lista geográfica.' }
+                ]
+            },
+            {
+                code: 'MAE-16',
+                masterCode: 'Cities',
+                name: 'Maestro de Ciudades',
+                summary: 'Catálogo de ciudades vinculadas a sus respectivos países.',
+                concept: 'Clasificación de destinos de viaje e infraestructuras turísticas.',
+                fields: [
+                    { name: 'Nombre Ciudad', type: 'Texto', description: 'Nombre de la ciudad de origen o destino.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Gestionar Ciudad', description: 'En la pestaña "Ciudades", adicione o edite ciudades del catálogo.' }
+                ]
+            },
+            {
+                code: 'MAE-17',
+                masterCode: 'Airports',
+                name: 'Maestro de Aeropuertos',
+                summary: 'Catálogo de aeropuertos del mundo con sus códigos IATA.',
+                concept: 'Utilizado en los itinerarios de vuelos de las cotizaciones (ej. BOG, MIA, MAD).',
+                fields: [
+                    { name: 'Código IATA', type: 'Texto (3 letras)', description: 'Código oficial del aeropuerto (ej. BOG).' },
+                    { name: 'Nombre Aeropuerto', type: 'Texto', description: 'Nombre de la terminal aérea.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Gestionar Aeropuerto', description: 'En la pestaña "Aeropuertos", registre códigos IATA adicionales.' }
+                ]
+            },
+            {
+                code: 'MAE-18',
+                masterCode: 'TicketType',
+                name: 'Maestro de Tipos de Tiquete',
+                summary: 'Clasificación de boletos aéreos (Nacional, Internacional, EMD, Fee).',
+                concept: 'Define el tipo de emisión aérea para efectos de liquidación contable.',
+                fields: [
+                    { name: 'Nombre Tipo', type: 'Texto', description: 'Tiquete Nacional, Tiquete Internacional, EMD.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Configurar Tipo', description: 'En la pestaña "Tipos Tiquete", administre las categorías de boletos.' }
+                ]
+            },
+            {
+                code: 'MAE-19',
+                masterCode: 'QuotationState',
+                name: 'Maestro de Estados de Cotización',
+                summary: 'Definición del flujo de estados (Nuevo, Aprobado, Facturado, Cancelado).',
+                concept: 'Determina las etapas del ciclo de vida comercial de una propuesta.',
+                fields: [
+                    { name: 'Nombre Estado', type: 'Texto', description: 'Denominación del estado comercial.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Gestionar Estado', description: 'En la pestaña "Estados Cotiz.", consulte el flujo de aprobaciones.' }
+                ]
+            },
+            {
+                code: 'MAE-20',
+                masterCode: 'QuotationFormat',
+                name: 'Maestro de Formatos de Cotización',
+                summary: 'Plantillas de diseño para la exportación de propuestas en PDF o Excel.',
+                concept: 'Permite personalizar la presentación estética y logos de los presupuestos.',
+                fields: [
+                    { name: 'Nombre Plantilla', type: 'Texto', description: 'Formato Corporativo, Formato Ejecutivo.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Diseñar Formato', description: 'En la pestaña "Formatos Cotiz.", cargue plantillas HTML o Excel.' }
+                ]
+            },
+            {
+                code: 'MAE-21',
+                masterCode: 'Equivalences',
+                name: 'Maestro de Equivalencias de Interfaces',
+                summary: 'Homologación de códigos entre sistemas GDS y contabilidad Zeus ERP.',
+                concept: 'Permite traducir códigos de aerolíneas u hoteles de Amadeus/Sabre a los códigos del ERP.',
+                fields: [
+                    { name: 'Código Origen', type: 'Texto', description: 'Código en el sistema GDS.' },
+                    { name: 'Código ERP', type: 'Texto', description: 'Código equivalente en Zeus ERP.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Mapear Equivalencia', description: 'En la pestaña "Equivalencias", asocie los códigos entre sistemas.' }
+                ]
+            },
+            {
+                code: 'MAE-22',
+                masterCode: 'MasterVariable',
+                name: 'Maestro de Variables Adicionales',
+                summary: 'Campos personalizados obligatorios para clientes o productos específicos.',
+                concept: 'Permite solicitar datos adicionales (Centro de Costos, Pasaje Frecuente) en la cotización.',
+                fields: [
+                    { name: 'Nombre Variable', type: 'Texto', description: 'Nombre del campo adicional requerido.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Crear Variable', description: 'En la pestaña "Variables Adic.", configure los campos personalizados.' }
+                ]
+            },
+            {
+                code: 'MAE-23',
+                masterCode: 'SystemParameter',
+                name: 'Maestro de Parámetros del Sistema',
+                summary: 'Variables de configuración global (SystemParameter).',
+                concept: 'Administra configuraciones globales como IVA por defecto, empresa y licencias.',
+                fields: [
+                    { name: 'Código Parámetro', type: 'Texto', description: 'Identificador del parámetro.' },
+                    { name: 'Valor Parámetro', type: 'Texto', description: 'Valor activo asignado.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Ajustar Parámetro', description: 'En la pestaña "Parámetros", modifique los valores globales del sistema.' }
+                ]
+            },
+            {
+                code: 'MAE-24',
+                masterCode: 'SystemLog',
+                name: 'Maestro de Logs del Sistema y Auditoría',
+                summary: 'Historial de auditoría de eventos, inicios de sesión y cambios de datos.',
+                concept: 'Registra los eventos realizados por los usuarios para efectos de seguridad e inspección.',
+                fields: [
+                    { name: 'Usuario / Acción', type: 'Texto', description: 'Colaborador que ejecutó la acción y descripción del evento.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Auditar Eventos', description: 'En la pestaña "Logs del Sistema", revise la bitácora de actividad.' }
+                ]
+            },
+            {
+                code: 'MAE-25',
+                masterCode: 'SiteModules',
+                name: 'Administración de Módulos del Sitio',
+                summary: 'Interruptores para activar o desactivar menús y pestañas maestras.',
+                concept: 'Permite habilitar o deshabilitar opciones del sistema en tiempo real. Las opciones desactivadas no aparecerán en la navegación ni en este manual.',
+                fields: [
+                    { name: 'Interruptor Módulo', type: 'Switch', description: 'Activa o desactiva la visibilidad del módulo o maestro.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Conmutar Módulo', description: 'En la pestaña "Módulos del Sitio", active o apague los módulos requeridos.' }
+                ]
+            },
+            {
+                code: 'MAE-26',
+                masterCode: 'Role',
+                name: 'Maestro de Roles y Control de Acceso (RBAC)',
+                summary: 'Administración de roles personalizados, matriz de permisos por módulos, las 25 pestañas maestras y botones de acción.',
+                concept: 'Permite definir perfiles de acceso granulares para los colaboradores de la agencia. Permite habilitar o deshabilitar módulos completos, pestañas maestras específicas y acciones como "Facturar / Enviar a Zeus", "Crear Cotización", "Exportar Excel" o "Ejecutar SPs". Detección e inclusión automática de nuevas funcionalidades creadas.',
+                fields: [
+                    { name: 'Nombre del Rol', type: 'Texto', description: 'Nombre identificador del perfil de acceso (ej. Asesor Comercial, Contador, Auxiliar).' },
+                    { name: 'Descripción Funcional', type: 'Texto', description: 'Breve explicación del alcance del perfil.' },
+                    { name: 'Pestaña Módulos Principales', type: 'Switches', description: 'Activa o desactiva pantallas principales (Cotizaciones, Facturación, Reportes, SPs, Ajustes).' },
+                    { name: 'Pestaña Pestañas Maestras', type: 'Switches', description: 'Activa o desactiva individualmente la visibilidad de cualquiera de las 25 pestañas maestras de Ajustes.' },
+                    { name: 'Pestaña Botones y Acciones', type: 'Switches Granulares', description: 'Autoriza o restringe la ejecución de acciones específicas como Facturar a Zeus, Editar o Duplicar.' }
+                ],
+                businessRules: [
+                    'Los cambios aplicados a un rol surten efecto de forma inmediata para todos los usuarios vinculados al mismo.',
+                    'Un rol no puede ser eliminado si posee usuarios asignados.'
+                ],
+                steps: [
+                    { number: 1, title: 'Abrir pestaña Roles y Permisos', description: 'En Ajustes (/dashboard/settings), seleccione la pestaña "Roles y Permisos".' },
+                    { number: 2, title: 'Crear o Editar Rol', description: 'Haga clic en "+ Crear Nuevo Rol", ingrese el nombre y configure la matriz de permisos deseada.' },
+                    { number: 3, title: 'Asignar Rol a Usuario', description: 'En la pestaña "Usuarios", edite el colaborador deseado y asigne su nuevo rol en la lista desplegable.' }
+                ]
+            }
+        ]
+    }
+];

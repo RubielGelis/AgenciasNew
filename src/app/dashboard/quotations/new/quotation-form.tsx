@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, CreditCard, Receipt, Plane } from 'lucide-react'
+import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, CreditCard, Receipt, Plane, AlertCircle } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { generateQuotationPDF } from '@/lib/pdf-utils'
 import { SearchSelect } from '@/components/SearchSelect'
@@ -104,6 +104,12 @@ const getStateColorClass = (stateName: string, statesList: any[]) => {
 };
 
 export default function QuotationForm({ quotationId }: { quotationId?: string }) {
+    const searchParams = useSearchParams()
+    const preQuotationId = searchParams.get('preQuotationId')
+    const consecutivoParam = searchParams.get('consecutivo')
+    const quotationNoticeParam = searchParams.get('quotationNotice')
+    const [noticeResponse, setNoticeResponse] = useState('')
+
     const [data, setData] = useState<any>(null)
     const [originalState, setOriginalState] = useState('Nuevo')
     const [formData, setFormData] = useState<QuotationFormData>({
@@ -136,6 +142,30 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         stateUpdatedAt: null,
         internalNumber: ''
     })
+
+    useEffect(() => {
+        if (preQuotationId) {
+            const cId = searchParams.get('clientId') || ''
+            const bId = searchParams.get('branchId') || ''
+            const sId = searchParams.get('sellerId') || ''
+            const tId = searchParams.get('ticketPrinterId') || ''
+            const hDesc = searchParams.get('headerDescription') || ''
+            const sDate = searchParams.get('startDate') || ''
+            const eDate = searchParams.get('endDate') || ''
+
+            setFormData(prev => ({
+                ...prev,
+                clientId: cId || prev.clientId,
+                branchId: bId || prev.branchId,
+                sellerId: sId || prev.sellerId,
+                ticketPrinterId: tId || prev.ticketPrinterId,
+                manualDescription: hDesc || prev.manualDescription,
+                startDate: sDate || prev.startDate,
+                endDate: eDate || prev.endDate,
+                consecutivo: consecutivoParam || (prev as any).consecutivo
+            }))
+        }
+    }, [preQuotationId])
     const [saving, setSaving] = useState(false)
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
     const [isGlobalPaymentOpen, setIsGlobalPaymentOpen] = useState(false)
@@ -219,6 +249,25 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
             const result = await res.json()
             if (!res.ok) throw new Error(result.message || 'Error al guardar')
+
+            if (preQuotationId && result.quotation?.id) {
+                try {
+                    await fetch('/api/prequotations', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-User-Id': loggedUser.id?.toString() || ''
+                        },
+                        body: JSON.stringify({
+                            preQuotationId: Number(preQuotationId),
+                            quotationId: result.quotation.id,
+                            noticeResponse
+                        })
+                    })
+                } catch (errPre) {
+                    console.error('Error actualizando estado de pre-cotización:', errPre)
+                }
+            }
 
             if (downloadPdf && printWindow) {
                 try {
@@ -772,6 +821,49 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
     return (
         <form onSubmit={handleSave} className="max-w-6xl mx-auto space-y-8 pb-20">
+            
+            {/* Banner de Aviso Prominente de Pre-Cotización */}
+            {preQuotationId && (
+                <div className="bg-amber-950/40 border-2 border-amber-500/50 p-6 rounded-3xl space-y-4 shadow-2xl backdrop-blur-md">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2.5 bg-amber-500/20 rounded-xl text-amber-400 border border-amber-500/30">
+                                <AlertCircle className="w-6 h-6 animate-pulse" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-amber-300">
+                                    AVISO ESPECIAL PROVENIENTE DE PRE-COTIZACIÓN #{consecutivoParam}
+                                </h3>
+                                <p className="text-xs text-amber-200/80">
+                                    Por favor lea las instrucciones del solicitante e ingrese su respuesta antes de guardar la cotización.
+                                </p>
+                            </div>
+                        </div>
+                        <span className="px-3 py-1 bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono font-bold rounded-lg text-xs">
+                            Pre-Cotización #{consecutivoParam}
+                        </span>
+                    </div>
+
+                    {quotationNoticeParam && (
+                        <div className="bg-slate-950/80 p-4 rounded-2xl border border-amber-500/30 text-xs text-amber-100 leading-relaxed font-medium">
+                            <span className="text-amber-400 font-bold block mb-1">Mensaje de Aviso del Solicitante:</span>
+                            {quotationNoticeParam}
+                        </div>
+                    )}
+
+                    <div className="space-y-1.5 pt-1">
+                        <label className="text-xs font-bold text-amber-300">Respuesta al Aviso para el Registro de Pre-Cotización:</label>
+                        <input
+                            type="text"
+                            value={noticeResponse}
+                            onChange={e => setNoticeResponse(e.target.value)}
+                            placeholder="Escriba su respuesta aclaratoria (ej. 'Cotización armada con tarifa promocional según lo solicitado')..."
+                            className="w-full bg-slate-950 border border-amber-500/50 rounded-xl p-3 text-xs text-white placeholder:text-slate-500 focus:ring-2 focus:ring-amber-500 outline-none"
+                        />
+                    </div>
+                </div>
+            )}
+
             <div className="flex items-center justify-between bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                 <div>
                     <h2 className="text-2xl font-bold dark:text-white">

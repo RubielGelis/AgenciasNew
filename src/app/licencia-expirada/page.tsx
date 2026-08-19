@@ -36,10 +36,10 @@ export default function LicenciaExpiradaPage() {
                 text: `¡Licencia activada con éxito para ${data.license.client}! Válida hasta ${data.license.expirationDate}. Redirigiendo...`
             });
 
-            // Redirigir al dashboard en 2 segundos
+            // Redirigir inmediatamente al dashboard
             setTimeout(() => {
-                window.location.href = '/dashboard';
-            }, 2000);
+                window.location.replace('/dashboard');
+            }, 1000);
         } catch (err: any) {
             setStatusMessage({
                 type: 'error',

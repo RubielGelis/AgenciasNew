@@ -256,6 +256,12 @@
       "namedRegex": "^/api/config/interfaces(?:/)?$"
     },
     {
+      "page": "/api/config/license",
+      "regex": "^/api/config/license(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/config/license(?:/)?$"
+    },
+    {
       "page": "/api/config/logs",
       "regex": "^/api/config/logs(?:/)?$",
       "routeKeys": {},
@@ -316,6 +322,12 @@
       "namedRegex": "^/api/config/sellers(?:/)?$"
     },
     {
+      "page": "/api/config/site-modules",
+      "regex": "^/api/config/site\\-modules(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/config/site\\-modules(?:/)?$"
+    },
+    {
       "page": "/api/config/taxes",
       "regex": "^/api/config/taxes(?:/)?$",
       "routeKeys": {},
@@ -352,10 +364,22 @@
       "namedRegex": "^/api/config/variables(?:/)?$"
     },
     {
+      "page": "/api/executions/detect-params",
+      "regex": "^/api/executions/detect\\-params(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/executions/detect\\-params(?:/)?$"
+    },
+    {
       "page": "/api/executions/lookup",
       "regex": "^/api/executions/lookup(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/executions/lookup(?:/)?$"
+    },
+    {
+      "page": "/api/executions/presets",
+      "regex": "^/api/executions/presets(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/executions/presets(?:/)?$"
     },
     {
       "page": "/api/executions/procedures",
@@ -406,10 +430,22 @@
       "namedRegex": "^/api/invoices/list(?:/)?$"
     },
     {
+      "page": "/api/manual",
+      "regex": "^/api/manual(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/manual(?:/)?$"
+    },
+    {
       "page": "/api/menu",
       "regex": "^/api/menu(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/menu(?:/)?$"
+    },
+    {
+      "page": "/api/prequotations",
+      "regex": "^/api/prequotations(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/prequotations(?:/)?$"
     },
     {
       "page": "/api/products",
@@ -550,6 +586,18 @@
       "namedRegex": "^/dashboard/invoices/new(?:/)?$"
     },
     {
+      "page": "/dashboard/manual",
+      "regex": "^/dashboard/manual(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard/manual(?:/)?$"
+    },
+    {
+      "page": "/dashboard/prequotations",
+      "regex": "^/dashboard/prequotations(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard/prequotations(?:/)?$"
+    },
+    {
       "page": "/dashboard/quotations",
       "regex": "^/dashboard/quotations(?:/)?$",
       "routeKeys": {},
@@ -590,6 +638,12 @@
       "regex": "^/favicon\\.ico(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/favicon\\.ico(?:/)?$"
+    },
+    {
+      "page": "/licencia-expirada",
+      "regex": "^/licencia\\-expirada(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/licencia\\-expirada(?:/)?$"
     },
     {
       "page": "/login",

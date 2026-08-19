@@ -1,9 +1,8 @@
 @echo off
-chcp 65001 > nul
 title Generador de Licencias - Korex Agencias
 
 echo ================================================================
-echo           🔑 GENERADOR DE CLAVES DE LICENCIA - KOREX             
+echo           GENERADOR DE CLAVES DE LICENCIA - KOREX             
 echo ================================================================
 echo.
 

@@ -156,6 +156,18 @@ export async function applyLicenseKey(licenseKey: string, actingUserId: number =
 
     const { client, nit, expirationDate } = verification.payload;
 
+    // Verificar si existe un NIT de agencia registrado para asegurar que la clave pertenece a esta empresa
+    const agencyNitParam = await prisma.systemParameter.findUnique({
+        where: { code: 'AGENCY_NIT' }
+    });
+
+    if (agencyNitParam && agencyNitParam.value) {
+        const configuredNit = agencyNitParam.value.trim();
+        if (configuredNit && configuredNit !== nit.trim()) {
+            throw new Error(`Esta clave de licencia pertenece al NIT ${nit}, pero el sistema está registrado para el NIT ${configuredNit}.`);
+        }
+    }
+
     // Actualizar en SystemParameter usando Prisma upsert
     await prisma.systemParameter.upsert({
         where: { code: 'LICENSE_KEY' },
@@ -167,6 +179,19 @@ export async function applyLicenseKey(licenseKey: string, actingUserId: number =
         where: { code: 'LICENSE_EXPIRATION_DATE' },
         update: { value: expirationDate, name: 'Fecha de Expiración de Licencia' },
         create: { code: 'LICENSE_EXPIRATION_DATE', name: 'Fecha de Expiración de Licencia', value: expirationDate }
+    });
+
+    // Registrar Nombre y NIT de la Agencia oficialmente en la base de datos
+    await prisma.systemParameter.upsert({
+        where: { code: 'AGENCY_NAME' },
+        update: { value: client.trim(), name: 'Nombre o Razón Social de la Agencia' },
+        create: { code: 'AGENCY_NAME', name: 'Nombre o Razón Social de la Agencia', value: client.trim() }
+    });
+
+    await prisma.systemParameter.upsert({
+        where: { code: 'AGENCY_NIT' },
+        update: { value: nit.trim(), name: 'NIT de la Agencia' },
+        create: { code: 'AGENCY_NIT', name: 'NIT de la Agencia', value: nit.trim() }
     });
 
     // Registrar en SystemLog

@@ -1,0 +1,2 @@
+:HL["/_next/static/chunks/d561f612600dc899.css","style"]
+0:{"buildId":"zPy25DynputdNY-lq01Xv","tree":{"name":"","paramType":null,"paramKey":"","hasRuntimePrefetch":false,"slots":{"children":{"name":"licencia-expirada","paramType":null,"paramKey":"licencia-expirada","hasRuntimePrefetch":false,"slots":{"children":{"name":"__PAGE__","paramType":null,"paramKey":"__PAGE__","hasRuntimePrefetch":false,"slots":null,"isRootLayout":false}},"isRootLayout":false}},"isRootLayout":true},"staleTime":300}

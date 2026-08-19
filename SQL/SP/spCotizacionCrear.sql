@@ -179,7 +179,11 @@ BEGIN
     -- Obtener decimales de la moneda
     v_decimals := public.fn_obtener_decimales_moneda(p_data->>'currency');
 
-    v_internal_number := 'QUO-' || to_char(CURRENT_DATE, 'YYYYMMDD') || '-' || floor(random() * 1000)::text;
+    IF NULLIF(p_data->>'consecutivo', '') IS NOT NULL THEN
+        v_internal_number := p_data->>'consecutivo';
+    ELSE
+        v_internal_number := nextval('public.seq_quotation_consecutivo')::text;
+    END IF;
 
     INSERT INTO public."Quotation" (
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 

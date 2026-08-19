@@ -27,7 +27,9 @@ export async function POST(req: NextRequest) {
         }
 
         // In a real app we'd set a JWT or Session cookie here
-        // For now, we'll return user info to confirm it works
+        const { normalizeRolePermissions } = await import('@/lib/permissions');
+        const rolePermissions = normalizeRolePermissions(user.role.permissions);
+
         const response = NextResponse.json({
             message: 'Acceso concedido',
             user: {
@@ -35,6 +37,7 @@ export async function POST(req: NextRequest) {
                 name: user.name,
                 email: user.email,
                 role: user.role.name,
+                permissions: rolePermissions,
                 branchId: user.branchId,
                 implantId: user.implantId,
                 ticketPrinterId: user.ticketPrinterId,

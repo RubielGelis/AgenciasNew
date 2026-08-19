@@ -1,4 +1,7 @@
+import React, { Suspense } from 'react'
 import QuotationForm from './quotation-form'
+
+export const dynamic = 'force-dynamic'
 
 export default function NewQuotationPage() {
     return (
@@ -8,7 +11,9 @@ export default function NewQuotationPage() {
                 <p className="text-zinc-500 dark:text-zinc-400 font-medium">Gestión integral en una sola pantalla</p>
             </div>
 
-            <QuotationForm />
+            <Suspense fallback={<div className="p-8 text-center text-slate-400">Cargando formulario...</div>}>
+                <QuotationForm />
+            </Suspense>
         </div>
     )
 }

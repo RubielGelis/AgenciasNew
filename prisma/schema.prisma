@@ -9,39 +9,45 @@ datasource db {
 }
 
 model Role {
-  id    Int    @id @default(autoincrement())
-  name  String @unique
-  users User[]
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String?
+  permissions Json?
+  users       User[]
 }
 
 model User {
-  id                   Int                     @id @default(autoincrement())
-  name                 String
-  email                String                  @unique
-  passwordHash         String
-  resetPasswordToken   String?                 @unique
-  resetPasswordExpires DateTime?
-  roleId               Int
-  branchId             Int?
-  implantId            Int?
-  ticketPrinterId      Int?
-  canEditReports       Boolean?                @default(false)
-  quotations           Quotation[]
-  stateHistories       QuotationStateHistory[]
-  logs                 SystemLog[]
-  branch               Branch?                 @relation(fields: [branchId], references: [id])
-  implant              Implant?                @relation(fields: [implantId], references: [id])
-  role                 Role                    @relation(fields: [roleId], references: [id])
-  ticketPrinter        TicketPrinter?          @relation(fields: [ticketPrinterId], references: [id])
+  id                                              Int                        @id @default(autoincrement())
+  name                                            String
+  email                                           String                     @unique
+  passwordHash                                    String
+  resetPasswordToken                              String?                    @unique
+  resetPasswordExpires                            DateTime?
+  roleId                                          Int
+  branchId                                        Int?
+  implantId                                       Int?
+  ticketPrinterId                                 Int?
+  canEditReports                                  Boolean?                   @default(false)
+  PreQuotation_PreQuotation_convertedUserIdToUser PreQuotation[]             @relation("PreQuotation_convertedUserIdToUser")
+  preQuotations                                   PreQuotation[]             @relation("PreQuotationUser")
+  preQuotationHistories                           PreQuotationStateHistory[]
+  quotations                                      Quotation[]
+  stateHistories                                  QuotationStateHistory[]
+  logs                                            SystemLog[]
+  branch                                          Branch?                    @relation(fields: [branchId], references: [id])
+  implant                                         Implant?                   @relation(fields: [implantId], references: [id])
+  role                                            Role                       @relation(fields: [roleId], references: [id])
+  ticketPrinter                                   TicketPrinter?             @relation(fields: [ticketPrinterId], references: [id])
 }
 
 model Client {
-  id                 Int         @id @default(autoincrement())
+  id                 Int            @id @default(autoincrement())
   name               String
-  document           String      @unique
+  document           String         @unique
   contactInfo        String?
   address            String?
   mandatoryVariables Json?
+  preQuotations      PreQuotation[]
   quotations         Quotation[]
 }
 
@@ -52,6 +58,7 @@ model Provider {
   contactInfo       String?
   commissionConfig  Json?
   comboProducts     ComboProduct[]
+  preQuotations     PreQuotation[]
   prestadoras       Prestadora[]
   quotationProducts QuotationProduct[]
 }
@@ -82,6 +89,7 @@ model Branch {
   BranchGDSInvoiceAuto BranchGDSInvoiceAuto[]
   cellCustomizations   CellCustomization[]
   implants             Implant[]
+  preQuotations        PreQuotation[]
   quotations           Quotation[]
   QuotationFormat      QuotationFormat[]
   users                User[]
@@ -105,20 +113,22 @@ model Implant {
 }
 
 model Seller {
-  id         Int         @id @default(autoincrement())
-  code       String?     @unique
-  name       String
-  email      String?
-  quotations Quotation[]
+  id            Int            @id @default(autoincrement())
+  code          String?        @unique
+  name          String
+  email         String?
+  preQuotations PreQuotation[]
+  quotations    Quotation[]
 }
 
 model TicketPrinter {
-  id         Int         @id @default(autoincrement())
-  code       String?     @unique
-  name       String
-  email      String?
-  quotations Quotation[]
-  users      User[]
+  id            Int            @id @default(autoincrement())
+  code          String?        @unique
+  name          String
+  email         String?
+  preQuotations PreQuotation[]
+  quotations    Quotation[]
+  users         User[]
 }
 
 model Product {
@@ -178,6 +188,7 @@ model Quotation {
   copyFieldsToProducts        Boolean?                 @default(true)
   manualDescription           String?
   attachments                 Attachment[]
+  preQuotations               PreQuotation[]           @relation("PreQuotationConverted")
   branch                      Branch                   @relation(fields: [branchId], references: [id])
   client                      Client                   @relation(fields: [clientId], references: [id])
   implant                     Implant?                 @relation(fields: [implantId], references: [id])
@@ -984,4 +995,49 @@ model QuotationPrintDefaultTemplate {
   name      String?  @default("Default") @db.VarChar(100)
   createdAt DateTime @default(now()) @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model PreQuotation {
+  id                                      Int                        @id @default(autoincrement())
+  consecutivo                             Int                        @unique
+  clientNameText                          String?
+  clientId                                Int?
+  headerDescription                       String?
+  providerId                              Int?
+  ticketPrinterId                         Int?
+  sellerId                                Int?
+  branchId                                Int
+  preQuotationType                        String?                    @db.VarChar(100)
+  quotationNotice                         String?
+  noticeResponse                          String?
+  startDate                               DateTime?                  @db.Timestamp(6)
+  endDate                                 DateTime?                  @db.Timestamp(6)
+  customFields                            Json?
+  state                                   String?                    @default("POR COTIZAR") @db.VarChar(50)
+  convertedQuotationId                    Int?
+  convertedAt                             DateTime?                  @db.Timestamp(6)
+  convertedUserId                         Int?
+  userId                                  Int
+  createdAt                               DateTime?                  @default(now()) @db.Timestamp(6)
+  updatedAt                               DateTime?                  @default(now()) @updatedAt @db.Timestamp(6)
+  branch                                  Branch                     @relation(fields: [branchId], references: [id], onUpdate: NoAction)
+  client                                  Client?                    @relation(fields: [clientId], references: [id], onUpdate: NoAction)
+  convertedQuotation                      Quotation?                 @relation("PreQuotationConverted", fields: [convertedQuotationId], references: [id], onUpdate: NoAction)
+  User_PreQuotation_convertedUserIdToUser User?                      @relation("PreQuotation_convertedUserIdToUser", fields: [convertedUserId], references: [id], onUpdate: NoAction)
+  provider                                Provider?                  @relation(fields: [providerId], references: [id], onUpdate: NoAction)
+  seller                                  Seller?                    @relation(fields: [sellerId], references: [id], onUpdate: NoAction)
+  ticketPrinter                           TicketPrinter?             @relation(fields: [ticketPrinterId], references: [id], onUpdate: NoAction)
+  user                                    User                       @relation("PreQuotationUser", fields: [userId], references: [id], onUpdate: NoAction)
+  histories                               PreQuotationStateHistory[]
+}
+
+model PreQuotationStateHistory {
+  id             Int          @id @default(autoincrement())
+  preQuotationId Int
+  state          String       @db.VarChar(50)
+  description    String?
+  userId         Int
+  createdAt      DateTime?    @default(now()) @db.Timestamp(6)
+  preQuotation   PreQuotation @relation(fields: [preQuotationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user           User         @relation(fields: [userId], references: [id], onUpdate: NoAction)
 }

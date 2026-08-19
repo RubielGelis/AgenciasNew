@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Users, FileText, ShoppingCart, Settings, LogOut, Search, PlusCircle, PieChart, Receipt, Shield, Compass, Play, Database } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, ShoppingCart, Settings, LogOut, Search, PlusCircle, PieChart, Receipt, Shield, Compass, Play, Database, BookOpen, FilePlus } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 
@@ -51,24 +51,38 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
     const defaultMenuItems: MenuItemData[] = [
         { id: 1, code: 'DASHBOARD', name: 'Dashboard', parent: null, action: '/dashboard', activo: true },
+        { id: 8, code: 'PRECOTIZACIONES', name: 'Pre-Cotizaciones', parent: null, action: '/dashboard/prequotations', activo: true },
         { id: 2, code: 'COTIZACIONES', name: 'Cotizaciones', parent: null, action: '/dashboard/quotations/history', activo: true },
         { id: 3, code: 'FACTURACION', name: 'Facturación', parent: null, action: '/dashboard/invoices/history', activo: true },
         { id: 4, code: 'MAESTROS', name: 'Maestros', parent: null, action: '/dashboard/settings', activo: true },
         { id: 5, code: 'REPORTES', name: 'Reportes', parent: null, action: '/dashboard/reports', activo: true },
-        { id: 6, code: 'EJECUCIONES', name: 'Ejecuciones', parent: null, action: '/dashboard/executions', activo: true }
+        { id: 6, code: 'EJECUCIONES', name: 'Ejecuciones', parent: null, action: '/dashboard/executions', activo: true },
+        { id: 7, code: 'MANUAL', name: 'Manual Operativo', parent: null, action: '/dashboard/manual', activo: true }
     ]
 
     const baseItems = menuList.length > 0 ? menuList : defaultMenuItems
     const hasMaestros = baseItems.some(item => (item.code || '').toUpperCase().includes('MAESTRO') || (item.action || '').includes('settings'))
-    const itemsToRender = hasMaestros 
-        ? baseItems 
-        : [...baseItems, { id: 999, code: 'MAESTROS', name: 'Maestros', parent: null, action: '/dashboard/settings', activo: true }]
+    const hasManual = baseItems.some(item => (item.code || '').toUpperCase().includes('MANUAL') || (item.action || '').includes('manual'))
+    const hasPreQuotations = baseItems.some(item => (item.code || '').toUpperCase().includes('PRECOTIZACION') || (item.action || '').includes('prequotations'))
+    
+    let itemsToRender = baseItems;
+    if (!hasPreQuotations) {
+        itemsToRender = [{ id: 997, code: 'PRECOTIZACIONES', name: 'Pre-Cotizaciones', parent: null, action: '/dashboard/prequotations', activo: true }, ...itemsToRender]
+    }
+    if (!hasMaestros) {
+        itemsToRender = [...itemsToRender, { id: 999, code: 'MAESTROS', name: 'Maestros', parent: null, action: '/dashboard/settings', activo: true }]
+    }
+    if (!hasManual) {
+        itemsToRender = [...itemsToRender, { id: 998, code: 'MANUAL', name: 'Manual Operativo', parent: null, action: '/dashboard/manual', activo: true }]
+    }
 
 
     const getMenuIcon = (code: string, action: string) => {
         const uCode = (code || '').toUpperCase()
         const uAction = (action || '').toLowerCase()
 
+        if (uCode.includes('PRECOTIZACION') || uAction.includes('prequotations')) return <FilePlus className="w-5 h-5 text-amber-400" />
+        if (uCode.includes('MANUAL') || uAction.includes('manual')) return <BookOpen className="w-5 h-5 text-blue-400" />
         if (uCode.includes('DASHBOARD') || uAction === '/dashboard') return <LayoutDashboard className="w-5 h-5" />
         if (uCode.includes('COTIZACION') || uAction.includes('quotations')) return <FileText className="w-5 h-5" />
         if (uCode.includes('FACTURA') || uAction.includes('invoices')) return <Receipt className="w-5 h-5" />
@@ -87,6 +101,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (action.includes('/settings')) return pathname.includes('/dashboard/settings')
         if (action.includes('/reports')) return pathname.includes('/dashboard/reports')
         if (action.includes('/executions')) return pathname.includes('/dashboard/executions')
+        if (action.includes('/manual')) return pathname.includes('/dashboard/manual')
         return pathname === action
     }
 

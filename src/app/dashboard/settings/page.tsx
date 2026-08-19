@@ -34,8 +34,9 @@ import {
 import { cn } from '@/lib/utils'
 import { SearchSelect } from '@/components/SearchSelect'
 import { QuotationFormatsTab } from '@/components/QuotationFormatsTab'
+import RoleManagerTab from '@/components/RoleManagerTab'
 
-type Tab = 'parametros' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion' | 'modulos-sitio';
+type Tab = 'parametros' | 'roles' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion' | 'modulos-sitio';
 
 const AVAILABLE_MANDATORY_FIELDS = [
     { key: 'QuotationProduct.passengers', label: 'Pasajeros (Nombre obligatorio)', group: 'Por Producto' },
@@ -599,10 +600,16 @@ export default function SettingsPage() {
 
     const fetchMetadata = async () => {
         try {
+            let userRoleStr = '';
+            try {
+                const storedUser = localStorage.getItem('user');
+                if (storedUser) userRoleStr = JSON.parse(storedUser).role || '';
+            } catch (e) {}
+
             const [resInterfaces, resMasters, resRoles] = await Promise.all([
                 fetch('/api/config/interfaces').then(res => res.json()).catch(() => []),
                 fetch('/api/config/masters').then(res => res.json()).catch(() => []),
-                fetch('/api/config/roles').then(res => res.json()).catch(() => []),
+                fetch(`/api/config/roles?userRole=${encodeURIComponent(userRoleStr)}`).then(res => res.json()).catch(() => []),
             ]);
             setInterfacesList(Array.isArray(resInterfaces) ? resInterfaces : []);
             setMasterList(Array.isArray(resMasters) ? resMasters : []);
@@ -1093,6 +1100,7 @@ export default function SettingsPage() {
             {/* Tabs Layout */}
             <div className="flex flex-wrap items-center gap-1 p-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl mb-8 shadow-sm">
                 <TabButton active={activeTab === 'modulos-sitio'} onClick={() => setActiveTab('modulos-sitio')} icon={<ShieldCheck className="w-4 h-4 text-amber-500" />} label="Módulos del Sitio" />
+                <TabButton active={activeTab === 'roles'} onClick={() => setActiveTab('roles')} icon={<ShieldCheck className="w-4 h-4 text-emerald-500" />} label="Roles y Permisos" />
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
                 {isMasterTabEnabled('parametros') && <TabButton active={activeTab === 'parametros'} onClick={() => setActiveTab('parametros')} icon={<Settings className="w-4 h-4" />} label="Parámetros" />}
                 {isMasterTabEnabled('usuarios') && <TabButton active={activeTab === 'usuarios'} onClick={() => setActiveTab('usuarios')} icon={<Users className="w-4 h-4" />} label="Usuarios" />}
@@ -1140,7 +1148,11 @@ export default function SettingsPage() {
 
             {/* Content Area */}
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2.5rem] shadow-sm overflow-hidden min-h-[500px]">
-                {activeTab === 'modulos-sitio' ? (
+                {activeTab === 'roles' ? (
+                    <div className="p-8">
+                        <RoleManagerTab />
+                    </div>
+                ) : activeTab === 'modulos-sitio' ? (
                     <div className="p-8 space-y-8">
                         <div>
                             <div className="flex items-center justify-between mb-2">
