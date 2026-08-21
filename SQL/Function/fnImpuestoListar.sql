@@ -13,6 +13,8 @@ BEGIN
             'valueType', t."valueType",
             'value', t.value,
             'isEditable', t."isEditable",
+            'orden', COALESCE(t.orden, 0),
+            'productIds', COALESCE(t."productIds", '[]'::jsonb),
             'gdsEquivalences', COALESCE((
                 SELECT string_agg(DISTINCT eq."cd_codigointe", ', ')
                 FROM public."EquivalencesInterfaces" eq
@@ -21,6 +23,12 @@ BEGIN
             ), '')
         )
     FROM public."ChargeAndTax" t
-    ORDER BY t.name ASC;
+    ORDER BY 
+        CASE 
+            WHEN COALESCE(t.orden, 0) > 0 THEN t.orden 
+            WHEN t.code = 'TAR' THEN 1 
+            ELSE 9999 
+        END ASC, 
+        t.name ASC;
 END;
 $$;

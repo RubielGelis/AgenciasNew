@@ -57,20 +57,24 @@ async function syncGdsEquivalences(taxCode: string, gdsEquivalencesStr: string) 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { code, name, type, valueType, value, isEditable, gdsEquivalences } = body
+        const { code, name, type, valueType, value, isEditable, gdsEquivalences, orden, productIds } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const numericVal = value !== undefined && value !== null && value !== '' && !isNaN(parseFloat(value)) ? parseFloat(value) : 0;
+        const numericOrden = orden !== undefined && orden !== null && orden !== '' && !isNaN(parseInt(orden)) ? parseInt(orden) : 0;
+        const productIdsJson = JSON.stringify(Array.isArray(productIds) ? productIds : []);
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spImpuestoCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::DECIMAL, $6::BOOLEAN, $7::INT, $8::INT, $9::TEXT)`,
+            `CALL public.spImpuestoCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::DECIMAL, $6::BOOLEAN, $7::INT, $8::JSONB, $9::INT, $10::INT, $11::TEXT)`,
             code || null,
             name,
             type,
             valueType || 'NONE',
             numericVal,
             isEditable !== undefined ? isEditable : true,
+            numericOrden,
+            productIdsJson,
             actingUserId,
             0, // p_tax_id
             '' // p_mensaje_resultado
@@ -103,14 +107,16 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json()
-        const { id, code, name, type, valueType, value, isEditable, gdsEquivalences } = body
+        const { id, code, name, type, valueType, value, isEditable, gdsEquivalences, orden, productIds } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const numericVal = value !== undefined && value !== null && value !== '' && !isNaN(parseFloat(value)) ? parseFloat(value) : 0;
+        const numericOrden = orden !== undefined && orden !== null && orden !== '' && !isNaN(parseInt(orden)) ? parseInt(orden) : 0;
+        const productIdsJson = JSON.stringify(Array.isArray(productIds) ? productIds : []);
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spImpuestoActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::TEXT, $6::DECIMAL, $7::BOOLEAN, $8::INT, $9::TEXT)`,
+            `CALL public.spImpuestoActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::TEXT, $6::DECIMAL, $7::BOOLEAN, $8::INT, $9::JSONB, $10::INT, $11::TEXT)`,
             parseInt(id),
             code || null,
             name,
@@ -118,6 +124,8 @@ export async function PUT(req: NextRequest) {
             valueType || 'NONE',
             numericVal,
             isEditable !== undefined ? isEditable : true,
+            numericOrden,
+            productIdsJson,
             actingUserId,
             '' // p_mensaje_resultado
         );

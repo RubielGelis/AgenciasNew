@@ -2485,4 +2485,12 @@ BEGIN
         VALUES ('PRODUCTO_RESERVA_GDS', 'Producto por Defecto para Reservas GDS', '');
     END IF;
 
+    -- Columnas para Orden de visualización y Asignación por Producto en ChargeAndTax
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'orden') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "orden" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'productIds') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "productIds" jsonb DEFAULT '[]'::jsonb;
+    END IF;
+
 END $$;

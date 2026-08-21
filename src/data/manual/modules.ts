@@ -545,17 +545,21 @@ export const MANUAL_MODULES: ManualModule[] = [
                 code: 'MAE-10',
                 masterCode: 'ChargeAndTax',
                 name: 'Maestro de Cargos e Impuestos',
-                summary: 'Configuración de impuestos (IVA, FEE, Tasas aeroportuarias) aplicables a productos.',
-                concept: 'Define las reglas de impuestos y cargos administrativos de la agencia.',
+                summary: 'Configuración de impuestos (IVA, FEE, Tasas aeroportuarias) aplicables a productos, con ordenamiento prioritario y asignación específica por producto.',
+                concept: 'Define las reglas de impuestos y cargos administrativos de la agencia, controlando su prioridad de visualización y aplicabilidad por producto.',
                 fields: [
                     { name: 'Nombre Impuesto', type: 'Texto', description: 'IVA 19%, FEE Agencia, Tasa Administrativa, OTR (Otros Impuestos).' },
+                    { name: 'Orden (Prioridad)', type: 'Numérico', description: 'Permite definir un orden numérico (1, 2, 3...). Si no se especifica, TARIFA siempre aparece primero y los demás se ordenan alfabéticamente.' },
+                    { name: 'Productos Asignados', type: 'Selección Múltiple', description: 'Asigna el cargo/impuesto a productos específicos (ej. Tiquetes). Si no se marca ninguno, aplicará de forma global a todos los productos.' },
                     { name: 'Operación y Valor', type: 'Porcentaje / Costo Fijo / Ninguna', description: 'Porcentaje (%), Costo Fijo ($) o Ninguna (Digitar / Libre en Cotización), donde el valor se ingresa manualmente al cotizar.' }
                 ],
                 businessRules: [
+                    'Si un cargo/impuesto cuenta con un orden definido (> 0), se respetará dicha prioridad en pantalla; de lo contrario, TARIFA saldrá de primero y los demás alfabéticamente.',
+                    'Si un impuesto tiene productos asignados especificados, solo estará disponible al cotizar/facturar los ítems de dichos productos. Si está vacío, aplicará globalmente a todos los productos.',
                     'Si un código de impuesto procedente de un tiquete/reserva GDS no cuenta con equivalencia asignada en la tabla EquivalencesInterfaces, se asignará y sumará automáticamente al impuesto con código "OTR" (Otros Impuestos).'
                 ],
                 steps: [
-                    { number: 1, title: 'Crear Impuesto', description: 'En la pestaña "Cargos e Impuestos", defina el porcentaje y comportamiento del cargo.' }
+                    { number: 1, title: 'Crear Impuesto', description: 'En la pestaña "Cargos e Impuestos", defina el nombre, orden de presentación, productos aplicables y valor del cargo.' }
                 ]
             },
             {

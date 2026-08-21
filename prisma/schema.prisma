@@ -291,6 +291,8 @@ model ChargeAndTax {
   value      Float
   isEditable Boolean               @default(true)
   code       String?               @unique
+  orden      Int?                  @default(0)
+  productIds Json?                 @default("[]")
   comboTaxes ComboProductTax[]
   appliedTo  QuotationProductTax[]
 }

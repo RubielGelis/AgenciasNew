@@ -1634,137 +1634,166 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     <span className="text-xs text-zinc-400 font-medium">No hay cargos maestros configurados.</span>
                                                 )}
 
-                                                {/* Render all taxes (Now including Principal for easier editing) */}
-                                                {(data.taxes || []).map((tax: any) => {
-                                                    const taxIdNum = Number(tax.id);
-                                                    const appliedTax = item.appliedTaxes?.find((t: any) => {
-                                                        const rawId = (t as any).id ?? (t as any).chargeAndTaxId;
-                                                        return rawId != null && Number(rawId) === taxIdNum;
+                                                {/* Render taxes sorted by orden/name and filtered by product assignment */}
+                                                {(() => {
+                                                    const rawProductId = item.productId ? Number(item.productId) : null;
+                                                    
+                                                    const sortedTaxes = [...(data.taxes || [])].sort((a: any, b: any) => {
+                                                        const orderA = a.orden && Number(a.orden) > 0 ? Number(a.orden) : (a.code === 'TAR' ? 1 : 9999);
+                                                        const orderB = b.orden && Number(b.orden) > 0 ? Number(b.orden) : (b.code === 'TAR' ? 1 : 9999);
+                                                        if (orderA !== orderB) return orderA - orderB;
+                                                        return (a.name || '').localeCompare(b.name || '');
                                                     });
-                                                    const isChecked = !!appliedTax;
-                                                    const isPrincipal = item.mainTaxId != null && Number(item.mainTaxId) === taxIdNum;
 
-                                                    return (
-                                                        <div key={tax.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                                                            <div className="flex items-center gap-2 min-w-[200px]">
-                                                                <label className={cn(
-                                                                    "flex items-center gap-2 cursor-pointer text-sm font-bold flex-1",
-                                                                    isPrincipal ? "text-blue-600 dark:text-blue-400" : (isChecked ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-600 dark:text-zinc-400")
-                                                                )}>
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
-                                                                        checked={isChecked}
-                                                                        onChange={(e) => {
-                                                                            const checked = e.target.checked;
-                                                                            const currentTaxes = item.appliedTaxes || [];
-                                                                            const taxIdNum = Number(tax.id);
-                                                                            const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
+                                                    const filteredTaxes = sortedTaxes.filter((tax: any) => {
+                                                        const taxIdNum = Number(tax.id);
+                                                        const isPrincipal = item.mainTaxId != null && Number(item.mainTaxId) === taxIdNum;
+                                                        const isApplied = (item.appliedTaxes || []).some((t: any) => Number(t.id ?? t.chargeAndTaxId) === taxIdNum);
+                                                        
+                                                        if (isPrincipal || isApplied || tax.code === 'TAR') return true;
 
-                                                                            if (checked) {
-                                                                                let initialAmount = 0;
-                                                                                const baseValue = item.price * item.quantity;
-                                                                                if (tax.valueType === 'PERCENTAGE') {
-                                                                                    initialAmount = (baseValue * (tax.value || 0)) / 100;
-                                                                                } else if (tax.valueType === 'FIXED') {
-                                                                                    initialAmount = (tax.value || 0) * item.quantity;
-                                                                                } else {
-                                                                                    initialAmount = (tax.value || 0) * item.quantity;
-                                                                                }
-                                                                                const nextTaxes = [...currentTaxes, { id: taxIdNum, amount: initialAmount }];
+                                                        let pIds: number[] = [];
+                                                        if (Array.isArray(tax.productIds)) {
+                                                            pIds = tax.productIds.map(Number);
+                                                        } else if (typeof tax.productIds === 'string') {
+                                                            try { pIds = JSON.parse(tax.productIds).map(Number); } catch(e) { pIds = []; }
+                                                        }
 
-                                                                                // AUTO-PROMOTE to principal if none exists
-                                                                                if (mainTaxIdNum === null) {
-                                                                                    const newItems = [...formData.items];
-                                                                                    const newPrice = initialAmount / (item.quantity || 1);
-                                                                                    newItems[index] = { ...item, mainTaxId: taxIdNum, price: newPrice, appliedTaxes: nextTaxes };
-                                                                                    setFormData({ ...formData, items: newItems });
-                                                                                } else {
-                                                                                    updateItem(index, 'appliedTaxes', nextTaxes);
-                                                                                }
-                                                                            } else {
-                                                                                const nextTaxes = currentTaxes.filter((t: any) => {
-                                                                                    const rawId = t.id ?? t.chargeAndTaxId;
-                                                                                    return rawId != null && Number(rawId) !== taxIdNum;
-                                                                                });
-                                                                                if (mainTaxIdNum === taxIdNum) {
-                                                                                    const newItems = [...formData.items];
-                                                                                    newItems[index] = { ...item, mainTaxId: undefined, appliedTaxes: nextTaxes };
-                                                                                    setFormData({ ...formData, items: newItems });
-                                                                                } else {
-                                                                                    updateItem(index, 'appliedTaxes', nextTaxes);
-                                                                                }
-                                                                            }
-                                                                        }}
-                                                                    />
-                                                                    <span>{tax.name} {isPrincipal && <span className="text-[9px] bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded ml-1 uppercase">Principal</span>}</span>
-                                                                    <span className="opacity-50 text-[10px] ml-auto">({tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : tax.valueType === 'FIXED' ? `$${tax.value}` : 'Libre'})</span>
-                                                                </label>
-                                                            </div>
-                                                            {isChecked && (
-                                                                <div className="flex-1 flex flex-col md:flex-row md:items-center gap-2 border-l border-zinc-200 dark:border-zinc-700 pl-4 py-1">
-                                                                    <span className="text-xs font-bold text-zinc-500">Valor Cobrado:</span>
-                                                                    <div className="relative w-32">
-                                                                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold">$</span>
+                                                        if (pIds.length === 0) return true;
+                                                        if (rawProductId != null && pIds.includes(rawProductId)) return true;
+
+                                                        return false;
+                                                    });
+
+                                                    return filteredTaxes.map((tax: any) => {
+                                                        const taxIdNum = Number(tax.id);
+                                                        const appliedTax = item.appliedTaxes?.find((t: any) => {
+                                                            const rawId = (t as any).id ?? (t as any).chargeAndTaxId;
+                                                            return rawId != null && Number(rawId) === taxIdNum;
+                                                        });
+                                                        const isChecked = !!appliedTax;
+                                                        const isPrincipal = item.mainTaxId != null && Number(item.mainTaxId) === taxIdNum;
+
+                                                        return (
+                                                            <div key={tax.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
+                                                                <div className="flex items-center gap-2 min-w-[200px]">
+                                                                    <label className={cn(
+                                                                        "flex items-center gap-2 cursor-pointer text-sm font-bold flex-1",
+                                                                        isPrincipal ? "text-blue-600 dark:text-blue-400" : (isChecked ? "text-emerald-600 dark:text-emerald-400" : "text-zinc-600 dark:text-zinc-400")
+                                                                    )}>
                                                                         <input
-                                                                            type="text"
-                                                                            className={cn(
-                                                                                "w-full h-8 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-3 border border-zinc-200 dark:border-zinc-700 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all",
-                                                                                tax.isEditable === false && !isPrincipal && "opacity-50 cursor-not-allowed bg-zinc-50 dark:bg-zinc-800"
-                                                                            )}
-                                                                            value={
-                                                                                focusedTax?.itemIdx === index && focusedTax?.taxId === Number(tax.id)
-                                                                                    ? (focusedTax.rawValue ?? appliedTax.amount ?? '')
-                                                                                    : formatMoney(appliedTax.amount, decimals)
-                                                                            }
-                                                                            disabled={tax.isEditable === false && !isPrincipal}
-                                                                            onFocus={() => setFocusedTax({ itemIdx: index, taxId: Number(tax.id), rawValue: appliedTax.amount?.toString() || '' })}
-                                                                            onBlur={() => {
-                                                                                setFocusedTax(null);
-                                                                                // Sanitizar a float al perder el foco
-                                                                                const taxIdNum = Number(tax.id);
-                                                                                const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
-                                                                                if (mainTaxIdNum === taxIdNum) {
-                                                                                    const currentPrice = parseFloat(item.price as any) || 0;
-                                                                                    updateItem(index, 'price', currentPrice);
-                                                                                } else {
-                                                                                    const newTaxes = (item.appliedTaxes || []).map((t: any) => {
-                                                                                        const rawId = t.id ?? t.chargeAndTaxId;
-                                                                                        const currentAmt = parseFloat(t.amount as any) || 0;
-                                                                                        return rawId != null && Number(rawId) === taxIdNum ? { ...t, amount: currentAmt } : t;
-                                                                                    });
-                                                                                    updateItem(index, 'appliedTaxes', newTaxes);
-                                                                                }
-                                                                            }}
+                                                                            type="checkbox"
+                                                                            className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
+                                                                            checked={isChecked}
                                                                             onChange={(e) => {
-                                                                                const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
-                                                                                
-                                                                                setFocusedTax(prev => prev ? { ...prev, rawValue: cleanVal } : { itemIdx: index, taxId: Number(tax.id), rawValue: cleanVal });
-
-                                                                                const parsedVal = parseFloat(cleanVal) || 0;
+                                                                                const checked = e.target.checked;
+                                                                                const currentTaxes = item.appliedTaxes || [];
                                                                                 const taxIdNum = Number(tax.id);
                                                                                 const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
 
-                                                                                if (mainTaxIdNum === taxIdNum) {
-                                                                                    updateItem(index, 'price', parsedVal / (item.quantity || 1));
+                                                                                if (checked) {
+                                                                                    let initialAmount = 0;
+                                                                                    const baseValue = item.price * item.quantity;
+                                                                                    if (tax.valueType === 'PERCENTAGE') {
+                                                                                        initialAmount = (baseValue * (tax.value || 0)) / 100;
+                                                                                    } else if (tax.valueType === 'FIXED') {
+                                                                                        initialAmount = (tax.value || 0) * item.quantity;
+                                                                                    } else {
+                                                                                        initialAmount = (tax.value || 0) * item.quantity;
+                                                                                    }
+                                                                                    const nextTaxes = [...currentTaxes, { id: taxIdNum, amount: initialAmount }];
+
+                                                                                    if (mainTaxIdNum === null) {
+                                                                                        const newItems = [...formData.items];
+                                                                                        const newPrice = initialAmount / (item.quantity || 1);
+                                                                                        newItems[index] = { ...item, mainTaxId: taxIdNum, price: newPrice, appliedTaxes: nextTaxes };
+                                                                                        setFormData({ ...formData, items: newItems });
+                                                                                    } else {
+                                                                                        updateItem(index, 'appliedTaxes', nextTaxes);
+                                                                                    }
                                                                                 } else {
-                                                                                    const newTaxes = (item.appliedTaxes || []).map((t: any) => {
+                                                                                    const nextTaxes = currentTaxes.filter((t: any) => {
                                                                                         const rawId = t.id ?? t.chargeAndTaxId;
-                                                                                        return rawId != null && Number(rawId) === taxIdNum ? { ...t, amount: parsedVal } : t;
+                                                                                        return rawId != null && Number(rawId) !== taxIdNum;
                                                                                     });
-                                                                                    updateItem(index, 'appliedTaxes', newTaxes);
+                                                                                    if (mainTaxIdNum === taxIdNum) {
+                                                                                        const newItems = [...formData.items];
+                                                                                        newItems[index] = { ...item, mainTaxId: undefined, appliedTaxes: nextTaxes };
+                                                                                        setFormData({ ...formData, items: newItems });
+                                                                                    } else {
+                                                                                        updateItem(index, 'appliedTaxes', nextTaxes);
+                                                                                    }
                                                                                 }
                                                                             }}
                                                                         />
-                                                                    </div>
-                                                                    <div className="text-[10px] text-zinc-400 leading-tight md:ml-2">
-                                                                        Puedes modificar este valor <br className="hidden md:block" /> manualmente.
-                                                                    </div>
+                                                                        <span>{tax.name} {isPrincipal && <span className="text-[9px] bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded ml-1 uppercase">Principal</span>}</span>
+                                                                        <span className="opacity-50 text-[10px] ml-auto">({tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : tax.valueType === 'FIXED' ? `$${tax.value}` : 'Libre'})</span>
+                                                                    </label>
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                    )
-                                                })}
+                                                                {isChecked && (
+                                                                    <div className="flex-1 flex flex-col md:flex-row md:items-center gap-2 border-l border-zinc-200 dark:border-zinc-700 pl-4 py-1">
+                                                                        <span className="text-xs font-bold text-zinc-500">Valor Cobrado:</span>
+                                                                        <div className="relative w-32">
+                                                                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400 font-bold">$</span>
+                                                                            <input
+                                                                                type="text"
+                                                                                className={cn(
+                                                                                    "w-full h-8 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-3 border border-zinc-200 dark:border-zinc-700 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all",
+                                                                                    tax.isEditable === false && !isPrincipal && "opacity-50 cursor-not-allowed bg-zinc-50 dark:bg-zinc-800"
+                                                                                )}
+                                                                                value={
+                                                                                    focusedTax?.itemIdx === index && focusedTax?.taxId === Number(tax.id)
+                                                                                        ? (focusedTax.rawValue ?? appliedTax.amount ?? '')
+                                                                                        : formatMoney(appliedTax.amount, decimals)
+                                                                                }
+                                                                                disabled={tax.isEditable === false && !isPrincipal}
+                                                                                onFocus={() => setFocusedTax({ itemIdx: index, taxId: Number(tax.id), rawValue: appliedTax.amount?.toString() || '' })}
+                                                                                onBlur={() => {
+                                                                                    setFocusedTax(null);
+                                                                                    const taxIdNum = Number(tax.id);
+                                                                                    const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
+                                                                                    if (mainTaxIdNum === taxIdNum) {
+                                                                                        const currentPrice = parseFloat(item.price as any) || 0;
+                                                                                        updateItem(index, 'price', currentPrice);
+                                                                                    } else {
+                                                                                        const newTaxes = (item.appliedTaxes || []).map((t: any) => {
+                                                                                            const rawId = t.id ?? t.chargeAndTaxId;
+                                                                                            const currentAmt = parseFloat(t.amount as any) || 0;
+                                                                                            return rawId != null && Number(rawId) === taxIdNum ? { ...t, amount: currentAmt } : t;
+                                                                                        });
+                                                                                        updateItem(index, 'appliedTaxes', newTaxes);
+                                                                                    }
+                                                                                }}
+                                                                                onChange={(e) => {
+                                                                                    const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
+                                                                                    
+                                                                                    setFocusedTax(prev => prev ? { ...prev, rawValue: cleanVal } : { itemIdx: index, taxId: Number(tax.id), rawValue: cleanVal });
+
+                                                                                    const parsedVal = parseFloat(cleanVal) || 0;
+                                                                                    const taxIdNum = Number(tax.id);
+                                                                                    const mainTaxIdNum = item.mainTaxId != null ? Number(item.mainTaxId) : null;
+
+                                                                                    if (mainTaxIdNum === taxIdNum) {
+                                                                                        updateItem(index, 'price', parsedVal / (item.quantity || 1));
+                                                                                    } else {
+                                                                                        const newTaxes = (item.appliedTaxes || []).map((t: any) => {
+                                                                                            const rawId = t.id ?? t.chargeAndTaxId;
+                                                                                            return rawId != null && Number(rawId) === taxIdNum ? { ...t, amount: parsedVal } : t;
+                                                                                        });
+                                                                                        updateItem(index, 'appliedTaxes', newTaxes);
+                                                                                    }
+                                                                                }}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="text-[10px] text-zinc-400 leading-tight md:ml-2">
+                                                                            Puedes modificar este valor <br className="hidden md:block" /> manualmente.
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    });
+                                                })()}
                                             </div>
                                         </div>
 

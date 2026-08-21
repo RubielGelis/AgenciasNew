@@ -1751,15 +1751,45 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                     <span className="text-xs text-zinc-400 font-medium">No hay cargos maestros configurados.</span>
                                                 )}
 
-                                                {/* Render all taxes (Now including Principal for easier editing) */}
-                                                {(data.taxes || []).map((tax: any) => {
-                                                    const taxIdNum = Number(tax.id);
-                                                    const appliedTax = item.appliedTaxes?.find((t: any) => {
-                                                        const rawId = (t as any).id ?? (t as any).chargeAndTaxId;
-                                                        return rawId != null && Number(rawId) === taxIdNum;
+                                                {/* Render taxes sorted by orden/name and filtered by product assignment */}
+                                                {(() => {
+                                                    const rawProductId = item.productId ? Number(item.productId) : null;
+                                                    
+                                                    const sortedTaxes = [...(data.taxes || [])].sort((a: any, b: any) => {
+                                                        const orderA = a.orden && Number(a.orden) > 0 ? Number(a.orden) : (a.code === 'TAR' ? 1 : 9999);
+                                                        const orderB = b.orden && Number(b.orden) > 0 ? Number(b.orden) : (b.code === 'TAR' ? 1 : 9999);
+                                                        if (orderA !== orderB) return orderA - orderB;
+                                                        return (a.name || '').localeCompare(b.name || '');
                                                     });
-                                                    const isChecked = !!appliedTax;
-                                                    const isPrincipal = item.mainTaxId != null && Number(item.mainTaxId) === taxIdNum;
+
+                                                    const filteredTaxes = sortedTaxes.filter((tax: any) => {
+                                                        const taxIdNum = Number(tax.id);
+                                                        const isPrincipal = item.mainTaxId != null && Number(item.mainTaxId) === taxIdNum;
+                                                        const isApplied = (item.appliedTaxes || []).some((t: any) => Number(t.id ?? t.chargeAndTaxId) === taxIdNum);
+                                                        
+                                                        if (isPrincipal || isApplied || tax.code === 'TAR') return true;
+
+                                                        let pIds: number[] = [];
+                                                        if (Array.isArray(tax.productIds)) {
+                                                            pIds = tax.productIds.map(Number);
+                                                        } else if (typeof tax.productIds === 'string') {
+                                                            try { pIds = JSON.parse(tax.productIds).map(Number); } catch(e) { pIds = []; }
+                                                        }
+
+                                                        if (pIds.length === 0) return true;
+                                                        if (rawProductId != null && pIds.includes(rawProductId)) return true;
+
+                                                        return false;
+                                                    });
+
+                                                    return filteredTaxes.map((tax: any) => {
+                                                        const taxIdNum = Number(tax.id);
+                                                        const appliedTax = item.appliedTaxes?.find((t: any) => {
+                                                            const rawId = (t as any).id ?? (t as any).chargeAndTaxId;
+                                                            return rawId != null && Number(rawId) === taxIdNum;
+                                                        });
+                                                        const isChecked = !!appliedTax;
+                                                        const isPrincipal = item.mainTaxId != null && Number(item.mainTaxId) === taxIdNum;
                                                     
                                                     return (
                                                         <div key={tax.id} className="flex items-center gap-4 bg-zinc-50 dark:bg-zinc-800/80 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
@@ -1845,8 +1875,9 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    )
-                                                })}
+                                                    );
+                                                });
+                                            })()}
                                             </div>
                                         </div>
 
