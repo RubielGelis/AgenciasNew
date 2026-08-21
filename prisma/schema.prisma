@@ -149,6 +149,7 @@ model Product {
   flightItinerary   String?
   ticketTypeId      Int?
   mandatoryFields   Json?
+  taxIds            Json?              @default("[]")
   comboProducts     ComboProduct[]
   ticketType        TicketType?        @relation(fields: [ticketTypeId], references: [id])
   quotationProducts QuotationProduct[]

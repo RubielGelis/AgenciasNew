@@ -2493,4 +2493,9 @@ BEGIN
         ALTER TABLE public."ChargeAndTax" ADD COLUMN "productIds" jsonb DEFAULT '[]'::jsonb;
     END IF;
 
+    -- Columna para Asignación de Cargos e Impuestos por Producto en Product
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'taxIds') THEN
+        ALTER TABLE public."Product" ADD COLUMN "taxIds" jsonb DEFAULT '[]'::jsonb;
+    END IF;
+
 END $$;

@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId, mandatoryFields } = body
+        const { code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId, mandatoryFields, taxIds } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
                 airlineItinerary: airlineItinerary || null,
                 ticketTypeId: ticketTypeId ? parseInt(ticketTypeId) : null,
                 mandatoryFields: mandatoryFields || null,
+                taxIds: taxIds ? (Array.isArray(taxIds) ? taxIds : JSON.parse(taxIds)) : [],
             }
         });
 
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json()
-        const { id, code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId, mandatoryFields } = body
+        const { id, code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId, mandatoryFields, taxIds } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
@@ -72,6 +73,7 @@ export async function PUT(req: NextRequest) {
                 airlineItinerary: airlineItinerary || null,
                 ticketTypeId: ticketTypeId ? parseInt(ticketTypeId) : null,
                 mandatoryFields: mandatoryFields || null,
+                taxIds: taxIds ? (Array.isArray(taxIds) ? taxIds : JSON.parse(taxIds)) : [],
             }
         });
 

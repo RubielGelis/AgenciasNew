@@ -823,14 +823,14 @@ export default function SettingsPage() {
                 if (!Array.isArray(mandatory)) {
                     mandatory = [];
                 }
-                setFormData({ ...item, mandatoryFields: mandatory })
-            } else if (activeTab === 'impuestos') {
-                let pIds = item.productIds;
-                if (typeof pIds === 'string') {
-                    try { pIds = JSON.parse(pIds); } catch(e) { pIds = []; }
+                let tIds = item.taxIds;
+                if (typeof tIds === 'string') {
+                    try { tIds = JSON.parse(tIds); } catch (e) { tIds = []; }
                 }
-                if (!Array.isArray(pIds)) pIds = [];
-                setFormData({ ...item, orden: item.orden ?? 0, productIds: pIds })
+                if (!Array.isArray(tIds)) tIds = [];
+                setFormData({ ...item, mandatoryFields: mandatory, taxIds: tIds })
+            } else if (activeTab === 'impuestos') {
+                setFormData({ ...item, orden: item.orden ?? 0 })
             } else {
                 setFormData({ ...item })
             }
@@ -839,7 +839,9 @@ export default function SettingsPage() {
             if (activeTab === 'usuarios') {
                 setFormData({ name: '', email: '', password: '', roleId: roles[0]?.id || '', branchId: '', implantId: '', ticketPrinterId: '', canEditReports: false })
             } else if (activeTab === 'impuestos') {
-                setFormData({ code: '', name: '', type: 'TAX', valueType: 'PERCENTAGE', value: '', isEditable: true, orden: 0, productIds: [] })
+                setFormData({ code: '', name: '', type: 'TAX', valueType: 'PERCENTAGE', value: '', isEditable: true, orden: 0 })
+            } else if (activeTab === 'productos') {
+                setFormData({ code: '', type: 'SERVICE', description: '', basePrice: '', cost: '', mandatoryFields: [], taxIds: [] })
             } else if (activeTab === 'vendedores' || activeTab === 'tiqueteadores') {
                 setFormData({ code: '', name: '', email: '' })
             } else if (activeTab === 'prestadoras') {
@@ -850,8 +852,6 @@ export default function SettingsPage() {
                 setFormData({ code: '', name: '', contactInfo: '', providerTypeId: '', airlineCode: '', sigla: '' })
             } else if (activeTab === 'tipos-proveedores') {
                 setFormData({ code: '', name: '', isAirline: false, active: true })
-            } else if (activeTab === 'productos') {
-                setFormData({ code: '', type: 'Servicio', description: '', basePrice: '', cost: '', billingConcept: '', serviceType: '', mandatoryFields: [] })
             } else if (activeTab === 'variables') {
                 setFormData({ code: '', name: '' })
             } else if (activeTab === 'monedas') {
@@ -1316,7 +1316,7 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre del Cargo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Tipo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Valor</th>
-                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Productos Asignados</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Homologación</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Editable</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
@@ -1365,6 +1365,7 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Descripción</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Costo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Precio Base</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Cargos Asignados</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : activeTab === 'monedas' ? (
@@ -1508,12 +1509,12 @@ export default function SettingsPage() {
                                             {tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : tax.valueType === 'FIXED' ? `$${tax.value?.toLocaleString()}` : 'Ninguna (Libre)'}
                                         </td>
                                         <td className="px-8 py-6">
-                                            {Array.isArray(tax.productIds) && tax.productIds.length > 0 ? (
+                                            {tax.gdsEquivalences ? (
                                                 <span className="px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-bold rounded-lg border border-blue-100 dark:border-blue-800/40">
-                                                    {tax.productIds.length} producto(s)
+                                                    {tax.gdsEquivalences}
                                                 </span>
                                             ) : (
-                                                <span className="text-zinc-400 text-xs italic">Todos los productos</span>
+                                                <span className="text-zinc-400 text-xs italic">Sin homologar</span>
                                             )}
                                         </td>
                                         <td className="px-8 py-6">
@@ -1639,6 +1640,15 @@ export default function SettingsPage() {
                                         </td>
                                         <td className="px-8 py-6 font-black text-emerald-600">
                                             ${item.basePrice?.toLocaleString() || '0'}
+                                        </td>
+                                        <td className="px-8 py-6 font-medium text-zinc-500">
+                                            {Array.isArray(item.taxIds) && item.taxIds.length > 0 ? (
+                                                <span className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded-lg">
+                                                    {item.taxIds.length} asignados
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs text-zinc-400 italic">Ninguno</span>
+                                            )}
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
@@ -1993,43 +2003,6 @@ export default function SettingsPage() {
                                                 step="0.01"
                                                 placeholder={formData.valueType === 'NONE' ? "Ej. 0 (Opcional)" : "Ej. 19"}
                                             />
-                                        </div>
-
-                                        {/* Selección de Productos Asignados */}
-                                        <div className="space-y-2 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-700">
-                                            <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">
-                                                Productos Asignados (Asignar a productos específicos)
-                                            </label>
-                                            <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto pr-1">
-                                                {(products || []).map((prod: any) => {
-                                                    const pId = Number(prod.id);
-                                                    const currentPIds: number[] = Array.isArray(formData.productIds) ? formData.productIds.map(Number) : [];
-                                                    const isChecked = currentPIds.includes(pId);
-
-                                                    return (
-                                                        <label key={prod.id} className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-blue-400 transition-all">
-                                                            <input
-                                                                type="checkbox"
-                                                                className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                                                                checked={isChecked}
-                                                                onChange={(e) => {
-                                                                    let nextIds = [...currentPIds];
-                                                                    if (e.target.checked) {
-                                                                        if (!nextIds.includes(pId)) nextIds.push(pId);
-                                                                    } else {
-                                                                        nextIds = nextIds.filter(id => id !== pId);
-                                                                    }
-                                                                    setFormData({ ...formData, productIds: nextIds });
-                                                                }}
-                                                            />
-                                                            <span className="truncate">{prod.description || prod.name || prod.code}</span>
-                                                        </label>
-                                                    );
-                                                })}
-                                            </div>
-                                            <p className="text-[10px] text-zinc-400 italic mt-1">
-                                                * Si dejas sin marcar todos los productos, este cargo/impuesto estará disponible de forma **global para todos los productos**.
-                                            </p>
                                         </div>
 
                                         <div className="flex items-center gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-700">
@@ -2560,6 +2533,43 @@ export default function SettingsPage() {
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <Input label="Concepto de Facturación" value={formData.billingConcept || ''} onChange={(v: string) => setFormData({ ...formData, billingConcept: v })} placeholder="Opcional" />
                                                     <Input label="Clasificación Servicio" value={formData.serviceType || ''} onChange={(v: string) => setFormData({ ...formData, serviceType: v })} placeholder="Opcional" />
+                                                </div>
+
+                                                {/* Selección de Cargos e Impuestos Asignados al Producto */}
+                                                <div className="space-y-2 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-200 dark:border-zinc-700 mt-4">
+                                                    <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">
+                                                        Cargos e Impuestos Asignados (Seleccionar impuestos aplicables a este producto)
+                                                    </label>
+                                                    <div className="grid grid-cols-2 gap-2 mt-2 max-h-40 overflow-y-auto pr-1">
+                                                        {(taxes || []).map((tax: any) => {
+                                                            const tId = Number(tax.id);
+                                                            const currentTaxIds: number[] = Array.isArray(formData.taxIds) ? formData.taxIds.map(Number) : [];
+                                                            const isChecked = currentTaxIds.includes(tId);
+
+                                                            return (
+                                                                <label key={tax.id} className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-900 p-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-blue-400 transition-all">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                                        checked={isChecked}
+                                                                        onChange={(e) => {
+                                                                            let nextIds = [...currentTaxIds];
+                                                                            if (e.target.checked) {
+                                                                                if (!nextIds.includes(tId)) nextIds.push(tId);
+                                                                            } else {
+                                                                                nextIds = nextIds.filter(id => id !== tId);
+                                                                            }
+                                                                            setFormData({ ...formData, taxIds: nextIds });
+                                                                        }}
+                                                                    />
+                                                                    <span className="truncate">{tax.name} {tax.code ? `(${tax.code})` : ''}</span>
+                                                                </label>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <p className="text-[10px] text-zinc-400 italic mt-1">
+                                                        * Si dejas sin marcar todos los impuestos, a este producto le aplicarán **todos los impuestos globales por defecto**.
+                                                    </p>
                                                 </div>
                                                 {formData.type === 'Boleto' && (
                                                     <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-6 space-y-4">

@@ -504,14 +504,19 @@ export const MANUAL_MODULES: ManualModule[] = [
                 code: 'MAE-07',
                 masterCode: 'Product',
                 name: 'Maestro de Productos y Catálogo',
-                summary: 'Catálogo de productos (vuelos, paquetes, seguros, hoteles) con precios base y tarifas.',
-                concept: 'Almacena los productos recurrentes que ofrece la agencia para ser añadidos rápidamente a las cotizaciones.',
+                summary: 'Catálogo de productos (vuelos, paquetes, seguros, hoteles) con precios base, tarifas y asignación específica de cargos e impuestos.',
+                concept: 'Almacena los productos recurrentes que ofrece la agencia para ser añadidos rápidamente a las cotizaciones y definir los cargos/impuestos aplicables a cada uno.',
                 fields: [
                     { name: 'Tipo de Producto', type: 'Selector', description: 'Vuelo, Hotel, Asistencia, Paquete, Tour.' },
-                    { name: 'Descripción / Tarifa', type: 'Texto / Numérico', description: 'Detalle del servicio y costo de referencia.' }
+                    { name: 'Descripción / Tarifa', type: 'Texto / Numérico', description: 'Detalle del servicio y costo de referencia.' },
+                    { name: 'Cargos e Impuestos Asignados', type: 'Selección Múltiple', description: 'Permite seleccionar qué cargos/impuestos específicos aplican a este producto. Si no se selecciona ninguno, aplicarán todos por defecto.' }
+                ],
+                businessRules: [
+                    'Si un producto tiene impuestos específicos asignados en el maestro de Productos, al cotizarlo/facturarlo solo se mostrarán esos impuestos seleccionados.',
+                    'Si no se asignan impuestos a un producto, estará sujeto a los impuestos globales configurados.'
                 ],
                 steps: [
-                    { number: 1, title: 'Gestionar Producto', description: 'En la pestaña "Productos", configure las tarifas base del catálogo.' }
+                    { number: 1, title: 'Gestionar Producto', description: 'En la pestaña "Productos", configure las tarifas base del catálogo y asigne los cargos/impuestos correspondientes.' }
                 ]
             },
             {
@@ -545,21 +550,19 @@ export const MANUAL_MODULES: ManualModule[] = [
                 code: 'MAE-10',
                 masterCode: 'ChargeAndTax',
                 name: 'Maestro de Cargos e Impuestos',
-                summary: 'Configuración de impuestos (IVA, FEE, Tasas aeroportuarias) aplicables a productos, con ordenamiento prioritario y asignación específica por producto.',
-                concept: 'Define las reglas de impuestos y cargos administrativos de la agencia, controlando su prioridad de visualización y aplicabilidad por producto.',
+                summary: 'Configuración de impuestos (IVA, FEE, Tasas aeroportuarias) con ordenamiento prioritario de presentación.',
+                concept: 'Define las reglas de impuestos y cargos administrativos de la agencia y su prioridad de visualización.',
                 fields: [
                     { name: 'Nombre Impuesto', type: 'Texto', description: 'IVA 19%, FEE Agencia, Tasa Administrativa, OTR (Otros Impuestos).' },
                     { name: 'Orden (Prioridad)', type: 'Numérico', description: 'Permite definir un orden numérico (1, 2, 3...). Si no se especifica, TARIFA siempre aparece primero y los demás se ordenan alfabéticamente.' },
-                    { name: 'Productos Asignados', type: 'Selección Múltiple', description: 'Asigna el cargo/impuesto a productos específicos (ej. Tiquetes). Si no se marca ninguno, aplicará de forma global a todos los productos.' },
                     { name: 'Operación y Valor', type: 'Porcentaje / Costo Fijo / Ninguna', description: 'Porcentaje (%), Costo Fijo ($) o Ninguna (Digitar / Libre en Cotización), donde el valor se ingresa manualmente al cotizar.' }
                 ],
                 businessRules: [
                     'Si un cargo/impuesto cuenta con un orden definido (> 0), se respetará dicha prioridad en pantalla; de lo contrario, TARIFA saldrá de primero y los demás alfabéticamente.',
-                    'Si un impuesto tiene productos asignados especificados, solo estará disponible al cotizar/facturar los ítems de dichos productos. Si está vacío, aplicará globalmente a todos los productos.',
                     'Si un código de impuesto procedente de un tiquete/reserva GDS no cuenta con equivalencia asignada en la tabla EquivalencesInterfaces, se asignará y sumará automáticamente al impuesto con código "OTR" (Otros Impuestos).'
                 ],
                 steps: [
-                    { number: 1, title: 'Crear Impuesto', description: 'En la pestaña "Cargos e Impuestos", defina el nombre, orden de presentación, productos aplicables y valor del cargo.' }
+                    { number: 1, title: 'Crear Impuesto', description: 'En la pestaña "Cargos e Impuestos", defina el nombre, orden de presentación y valor del cargo.' }
                 ]
             },
             {

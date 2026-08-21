@@ -1769,17 +1769,23 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                         
                                                         if (isPrincipal || isApplied || tax.code === 'TAR') return true;
 
-                                                        let pIds: number[] = [];
-                                                        if (Array.isArray(tax.productIds)) {
-                                                            pIds = tax.productIds.map(Number);
-                                                        } else if (typeof tax.productIds === 'string') {
-                                                            try { pIds = JSON.parse(tax.productIds).map(Number); } catch(e) { pIds = []; }
+                                                        if (rawProductId != null && Array.isArray(data.products)) {
+                                                            const selectedProduct = data.products.find((p: any) => Number(p.id) === rawProductId);
+                                                            if (selectedProduct) {
+                                                                let tIds: number[] = [];
+                                                                if (Array.isArray(selectedProduct.taxIds)) {
+                                                                    tIds = selectedProduct.taxIds.map(Number);
+                                                                } else if (typeof selectedProduct.taxIds === 'string') {
+                                                                    try { tIds = JSON.parse(selectedProduct.taxIds).map(Number); } catch(e) { tIds = []; }
+                                                                }
+
+                                                                if (tIds.length > 0) {
+                                                                    return tIds.includes(taxIdNum);
+                                                                }
+                                                            }
                                                         }
 
-                                                        if (pIds.length === 0) return true;
-                                                        if (rawProductId != null && pIds.includes(rawProductId)) return true;
-
-                                                        return false;
+                                                        return true;
                                                     });
 
                                                     return filteredTaxes.map((tax: any) => {
