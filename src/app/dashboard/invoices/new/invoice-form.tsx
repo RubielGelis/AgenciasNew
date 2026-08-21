@@ -167,24 +167,43 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
         // 6. Mapear Productos
         const importedItems = (booking.items || []).map((bkItem: any) => {
             // Asignación de Proveedor según Sigla / Aerolínea
+            // Asignación de Proveedor según Sigla / Aerolínea
             let matchedProviderId = '';
-            if (bkItem.prestadoracode || bkItem.provider) {
-                const searchKey = (bkItem.prestadoracode || bkItem.provider || '').trim().toUpperCase();
-                
-                const airlineProv = data?.providers?.find((pv: any) => 
-                    (pv.isAirline || pv.providerTypeName === 'Aerolínea') && (
-                        pv.sigla?.trim().toUpperCase() === searchKey ||
-                        pv.airlineCode?.trim().toUpperCase() === searchKey ||
-                        pv.code?.trim().toUpperCase() === searchKey
-                    )
+            const siglaKey = (bkItem.prestadoracode || '').trim().toUpperCase();
+            const providerCodeKey = (bkItem.provider || '').trim().toUpperCase();
+            const allProviders = data?.providers || [];
+
+            // 1. Búsqueda prioritaria por Sigla o Código de Aerolínea ('AV', '134')
+            if (siglaKey) {
+                const provBySigla = allProviders.find((pv: any) => 
+                    pv.sigla?.trim().toUpperCase() === siglaKey ||
+                    pv.airlineCode?.trim().toUpperCase() === siglaKey
                 );
-                const foundProv = airlineProv || data?.providers?.find((pv: any) => 
-                    pv.sigla?.trim().toUpperCase() === searchKey ||
-                    pv.airlineCode?.trim().toUpperCase() === searchKey ||
-                    pv.code?.trim().toUpperCase() === searchKey ||
-                    pv.name?.trim().toUpperCase().includes(searchKey)
+                if (provBySigla) {
+                    matchedProviderId = provBySigla.id.toString();
+                }
+            }
+
+            // 2. Búsqueda por Código de Proveedor ('890100577')
+            if (!matchedProviderId && providerCodeKey) {
+                const provByCode = allProviders.find((pv: any) => 
+                    pv.code?.trim().toUpperCase() === providerCodeKey ||
+                    pv.sigla?.trim().toUpperCase() === providerCodeKey ||
+                    pv.airlineCode?.trim().toUpperCase() === providerCodeKey
                 );
-                if (foundProv) matchedProviderId = foundProv.id.toString();
+                if (provByCode) {
+                    matchedProviderId = provByCode.id.toString();
+                }
+            }
+
+            // 3. Búsqueda por coincidencia en Nombre
+            if (!matchedProviderId && siglaKey) {
+                const provByName = allProviders.find((pv: any) => 
+                    pv.name?.trim().toUpperCase().includes(siglaKey)
+                );
+                if (provByName) {
+                    matchedProviderId = provByName.id.toString();
+                }
             }
 
             let matchedPrestadoraId = '';
@@ -1801,16 +1820,20 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                                 </label>
                                                             </div>
                                                             
-                                                            {isChecked && !isPrincipal && (
+                                                            {isChecked && (
                                                                 <div className="flex items-center gap-2 flex-1 ml-4 border-l border-zinc-200 dark:border-zinc-700 pl-4 py-1">
                                                                     <div className="relative group/tooltip flex-1">
                                                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-xs font-bold">$</span>
                                                                         <input
                                                                             type="number"
+                                                                            step="0.01"
                                                                             className="w-full h-8 bg-white dark:bg-zinc-900 rounded-lg pl-6 pr-2 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm transition-all text-sm font-bold text-emerald-600 dark:text-emerald-400"
-                                                                            value={appliedTax?.amount ?? ''}
+                                                                            value={appliedTax?.amount != null ? appliedTax.amount : (isPrincipal ? (item.price * item.quantity) : '')}
                                                                             onChange={(e) => {
                                                                                 const val = parseFloat(e.target.value) || 0;
+                                                                                if (isPrincipal) {
+                                                                                    updateItem(index, 'price', val / (item.quantity || 1));
+                                                                                }
                                                                                 const newTaxes = (item.appliedTaxes || []).map((t: any) => {
                                                                                     const rawId = t.id ?? t.chargeAndTaxId;
                                                                                     return (rawId != null && Number(rawId) === taxIdNum) ? { ...t, amount: val } : t;
