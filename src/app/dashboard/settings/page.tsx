@@ -654,6 +654,9 @@ export default function SettingsPage() {
             } else if (tab === 'clientes' || tab === 'sucursales' || tab === 'implants') {
                 const res = await fetch('/api/config/variables').then(res => res.json());
                 setVariables(Array.isArray(res) ? res : []);
+            } else if (tab === 'parametros') {
+                const res = await fetch('/api/products').then(res => res.json());
+                setProducts(Array.isArray(res) ? res : (res?.data || []));
             }
         } catch (err) {
             console.error("Error fetching lookup data:", err);
@@ -3041,7 +3044,30 @@ export default function SettingsPage() {
                                         <>
                                             <Input label="Código Único" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. EMPRESA_NIT" />
                                             <Input label="Nombre descriptivo" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. NIT de la Empresa" />
-                                            <Input label="Valor" value={formData.value || ''} onChange={(v: string) => setFormData({ ...formData, value: v })} required placeholder="Ej. 900.000.000-1" />
+                                            {formData.code === 'PRODUCTO_RESERVA_GDS' || formData.code === 'DEFAULT_GDS_PRODUCT_ID' || formData.code?.toUpperCase().includes('PRODUCTO') ? (
+                                                <div className="space-y-2 group">
+                                                    <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">
+                                                        Producto por Defecto
+                                                    </label>
+                                                    <SearchSelect
+                                                        options={(products || []).map((p: any) => ({
+                                                            ...p,
+                                                            name: `${p.description || p.name || p.code} ${p.code ? `(${p.code})` : ''}`,
+                                                            code: p.code || p.id.toString()
+                                                        }))}
+                                                        value={formData.value || ''}
+                                                        onChange={(val) => setFormData({ ...formData, value: val })}
+                                                        labelKey="name"
+                                                        secondaryKey="code"
+                                                        placeholder="Buscar y seleccionar Producto del Maestro..."
+                                                    />
+                                                    <p className="text-[11px] text-zinc-400 pl-1">
+                                                        Selecciona el producto maestro que se asignará automáticamente a las reservas/tiquetes importados de GDS.
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <Input label="Valor" value={formData.value || ''} onChange={(v: string) => setFormData({ ...formData, value: v })} required placeholder="Ej. 900.000.000-1" />
+                                            )}
                                         </>
                                     ) : activeTab === 'equivalencias' ? (
                                         <>

@@ -151,8 +151,12 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
         );
         let configuredGdsProduct = null;
         if (gdsParam && gdsParam.value) {
+            const cleanVal = gdsParam.value.toString().trim().toUpperCase();
             configuredGdsProduct = data?.products?.find((p: any) => 
-                p.id.toString() === gdsParam.value.toString() || p.code === gdsParam.value
+                p.id?.toString() === cleanVal || 
+                p.code?.toString().trim().toUpperCase() === cleanVal ||
+                p.billingConcept?.toString().trim().toUpperCase() === cleanVal ||
+                p.description?.toString().trim().toUpperCase() === cleanVal
             );
         }
         const defaultProduct = configuredGdsProduct || data?.products?.find((p: any) => 
@@ -160,6 +164,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
             p.serviceType === 'flight' || 
             p.code?.toUpperCase() === 'TIQUETE' || 
             p.code?.toUpperCase() === 'TIQUETES' ||
+            p.code?.toUpperCase() === 'TAN' ||
             p.description?.toUpperCase().includes('TIQUETE') || 
             p.description?.toUpperCase().includes('AEREO')
         ) || data?.products?.[0];
