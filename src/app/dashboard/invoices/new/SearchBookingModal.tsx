@@ -70,13 +70,17 @@ export default function SearchBookingModal({ isOpen, onClose, onSelectBooking }:
         let total = 0
         const items = booking.items || []
         items.forEach((item: any) => {
-            const itemPrice = (item.price || 0) * (item.quantity || 1)
-            let taxTotal = 0
-            const taxes = item.appliedTaxes || []
-            taxes.forEach((tax: any) => {
-                taxTotal += (tax.amount || 0)
-            })
-            total += (itemPrice + taxTotal)
+            const itemPrice = Number(item.price || 0) * Number(item.quantity || 1)
+            if (itemPrice > 0) {
+                total += itemPrice
+            } else {
+                let taxSum = 0
+                const taxes = item.appliedTaxes || []
+                taxes.forEach((tax: any) => {
+                    taxSum += Number(tax.amount || 0)
+                })
+                total += taxSum
+            }
         })
         return total
     }
@@ -251,7 +255,7 @@ export default function SearchBookingModal({ isOpen, onClose, onSelectBooking }:
                                             <th className="py-3 px-4">CLIENTE / VENDEDOR</th>
                                             <th className="py-3 px-4">PASAJEROS</th>
                                             <th className="py-3 px-4">TIQUETES / AEROLÍNEA</th>
-                                            <th className="py-3 px-4 text-right">MONTO ESTIMADO</th>
+                                            <th className="py-3 px-4 text-right">VALOR TOTAL</th>
                                             <th className="py-3 px-4 text-center">ACCIÓN</th>
                                         </tr>
                                     </thead>
