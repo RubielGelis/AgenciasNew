@@ -2479,4 +2479,10 @@ BEGIN
         ALTER TABLE public."User" ADD COLUMN "canEditReports" boolean DEFAULT false;
     END IF;
 
+    -- Parámetro estándar por defecto para Producto de Reservas GDS
+    IF NOT EXISTS (SELECT 1 FROM public."SystemParameter" WHERE "code" = 'PRODUCTO_RESERVA_GDS') THEN
+        INSERT INTO public."SystemParameter" ("code", "name", "value")
+        VALUES ('PRODUCTO_RESERVA_GDS', 'Producto por Defecto para Reservas GDS', '');
+    END IF;
+
 END $$;
