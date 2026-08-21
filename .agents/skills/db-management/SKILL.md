@@ -56,12 +56,24 @@ Este script ejecuta la validación pre-compilación de 4 capas:
 
 ---
 
-## 3. Regla Crítica: Uso de LEFT JOIN en Funciones de Consulta PostgreSQL
+## 3. Reglas Críticas para Funciones SQL de Listado (`public.fn...Listar()`)
 
-Al escribir o modificar funciones SQL de listado e historial (`fnCotizacionListar`, `fnCotizacionHistorial`, `fnRoleListar`, etc.):
+> [!CAUTION]
+> **LISTADOS VACÍOS O RETORNO ERROR 500 (PREVENCIÓN OBLIGATORIA)**:
+> Cuando una pantalla de consulta o listado muestre `Mostrando 0 a 0 de 0 registros` a pesar de existir datos en la tabla, se debe a un error de ejecución en la función SQL de PostgreSQL. Para evitarlo:
 
-1. **Usar siempre `LEFT JOIN` para tablas relacionables** (`public."Client"`, `public."User"`, `public."Branch"`, `public."Provider"`, `public."Prestadora"`).
-2. **NUNCA usar `INNER JOIN` (`JOIN`) en la tabla `Client` o `User`**. 
-   - *Causa*: Si una cotización tiene `clientId` nulo o no asignado, un `INNER JOIN` descarta la fila por completo.
-   - *Síntoma*: La interfaz muestra **"Total cotizaciones: 0"** en el historial (`/dashboard/quotations/history`), aunque los registros existan en la tabla `Quotation`.
-3. **Manejo seguro de Nulos**: Usar `COALESCE` en todas las columnas calculadas.
+1. **Verificación de Existencia de Columnas**:
+   - NUNCA referenciar columnas que no existan en la tabla destino (ejemplo: `t."inNationality"` en `ChargeAndTax`). Toda columna en `jsonb_build_object` o `SELECT` debe ser validada contra `information_schema.columns` antes de compilar.
+2. **Verificación de Existencia de Tablas Relacionadas**:
+   - Si la función realiza un `JOIN` o `LEFT JOIN` con una tabla secundaria (ej. `public."ProviderType"`), la sentencia `CREATE TABLE IF NOT EXISTS` de esa tabla **DEBE EJECUTARSE EN POSTGRESQL ANTES** de compilar la función.
+3. **Prueba de Ejecución Directa en psql**:
+   - Antes de dar por terminado cualquier cambio en una función SQL, ejecutar obligatoriamente en psql:
+     ```sql
+     SELECT * FROM public.fnNombreFuncionListar();
+     ```
+   - Si psql retorna un error (`ERROR: no existe la columna...` o `ERROR: no existe la relación...`), se debe corregir inmediatamente la función o la estructura de la tabla.
+4. **Uso Obligatorio de `LEFT JOIN`**:
+   - Usar siempre `LEFT JOIN` para tablas relacionables (`Client`, `User`, `Branch`, `Provider`, `Prestadora`, `ProviderType`).
+   - NUNCA usar `INNER JOIN` para evitar ocultar filas con llaves foráneas nulas o descalzadas.
+   - Usar `COALESCE` en todas las expresiones retornadas para evitar nulos inesperados.
+

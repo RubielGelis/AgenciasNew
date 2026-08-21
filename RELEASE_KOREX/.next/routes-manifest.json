@@ -430,6 +430,12 @@
       "namedRegex": "^/api/invoices/list(?:/)?$"
     },
     {
+      "page": "/api/invoices/search-bookings",
+      "regex": "^/api/invoices/search\\-bookings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/invoices/search\\-bookings(?:/)?$"
+    },
+    {
       "page": "/api/manual",
       "regex": "^/api/manual(?:/)?$",
       "routeKeys": {},
@@ -452,6 +458,12 @@
       "regex": "^/api/products(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/api/products(?:/)?$"
+    },
+    {
+      "page": "/api/provider-types",
+      "regex": "^/api/provider\\-types(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/api/provider\\-types(?:/)?$"
     },
     {
       "page": "/api/providers",

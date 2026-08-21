@@ -6,27 +6,70 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
     try {
-        const taxes = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public.fnImpuestoListar()`)
-        return NextResponse.json(paginateArray(req, taxes, t => [t.code, t.name, t.type]))
-    } catch (error) {
-        return NextResponse.json({ message: 'Error al obtener cargos e impuestos' }, { status: 500 })
+        const results = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public.fnImpuestoListar()`)
+        const taxes = (results || []).map(row => row.fnimpuestolistar || Object.values(row)[0]).filter(Boolean);
+        return NextResponse.json(paginateArray(req, taxes, t => [t?.code, t?.name, t?.type, t?.gdsEquivalences]))
+    } catch (error: any) {
+        console.error('Error fetching taxes:', error);
+        return NextResponse.json({ message: 'Error al obtener cargos e impuestos: ' + error?.message }, { status: 500 })
+    }
+}
+
+async function syncGdsEquivalences(taxCode: string, gdsEquivalencesStr: string) {
+    if (!taxCode) return;
+    
+    // Get master id for ChargeAndTax
+    const masterRows: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM public."Master" WHERE code = 'ChargeAndTax' LIMIT 1`);
+    const masterId = masterRows[0]?.id;
+    if (!masterId) return;
+
+    // Split comma separated GDS codes
+    const codes = (gdsEquivalencesStr || '')
+        .split(',')
+        .map(c => c.trim().toUpperCase())
+        .filter(c => c.length > 0);
+
+    // Delete existing equivalences for this tax code
+    await prisma.$executeRawUnsafe(
+        `DELETE FROM public."EquivalencesInterfaces" WHERE id_master = $1 AND cd_codigo = $2`,
+        masterId, taxCode
+    );
+
+    // Insert new equivalences for Amadeus (id_interfaces = 2) and Sabre (id_interfaces = 1)
+    for (const inteCode of codes) {
+        // Amadeus (2)
+        await prisma.$executeRawUnsafe(
+            `INSERT INTO public."EquivalencesInterfaces" (id_interfaces, id_master, cd_maestro, cd_codigo, "cd_codigointe")
+             VALUES (2, $1, 'ChargeAndTax', $2, $3)
+             ON CONFLICT DO NOTHING`,
+            masterId, taxCode, inteCode
+        );
+        // Sabre (1)
+        await prisma.$executeRawUnsafe(
+            `INSERT INTO public."EquivalencesInterfaces" (id_interfaces, id_master, cd_maestro, cd_codigo, "cd_codigointe")
+             VALUES (1, $1, 'ChargeAndTax', $2, $3)
+             ON CONFLICT DO NOTHING`,
+            masterId, taxCode, inteCode
+        );
     }
 }
 
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { code, name, type, valueType, value, isEditable } = body
+        const { code, name, type, valueType, value, isEditable, gdsEquivalences } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+
+        const numericVal = value !== undefined && value !== null && value !== '' && !isNaN(parseFloat(value)) ? parseFloat(value) : 0;
 
         const results: any[] = await prisma.$queryRawUnsafe(
             `CALL public.spImpuestoCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::DECIMAL, $6::BOOLEAN, $7::INT, $8::INT, $9::TEXT)`,
             code || null,
             name,
             type,
-            valueType,
-            parseFloat(value),
+            valueType || 'NONE',
+            numericVal,
             isEditable !== undefined ? isEditable : true,
             actingUserId,
             0, // p_tax_id
@@ -38,6 +81,10 @@ export async function POST(req: NextRequest) {
 
         if (!dbId || message.startsWith('ERROR')) {
             throw new Error(message || 'Error creating tax');
+        }
+
+        if (code && gdsEquivalences !== undefined) {
+            await syncGdsEquivalences(code, gdsEquivalences);
         }
 
         const tax = { id: dbId, ...body };
@@ -56,9 +103,11 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json()
-        const { id, code, name, type, valueType, value, isEditable } = body
+        const { id, code, name, type, valueType, value, isEditable, gdsEquivalences } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+
+        const numericVal = value !== undefined && value !== null && value !== '' && !isNaN(parseFloat(value)) ? parseFloat(value) : 0;
 
         const results: any[] = await prisma.$queryRawUnsafe(
             `CALL public.spImpuestoActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::TEXT, $6::DECIMAL, $7::BOOLEAN, $8::INT, $9::TEXT)`,
@@ -66,8 +115,8 @@ export async function PUT(req: NextRequest) {
             code || null,
             name,
             type,
-            valueType,
-            parseFloat(value),
+            valueType || 'NONE',
+            numericVal,
             isEditable !== undefined ? isEditable : true,
             actingUserId,
             '' // p_mensaje_resultado
@@ -76,6 +125,10 @@ export async function PUT(req: NextRequest) {
         const message = results[0]?.p_mensaje_resultado || '';
         if (message.startsWith('ERROR')) {
             throw new Error(message);
+        }
+
+        if (code && gdsEquivalences !== undefined) {
+            await syncGdsEquivalences(code, gdsEquivalences);
         }
 
         const tax = { ...body };

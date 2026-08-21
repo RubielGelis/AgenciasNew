@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer } from 'lucide-react'
+import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, Search } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -10,6 +10,7 @@ import { generateInvoicePDF } from '@/lib/pdf-utils'
 import { SearchSelect } from '@/components/SearchSelect'
 import GlobalPaymentModal from './GlobalPaymentModal';
 import ItemPaymentModal from './ItemPaymentModal';
+import SearchBookingModal from './SearchBookingModal';
 import { CreditCard } from 'lucide-react';
 
 interface InvoiceFormData {
@@ -86,9 +87,266 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
     })
     const [saving, setSaving] = useState(false)
     const [isGlobalPaymentOpen, setIsGlobalPaymentOpen] = useState(false)
+    const [isSearchBookingOpen, setIsSearchBookingOpen] = useState(false)
     const [attachments, setAttachments] = useState<any[]>([])
     const [uploadingAttachment, setUploadingAttachment] = useState(false)
     const router = useRouter()
+
+    const handleImportBooking = (booking: any) => {
+        if (!booking) return;
+
+        // 1. Matchear Cliente por código/nombre/documento
+        let matchedClientId = '';
+        if (booking.client) {
+            const foundClient = data?.clients?.find((c: any) => 
+                c.code?.toLowerCase() === booking.client?.toLowerCase() ||
+                c.name?.toLowerCase()?.includes(booking.client?.toLowerCase()) ||
+                c.document === booking.client
+            );
+            if (foundClient) matchedClientId = foundClient.id.toString();
+        }
+
+        // 2. Matchear Vendedor
+        let matchedSellerId = '';
+        if (booking.seller) {
+            const foundSeller = data?.sellers?.find((s: any) => 
+                s.code?.toLowerCase() === booking.seller?.toLowerCase() ||
+                s.name?.toLowerCase()?.includes(booking.seller?.toLowerCase())
+            );
+            if (foundSeller) matchedSellerId = foundSeller.id.toString();
+        }
+
+        // 3. Matchear Tiqueteador
+        let matchedTicketPrinterId = '';
+        if (booking.tiquetPrinter) {
+            const foundTP = data?.ticketPrinters?.find((tp: any) => 
+                tp.code?.toLowerCase() === booking.tiquetPrinter?.toLowerCase() ||
+                tp.name?.toLowerCase()?.includes(booking.tiquetPrinter?.toLowerCase())
+            );
+            if (foundTP) matchedTicketPrinterId = foundTP.id.toString();
+        }
+
+        // 4. Matchear Sucursal e Implant
+        let matchedBranchId = '';
+        if (booking.blanch) {
+            const foundBranch = data?.branches?.find((b: any) => 
+                b.code?.toLowerCase() === booking.blanch?.toLowerCase() ||
+                b.name?.toLowerCase()?.includes(booking.blanch?.toLowerCase())
+            );
+            if (foundBranch) matchedBranchId = foundBranch.id.toString();
+        }
+
+        let matchedImplantId = '';
+        if (booking.implant) {
+            const foundImplant = data?.implants?.find((imp: any) => 
+                imp.code?.toLowerCase() === booking.implant?.toLowerCase() ||
+                imp.name?.toLowerCase()?.includes(booking.implant?.toLowerCase())
+            );
+            if (foundImplant) matchedImplantId = foundImplant.id.toString();
+        }
+
+        // 5. Determinar Producto por Defecto (por Parámetro o fallback a Tiquetes/Aéreo)
+        const gdsParam = data?.parameters?.find((pm: any) => 
+            pm.code === 'PRODUCTO_RESERVA_GDS' || pm.code === 'DEFAULT_GDS_PRODUCT_ID'
+        );
+        let configuredGdsProduct = null;
+        if (gdsParam && gdsParam.value) {
+            configuredGdsProduct = data?.products?.find((p: any) => 
+                p.id.toString() === gdsParam.value.toString() || p.code === gdsParam.value
+            );
+        }
+        const defaultProduct = configuredGdsProduct || data?.products?.find((p: any) => 
+            p.type === 'flight' || 
+            p.serviceType === 'flight' || 
+            p.code?.toUpperCase() === 'TIQUETE' || 
+            p.code?.toUpperCase() === 'TIQUETES' ||
+            p.description?.toUpperCase().includes('TIQUETE') || 
+            p.description?.toUpperCase().includes('AEREO')
+        ) || data?.products?.[0];
+
+        // 6. Mapear Productos
+        const importedItems = (booking.items || []).map((bkItem: any) => {
+            // Asignación de Proveedor según Sigla / Aerolínea
+            let matchedProviderId = '';
+            if (bkItem.prestadoracode || bkItem.provider) {
+                const searchKey = (bkItem.prestadoracode || bkItem.provider || '').trim().toUpperCase();
+                
+                const airlineProv = data?.providers?.find((pv: any) => 
+                    (pv.isAirline || pv.providerTypeName === 'Aerolínea') && (
+                        pv.sigla?.trim().toUpperCase() === searchKey ||
+                        pv.airlineCode?.trim().toUpperCase() === searchKey ||
+                        pv.code?.trim().toUpperCase() === searchKey
+                    )
+                );
+                const foundProv = airlineProv || data?.providers?.find((pv: any) => 
+                    pv.sigla?.trim().toUpperCase() === searchKey ||
+                    pv.airlineCode?.trim().toUpperCase() === searchKey ||
+                    pv.code?.trim().toUpperCase() === searchKey ||
+                    pv.name?.trim().toUpperCase().includes(searchKey)
+                );
+                if (foundProv) matchedProviderId = foundProv.id.toString();
+            }
+
+            let matchedPrestadoraId = '';
+            if (bkItem.prestadoracode) {
+                const searchKey = bkItem.prestadoracode.toLowerCase();
+                const foundPrest = data?.prestadoras?.find((pr: any) => 
+                    pr.code?.toLowerCase() === searchKey ||
+                    pr.name?.toLowerCase()?.includes(searchKey)
+                );
+                if (foundPrest) matchedPrestadoraId = foundPrest.id.toString();
+            }
+
+            // DESGLOSE DE IMPUESTOS Y TARIFA BASE
+            const totalTicketAmount = Number(bkItem.price || 0);
+            const masterTaxes = data?.taxes || [];
+            const otrTaxMaster = masterTaxes.find((t: any) => t.code === 'OTR');
+            const tarTaxMaster = masterTaxes.find((t: any) => t.code === 'TAR');
+
+            let nonTarTaxTotal = 0;
+            const taxGroupedMap = new Map<number, { id: number; chargeAndTaxId: number; name: string; amount: number }>();
+
+            (bkItem.appliedTaxes || []).forEach((bkTax: any) => {
+                const code = (bkTax.code || '').trim().toUpperCase();
+                const amount = Number(bkTax.amount || 0);
+
+                if (code === 'TAR') return; // Se calculará como tarifa neta
+
+                nonTarTaxTotal += amount;
+
+                const matchedTax = masterTaxes.find((st: any) => {
+                    if (st.code?.toUpperCase() === code) return true;
+                    if (st.gdsEquivalences) {
+                        const eqList = st.gdsEquivalences.split(',').map((e: string) => e.trim().toUpperCase());
+                        return eqList.includes(code);
+                    }
+                    return false;
+                });
+
+                const targetTaxMaster = matchedTax || otrTaxMaster;
+
+                if (targetTaxMaster) {
+                    const taxId = Number(targetTaxMaster.id);
+                    if (taxGroupedMap.has(taxId)) {
+                        const existing = taxGroupedMap.get(taxId)!;
+                        existing.amount += amount;
+                    } else {
+                        taxGroupedMap.set(taxId, {
+                            id: taxId,
+                            chargeAndTaxId: taxId,
+                            name: targetTaxMaster.name,
+                            amount: amount
+                        });
+                    }
+                }
+            });
+
+            // Tarifa Base Neta = Precio Total del Tiquete - Suma de Impuestos (No TAR)
+            const netBaseFare = Math.max(0, totalTicketAmount - nonTarTaxTotal);
+
+            let mainTaxId: number | undefined = undefined;
+            if (tarTaxMaster) {
+                const tarId = Number(tarTaxMaster.id);
+                mainTaxId = tarId;
+                taxGroupedMap.set(tarId, {
+                    id: tarId,
+                    chargeAndTaxId: tarId,
+                    name: tarTaxMaster.name,
+                    amount: netBaseFare
+                });
+            }
+
+            const appliedTaxes = Array.from(taxGroupedMap.values());
+
+            // ITINERARIO Y FECHA INICIAL / FINAL
+            let initialDate = '';
+            let finalDate = '';
+            const itineraryList = Array.isArray(bkItem.itinerary) ? bkItem.itinerary : [];
+
+            if (itineraryList.length > 0) {
+                const sortedItinerary = [...itineraryList].sort((a: any, b: any) => (a.orden || 0) - (b.orden || 0));
+                const firstLeg = sortedItinerary[0];
+                const lastLeg = sortedItinerary[sortedItinerary.length - 1];
+
+                if (firstLeg.checkInDate) {
+                    initialDate = format(new Date(firstLeg.checkInDate), 'yyyy-MM-dd');
+                }
+                if (lastLeg.checkOutDate || lastLeg.checkInDate) {
+                    const rawDate = lastLeg.checkOutDate || lastLeg.checkInDate;
+                    finalDate = format(new Date(rawDate), 'yyyy-MM-dd');
+                }
+            }
+
+            if (!initialDate && bkItem.checkInDate) {
+                initialDate = format(new Date(bkItem.checkInDate), 'yyyy-MM-dd');
+            }
+            if (!finalDate && bkItem.checkOutDate) {
+                finalDate = format(new Date(bkItem.checkOutDate), 'yyyy-MM-dd');
+            }
+
+            const importedPayments = (bkItem.payments || []).map((pay: any) => {
+                const matchedPayMethod = data?.payments?.find((pm: any) => 
+                    pm.code?.toUpperCase() === pay.code?.toUpperCase() ||
+                    pm.name?.toLowerCase()?.includes(pay.name?.toLowerCase())
+                ) || data?.payments?.[0];
+
+                return {
+                    amount: Number(pay.amount || 0),
+                    paymentMethod: matchedPayMethod?.code || 'CA',
+                    date: format(new Date(), 'yyyy-MM-dd'),
+                    reference: pay.numbercreditcard || pay.authcreditcard || pay.vouchercreditcard || '',
+                    authorizationCode: pay.authcreditcard || '',
+                    voucher: pay.vouchercreditcard || '',
+                    cardNumber: pay.numbercreditcard || ''
+                };
+            });
+
+            return {
+                productId: defaultProduct?.id?.toString() || '',
+                quantity: bkItem.quantity || 1,
+                price: netBaseFare,
+                cost: Number(bkItem.cost || 0),
+                providerId: matchedProviderId,
+                prestadoraId: matchedPrestadoraId,
+                reservationCode: bkItem.reservationCode || booking.code || '',
+                ticketCode: bkItem.ticketCode || '',
+                serviceType: 'Tiquete',
+                descripcion: bkItem.description || bkItem.service || 'flight',
+                checkIn: initialDate,
+                checkOut: finalDate,
+                paxAdults: bkItem.paxAdults || 1,
+                paxChildren: bkItem.paxChildren || 0,
+                destination: bkItem.destination || '',
+                passengers: (bkItem.passengers || []).map((px: any) => ({
+                    name: px.name || '',
+                    document: px.document || ''
+                })),
+                mainTaxId,
+                appliedTaxes,
+                payments: importedPayments,
+                itinerariesItineraryList: itineraryList,
+                sellerCommission: 0,
+                ticketPrinterCommission: 0,
+                variables: [],
+                inNationality: 1,
+                _productName: defaultProduct?.description
+            };
+        });
+
+        setFormData(prev => ({
+            ...prev,
+            clientId: matchedClientId || prev.clientId,
+            sellerId: matchedSellerId || prev.sellerId,
+            ticketPrinterId: matchedTicketPrinterId || prev.ticketPrinterId,
+            branchId: matchedBranchId || prev.branchId,
+            implantId: matchedImplantId || prev.implantId,
+            currency: booking.currency || prev.currency,
+            exchangeRate: booking.exchangeRate || prev.exchangeRate,
+            items: [...prev.items, ...importedItems]
+        }));
+
+        setIsSearchBookingOpen(false);
+    };
 
     const activeCurrency = data?.currencies?.find((c: any) => c.code === formData.currency);
     const decimals = activeCurrency ? (activeCurrency.decimals ?? 2) : 2;
@@ -686,6 +944,14 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                     <p className="text-zinc-500 text-sm mt-1">Completa los detalles para tu cliente</p>
                 </div>
                 <div className="flex gap-4">
+                    <button
+                        type="button"
+                        onClick={() => setIsSearchBookingOpen(true)}
+                        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer"
+                    >
+                        <Search className="w-5 h-5" />
+                        Cargar desde Reserva / GDS
+                    </button>
                     {onCancel ? (
                         <button
                             type="button"
@@ -1326,7 +1592,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                     </select>
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Check-In</label>
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Fecha Inicial</label>
                                                     <input
                                                         type="date"
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs p-1"
@@ -1335,7 +1601,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Check-Out</label>
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Fecha Final</label>
                                                     <input
                                                         type="date"
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs p-1"
@@ -1496,9 +1762,11 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                                                 let initialAmount = 0;
                                                                                 const baseValue = item.price * item.quantity;
                                                                                 if (tax.valueType === 'PERCENTAGE') {
-                                                                                    initialAmount = (baseValue * tax.value) / 100;
+                                                                                    initialAmount = (baseValue * (tax.value || 0)) / 100;
+                                                                                } else if (tax.valueType === 'FIXED') {
+                                                                                    initialAmount = (tax.value || 0) * item.quantity;
                                                                                 } else {
-                                                                                    initialAmount = tax.value * item.quantity;
+                                                                                    initialAmount = (tax.value || 0) * item.quantity;
                                                                                 }
                                                                                 const nextTaxes = [...currentTaxes, { id: taxIdNum, amount: initialAmount }];
 
@@ -1773,6 +2041,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
             </div>
         </form>
             <GlobalPaymentModal isOpen={isGlobalPaymentOpen} onClose={() => setIsGlobalPaymentOpen(false)} totalAmount={total} onApplyPayment={applyGlobalPayment} creditCards={data.creditCards || []} paymentsList={data.payments || []} />
+            <SearchBookingModal isOpen={isSearchBookingOpen} onClose={() => setIsSearchBookingOpen(false)} onSelectBooking={handleImportBooking} />
         </>
     )
 }

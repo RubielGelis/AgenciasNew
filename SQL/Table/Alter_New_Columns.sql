@@ -1,6 +1,140 @@
 DO $$
 BEGIN
 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'BookingGDS') THEN
+        CREATE TABLE public."BookingGDS" (
+            "id" integer DEFAULT nextval('"BookingGDS_id_seq"'::regclass) NOT NULL,
+            "code" character varying NOT NULL,
+            "type" character varying NOT NULL,
+            "blanch" character varying NOT NULL,
+            "implant" character varying,
+            "external" boolean DEFAULT false NOT NULL,
+            "gds" integer,
+            "date" timestamp without time zone DEFAULT now(),
+            "currency" text NOT NULL,
+            "exchangeRate" double precision NOT NULL,
+            "tiquetPrinter" character varying NOT NULL,
+            "seller" character varying NOT NULL,
+            "client" character varying NOT NULL,
+            "booking" text,
+            "typetransaction" character varying,
+            "iata" character varying,
+            "description" text,
+            "observation" text,
+            "state" character varying
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'BookingProductGDS') THEN
+        CREATE TABLE public."BookingProductGDS" (
+            "id" integer DEFAULT nextval('"BookingProductGDS_id_seq"'::regclass) NOT NULL,
+            "bookingId" integer NOT NULL,
+            "code" character varying NOT NULL,
+            "type" character varying,
+            "service" text,
+            "description" text,
+            "prestadoracode" character varying,
+            "prestadorainitials" character varying,
+            "prestadoradist" character varying,
+            "provider" character varying,
+            "quantity" integer NOT NULL,
+            "price" double precision NOT NULL,
+            "cost" double precision DEFAULT 0,
+            "checkInDate" timestamp without time zone,
+            "checkOutDate" timestamp without time zone,
+            "nights" integer,
+            "paxAdults" integer,
+            "paxChildren" integer,
+            "serviceType" text,
+            "billingConcept" text,
+            "destination" text,
+            "reservationCode" text,
+            "sellerCom" double precision,
+            "ticketPrinterCom" double precision,
+            "inNationality" integer DEFAULT 1,
+            "state" character varying DEFAULT 'NUEVO'::character varying,
+            "conjunction" integer DEFAULT 0,
+            "revised" character varying,
+            "typeproduct" character varying,
+            "consecutive" character varying,
+            "penalty" character varying
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'BookingProductItineraryGDS') THEN
+        CREATE TABLE public."BookingProductItineraryGDS" (
+            "id" integer DEFAULT nextval('"BookingProductItineraryGDS_id_seq"'::regclass) NOT NULL,
+            "bookingProductId" integer NOT NULL,
+            "orden" integer,
+            "origin" text NOT NULL,
+            "destination" text NOT NULL,
+            "class" text NOT NULL,
+            "checkInDate" timestamp without time zone,
+            "checkOutDate" timestamp without time zone,
+            "terminal" text NOT NULL,
+            "prestadoraCode" text NOT NULL,
+            "farebasis" text NOT NULL,
+            "Numflight" character varying,
+            "Typeflight" character varying,
+            "amount" double precision NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS') THEN
+        CREATE TABLE public."BookingProductPaymentGDS" (
+            "id" integer DEFAULT nextval('"BookingProductPaymentGDS_id_seq"'::regclass) NOT NULL,
+            "bookingProductId" integer,
+            "bookingProductFEEId" integer,
+            "code" character varying NOT NULL,
+            "name" character varying NOT NULL,
+            "type" character varying NOT NULL,
+            "typecreditcard" character varying,
+            "numbercreditcard" character varying,
+            "vouchercreditcard" character varying,
+            "expiredcreditcard" character varying,
+            "authcreditcard" character varying,
+            "quotas" integer,
+            "bank" character varying,
+            "square" character varying,
+            "reference" character varying,
+            "policy" character varying,
+            "policyannex" character varying,
+            "amount" double precision NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'BookingProductTaxGDS') THEN
+        CREATE TABLE public."BookingProductTaxGDS" (
+            "id" integer DEFAULT nextval('"BookingProductTaxGDS_id_seq"'::regclass) NOT NULL,
+            "bookingProductId" integer NOT NULL,
+            "code" character varying NOT NULL,
+            "name" character varying NOT NULL,
+            "type" character varying NOT NULL,
+            "ismain" boolean DEFAULT false,
+            "percentage" double precision NOT NULL,
+            "amount" double precision NOT NULL
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'BookingProductPassangerGDS') THEN
+        CREATE TABLE public."BookingProductPassangerGDS" (
+            "id" integer DEFAULT nextval('"BookingProductPassangerGDS_id_seq"'::regclass) NOT NULL,
+            "bookingProductId" integer NOT NULL,
+            "code" character varying,
+            "firstnm" character varying,
+            "lastnm" character varying,
+            "prefix" character varying,
+            "identification" character varying,
+            "phone" character varying,
+            "email" character varying
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ProviderType') THEN
+        CREATE TABLE public."ProviderType" (
+            "id" integer DEFAULT nextval('"ProviderType_id_seq"'::regclass) NOT NULL,
+            "code" character varying NOT NULL,
+            "name" character varying NOT NULL,
+            "isAirline" boolean DEFAULT false NOT NULL,
+            "active" boolean DEFAULT true NOT NULL,
+            "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP
+        );
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'PreQuotationStateHistory') THEN
         CREATE TABLE public."PreQuotationStateHistory" (
             "id" integer DEFAULT nextval('"PreQuotationStateHistory_id_seq"'::regclass) NOT NULL,

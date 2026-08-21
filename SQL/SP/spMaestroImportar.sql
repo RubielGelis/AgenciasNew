@@ -13,6 +13,7 @@ DECLARE
     v_errors TEXT := '';
     v_branch_id INT;
     v_provider_id INT;
+    v_prov_type_id INT;
     v_role_id INT;
     v_hashed_password TEXT := '$2a$10$7zB.Y7S5y5y5y5y5y5y5y.y5y5y5y5y5y5y5y5y5y5y5y5y5y5y'; -- Placeholder hash
 BEGIN
@@ -98,17 +99,44 @@ BEGIN
                 END IF;
 
             ELSIF p_tipo = 'proveedores' THEN
-                -- Format: name^contactInfo^code
-                IF v_cols[1] IS NOT NULL THEN
-                    IF v_cols[3] IS NOT NULL AND TRIM(v_cols[3]) <> '' THEN
-                        INSERT INTO public."Provider" ("code", "name", "contactInfo")
-                        VALUES (TRIM(v_cols[3]), TRIM(v_cols[1]), NULLIF(TRIM(v_cols[2]), ''))
-                        ON CONFLICT ("code") DO UPDATE SET 
-                            "name" = EXCLUDED."name", 
-                            "contactInfo" = EXCLUDED."contactInfo";
-                    ELSE
-                        INSERT INTO public."Provider" ("name", "contactInfo") VALUES (TRIM(v_cols[1]), NULLIF(TRIM(v_cols[2]), ''));
+                -- Format: code^name^contactInfo^providerTypeCode^airlineCode^sigla
+                IF v_cols[2] IS NOT NULL OR v_cols[1] IS NOT NULL THEN
+                    v_prov_type_id := NULL;
+                    IF array_length(v_cols, 1) >= 4 AND v_cols[4] IS NOT NULL AND TRIM(v_cols[4]) <> '' THEN
+                        SELECT id INTO v_prov_type_id FROM public."ProviderType" WHERE LOWER("code") = LOWER(TRIM(v_cols[4])) OR LOWER("name") = LOWER(TRIM(v_cols[4])) LIMIT 1;
                     END IF;
+
+                    INSERT INTO public."Provider" ("code", "name", "contactInfo", "providerTypeId", "airlineCode", "sigla")
+                    VALUES (
+                        NULLIF(TRIM(v_cols[1]), ''), 
+                        TRIM(v_cols[2]), 
+                        NULLIF(TRIM(v_cols[3]), ''), 
+                        v_prov_type_id, 
+                        CASE WHEN array_length(v_cols, 1) >= 5 THEN NULLIF(TRIM(v_cols[5]), '') ELSE NULL END,
+                        CASE WHEN array_length(v_cols, 1) >= 6 THEN NULLIF(TRIM(v_cols[6]), '') ELSE NULL END
+                    )
+                    ON CONFLICT ("code") DO UPDATE SET 
+                        "name" = EXCLUDED."name", 
+                        "contactInfo" = EXCLUDED."contactInfo",
+                        "providerTypeId" = COALESCE(EXCLUDED."providerTypeId", public."Provider"."providerTypeId"),
+                        "airlineCode" = COALESCE(EXCLUDED."airlineCode", public."Provider"."airlineCode"),
+                        "sigla" = COALESCE(EXCLUDED."sigla", public."Provider"."sigla");
+                    v_count := v_count + 1;
+                END IF;
+
+            ELSIF p_tipo = 'tipos-proveedores' THEN
+                -- Format: code^name^isAirline
+                IF v_cols[1] IS NOT NULL AND v_cols[2] IS NOT NULL THEN
+                    INSERT INTO public."ProviderType" ("code", "name", "isAirline", "active")
+                    VALUES (
+                        TRIM(v_cols[1]), 
+                        TRIM(v_cols[2]), 
+                        (UPPER(TRIM(v_cols[3])) IN ('SI', 'S', 'TRUE', '1')), 
+                        true
+                    )
+                    ON CONFLICT ("code") DO UPDATE SET 
+                        "name" = EXCLUDED."name",
+                        "isAirline" = EXCLUDED."isAirline";
                     v_count := v_count + 1;
                 END IF;
 
@@ -132,31 +160,33 @@ BEGIN
                 END IF;
 
             ELSIF p_tipo = 'prestadoras' THEN
-                -- Format: name^providerNM^code^category^location^type
-                IF v_cols[1] IS NOT NULL AND v_cols[2] IS NOT NULL THEN
-                    SELECT id INTO v_provider_id FROM public."Provider" WHERE "name" ILIKE '%' || TRIM(v_cols[2]) || '%' LIMIT 1;
-                    IF v_provider_id IS NOT NULL THEN
-                        IF v_cols[3] IS NOT NULL AND TRIM(v_cols[3]) <> '' THEN
-                            INSERT INTO public."Prestadora" ("code", "name", "category", "location", "providerId", "type")
-                            VALUES (TRIM(v_cols[3]), TRIM(v_cols[1]), COALESCE(TRIM(v_cols[4]), '3*'), TRIM(v_cols[5]), v_provider_id, COALESCE(TRIM(v_cols[6]), 'HOTEL'))
-                            ON CONFLICT ("code") DO UPDATE SET 
-                                "name" = EXCLUDED."name",
-                                "category" = EXCLUDED."category",
-                                "location" = EXCLUDED."location",
-                                "providerId" = EXCLUDED."providerId",
-                                "type" = EXCLUDED."type";
-                        ELSE
-                            INSERT INTO public."Prestadora" ("name", "category", "location", "providerId", "type")
-                            VALUES (TRIM(v_cols[1]), COALESCE(TRIM(v_cols[4]), '3*'), TRIM(v_cols[5]), v_provider_id, COALESCE(TRIM(v_cols[6]), 'HOTEL'));
-                        END IF;
-                        v_count := v_count + 1;
+                -- Format: name^providerCode^code^category^location^type
+                IF v_cols[1] IS NOT NULL THEN
+                    v_provider_id := NULL;
+                    IF v_cols[2] IS NOT NULL AND TRIM(v_cols[2]) <> '' THEN
+                        SELECT id INTO v_provider_id FROM public."Provider" WHERE LOWER("code") = LOWER(TRIM(v_cols[2])) OR LOWER("name") = LOWER(TRIM(v_cols[2])) LIMIT 1;
                     END IF;
+
+                    IF v_cols[3] IS NOT NULL AND TRIM(v_cols[3]) <> '' THEN
+                        INSERT INTO public."Prestadora" ("name", "providerId", "code", "category", "location", "type")
+                        VALUES (TRIM(v_cols[1]), v_provider_id, TRIM(v_cols[3]), TRIM(v_cols[4]), TRIM(v_cols[5]), COALESCE(TRIM(v_cols[6]), 'HOTEL'))
+                        ON CONFLICT ("code") DO UPDATE SET 
+                            "name" = EXCLUDED."name",
+                            "providerId" = EXCLUDED."providerId",
+                            "category" = EXCLUDED."category",
+                            "location" = EXCLUDED."location",
+                            "type" = EXCLUDED."type";
+                    ELSE
+                        INSERT INTO public."Prestadora" ("name", "providerId", "category", "location", "type")
+                        VALUES (TRIM(v_cols[1]), v_provider_id, TRIM(v_cols[4]), TRIM(v_cols[5]), COALESCE(TRIM(v_cols[6]), 'HOTEL'));
+                    END IF;
+                    v_count := v_count + 1;
                 END IF;
 
             ELSIF p_tipo = 'variables' THEN
                 -- Format: code^name
                 IF v_cols[1] IS NOT NULL AND v_cols[2] IS NOT NULL THEN
-                    INSERT INTO public."Variable" ("code", "name")
+                    INSERT INTO public."MasterVariable" ("code", "name")
                     VALUES (TRIM(v_cols[1]), TRIM(v_cols[2]))
                     ON CONFLICT ("code") DO UPDATE SET "name" = EXCLUDED."name";
                     v_count := v_count + 1;
@@ -171,25 +201,13 @@ BEGIN
                     v_count := v_count + 1;
                 END IF;
 
-            ELSIF p_tipo = 'usuarios' THEN
-                -- Format: email^name^roleName^password
-                IF v_cols[1] IS NOT NULL AND v_cols[2] IS NOT NULL THEN
-                    SELECT id INTO v_role_id FROM public."Role" WHERE "name" ILIKE '%' || COALESCE(TRIM(v_cols[3]), 'Seller') || '%' LIMIT 1;
-                    IF v_role_id IS NOT NULL THEN
-                        INSERT INTO public."User" ("email", "name", "roleId", "passwordHash")
-                        VALUES (TRIM(v_cols[1]), TRIM(v_cols[2]), v_role_id, v_hashed_password)
-                        ON CONFLICT ("email") DO UPDATE SET 
-                            "name" = EXCLUDED."name",
-                            "roleId" = EXCLUDED."roleId";
-                        v_count := v_count + 1;
-                    END IF;
-                END IF;
             END IF;
+
         EXCEPTION WHEN OTHERS THEN
-            v_errors := v_errors || 'Error en item: ' || SQLERRM || '; ';
+            v_errors := v_errors || 'Error en fila [' || v_row_text || ']: ' || SQLERRM || '; ';
         END;
     END LOOP;
 
-    p_mensaje_resultado := 'SUCCESS: Procesados ' || v_count || ' registros. ' || CASE WHEN v_errors <> '' THEN 'Errores: ' || v_errors ELSE '' END;
+    p_mensaje_resultado := 'SUCCESS: Registros procesados: ' || v_count || '. ' || COALESCE(v_errors, '');
 END;
 $$;

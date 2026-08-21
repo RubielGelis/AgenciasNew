@@ -263,6 +263,36 @@ export const MANUAL_MODULES: ManualModule[] = [
                 ]
             },
             {
+                code: 'FAC-03',
+                name: 'Facturación Directa desde Reservas GDS',
+                summary: 'Búsqueda multiterminal y precarga automática de facturas a partir de reservas procesadas por la interfaz Amadeus/Sabre.',
+                concept: 'Permite buscar reservas en base de datos combinando 5 filtros (Cliente, Pasajero, Record/PNR, Tiquete, Aerolínea) y precargar automáticamente la factura desglosando la Tarifa Base neta ($1.953.300) y los cargos/impuestos leídos (IVA, Tasas Aer y Otros), asignando el producto configurado por parámetro, el proveedor aerolínea por sigla, el itinerario editable y calculando Fecha Inicial y Fecha Final.',
+                fields: [
+                    { name: 'Cargar desde Reserva / GDS', type: 'Botonera', description: 'Abre el modal de búsqueda multiterminal de reservas GDS.' },
+                    { name: 'Filtro Cliente / PNR / Tiquete', type: 'Texto', description: 'Filtra las reservas por código PNR, cliente, tiquete o aerolínea.' },
+                    { name: 'Desglose Tarifa e Impuestos', type: 'Cálculo Automático', description: 'Calcula la Tarifa Base neta como precio base e inserta IVA, Tasas (TUA) y Otros (OTR) con sus montos leídos.' },
+                    { name: 'Fecha Inicial / Fecha Final', type: 'Fecha', description: 'Fechas del primer y último tramo del itinerario de vuelo.' },
+                    { name: 'Itinerario de Vuelo', type: 'Tabla Editable', description: 'Detalle de tramos aéreos (Origen, Destino, Aerolínea, Clase, Vuelo, Fechas, Farebasis).' }
+                ],
+                steps: [
+                    {
+                        number: 1,
+                        title: 'Abrir Búsqueda de Reservas',
+                        description: 'En la pantalla de Facturación Nueva (/dashboard/invoices/new), presione el botón "Cargar desde Reserva / GDS".'
+                    },
+                    {
+                        number: 2,
+                        title: 'Aplicar Filtros Combinados',
+                        description: 'Ingrese los criterios de búsqueda (Cliente, Pasajero, PNR, Tiquete o Aerolínea) y presione "Buscar Reservas".'
+                    },
+                    {
+                        number: 3,
+                        title: 'Importar y Editar Factura',
+                        description: 'En los resultados, presione "Importar". Se desglosarán la Tarifa Base neta, los impuestos marcados (IVA, Tasas, Otros), el proveedor asignado por sigla, el itinerario editable y las fechas inicial/final. Ajuste cualquier campo y presione "Guardar".'
+                    }
+                ]
+            },
+            {
                 code: 'FAC-02',
                 name: 'Importación Masiva desde Excel / GDS',
                 summary: 'Carga de lotes de tiquetes y servicios procedentes de sistemas de reserva.',
@@ -424,14 +454,36 @@ export const MANUAL_MODULES: ManualModule[] = [
                 code: 'MAE-05',
                 masterCode: 'Provider',
                 name: 'Maestro de Proveedores',
-                summary: 'Administración de proveedores de servicios turísticos y aerolíneas.',
-                concept: 'Registra los proveedores con los cuales la agencia contrata servicios (consolidadores, mayoristas, aerolíneas).',
+                summary: 'Administración de proveedores de servicios turísticos, consolidadores y aerolíneas.',
+                concept: 'Registra los proveedores con los cuales la agencia contrata servicios (consolidadores, mayoristas, aerolíneas). Permite asociar un Tipo de Proveedor y, para aerolíneas, ingresar el Código IATA y la Sigla (ej. AV) para homologación y asignación automática en la lectura de archivos GDS.',
                 fields: [
-                    { name: 'Código Proveedor', type: 'Texto', description: 'Código asignado al proveedor.' },
-                    { name: 'Nombre Proveedor', type: 'Texto', description: 'Razón social del proveedor o mayorista.' }
+                    { name: 'Código Proveedor', type: 'Texto', description: 'Código asignado al proveedor (ej. AMADEUS, AVIANCA).' },
+                    { name: 'Nombre Proveedor', type: 'Texto', description: 'Razón social del proveedor o mayorista.' },
+                    { name: 'Tipo de Proveedor', type: 'Selección Maestro', description: 'Tipo asignado desde el maestro de Tipos de Proveedor (ej. Aerolínea, Hotel, Mayorista).' },
+                    { name: 'Código de Aerolínea', type: 'Texto (IATA)', description: 'Código numérico de aerolínea (ej. 134 para Avianca). Requerido si el tipo es Aerolínea.' },
+                    { name: 'Sigla de Aerolínea', type: 'Texto (2 letras)', description: 'Sigla IATA de 2 letras de la aerolínea (ej. AV). Se valida contra el tiquete GDS (prestadoraCode) para enlazar el proveedor automáticamente.' }
+                ],
+                businessRules: [
+                    'Si el Tipo de Proveedor tiene activa la casilla "¿Es Aerolínea?", el sistema desplegará automáticamente los campos Código de Aerolínea y Sigla.',
+                    'Al importar reservas o tiquetes GDS, el procedimiento emparejará la sigla de la aerolínea con el campo Sigla del proveedor para asignar la relación automáticamente en BookingProductGDS.'
                 ],
                 steps: [
-                    { number: 1, title: 'Administrar Proveedor', description: 'En la pestaña "Proveedores", agregue la información comercial del proveedor.' }
+                    { number: 1, title: 'Administrar Proveedor', description: 'En la pestaña "Proveedores", haga clic en "+ Nuevo Proveedor", seleccione el Tipo de Proveedor e ingrese el código y la sigla si aplica.' }
+                ]
+            },
+            {
+                code: 'MAE-05B',
+                masterCode: 'ProviderType',
+                name: 'Maestro de Tipos de Proveedor',
+                summary: 'Categorización parametrizable de los proveedores comerciales.',
+                concept: 'Permite crear y clasificar los distintos tipos de proveedores (Aerolíneas, Hoteles, Mayoristas, Renta de Autos), marcando de manera específica cuáles tipos corresponden a Aerolíneas para habilitar sus atributos IATA.',
+                fields: [
+                    { name: 'Código', type: 'Texto Único', description: 'Identificador del tipo de proveedor (ej. AIRLINE, HOTEL).' },
+                    { name: 'Nombre', type: 'Texto', description: 'Nombre descriptivo del tipo (ej. Aerolínea, Mayorista Internacional).' },
+                    { name: '¿Es Aerolínea?', type: 'Booleano / Switch', description: 'Indicador que habilita dinámicamente el código y la sigla IATA en la ficha del proveedor.' }
+                ],
+                steps: [
+                    { number: 1, title: 'Crear Tipo de Proveedor', description: 'En la pestaña "Tipos de Proveedor", presione "+ Nuevo Tipo de Proveedor", defina el código, nombre y active la casilla "¿Es Aerolínea?" si corresponde.' }
                 ]
             },
             {
@@ -496,8 +548,11 @@ export const MANUAL_MODULES: ManualModule[] = [
                 summary: 'Configuración de impuestos (IVA, FEE, Tasas aeroportuarias) aplicables a productos.',
                 concept: 'Define las reglas de impuestos y cargos administrativos de la agencia.',
                 fields: [
-                    { name: 'Nombre Impuesto', type: 'Texto', description: 'IVA 19%, FEE Agencia, Tasa Administrativa.' },
-                    { name: 'Tipo y Valor', type: 'Porcentaje / Monto', description: 'Porcentaje o tarifa fija del cargo.' }
+                    { name: 'Nombre Impuesto', type: 'Texto', description: 'IVA 19%, FEE Agencia, Tasa Administrativa, OTR (Otros Impuestos).' },
+                    { name: 'Operación y Valor', type: 'Porcentaje / Costo Fijo / Ninguna', description: 'Porcentaje (%), Costo Fijo ($) o Ninguna (Digitar / Libre en Cotización), donde el valor se ingresa manualmente al cotizar.' }
+                ],
+                businessRules: [
+                    'Si un código de impuesto procedente de un tiquete/reserva GDS no cuenta con equivalencia asignada en la tabla EquivalencesInterfaces, se asignará y sumará automáticamente al impuesto con código "OTR" (Otros Impuestos).'
                 ],
                 steps: [
                     { number: 1, title: 'Crear Impuesto', description: 'En la pestaña "Cargos e Impuestos", defina el porcentaje y comportamiento del cargo.' }

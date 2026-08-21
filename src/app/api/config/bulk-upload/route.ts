@@ -26,7 +26,6 @@ export async function POST(req: NextRequest) {
         }
 
         // Convert JSON data to Delimited Text (Rows by \n, Cols by ^)
-        // We match column names to what the SP expect for each type
         const textData = data.map((item: any) => {
             let cols: any[] = []
             if (type === 'sucursales') {
@@ -38,12 +37,13 @@ export async function POST(req: NextRequest) {
             } else if (type === 'tiqueteadores') {
                 cols = [item.name, item.email, item.code]
             } else if (type === 'impuestos') {
-                // New Format: code^name^type^valueType^value^inNationality
                 cols = [item.code || '', item.name, item.type, item.valueType, item.value, item.inNationality || '1']
             } else if (type === 'clientes') {
                 cols = [item.document, item.name, item.contactInfo, item.address]
             } else if (type === 'proveedores') {
-                cols = [item.name, item.contactInfo, item.code]
+                cols = [item.code || '', item.name, item.contactInfo || '', item.providerTypeCode || item.tipoProveedor || '', item.airlineCode || '', item.sigla || '']
+            } else if (type === 'tipos-proveedores') {
+                cols = [item.code, item.name, item.isAirline || item.esAerolinea || 'N']
             } else if (type === 'productos') {
                 cols = [item.description, item.basePrice, item.code, item.type, item.billingConcept, item.serviceType]
             } else if (type === 'prestadoras') {
@@ -87,8 +87,8 @@ export async function POST(req: NextRequest) {
             message: message.startsWith('SUCCESS') ? message : `Importación completada: ${message}`
         })
 
-    } catch (error: any) {
-        console.error('Bulk upload error (SP Text):', error)
-        return NextResponse.json({ message: 'Error al procesar la importación masiva: ' + error.message }, { status: 500 })
-    }
+        } catch (error: any) {
+            console.error('Bulk upload error (SP Text):', error)
+            return NextResponse.json({ message: 'Error al procesar la importación masiva: ' + error.message }, { status: 500 })
+        }
 }

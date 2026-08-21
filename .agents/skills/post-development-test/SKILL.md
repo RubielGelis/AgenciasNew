@@ -38,7 +38,13 @@ Antes de dar por concluido un desarrollo, realiza una validación rigurosa de er
   npm run build
   ```
 
-### Paso 4: Levantar y Probar el Sitio Localmente
+### Paso 4: Validar Listado de Maestros Afectados (Prueba Obligatoria)
+Si el desarrollo involucró una modificación en un Maestro (Cargos e Impuestos, Proveedores, Clientes, Usuarios, Productos, Sucursales, etc.):
+- Probar la función de consulta/listado (`public.fn...Listar()` o Endpoint `/api/...`) mediante consulta directa o script local.
+- Confirmar que retorne el arreglo con la lista de elementos completa.
+- Verificar que en el frontend las columnas no queden desalineadas y que no devuelva `Mostrando 0 a 0 de 0 registros` de forma errónea.
+
+### Paso 5: Levantar y Probar el Sitio Localmente
 Para probar el sitio web Next.js con los cambios aplicados:
 1. Corre el script de inicio completo para producción local en el puerto `3001`:
    ```powershell

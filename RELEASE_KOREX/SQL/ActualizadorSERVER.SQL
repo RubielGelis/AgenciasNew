@@ -7765,3 +7765,49 @@ GO
 
 
 
+
+-- ==========================================================
+-- Archivo: spInterfaceFile.sql (SQL Server)
+-- ==========================================================
+IF OBJECT_ID('dbo.spInterfaceFile', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.spInterfaceFile;
+GO
+CREATE PROCEDURE dbo.spInterfaceFile
+    @op VARCHAR(50) = NULL,
+    @Booking VARCHAR(MAX) = NULL,
+    @file VARCHAR(255) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @Ext VARCHAR(10);
+
+    IF @file IS NOT NULL AND CHARINDEX('.', @file) > 0
+    BEGIN
+        SET @Ext = LOWER(RIGHT(@file, LEN(@file) - CHARINDEX('.', @file) + 1));
+    END
+    ELSE
+    BEGIN
+        SET @Ext = '';
+    END
+
+    IF @Ext = '.fil'
+    BEGIN
+        IF OBJECT_ID('dbo.SpInterfaceSabre_Importar', 'P') IS NOT NULL
+            EXEC dbo.SpInterfaceSabre_Importar @Op = @op, @Booking = @Booking;
+        ELSE IF OBJECT_ID('dbo.spInterfaceSabre', 'P') IS NOT NULL
+            EXEC dbo.spInterfaceSabre @Op = @op, @Booking = @Booking;
+        ELSE
+            RAISERROR('No se encontró el procedimiento almacenado para Sabre (SpInterfaceSabre_Importar).', 16, 1);
+    END
+    ELSE
+    BEGIN
+        IF OBJECT_ID('dbo.SpInterfaceAmadeus_Importar', 'P') IS NOT NULL
+            EXEC dbo.SpInterfaceAmadeus_Importar @Op = @op, @Booking = @Booking;
+        ELSE IF OBJECT_ID('dbo.spInterfaceAmadeus', 'P') IS NOT NULL
+            EXEC dbo.spInterfaceAmadeus @Op = @op, @Booking = @Booking;
+        ELSE
+            RAISERROR('No se encontró el procedimiento almacenado para Amadeus (SpInterfaceAmadeus_Importar).', 16, 1);
+    END
+END
+GO

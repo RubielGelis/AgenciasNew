@@ -36,7 +36,7 @@ import { SearchSelect } from '@/components/SearchSelect'
 import { QuotationFormatsTab } from '@/components/QuotationFormatsTab'
 import RoleManagerTab from '@/components/RoleManagerTab'
 
-type Tab = 'parametros' | 'roles' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion' | 'modulos-sitio';
+type Tab = 'parametros' | 'roles' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'tipos-proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion' | 'modulos-sitio';
 
 const AVAILABLE_MANDATORY_FIELDS = [
     { key: 'QuotationProduct.passengers', label: 'Pasajeros (Nombre obligatorio)', group: 'Por Producto' },
@@ -154,6 +154,7 @@ export default function SettingsPage() {
             'ciudades': ['cities', 'ciudades'],
             'aeropuertos': ['airports', 'aeropuertos'],
             'tipos-tiquetes': ['tickettype', 'tipos-tiquetes'],
+            'tipos-proveedores': ['providertype', 'tipos-proveedores'],
             'estados-cotizacion': ['quotationstate', 'estados-cotizacion'],
             'formatos-cotizacion': ['quotationformat', 'formatos-cotizacion']
         };
@@ -183,6 +184,7 @@ export default function SettingsPage() {
     const [ticketPrinters, setTicketPrinters] = useState<any[]>([])
     const [prestadoras, setHotels] = useState<any[]>([])
     const [providers, setProviders] = useState<any[]>([])
+    const [providerTypes, setProviderTypes] = useState<any[]>([])
     const [logs, setLogs] = useState<any[]>([])
     const [clients, setClients] = useState<any[]>([])
     const [products, setProducts] = useState<any[]>([])
@@ -624,9 +626,13 @@ export default function SettingsPage() {
             if (tab === 'aeropuertos') {
                 const res = await fetch('/api/config/cities').then(res => res.json());
                 setCities(Array.isArray(res) ? res : []);
-            } else if (tab === 'prestadoras') {
-                const res = await fetch('/api/providers').then(res => res.json());
-                setProviders(Array.isArray(res) ? res : []);
+            } else if (tab === 'prestadoras' || tab === 'proveedores') {
+                const [pRes, ptRes] = await Promise.all([
+                    fetch('/api/providers').then(res => res.json()),
+                    fetch('/api/provider-types').then(res => res.json())
+                ]);
+                setProviders(Array.isArray(pRes) ? pRes : []);
+                setProviderTypes(Array.isArray(ptRes) ? ptRes : []);
             } else if (tab === 'ciudades') {
                 const res = await fetch('/api/config/countries').then(res => res.json());
                 setCountries(Array.isArray(res) ? res : []);
@@ -676,6 +682,7 @@ export default function SettingsPage() {
             case 'ciudades': setCities(data); break;
             case 'aeropuertos': setAirports(data); break;
             case 'tipos-tiquetes': setTicketTypes(data); break;
+            case 'tipos-proveedores': setProviderTypes(data); break;
             case 'estados-cotizacion': setQuotationStates(data); break;
             case 'combos': setCombos(data); break;
             case 'logs': setLogs(data); break;
@@ -695,6 +702,7 @@ export default function SettingsPage() {
                 case 'tiqueteadores': endpoint = '/api/config/ticket-printers'; break;
                 case 'prestadoras': endpoint = '/api/config/prestadoras'; break;
                 case 'proveedores': endpoint = '/api/providers'; break;
+                case 'tipos-proveedores': endpoint = '/api/provider-types'; break;
                 case 'clientes': endpoint = '/api/clients'; break;
                 case 'productos': endpoint = '/api/products'; break;
                 case 'variables': endpoint = '/api/config/variables'; break;
@@ -832,7 +840,9 @@ export default function SettingsPage() {
             } else if (activeTab === 'clientes') {
                 setFormData({ name: '', document: '', contactInfo: '', address: '', mandatoryVariables: [] })
             } else if (activeTab === 'proveedores') {
-                setFormData({ code: '', name: '', contactInfo: '' })
+                setFormData({ code: '', name: '', contactInfo: '', providerTypeId: '', airlineCode: '', sigla: '' })
+            } else if (activeTab === 'tipos-proveedores') {
+                setFormData({ code: '', name: '', isAirline: false, active: true })
             } else if (activeTab === 'productos') {
                 setFormData({ code: '', type: 'Servicio', description: '', basePrice: '', cost: '', billingConcept: '', serviceType: '', mandatoryFields: [] })
             } else if (activeTab === 'variables') {
@@ -866,28 +876,30 @@ export default function SettingsPage() {
         e.preventDefault()
         setSubmitting(true)
 
-        const endpoint = activeTab === 'usuarios' ? '/api/config/users' :
+        const endpoint = 
+            activeTab === 'usuarios' ? '/api/config/users' :
             activeTab === 'sucursales' ? '/api/config/branches' :
-                activeTab === 'impuestos' ? '/api/config/taxes' :
-                    activeTab === 'vendedores' ? '/api/config/sellers' :
-                        activeTab === 'prestadoras' ? '/api/config/prestadoras' :
-                            activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
-                                activeTab === 'clientes' ? '/api/clients' :
-                                    activeTab === 'proveedores' ? '/api/providers' :
-                                        activeTab === 'productos' ? '/api/products' :
-                                            activeTab === 'variables' ? '/api/config/variables' :
-                                                activeTab === 'parametros' ? '/api/config/parameters' :
-                                                    activeTab === 'monedas' ? '/api/config/currencies' :
-                                                        activeTab === 'equivalencias' ? '/api/config/equivalences' :
-                                                            activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
-                                                                activeTab === 'formas-pago' ? '/api/config/payments' :
-                                                                    activeTab === 'paises' ? '/api/config/countries' :
-                                                                        activeTab === 'ciudades' ? '/api/config/cities' :
-                                                                            activeTab === 'aeropuertos' ? '/api/config/airports' :
-                                                                                activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
-                                                                                    activeTab === 'estados-cotizacion' ? '/api/config/quotation-states' :
-                                                            activeTab === 'combos' ? (formData.id ? `/api/combos/${formData.id}` : '/api/combos') :
-                                                                '/api/config/implants'
+            activeTab === 'impuestos' ? '/api/config/taxes' :
+            activeTab === 'vendedores' ? '/api/config/sellers' :
+            activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
+            activeTab === 'prestadoras' ? '/api/config/prestadoras' :
+            activeTab === 'clientes' ? '/api/clients' :
+            activeTab === 'proveedores' ? '/api/providers' :
+            activeTab === 'tipos-proveedores' ? '/api/provider-types' :
+            activeTab === 'productos' ? '/api/products' :
+            activeTab === 'variables' ? '/api/config/variables' :
+            activeTab === 'parametros' ? '/api/config/parameters' :
+            activeTab === 'monedas' ? '/api/config/currencies' :
+            activeTab === 'equivalencias' ? '/api/config/equivalences' :
+            activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
+            activeTab === 'formas-pago' ? '/api/config/payments' :
+            activeTab === 'paises' ? '/api/config/countries' :
+            activeTab === 'ciudades' ? '/api/config/cities' :
+            activeTab === 'aeropuertos' ? '/api/config/airports' :
+            activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
+            activeTab === 'estados-cotizacion' ? '/api/config/quotation-states' :
+            activeTab === 'combos' ? (formData.id ? `/api/combos/${formData.id}` : '/api/combos') :
+            '/api/config/implants';
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -968,28 +980,30 @@ export default function SettingsPage() {
     const handleDelete = async (id: number) => {
         if (!confirm(`¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.`)) return
 
-        const endpoint = activeTab === 'usuarios' ? '/api/config/users' :
+        const endpoint = 
+            activeTab === 'usuarios' ? '/api/config/users' :
             activeTab === 'sucursales' ? '/api/config/branches' :
-                activeTab === 'impuestos' ? '/api/config/taxes' :
-                    activeTab === 'vendedores' ? '/api/config/sellers' :
-                        activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
-                            activeTab === 'prestadoras' ? '/api/config/prestadoras' :
-                                activeTab === 'clientes' ? '/api/clients' :
-                                    activeTab === 'proveedores' ? '/api/providers' :
-                                        activeTab === 'productos' ? '/api/products' :
-                                            activeTab === 'variables' ? '/api/config/variables' :
-                                                activeTab === 'parametros' ? '/api/config/parameters' :
-                                                    activeTab === 'monedas' ? '/api/config/currencies' :
-                                                        activeTab === 'equivalencias' ? '/api/config/equivalences' :
-                                                            activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
-                                                                activeTab === 'formas-pago' ? '/api/config/payments' :
-                                                                    activeTab === 'paises' ? '/api/config/countries' :
-                                                                        activeTab === 'ciudades' ? '/api/config/cities' :
-                                                                            activeTab === 'aeropuertos' ? '/api/config/airports' :
-                                                                                activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
-                                                                                    activeTab === 'estados-cotizacion' ? '/api/config/quotation-states' :
-                                                            activeTab === 'combos' ? `/api/combos/${id}` :
-                                                                '/api/config/implants'
+            activeTab === 'impuestos' ? '/api/config/taxes' :
+            activeTab === 'vendedores' ? '/api/config/sellers' :
+            activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
+            activeTab === 'prestadoras' ? '/api/config/prestadoras' :
+            activeTab === 'clientes' ? '/api/clients' :
+            activeTab === 'proveedores' ? '/api/providers' :
+            activeTab === 'tipos-proveedores' ? '/api/provider-types' :
+            activeTab === 'productos' ? '/api/products' :
+            activeTab === 'variables' ? '/api/config/variables' :
+            activeTab === 'parametros' ? '/api/config/parameters' :
+            activeTab === 'monedas' ? '/api/config/currencies' :
+            activeTab === 'equivalencias' ? '/api/config/equivalences' :
+            activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
+            activeTab === 'formas-pago' ? '/api/config/payments' :
+            activeTab === 'paises' ? '/api/config/countries' :
+            activeTab === 'ciudades' ? '/api/config/cities' :
+            activeTab === 'aeropuertos' ? '/api/config/airports' :
+            activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
+            activeTab === 'estados-cotizacion' ? '/api/config/quotation-states' :
+            activeTab === 'combos' ? `/api/combos/${id}` :
+            '/api/config/implants';
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -1090,7 +1104,7 @@ export default function SettingsPage() {
                                 className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                             >
                                 <Plus className="w-5 h-5" />
-                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'monedas' ? 'Nueva Moneda' : activeTab === 'combos' ? 'Nuevo Combo' : activeTab === 'equivalencias' ? 'Nueva Equivalencia' : activeTab === 'tarjetas-credito' ? 'Nueva Tarjeta' : activeTab === 'formas-pago' ? 'Nueva Forma de Pago' : activeTab === 'paises' ? 'Nuevo País' : activeTab === 'ciudades' ? 'Nueva Ciudad' : activeTab === 'aeropuertos' ? 'Nuevo Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Nuevo Tipo de Tiquete' : activeTab === 'estados-cotizacion' ? 'Nuevo Estado Cotización' : 'Nuevo Implant'}
+                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'tipos-proveedores' ? 'Nuevo Tipo de Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'monedas' ? 'Nueva Moneda' : activeTab === 'combos' ? 'Nuevo Combo' : activeTab === 'equivalencias' ? 'Nueva Equivalencia' : activeTab === 'tarjetas-credito' ? 'Nueva Tarjeta' : activeTab === 'formas-pago' ? 'Nueva Forma de Pago' : activeTab === 'paises' ? 'Nuevo País' : activeTab === 'ciudades' ? 'Nueva Ciudad' : activeTab === 'aeropuertos' ? 'Nuevo Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Nuevo Tipo de Tiquete' : activeTab === 'estados-cotizacion' ? 'Nuevo Estado Cotización' : 'Nuevo Implant'}
                             </motion.button>
                         </>
                     )}
@@ -1099,8 +1113,8 @@ export default function SettingsPage() {
 
             {/* Tabs Layout */}
             <div className="flex flex-wrap items-center gap-1 p-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl mb-8 shadow-sm">
-                <TabButton active={activeTab === 'modulos-sitio'} onClick={() => setActiveTab('modulos-sitio')} icon={<ShieldCheck className="w-4 h-4 text-amber-500" />} label="Módulos del Sitio" />
-                <TabButton active={activeTab === 'roles'} onClick={() => setActiveTab('roles')} icon={<ShieldCheck className="w-4 h-4 text-emerald-500" />} label="Roles y Permisos" />
+                <TabButton active={activeTab === 'modulos-sitio'} onClick={() => setActiveTab('modulos-sitio')} icon={<ShieldCheck className="w-4 h-4" />} label="Módulos del Sitio" />
+                <TabButton active={activeTab === 'roles'} onClick={() => setActiveTab('roles')} icon={<ShieldCheck className="w-4 h-4" />} label="Roles y Permisos" />
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
                 {isMasterTabEnabled('parametros') && <TabButton active={activeTab === 'parametros'} onClick={() => setActiveTab('parametros')} icon={<Settings className="w-4 h-4" />} label="Parámetros" />}
                 {isMasterTabEnabled('usuarios') && <TabButton active={activeTab === 'usuarios'} onClick={() => setActiveTab('usuarios')} icon={<Users className="w-4 h-4" />} label="Usuarios" />}
@@ -1112,6 +1126,7 @@ export default function SettingsPage() {
                 {isMasterTabEnabled('prestadoras') && <TabButton active={activeTab === 'prestadoras'} onClick={() => setActiveTab('prestadoras')} icon={<HotelIcon className="w-4 h-4" />} label="Prestadoras" />}
                 {isMasterTabEnabled('clientes') && <TabButton active={activeTab === 'clientes'} onClick={() => setActiveTab('clientes')} icon={<Users className="w-4 h-4" />} label="Clientes" />}
                 {isMasterTabEnabled('proveedores') && <TabButton active={activeTab === 'proveedores'} onClick={() => setActiveTab('proveedores')} icon={<Building2 className="w-4 h-4" />} label="Proveedores" />}
+                {isMasterTabEnabled('tipos-proveedores') && <TabButton active={activeTab === 'tipos-proveedores'} onClick={() => setActiveTab('tipos-proveedores')} icon={<Building2 className="w-4 h-4" />} label="Tipos de Proveedor" />}
                 {isMasterTabEnabled('productos') && <TabButton active={activeTab === 'productos'} onClick={() => setActiveTab('productos')} icon={<Tags className="w-4 h-4" />} label="Productos" />}
                 {isMasterTabEnabled('variables') && <TabButton active={activeTab === 'variables'} onClick={() => setActiveTab('variables')} icon={<Tags className="w-4 h-4" />} label="Variables Adic." />}
                 {isMasterTabEnabled('combos') && <TabButton active={activeTab === 'combos'} onClick={() => setActiveTab('combos')} icon={<Database className="w-4 h-4" />} label="Combos" />}
@@ -1138,7 +1153,7 @@ export default function SettingsPage() {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
                     <input
                         type="text"
-                        placeholder={`Buscar en ${activeTab === 'usuarios' ? 'Usuarios' : activeTab === 'sucursales' ? 'Sucursales' : activeTab === 'impuestos' ? 'Cargos e Impuestos' : activeTab === 'vendedores' ? 'Vendedores' : activeTab === 'tiqueteadores' ? 'Tiqueteadores' : activeTab === 'prestadoras' ? 'Prestadoras' : activeTab === 'clientes' ? 'Clientes' : activeTab === 'proveedores' ? 'Proveedores' : activeTab === 'productos' ? 'Productos' : activeTab === 'variables' ? 'Variables' : activeTab === 'parametros' ? 'Parámetros' : activeTab === 'monedas' ? 'Monedas' : activeTab === 'combos' ? 'Combos' : activeTab === 'logs' ? 'Logs' : activeTab === 'tarjetas-credito' ? 'Tarjetas' : activeTab === 'formas-pago' ? 'Formas de Pago' : activeTab === 'paises' ? 'Países' : activeTab === 'ciudades' ? 'Ciudades' : activeTab === 'aeropuertos' ? 'Aeropuertos' : activeTab === 'tipos-tiquetes' ? 'Tipos de Tiquete' : activeTab === 'estados-cotizacion' ? 'Estados de Cotización' : 'Implants'}...`}
+                        placeholder={`Buscar en ${activeTab === 'usuarios' ? 'Usuarios' : activeTab === 'sucursales' ? 'Sucursales' : activeTab === 'impuestos' ? 'Cargos e Impuestos' : activeTab === 'vendedores' ? 'Vendedores' : activeTab === 'tiqueteadores' ? 'Tiqueteadores' : activeTab === 'prestadoras' ? 'Prestadoras' : activeTab === 'clientes' ? 'Clientes' : activeTab === 'proveedores' ? 'Proveedores' : activeTab === 'tipos-proveedores' ? 'Tipos de Proveedor' : activeTab === 'productos' ? 'Productos' : activeTab === 'variables' ? 'Variables' : activeTab === 'parametros' ? 'Parámetros' : activeTab === 'monedas' ? 'Monedas' : activeTab === 'combos' ? 'Combos' : activeTab === 'logs' ? 'Logs' : activeTab === 'tarjetas-credito' ? 'Tarjetas' : activeTab === 'formas-pago' ? 'Formas de Pago' : activeTab === 'paises' ? 'Países' : activeTab === 'ciudades' ? 'Ciudades' : activeTab === 'aeropuertos' ? 'Aeropuertos' : activeTab === 'tipos-tiquetes' ? 'Tipos de Tiquete' : activeTab === 'estados-cotizacion' ? 'Estados de Cotización' : 'Implants'}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full h-14 pl-14 pr-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-zinc-900 dark:text-white"
@@ -1311,9 +1326,25 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Tipo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
-                                    ) : activeTab === 'clientes' || activeTab === 'proveedores' ? (
+                                    ) : activeTab === 'proveedores' ? (
                                         <>
-                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">{activeTab === 'clientes' ? 'Documento' : 'Código'}</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Tipo Proveedor</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Sigla / Aerolínea</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Contacto</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'tipos-proveedores' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">¿Es Aerolínea?</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'clientes' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Documento</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Contacto</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
@@ -1447,9 +1478,9 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'impuestos' && taxes.filter(tax => 
-                                    tax.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                    tax.code?.toLowerCase().includes(searchTerm.toLowerCase())
+                                {activeTab === 'impuestos' && (taxes || []).filter(tax => 
+                                    tax?.name?.toLowerCase().includes((searchTerm || '').toLowerCase()) || 
+                                    tax?.code?.toLowerCase().includes((searchTerm || '').toLowerCase())
                                 ).map(tax => (
                                     <tr key={tax.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{tax.code || '-'}</td>
@@ -1460,7 +1491,20 @@ export default function SettingsPage() {
                                             </span>
                                         </td>
                                         <td className="px-8 py-6 font-black text-emerald-600">
-                                            {tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : `$${tax.value.toLocaleString()}`}
+                                            {tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : tax.valueType === 'FIXED' ? `$${tax.value?.toLocaleString()}` : 'Ninguna (Libre)'}
+                                        </td>
+                                        <td className="px-8 py-6">
+                                            {tax.code === 'OTR' ? (
+                                                <span className="px-2.5 py-1 text-[10px] font-black bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 rounded-lg">
+                                                    ★ Fallback por defecto (No Homologados)
+                                                </span>
+                                            ) : tax.gdsEquivalences ? (
+                                                <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-lg">
+                                                    {tax.gdsEquivalences}
+                                                </span>
+                                            ) : (
+                                                <span className="text-zinc-400 text-xs italic">Sin mapeo</span>
+                                            )}
                                         </td>
                                         <td className="px-8 py-6">
                                             <span className={cn(
@@ -1527,18 +1571,37 @@ export default function SettingsPage() {
                                         </td>
                                     </tr>
                                 ))}
-                                {activeTab === 'proveedores' && (providers || []).filter(item => 
-                                    item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                    item.document?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                    item.code?.toLowerCase().includes(searchTerm.toLowerCase())
+                                {activeTab === 'proveedores' && (providers || []).filter((item: any) => 
+                                    item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.providerTypeName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.sigla?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.airlineCode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.contactInfo?.toLowerCase().includes(searchTerm.toLowerCase())
                                 ).map((item: any) => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
-                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.document || item.code || item.id || '-'}</td>
+                                        <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code || item.document || item.id || '-'}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.name}</td>
-                                        <td className="px-8 py-6 text-zinc-500">
-                                            {item.email && <div className="text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {item.email}</div>}
-                                            {item.phone && <div className="text-xs mt-1">{item.phone}</div>}
-                                            {item.contactInfo && <div className="text-xs mt-1">{item.contactInfo}</div>}
+                                        <td className="px-8 py-6">
+                                            {item.providerTypeName ? (
+                                                <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-black rounded-lg uppercase tracking-wider border border-blue-100 dark:border-blue-900/30">
+                                                    {item.providerTypeName}
+                                                </span>
+                                            ) : (
+                                                <span className="text-zinc-400 text-xs italic">Sin tipo</span>
+                                            )}
+                                        </td>
+                                        <td className="px-8 py-6 font-bold text-zinc-600 dark:text-zinc-400 text-xs">
+                                            {item.sigla || item.airlineCode ? (
+                                                <span className="font-mono text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/30">
+                                                    {item.sigla || ''} {item.airlineCode ? `(${item.airlineCode})` : ''}
+                                                </span>
+                                            ) : (
+                                                '-'
+                                            )}
+                                        </td>
+                                        <td className="px-8 py-6 text-zinc-500 text-xs">
+                                            {item.contactInfo || item.email || item.phone || '-'}
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
@@ -1645,7 +1708,7 @@ export default function SettingsPage() {
                                     </tr>
                                 ))}
 
-                                {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : activeTab === 'tarjetas-credito' ? creditCards : activeTab === 'formas-pago' ? payments : activeTab === 'paises' ? countries : activeTab === 'ciudades' ? cities : activeTab === 'aeropuertos' ? airports : activeTab === 'tipos-tiquetes' ? ticketTypes : activeTab === 'estados-cotizacion' ? quotationStates : []) || [])
+                                {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : activeTab === 'tarjetas-credito' ? creditCards : activeTab === 'formas-pago' ? payments : activeTab === 'paises' ? countries : activeTab === 'ciudades' ? cities : activeTab === 'aeropuertos' ? airports : activeTab === 'tipos-tiquetes' ? ticketTypes : activeTab === 'estados-cotizacion' ? quotationStates : activeTab === 'tipos-proveedores' ? providerTypes : []) || [])
                                 .filter((item: any) => 
                                     item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                                     item.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1666,6 +1729,17 @@ export default function SettingsPage() {
                                                         {item.branch.name}
                                                     </span>
                                                 ) : <span className="text-zinc-400 text-xs italic">No asignada</span>}
+                                            </td>
+                                        )}
+                                        {activeTab === 'tipos-proveedores' && (
+                                            <td className="px-8 py-6">
+                                                <span className={`px-3 py-1 text-[10px] font-black rounded-lg uppercase tracking-wider border ${
+                                                    item.isAirline 
+                                                        ? 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800' 
+                                                        : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500 border-zinc-200 dark:border-zinc-700'
+                                                }`}>
+                                                    {item.isAirline ? 'Sí' : 'No'}
+                                                </span>
                                             </td>
                                         )}
                                         <td className="px-8 py-6 text-right">
@@ -1790,7 +1864,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'monedas' ? 'Moneda' : activeTab === 'combos' ? 'Combo' : activeTab === 'equivalencias' ? 'Equivalencia' : activeTab === 'tarjetas-credito' ? 'Tarjeta' : activeTab === 'formas-pago' ? 'Forma de Pago' : activeTab === 'paises' ? 'País' : activeTab === 'ciudades' ? 'Ciudad' : activeTab === 'aeropuertos' ? 'Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Tipo de Tiquete' : activeTab === 'estados-cotizacion' ? 'Estado de Cotización' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'tipos-proveedores' ? 'Tipo de Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'monedas' ? 'Moneda' : activeTab === 'combos' ? 'Combo' : activeTab === 'equivalencias' ? 'Equivalencia' : activeTab === 'tarjetas-credito' ? 'Tarjeta' : activeTab === 'formas-pago' ? 'Forma de Pago' : activeTab === 'paises' ? 'País' : activeTab === 'ciudades' ? 'Ciudad' : activeTab === 'aeropuertos' ? 'Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Tipo de Tiquete' : activeTab === 'estados-cotizacion' ? 'Estado de Cotización' : 'Implant'}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -1891,14 +1965,23 @@ export default function SettingsPage() {
                                                 <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Operación</label>
                                                 <select
                                                     className="w-full h-14 bg-zinc-50 dark:bg-zinc-800 rounded-2xl px-5 border-none shadow-inner text-sm font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
-                                                    value={formData.valueType}
+                                                    value={formData.valueType || 'NONE'}
                                                     onChange={(e) => setFormData({ ...formData, valueType: e.target.value })}
                                                 >
+                                                    <option value="NONE">Ninguna (Digitar / Libre)</option>
                                                     <option value="PERCENTAGE">Porcentaje (%)</option>
                                                     <option value="FIXED">Costo Fijo ($)</option>
                                                 </select>
                                             </div>
-                                            <Input label="Valor" value={formData.value} onChange={(v: string) => setFormData({ ...formData, value: v })} required type="number" step="0.01" placeholder="Ej. 19" />
+                                            <Input
+                                                label="Valor"
+                                                value={formData.value !== undefined && formData.value !== null ? formData.value : ''}
+                                                onChange={(v: string) => setFormData({ ...formData, value: v })}
+                                                required={formData.valueType !== 'NONE'}
+                                                type="number"
+                                                step="0.01"
+                                                placeholder={formData.valueType === 'NONE' ? "Ej. 0 (Opcional)" : "Ej. 19"}
+                                            />
                                         </div>
 
                                         <div className="flex items-center gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-700">
@@ -1913,6 +1996,13 @@ export default function SettingsPage() {
                                                 Permitir editar libremente en cotizaciones
                                                 <span className="block text-[10px] font-medium text-zinc-400 uppercase tracking-wider mt-0.5">Si se desactiva, el valor será fijo según este maestro</span>
                                             </label>
+                                        </div>
+
+                                        <div className="p-4 bg-blue-50/60 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/40 rounded-2xl space-y-2">
+                                            <Input label="Códigos GDS Equivalentes (Homologación Interfaz)" value={formData.gdsEquivalences || ''} onChange={(v: string) => setFormData({ ...formData, gdsEquivalences: v })} placeholder="Ej. CO, AE, VZ, DP (separados por coma)" />
+                                            <p className="text-[11px] text-zinc-500 pl-1">
+                                                Ingresa los códigos de impuestos de tiquetes/reservas GDS (Amadeus/Sabre) que deben mapearse automáticamente a este impuesto del sistema. Si un código GDS no se encuentra mapeado, se sumará automáticamente bajo el impuesto <strong>OTR</strong>.
+                                            </p>
                                         </div>
                                     </>
                                 ) : activeTab === 'vendedores' || activeTab === 'tiqueteadores' ? (
@@ -2304,7 +2394,40 @@ export default function SettingsPage() {
                                         {activeTab === 'clientes' || activeTab === 'proveedores' ? (
                                             <>
                                                 {activeTab === 'clientes' && <Input label="Documento / NIT" value={formData.document || ''} onChange={(v: string) => setFormData({ ...formData, document: v })} required placeholder="No. de Documento" />}
-                                                 {activeTab === 'proveedores' && <Input label="Código del Proveedor" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} placeholder="Ej. AMADEUS" />}
+                                                {activeTab === 'proveedores' && (
+                                                     <>
+                                                         <Input label="Código del Proveedor" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} placeholder="Ej. AMADEUS" />
+                                                         <div>
+                                                             <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Tipo de Proveedor</label>
+                                                             <select
+                                                                 className="w-full mt-1.5 px-4 py-3 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm font-medium focus:ring-2 focus:ring-blue-500 transition-all dark:text-white"
+                                                                 value={formData.providerTypeId || ''}
+                                                                 onChange={(e) => {
+                                                                     const typeId = e.target.value ? parseInt(e.target.value) : null;
+                                                                     const selectedType = (providerTypes || []).find((t: any) => t.id === typeId);
+                                                                     setFormData({
+                                                                         ...formData,
+                                                                         providerTypeId: typeId,
+                                                                         _isAirline: selectedType?.isAirline || false
+                                                                     });
+                                                                 }}
+                                                             >
+                                                                 <option value="">-- Seleccionar Tipo de Proveedor --</option>
+                                                                 {(providerTypes || []).map((pt: any) => (
+                                                                     <option key={pt.id} value={pt.id}>
+                                                                         {pt.name} {pt.isAirline ? '(Aerolínea)' : ''}
+                                                                     </option>
+                                                                 ))}
+                                                             </select>
+                                                         </div>
+                                                         {(formData._isAirline || (providerTypes || []).find((t: any) => t.id === formData.providerTypeId)?.isAirline || formData.isAirline) && (
+                                                             <div className="grid grid-cols-2 gap-4 p-3 bg-blue-50/50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/40 rounded-xl">
+                                                                 <Input label="Código de Aerolínea (IATA)" value={formData.airlineCode || ''} onChange={(v: string) => setFormData({ ...formData, airlineCode: v })} placeholder="Ej. 134" />
+                                                                 <Input label="Sigla de Aerolínea" value={formData.sigla || ''} onChange={(v: string) => setFormData({ ...formData, sigla: v })} placeholder="Ej. AV" />
+                                                             </div>
+                                                         )}
+                                                     </>
+                                                 )}
                                                  <Input label="Nombre o Razón Social" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Nombre de Empresa / Persona" />
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <Input label="Email de Contacto" value={formData.email || ''} onChange={(v: string) => setFormData({ ...formData, email: v })} type="email" placeholder="Opcional" />
@@ -2963,6 +3086,24 @@ export default function SettingsPage() {
                                             <Input label="Código (Único)" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. NUEVO" />
                                             <Input label="Nombre del Estado" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Nuevo" />
                                             <Input label="Color (Opcional)" value={formData.color || ''} onChange={(v: string) => setFormData({ ...formData, color: v })} placeholder="Ej. blue, emerald, red o código hex" />
+                                        </>
+                                    ) : activeTab === 'tipos-proveedores' ? (
+                                        <>
+                                            <Input label="Código Único" value={formData.code || ''} onChange={(v: string) => setFormData({ ...formData, code: v })} required placeholder="Ej. AERO" />
+                                            <Input label="Nombre del Tipo de Proveedor" value={formData.name || ''} onChange={(v: string) => setFormData({ ...formData, name: v })} required placeholder="Ej. Aerolínea / Hotel" />
+                                            <div className="flex items-center gap-3 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-700">
+                                                <input
+                                                    type="checkbox"
+                                                    id="isAirline"
+                                                    className="w-5 h-5 rounded-lg border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                    checked={formData.isAirline || false}
+                                                    onChange={(e) => setFormData({ ...formData, isAirline: e.target.checked })}
+                                                />
+                                                <label htmlFor="isAirline" className="text-sm font-bold text-zinc-700 dark:text-zinc-300 cursor-pointer">
+                                                    ¿Es Aerolínea?
+                                                    <span className="block text-[10px] font-medium text-zinc-400 uppercase tracking-wider mt-0.5">Si se marca, habilitará los campos de Código IATA y Sigla en los proveedores asociados.</span>
+                                                </label>
+                                            </div>
                                         </>
                                     ) : (
                                         <>

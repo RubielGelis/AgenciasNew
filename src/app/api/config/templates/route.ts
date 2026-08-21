@@ -28,8 +28,12 @@ export async function GET(req: NextRequest) {
             filename = 'plantilla_clientes'
             break
         case 'proveedores':
-            data = [{ name: 'Proveedor Ejemplo', contactInfo: 'reservas@proveedor.com', code: 'AMADEUS' }]
+            data = [{ code: 'AVIANCA', name: 'Avianca S.A.', contactInfo: 'reservas@avianca.com', providerTypeCode: 'AIRLINE', airlineCode: '134', sigla: 'AV' }]
             filename = 'plantilla_proveedores'
+            break
+        case 'tipos-proveedores':
+            data = [{ code: 'AIRLINE', name: 'Aerolínea', isAirline: 'SI' }]
+            filename = 'plantilla_tipos_proveedores'
             break
         case 'productos':
             data = [{ description: 'Habitación Estándar', basePrice: 150000, code: 'P-001', type: 'HOTEL', billingConcept: 'ALOS', serviceType: 'ALOJAMIENTO' }]

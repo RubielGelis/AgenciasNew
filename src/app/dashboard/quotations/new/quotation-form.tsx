@@ -1463,7 +1463,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Fecha Inicio</label>
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Fecha Inicial</label>
                                                     <input
                                                         type="date"
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs p-1"
@@ -1472,7 +1472,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Fecha Fin</label>
+                                                    <label className="text-[10px] uppercase font-bold text-zinc-400">Fecha Final</label>
                                                     <input
                                                         type="date"
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs p-1"
@@ -1665,9 +1665,11 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                                                 let initialAmount = 0;
                                                                                 const baseValue = item.price * item.quantity;
                                                                                 if (tax.valueType === 'PERCENTAGE') {
-                                                                                    initialAmount = (baseValue * tax.value) / 100;
+                                                                                    initialAmount = (baseValue * (tax.value || 0)) / 100;
+                                                                                } else if (tax.valueType === 'FIXED') {
+                                                                                    initialAmount = (tax.value || 0) * item.quantity;
                                                                                 } else {
-                                                                                    initialAmount = tax.value * item.quantity;
+                                                                                    initialAmount = (tax.value || 0) * item.quantity;
                                                                                 }
                                                                                 const nextTaxes = [...currentTaxes, { id: taxIdNum, amount: initialAmount }];
 
@@ -1696,7 +1698,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                                         }}
                                                                     />
                                                                     <span>{tax.name} {isPrincipal && <span className="text-[9px] bg-blue-100 dark:bg-blue-900/40 px-1.5 py-0.5 rounded ml-1 uppercase">Principal</span>}</span>
-                                                                    <span className="opacity-50 text-[10px] ml-auto">({tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : `$${tax.value}`})</span>
+                                                                    <span className="opacity-50 text-[10px] ml-auto">({tax.valueType === 'PERCENTAGE' ? `${tax.value}%` : tax.valueType === 'FIXED' ? `$${tax.value}` : 'Libre'})</span>
                                                                 </label>
                                                             </div>
                                                             {isChecked && (

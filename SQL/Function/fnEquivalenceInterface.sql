@@ -10,9 +10,10 @@ VOLATILE PARALLEL UNSAFE
 AS $BODY$
 DECLARE
     v_equivalence TEXT;
+    v_master_code TEXT;
 BEGIN
     -- Si el valor es nulo o vacío, retornamos el mismo valor
-    IF p_value IS NULL OR p_value = '' THEN
+    IF p_value IS NULL OR trim(p_value) = '' THEN
         RETURN p_value;
     END IF;
 
@@ -25,9 +26,15 @@ BEGIN
       AND cd_codigoInte = p_value
     LIMIT 1;
 
-    -- Si no se encuentra equivalencia, retornamos el valor original
-    IF v_equivalence IS NULL OR v_equivalence = '' THEN
-        RETURN p_value;
+    -- Si no se encuentra equivalencia:
+    IF v_equivalence IS NULL OR trim(v_equivalence) = '' THEN
+        -- Si corresponde al maestro de Impuestos (ChargeAndTax), mapear por defecto a 'OTR' (Otros Impuestos)
+        SELECT code INTO v_master_code FROM public."Master" WHERE id = p_id_master LIMIT 1;
+        IF v_master_code = 'ChargeAndTax' THEN
+            RETURN 'OTR';
+        ELSE
+            RETURN p_value;
+        END IF;
     ELSE
         RETURN v_equivalence;
     END IF;

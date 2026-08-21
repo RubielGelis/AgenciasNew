@@ -57,9 +57,13 @@ model Provider {
   name              String
   contactInfo       String?
   commissionConfig  Json?
+  providerTypeId    Int?
+  airlineCode       String?            @db.VarChar(10)
+  sigla             String?            @db.VarChar(10)
   comboProducts     ComboProduct[]
   preQuotations     PreQuotation[]
   prestadoras       Prestadora[]
+  ProviderType      ProviderType?      @relation(fields: [providerTypeId], references: [id], onUpdate: NoAction)
   quotationProducts QuotationProduct[]
 }
 
@@ -1040,4 +1044,15 @@ model PreQuotationStateHistory {
   createdAt      DateTime?    @default(now()) @db.Timestamp(6)
   preQuotation   PreQuotation @relation(fields: [preQuotationId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   user           User         @relation(fields: [userId], references: [id], onUpdate: NoAction)
+}
+
+model ProviderType {
+  id        Int        @id @default(autoincrement())
+  code      String     @unique @db.VarChar(50)
+  name      String     @db.VarChar(100)
+  isAirline Boolean    @default(false)
+  active    Boolean    @default(true)
+  createdAt DateTime?  @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime?  @default(now()) @db.Timestamptz(6)
+  Provider  Provider[]
 }

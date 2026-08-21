@@ -11,6 +11,11 @@ BEGIN
             'name', p.name,
             'contactInfo', p."contactInfo",
             'commissionConfig', p."commissionConfig",
+            'providerTypeId', p."providerTypeId",
+            'providerTypeName', pt.name,
+            'isAirline', COALESCE(pt."isAirline", false),
+            'airlineCode', p."airlineCode",
+            'sigla', p."sigla",
             'prestadoras', COALESCE((
                 SELECT jsonb_agg(h)
                 FROM public."Prestadora" h
@@ -18,6 +23,7 @@ BEGIN
             ), '[]'::jsonb)
         )
     FROM public."Provider" p
+    LEFT JOIN public."ProviderType" pt ON pt.id = p."providerTypeId"
     ORDER BY p.name ASC;
 END;
 $$;
