@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
             console.error("Failed to seed default states in base-data", e);
         }
 
-        const [clients, providers, prestadoras, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies, creditCards, payments, quotationStates] = await Promise.all([
+        const [clients, providers, prestadoras, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies, creditCards, payments, quotationStates, parameters] = await Promise.all([
             Promise.resolve([]), // Do not fetch all clients in base data
             (prisma as any).provider?.findMany({ include: { prestadoras: true } }) || Promise.resolve([]),
             (prisma as any).prestadora?.findMany() || Promise.resolve([]),
@@ -62,7 +62,8 @@ export async function GET(req: NextRequest) {
             (prisma as any).currency?.findMany() || Promise.resolve([]),
             (prisma as any).creditCard?.findMany() || Promise.resolve([]),
             (prisma as any).payment?.findMany() || Promise.resolve([]),
-            (prisma as any).quotationState?.findMany({ orderBy: { id: 'asc' } }) || Promise.resolve([])
+            (prisma as any).quotationState?.findMany({ orderBy: { id: 'asc' } }) || Promise.resolve([]),
+            (prisma as any).systemParameter?.findMany() || Promise.resolve([])
         ])
 
         const today = new Date();
@@ -95,7 +96,8 @@ export async function GET(req: NextRequest) {
             creditCards,
             payments,
             quotationStates,
-            showTotals
+            showTotals,
+            parameters
         })
     } catch (error: any) {
         console.error('Data fetch error:', error)

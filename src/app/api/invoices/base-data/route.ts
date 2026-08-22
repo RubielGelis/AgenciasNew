@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        const [clients, providers, prestadoras, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies, creditCards, payments, ticketTypes] = await Promise.all([
+        const [clients, providers, prestadoras, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies, creditCards, payments, ticketTypes, parameters] = await Promise.all([
             (prisma as any).client?.findMany({ select: { id: true, name: true, document: true } }) || Promise.resolve([]),
             (prisma as any).provider?.findMany({ include: { prestadoras: true } }) || Promise.resolve([]),
             (prisma as any).prestadora?.findMany() || Promise.resolve([]),
@@ -47,7 +47,8 @@ export async function GET(req: NextRequest) {
             (prisma as any).currency?.findMany() || Promise.resolve([]),
             (prisma as any).creditCard?.findMany({ where: { inactive: false } }) || Promise.resolve([]),
             (prisma as any).payment?.findMany({ where: { inactive: false } }) || Promise.resolve([]),
-            (prisma as any).ticketType?.findMany({ where: { isActive: true } }) || Promise.resolve([])
+            (prisma as any).ticketType?.findMany({ where: { isActive: true } }) || Promise.resolve([]),
+            (prisma as any).systemParameter?.findMany() || Promise.resolve([])
         ])
 
         const today = new Date();
@@ -74,7 +75,8 @@ export async function GET(req: NextRequest) {
             currencies,
             creditCards,
             payments,
-            ticketTypes
+            ticketTypes,
+            parameters
         })
     } catch (error: any) {
         console.error('Data fetch error:', error)
