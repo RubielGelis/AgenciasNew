@@ -817,7 +817,7 @@ export default function SettingsPage() {
                 if (!Array.isArray(mandatoryVars)) {
                     mandatoryVars = [];
                 }
-                setFormData({ ...item, mandatoryVariables: mandatoryVars })
+                setFormData({ ...item, sellerId: item.sellerId ? item.sellerId.toString() : '', mandatoryVariables: mandatoryVars })
             } else if (activeTab === 'productos') {
                 let mandatory = item.mandatoryFields;
                 if (typeof mandatory === 'string') {
@@ -854,7 +854,7 @@ export default function SettingsPage() {
             } else if (activeTab === 'prestadoras') {
                 setFormData({ code: '', name: '', category: '', location: '', providerId: '', type: '' })
             } else if (activeTab === 'clientes') {
-                setFormData({ name: '', document: '', contactInfo: '', address: '', mandatoryVariables: [] })
+                setFormData({ name: '', document: '', contactInfo: '', address: '', sellerId: '', mandatoryVariables: [] })
             } else if (activeTab === 'proveedores') {
                 setFormData({ code: '', name: '', contactInfo: '', providerTypeId: '', airlineCode: '', sigla: '' })
             } else if (activeTab === 'tipos-proveedores') {
@@ -1395,6 +1395,7 @@ export default function SettingsPage() {
                                         <>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Documento</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Nombre</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Vendedor por Defecto</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Contacto</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
@@ -1653,6 +1654,15 @@ export default function SettingsPage() {
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.document || item.id || '-'}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.name}</td>
+                                        <td className="px-8 py-6">
+                                            {item.sellerName ? (
+                                                <span className="font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800/50">
+                                                    {item.sellerName} {item.sellerCode ? `(${item.sellerCode})` : ''}
+                                                </span>
+                                            ) : (
+                                                <span className="text-zinc-400 font-medium text-xs">Sin asignar</span>
+                                            )}
+                                        </td>
                                         <td className="px-8 py-6 text-zinc-500">
                                             {item.email && <div className="text-xs flex items-center gap-1"><Mail className="w-3 h-3" /> {item.email}</div>}
                                             {item.phone && <div className="text-xs mt-1">{item.phone}</div>}
@@ -2539,6 +2549,19 @@ export default function SettingsPage() {
                                                     <Input label="Teléfono / Contacto" value={formData.contactInfo || formData.phone || ''} onChange={(v: string) => setFormData({ ...formData, contactInfo: v, phone: v })} placeholder="Opcional" />
                                                 </div>
                                                 {activeTab === 'clientes' && <Input label="Dirección" value={formData.address || ''} onChange={(v: string) => setFormData({ ...formData, address: v })} placeholder="Opcional" />}
+                                                {activeTab === 'clientes' && (
+                                                    <div className="space-y-2 group">
+                                                        <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Vendedor por Defecto</label>
+                                                        <SearchSelect 
+                                                            options={sellers} 
+                                                            value={formData.sellerId} 
+                                                            onChange={(val) => setFormData({ ...formData, sellerId: val })}
+                                                            labelKey="name"
+                                                            secondaryKey="code"
+                                                            placeholder="Seleccionar Vendedor por Defecto (Opcional)"
+                                                        />
+                                                    </div>
+                                                )}
                                                 {activeTab === 'clientes' && (
                                                     <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 mt-6 space-y-4">
                                                         <h4 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">

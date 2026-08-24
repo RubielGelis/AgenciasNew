@@ -5,8 +5,9 @@ CREATE OR REPLACE PROCEDURE public.spClienteCrear(
     p_address TEXT,
     p_mandatory_variables JSONB,
     p_acting_user_id INT,
-    INOUT p_client_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_seller_id INT DEFAULT NULL,
+    INOUT p_client_id INT DEFAULT 0,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
@@ -16,8 +17,8 @@ BEGIN
         RETURN;
     END IF;
 
-    INSERT INTO public."Client" ("name", "document", "contactInfo", "address", "mandatoryVariables")
-    VALUES (p_name, p_document, p_contact_info, p_address, p_mandatory_variables)
+    INSERT INTO public."Client" ("name", "document", "contactInfo", "address", "mandatoryVariables", "sellerId")
+    VALUES (p_name, p_document, p_contact_info, p_address, p_mandatory_variables, p_seller_id)
     RETURNING id INTO p_client_id;
 
     p_mensaje_resultado := 'SUCCESS: Cliente creado con ID ' || p_client_id;

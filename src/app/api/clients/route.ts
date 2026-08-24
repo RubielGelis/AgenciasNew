@@ -30,18 +30,19 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { name, document, contactInfo, address, mandatoryVariables } = body
+        const { name, document, contactInfo, address, mandatoryVariables, sellerId } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spClienteCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::JSONB, $6::INT, $7::INT, $8::TEXT)`,
+            `CALL public.spClienteCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::JSONB, $6::INT, $7::INT, $8::INT, $9::TEXT)`,
             name,
             document,
             contactInfo || null,
             address || null,
             mandatoryVariables ? JSON.stringify(mandatoryVariables) : null,
             actingUserId,
+            sellerId ? parseInt(sellerId) : null,
             0, // p_client_id
             '' // p_mensaje_resultado
         );
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
             throw new Error(message || 'Error creating client');
         }
 
-        const client = { id: dbClientId, name, document };
+        const client = { id: dbClientId, name, document, sellerId };
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
             logSystemEvent({ userId: actingUserId, action: 'CREATE', module: 'CLIENT', description: `Cliente ${client.name} creado (SP).`, metadata: client });
@@ -69,12 +70,12 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json()
-        const { id, name, document, contactInfo, address, mandatoryVariables } = body
+        const { id, name, document, contactInfo, address, mandatoryVariables, sellerId } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spClienteActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::TEXT, $6::JSONB, $7::INT, $8::TEXT)`,
+            `CALL public.spClienteActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::TEXT, $6::JSONB, $7::INT, $8::INT, $9::TEXT)`,
             parseInt(id),
             name,
             document,
@@ -82,6 +83,7 @@ export async function PUT(req: NextRequest) {
             address || null,
             mandatoryVariables ? JSON.stringify(mandatoryVariables) : null,
             actingUserId,
+            sellerId ? parseInt(sellerId) : null,
             '' // p_mensaje_resultado
         );
 

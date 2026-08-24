@@ -6,7 +6,8 @@ CREATE OR REPLACE PROCEDURE public.spClienteActualizar(
     p_address TEXT,
     p_mandatory_variables JSONB,
     p_acting_user_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_seller_id INT DEFAULT NULL,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
@@ -21,13 +22,13 @@ BEGIN
         "document" = p_document,
         "contactInfo" = p_contact_info,
         "address" = p_address,
-        "mandatoryVariables" = p_mandatory_variables
+        "mandatoryVariables" = p_mandatory_variables,
+        "sellerId" = p_seller_id
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Cliente ' || p_id || ' actualizado.';
 EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
-        ROLLBACK;
 END;
 $$;

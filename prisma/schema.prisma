@@ -47,6 +47,8 @@ model Client {
   contactInfo        String?
   address            String?
   mandatoryVariables Json?
+  sellerId           Int?
+  Seller             Seller?        @relation(fields: [sellerId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   preQuotations      PreQuotation[]
   quotations         Quotation[]
 }
@@ -123,6 +125,7 @@ model Seller {
   email         String?
   preQuotations PreQuotation[]
   quotations    Quotation[]
+  clients       Client[]
 }
 
 model TicketPrinter {

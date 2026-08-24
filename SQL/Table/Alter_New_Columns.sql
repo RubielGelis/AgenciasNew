@@ -2535,6 +2535,18 @@ BEGIN
         FOREIGN KEY ("interfaceId") REFERENCES public."Interfaces"("id") ON DELETE CASCADE;
     END IF;
 
+    -- Columna sellerId (Vendedor por Defecto) en Client
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'sellerId') THEN
+        ALTER TABLE public."Client" ADD COLUMN "sellerId" integer;
+    END IF;
+
+    -- Foreign Key de Client.sellerId hacia Seller.id
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'Client_sellerId_fkey') THEN
+        ALTER TABLE public."Client" 
+        ADD CONSTRAINT "Client_sellerId_fkey" 
+        FOREIGN KEY ("sellerId") REFERENCES public."Seller"("id") ON DELETE SET NULL;
+    END IF;
+
     -- Limpieza de duplicados existentes por combinación de interfaceId y prefix
     DELETE FROM public."InterfaceExtractParam" a
     USING public."InterfaceExtractParam" b

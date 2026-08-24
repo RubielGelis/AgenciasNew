@@ -971,7 +971,14 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     <SearchSelect
                                         options={data.clients}
                                         value={formData.clientId}
-                                        onChange={(val) => setFormData({ ...formData, clientId: val })}
+                                        onChange={(val) => {
+                                            const selectedC = data.clients?.find((c: any) => String(c.id) === String(val));
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                clientId: val,
+                                                sellerId: selectedC?.sellerId ? String(selectedC.sellerId) : prev.sellerId
+                                            }));
+                                        }}
                                         placeholder="Seleccionar Cliente"
                                         secondaryKey="document"
                                         remoteSearchEndpoint="/api/clients"
