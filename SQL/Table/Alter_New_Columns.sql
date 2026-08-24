@@ -2498,4 +2498,45 @@ BEGIN
         ALTER TABLE public."Product" ADD COLUMN "taxIds" jsonb DEFAULT '[]'::jsonb;
     END IF;
 
+    -- Tabla de Parámetros/Reglas de Extracción de Interfaces (PNR/GDS)
+    IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'InterfaceExtractParam_id_seq') THEN
+        CREATE SEQUENCE public."InterfaceExtractParam_id_seq" START WITH 1 INCREMENT BY 1;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InterfaceExtractParam') THEN
+        CREATE TABLE public."InterfaceExtractParam" (
+            "id" integer DEFAULT nextval('"InterfaceExtractParam_id_seq"'::regclass) NOT NULL,
+            "interfaceId" integer NOT NULL,
+            "fieldCode" character varying(50) NOT NULL,
+            "fieldName" character varying(100) NOT NULL,
+            "prefix" character varying(100) NOT NULL,
+            "delimiter" character varying(20) DEFAULT '-'::character varying,
+            "startPosition" integer DEFAULT 0,
+            "length" integer DEFAULT 0,
+            "isActive" boolean DEFAULT true NOT NULL,
+            "createdAt" timestamp without time zone DEFAULT now(),
+            CONSTRAINT "InterfaceExtractParam_pkey" PRIMARY KEY ("id")
+        );
+    END IF;
+
+    -- Reglas iniciales para Amadeus (interfaceId = 2)
+    IF NOT EXISTS (SELECT 1 FROM public."InterfaceExtractParam" WHERE "interfaceId" = 2) THEN
+        INSERT INTO public."InterfaceExtractParam" ("interfaceId", "fieldCode", "fieldName", "prefix") VALUES
+        (2, 'Client', 'Cliente', 'RM*NC-'),
+        (2, 'Seller', 'Vendedor', 'RM*VE-'),
+        (2, 'TicketPrinter', 'Tiqueteador', 'RM*TK-'),
+        (2, 'Branch', 'Sucursal', 'RM*SUC-'),
+        (2, 'Implant', 'Implante', 'RM*IMP-');
+    END IF;
+
+    -- Reglas iniciales para Sabre (interfaceId = 1)
+    IF NOT EXISTS (SELECT 1 FROM public."InterfaceExtractParam" WHERE "interfaceId" = 1) THEN
+        INSERT INTO public."InterfaceExtractParam" ("interfaceId", "fieldCode", "fieldName", "prefix") VALUES
+        (1, 'Client', 'Cliente', 'RM*NC-'),
+        (1, 'Seller', 'Vendedor', 'RM*VE-'),
+        (1, 'TicketPrinter', 'Tiqueteador', 'RM*TK-'),
+        (1, 'Branch', 'Sucursal', 'RM*SUC-'),
+        (1, 'Implant', 'Implante', 'RM*IMP-');
+    END IF;
+
 END $$;

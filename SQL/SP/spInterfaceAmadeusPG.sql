@@ -416,6 +416,26 @@ BEGIN
 
     END LOOP;
 
+    -- Extracción dinámica de parámetros según reglas de la interfaz Amadeus (id_interfaces = 2)
+    DECLARE
+        v_dyn_val TEXT;
+    BEGIN
+        v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Client', p_Booking);
+        IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_client := v_dyn_val; END IF;
+
+        v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Seller', p_Booking);
+        IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_seller := v_dyn_val; END IF;
+
+        v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'TicketPrinter', p_Booking);
+        IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_tiquetPrinter := v_dyn_val; END IF;
+
+        v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Branch', p_Booking);
+        IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_blanch := v_dyn_val; END IF;
+
+        v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Implant', p_Booking);
+        IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_implant := v_dyn_val; END IF;
+    END;
+
     -- ==============================================================
     -- VALIDACIÓN Y ASIGNACIÓN DE PROVEEDOR POR SIGLA DE AEROLÍNEA
     -- ==============================================================

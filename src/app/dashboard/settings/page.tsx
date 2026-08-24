@@ -36,7 +36,7 @@ import { SearchSelect } from '@/components/SearchSelect'
 import { QuotationFormatsTab } from '@/components/QuotationFormatsTab'
 import RoleManagerTab from '@/components/RoleManagerTab'
 
-type Tab = 'parametros' | 'roles' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'tipos-proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion' | 'modulos-sitio';
+type Tab = 'parametros' | 'roles' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'tipos-proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'extraccion-interfaces' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion' | 'modulos-sitio';
 
 const AVAILABLE_MANDATORY_FIELDS = [
     { key: 'QuotationProduct.passengers', label: 'Pasajeros (Nombre obligatorio)', group: 'Por Producto' },
@@ -148,6 +148,7 @@ export default function SettingsPage() {
             'logs': ['systemlog', 'logs'],
             'monedas': ['currency', 'monedas', 'moneda'],
             'equivalencias': ['equivalences', 'equivalencias'],
+            'extraccion-interfaces': ['interfaces', 'extraccion-interfaces'],
             'tarjetas-credito': ['creditcard', 'tarjetas-credito'],
             'formas-pago': ['payment', 'formas-pago'],
             'paises': ['countries', 'paises'],
@@ -201,6 +202,7 @@ export default function SettingsPage() {
     const [ticketTypes, setTicketTypes] = useState<any[]>([])
     const [quotationStates, setQuotationStates] = useState<any[]>([])
     const [interfacesList, setInterfacesList] = useState<any[]>([])
+    const [interfaceExtractRules, setInterfaceExtractRules] = useState<any[]>([])
     const [masterList, setMasterList] = useState<any[]>([])
     const [dynamicMasterOptions, setDynamicMasterOptions] = useState<any[]>([])
 
@@ -679,6 +681,7 @@ export default function SettingsPage() {
             case 'parametros': setParameters(data); break;
             case 'monedas': setCurrencies(data); break;
             case 'equivalencias': setEquivalences(data); break;
+            case 'extraccion-interfaces': setInterfaceExtractRules(data); break;
             case 'tarjetas-credito': setCreditCards(data); break;
             case 'formas-pago': setPayments(data); break;
             case 'paises': setCountries(data); break;
@@ -712,6 +715,7 @@ export default function SettingsPage() {
                 case 'parametros': endpoint = '/api/config/parameters'; break;
                 case 'monedas': endpoint = '/api/config/currencies'; break;
                 case 'equivalencias': endpoint = '/api/config/equivalences'; break;
+                case 'extraccion-interfaces': endpoint = '/api/config/interface-extract-params'; break;
                 case 'tarjetas-credito': endpoint = '/api/config/credit-cards'; break;
                 case 'formas-pago': endpoint = '/api/config/payments'; break;
                 case 'paises': endpoint = '/api/config/countries'; break;
@@ -863,6 +867,27 @@ export default function SettingsPage() {
                 setFormData({ code: '', name: '', cupos: 0, currencyId: '', products: [] })
             } else if (activeTab === 'equivalencias') {
                 setFormData({ id_interfaces: '', id_master: '', cd_maestro: '', cd_codigo: '', cd_codigoInte: '' })
+            } else if (activeTab === 'extraccion-interfaces') {
+                if (item) {
+                    setFormData({
+                        id: item.id,
+                        interfaceId: item.interfaceId?.toString() || '',
+                        fieldCode: item.fieldCode || '',
+                        fieldName: item.fieldName || '',
+                        prefix: item.prefix || '',
+                        delimiter: item.delimiter || '-',
+                        isActive: item.isActive !== undefined ? item.isActive : true
+                    })
+                } else {
+                    setFormData({
+                        interfaceId: '2',
+                        fieldCode: '',
+                        fieldName: '',
+                        prefix: '',
+                        delimiter: '-',
+                        isActive: true
+                    })
+                }
             } else if (activeTab === 'tarjetas-credito') {
                 setFormData({ code: '', name: '', type: 'CC', inactive: false })
             } else if (activeTab === 'formas-pago') {
@@ -901,6 +926,7 @@ export default function SettingsPage() {
             activeTab === 'parametros' ? '/api/config/parameters' :
             activeTab === 'monedas' ? '/api/config/currencies' :
             activeTab === 'equivalencias' ? '/api/config/equivalences' :
+            activeTab === 'extraccion-interfaces' ? '/api/config/interface-extract-params' :
             activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
             activeTab === 'formas-pago' ? '/api/config/payments' :
             activeTab === 'paises' ? '/api/config/countries' :
@@ -1005,6 +1031,7 @@ export default function SettingsPage() {
             activeTab === 'parametros' ? '/api/config/parameters' :
             activeTab === 'monedas' ? '/api/config/currencies' :
             activeTab === 'equivalencias' ? '/api/config/equivalences' :
+            activeTab === 'extraccion-interfaces' ? '/api/config/interface-extract-params' :
             activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
             activeTab === 'formas-pago' ? '/api/config/payments' :
             activeTab === 'paises' ? '/api/config/countries' :
@@ -1142,6 +1169,7 @@ export default function SettingsPage() {
                 {isMasterTabEnabled('combos') && <TabButton active={activeTab === 'combos'} onClick={() => setActiveTab('combos')} icon={<Database className="w-4 h-4" />} label="Combos" />}
                 {isMasterTabEnabled('monedas') && <TabButton active={activeTab === 'monedas'} onClick={() => setActiveTab('monedas')} icon={<DollarSign className="w-4 h-4" />} label="Monedas" />}
                 {isMasterTabEnabled('equivalencias') && <TabButton active={activeTab === 'equivalencias'} onClick={() => setActiveTab('equivalencias')} icon={<Tags className="w-4 h-4" />} label="Equivalencias" />}
+                {isMasterTabEnabled('extraccion-interfaces') && <TabButton active={activeTab === 'extraccion-interfaces'} onClick={() => setActiveTab('extraccion-interfaces')} icon={<TerminalSquare className="w-4 h-4" />} label="Extracción Interfaces" />}
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
                 {isMasterTabEnabled('tarjetas-credito') && <TabButton active={activeTab === 'tarjetas-credito'} onClick={() => setActiveTab('tarjetas-credito')} icon={<Tags className="w-4 h-4" />} label="Tarjetas de Crédito" />}
                 {isMasterTabEnabled('formas-pago') && <TabButton active={activeTab === 'formas-pago'} onClick={() => setActiveTab('formas-pago')} icon={<Tags className="w-4 h-4" />} label="Formas de Pago" />}
@@ -3133,6 +3161,53 @@ export default function SettingsPage() {
                                                 );
                                             })()}
                                             <Input label="Código Equivalente" value={formData.cd_codigo || ''} onChange={(v: string) => setFormData({ ...formData, cd_codigo: v })} required placeholder="Ej. BOG" />
+                                        </>
+                                    ) : activeTab === 'extraccion-interfaces' ? (
+                                        <>
+                                            <div className="space-y-2 group">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Interfaz GDS / Sistema</label>
+                                                <SearchSelect 
+                                                    options={interfacesList} 
+                                                    value={formData.interfaceId} 
+                                                    onChange={(val) => setFormData({ ...formData, interfaceId: val })}
+                                                    labelKey="name"
+                                                    placeholder="Seleccionar Interfaz"
+                                                />
+                                            </div>
+                                            <div className="space-y-2 group">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Seleccionar o Escribir Campo Fijo</label>
+                                                <div className="grid grid-cols-2 gap-2 mb-1">
+                                                    {['Client', 'Seller', 'TicketPrinter', 'Branch', 'Implant', 'CostCenter'].map(code => (
+                                                        <button
+                                                            type="button"
+                                                            key={code}
+                                                            onClick={() => {
+                                                                const nameMap: Record<string, string> = {
+                                                                    Client: 'Cliente',
+                                                                    Seller: 'Vendedor',
+                                                                    TicketPrinter: 'Tiqueteador',
+                                                                    Branch: 'Sucursal',
+                                                                    Implant: 'Implante',
+                                                                    CostCenter: 'Centro de Costo'
+                                                                };
+                                                                setFormData({
+                                                                    ...formData,
+                                                                    fieldCode: code,
+                                                                    fieldName: nameMap[code] || code,
+                                                                    prefix: formData.prefix || (code === 'Client' ? 'RM*NC-' : code === 'Seller' ? 'RM*VE-' : code === 'TicketPrinter' ? 'RM*TK-' : code === 'Branch' ? 'RM*SUC-' : code === 'Implant' ? 'RM*IMP-' : 'RM*CC-')
+                                                                });
+                                                            }}
+                                                            className={`text-xs p-2 rounded-lg border font-bold text-left transition-all ${formData.fieldCode === code ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300' : 'border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:border-zinc-800 text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'}`}
+                                                        >
+                                                            {code === 'Client' ? 'Cliente' : code === 'Seller' ? 'Vendedor' : code === 'TicketPrinter' ? 'Tiqueteador' : code === 'Branch' ? 'Sucursal' : code === 'Implant' ? 'Implante' : 'Centro Costo'}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <Input label="Código del Campo (ID Interno)" value={formData.fieldCode || ''} onChange={(v: string) => setFormData({ ...formData, fieldCode: v })} required placeholder="Ej: Client, Seller, TicketPrinter, Branch, Implant, CostCenter..." />
+                                            <Input label="Nombre Descriptivo del Campo" value={formData.fieldName || ''} onChange={(v: string) => setFormData({ ...formData, fieldName: v })} required placeholder="Ej: Cliente, Vendedor, Tiqueteador, Sucursal, Implante..." />
+                                            <Input label="Prefijo / Constante en Archivo (PNR Remark)" value={formData.prefix || ''} onChange={(v: string) => setFormData({ ...formData, prefix: v })} required placeholder="Ej: RM*NC-, RM*VE-, RM*TK-, RM*SUC-, RM*IMP-, RM*CC-..." />
+                                            <Input label="Delimitador / Separador Final (Opcional)" value={formData.delimiter || ''} onChange={(v: string) => setFormData({ ...formData, delimiter: v })} placeholder="Ej: - o / (por defecto -)" />
                                         </>
                                     ) : activeTab === 'tarjetas-credito' ? (
                                         <>
