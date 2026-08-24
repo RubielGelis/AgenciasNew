@@ -37,12 +37,12 @@ DECLARE
     v_highfare NUMERIC := 0;
     v_lowfare NUMERIC := 0;
     v_fare NUMERIC := 0;
-    v_reasoncode VARCHAR(2);
+    v_reasoncode VARCHAR(10);
     v_pax_cc VARCHAR(20);
     v_lapsoviaje VARCHAR(50);
 
     v_facturador VARCHAR(6);
-    v_aerolinea_vende VARCHAR(2) := 'AV';
+    v_aerolinea_vende VARCHAR(10) := 'AV';
     v_provider_matched VARCHAR(50);
     v_tkt VARCHAR(20);
     
@@ -155,9 +155,12 @@ BEGIN
         -- A- Aerolínea Vendedora (Ej: A-LATAM AIRLINES COLOMBIA;4C)
         ELSIF starts_with(v_line, 'A-') THEN
             IF position(';' in v_line) > 0 THEN
-                v_aerolinea_vende := trim(substring(v_line from position(';' in v_line) + 1));
+                v_aerolinea_vende := LEFT(TRIM(split_part(v_line, ';', 2)), 2);
             ELSIF length(v_line) >= 12 THEN
-                v_aerolinea_vende := trim(substring(v_line from 11 for 2));
+                v_aerolinea_vende := LEFT(TRIM(substring(v_line from 11 for 2)), 2);
+            END IF;
+            IF v_aerolinea_vende IS NULL OR v_aerolinea_vende = '' THEN
+                v_aerolinea_vende := 'AV';
             END IF;
             
         -- C- Agentes (Tiqueteador, Facturador, Vendedor)
@@ -174,7 +177,7 @@ BEGIN
                 DECLARE
                     v_origen VARCHAR(3);
                     v_destino VARCHAR(3);
-                    v_aero VARCHAR(2);
+                    v_aero VARCHAR(10);
                     v_vuelo VARCHAR(4);
                     v_clase VARCHAR(1);
                     v_f_str VARCHAR(100);
@@ -587,7 +590,7 @@ BEGIN
                 v_prod_code := COALESCE(v_tkt, 'VUE');
             END IF;
 
-            v_prod_price := ROUND(v_am_total / v_num_prods, 2);
+            v_prod_price := v_am_total;
 
             -- 2. Producto Padre (Vuelo / Tiquete)
             INSERT INTO public."BookingProductGDS" (
@@ -620,11 +623,11 @@ BEGIN
                 );
             END IF;
 
-            -- 5. Detalle Impuestos (Taxes) proporcional para este producto
+            -- 5. Detalle Impuestos (Taxes) completo para este producto
             v_am_impuestos := 0;
             FOR v_i IN 1 .. COALESCE(array_length(v_tax_codes, 1), 0) LOOP
                 IF v_tax_codes[v_i] IS NOT NULL THEN
-                    v_am_impuestos := v_am_impuestos + ROUND(COALESCE(v_tax_vals[v_i], 0) / v_num_prods, 2);
+                    v_am_impuestos := v_am_impuestos + COALESCE(v_tax_vals[v_i], 0);
                 END IF;
             END LOOP;
 
@@ -640,7 +643,7 @@ BEGIN
 
             FOR v_i IN 1 .. COALESCE(array_length(v_tax_codes, 1), 0) LOOP
                 IF v_tax_codes[v_i] IS NOT NULL THEN
-                    v_prod_tax_val := ROUND(COALESCE(v_tax_vals[v_i], 0) / v_num_prods, 2);
+                    v_prod_tax_val := COALESCE(v_tax_vals[v_i], 0);
                     INSERT INTO public."BookingProductTaxGDS" (
                         "bookingProductId", "code", "name", "type", "ismain", "percentage", "amount"
                     ) VALUES (
@@ -652,7 +655,7 @@ BEGIN
             -- 6. Formas de Pago para este producto
             FOR v_i IN 1 .. COALESCE(array_length(v_pay_tipos, 1), 0) LOOP
                 IF v_pay_tipos[v_i] IS NOT NULL THEN
-                    v_prod_pay_val := ROUND(COALESCE(v_pay_montos[v_i], 0) / v_num_prods, 2);
+                    v_prod_pay_val := COALESCE(v_pay_montos[v_i], 0);
                     INSERT INTO public."BookingProductPaymentGDS" (
                         "bookingProductId", "bookingProductFEEId", "code", "name", "type", "typecreditcard", 
                         "numbercreditcard", "vouchercreditcard", "expiredcreditcard", "authcreditcard", "quotas", 
