@@ -11,7 +11,7 @@ export async function GET(request: Request) {
             whereClause = { interfaceId: Number(interfaceIdParam) };
         }
 
-        const list = await prisma.interfaceExtractParam.findMany({
+        const list = await (prisma as any).interfaceExtractParam.findMany({
             where: whereClause,
             include: {
                 Interfaces: {
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: 'La interfaz, código de campo, nombre y prefijo son obligatorios.' }, { status: 400 });
         }
 
-        const newRule = await prisma.interfaceExtractParam.create({
+        const newRule = await (prisma as any).interfaceExtractParam.create({
             data: {
                 interfaceId: Number(interfaceId),
                 fieldCode: fieldCode.trim(),
@@ -64,7 +64,7 @@ export async function PUT(request: Request) {
             return NextResponse.json({ message: 'El ID de la regla es obligatorio.' }, { status: 400 });
         }
 
-        const updatedRule = await prisma.interfaceExtractParam.update({
+        const updatedRule = await (prisma as any).interfaceExtractParam.update({
             where: { id: Number(id) },
             data: {
                 interfaceId: interfaceId ? Number(interfaceId) : undefined,
@@ -93,7 +93,7 @@ export async function DELETE(request: Request) {
             return NextResponse.json({ message: 'El ID es obligatorio para eliminar.' }, { status: 400 });
         }
 
-        await prisma.interfaceExtractParam.delete({
+        await (prisma as any).interfaceExtractParam.delete({
             where: { id: Number(idParam) }
         });
 
