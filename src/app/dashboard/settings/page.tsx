@@ -3204,8 +3204,33 @@ export default function SettingsPage() {
                                                     ))}
                                                 </div>
                                             </div>
-                                            <Input label="Código del Campo (ID Interno)" value={formData.fieldCode || ''} onChange={(v: string) => setFormData({ ...formData, fieldCode: v })} required placeholder="Ej: Client, Seller, TicketPrinter, Branch, Implant, CostCenter..." />
-                                            <Input label="Nombre Descriptivo del Campo" value={formData.fieldName || ''} onChange={(v: string) => setFormData({ ...formData, fieldName: v })} required placeholder="Ej: Cliente, Vendedor, Tiqueteador, Sucursal, Implante..." />
+                                            {variables && variables.length > 0 && (
+                                                <div className="space-y-2 group">
+                                                    <label className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest pl-1">
+                                                        Variables Adicionales del Sistema (MasterVariable)
+                                                    </label>
+                                                    <SearchSelect 
+                                                        options={variables}
+                                                        value={formData.fieldCode}
+                                                        onChange={(val) => {
+                                                            const vItem = variables.find((v: any) => String(v.id) === String(val) || String(v.code) === String(val));
+                                                            if (vItem) {
+                                                                setFormData({
+                                                                    ...formData,
+                                                                    fieldCode: vItem.code || String(vItem.id),
+                                                                    fieldName: vItem.name || vItem.code,
+                                                                    prefix: formData.prefix || `RM*${(vItem.code || 'VAR').toUpperCase()}-`
+                                                                });
+                                                            }
+                                                        }}
+                                                        labelKey="name"
+                                                        secondaryKey="code"
+                                                        placeholder="Seleccionar Variable Adicional (ej. centro de costo)"
+                                                    />
+                                                </div>
+                                            )}
+                                            <Input label="Código del Campo (ID Interno)" value={formData.fieldCode || ''} onChange={(v: string) => setFormData({ ...formData, fieldCode: v })} required placeholder="Ej: Client, Seller, TicketPrinter, Branch, Implant, 001..." />
+                                            <Input label="Nombre Descriptivo del Campo" value={formData.fieldName || ''} onChange={(v: string) => setFormData({ ...formData, fieldName: v })} required placeholder="Ej: Cliente, Vendedor, Tiqueteador, Sucursal, Implante, centro de costo..." />
                                             <Input label="Prefijo / Constante en Archivo (PNR Remark)" value={formData.prefix || ''} onChange={(v: string) => setFormData({ ...formData, prefix: v })} required placeholder="Ej: RM*NC-, RM*VE-, RM*TK-, RM*SUC-, RM*IMP-, RM*CC-..." />
                                             <Input label="Delimitador / Separador Final (Opcional)" value={formData.delimiter || ''} onChange={(v: string) => setFormData({ ...formData, delimiter: v })} placeholder="Ej: - o / (por defecto -)" />
                                         </>

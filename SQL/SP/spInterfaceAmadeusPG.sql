@@ -619,6 +619,41 @@ BEGIN
         END IF;
     END LOOP;
 
+    -- 8. Variables Adicionales Dinámicas (BookingProductVariableGDS)
+    DECLARE
+        r_param RECORD;
+        v_var_value TEXT;
+        v_mv_code TEXT;
+        v_mv_name TEXT;
+    BEGIN
+        FOR r_param IN 
+            SELECT "fieldCode", "fieldName"
+            FROM public."InterfaceExtractParam"
+            WHERE "interfaceId" = 2
+              AND "isActive" = TRUE
+              AND UPPER("fieldCode") NOT IN ('CLIENT', 'SELLER', 'TICKETPRINTER', 'BRANCH', 'IMPLANT')
+        LOOP
+            v_var_value := public."fnInterfaceExtractParamValue"(2, r_param."fieldCode", p_Booking);
+            IF v_var_value IS NOT NULL AND v_var_value <> '' THEN
+                SELECT code, name INTO v_mv_code, v_mv_name
+                FROM public."MasterVariable"
+                WHERE UPPER(code) = UPPER(r_param."fieldCode") OR UPPER(name) = UPPER(r_param."fieldName")
+                LIMIT 1;
+
+                IF v_mv_code IS NULL THEN
+                    v_mv_code := r_param."fieldCode";
+                    v_mv_name := r_param."fieldName";
+                END IF;
+
+                INSERT INTO public."BookingProductVariableGDS" (
+                    "bookingProductId", "code", "name", "value"
+                ) VALUES (
+                    v_booking_product_gds_id, v_mv_code, v_mv_name, v_var_value
+                );
+            END IF;
+        END LOOP;
+    END;
+
     RAISE NOTICE 'Amadeus Booking % successfully parsed and inserted.', v_code;
 
 EXCEPTION WHEN OTHERS THEN

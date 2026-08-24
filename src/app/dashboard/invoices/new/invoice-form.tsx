@@ -423,6 +423,23 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
 
             const summaries = computeItinerarySummaries(itineraryList);
 
+            const importedVariables: { id?: number, masterVariableId: number, value: string }[] = [];
+            if (Array.isArray(bkItem.variables)) {
+                for (const v of bkItem.variables) {
+                    const matchedMaster = data?.variables?.find((mv: any) =>
+                        (mv.id && v.masterVariableId && mv.id == v.masterVariableId) ||
+                        (mv.code && v.code && mv.code.toString().toLowerCase() === v.code.toString().toLowerCase()) ||
+                        (mv.name && v.name && mv.name.toString().toLowerCase() === v.name.toString().toLowerCase())
+                    );
+                    if (matchedMaster && v.value) {
+                        importedVariables.push({
+                            masterVariableId: matchedMaster.id,
+                            value: String(v.value)
+                        });
+                    }
+                }
+            }
+
             return {
                 productId: defaultProduct?.id?.toString() || '',
                 quantity: bkItem.quantity || 1,
@@ -452,7 +469,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                 airline: summaries.airlineItinerary,
                 sellerCommission: 0,
                 ticketPrinterCommission: 0,
-                variables: [],
+                variables: importedVariables,
                 inNationality: calcNationality(),
                 _productName: defaultProduct?.description
             };

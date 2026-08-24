@@ -1,6 +1,15 @@
 DO $$
 BEGIN
 
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'BookingProductVariableGDS') THEN
+        CREATE TABLE public."BookingProductVariableGDS" (
+            "id" integer DEFAULT nextval('"BookingProductVariableGDS_id_seq"'::regclass) NOT NULL,
+            "bookingProductId" integer NOT NULL,
+            "code" text,
+            "name" text,
+            "value" text
+        );
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'BookingGDS') THEN
         CREATE TABLE public."BookingGDS" (
             "id" integer DEFAULT nextval('"BookingGDS_id_seq"'::regclass) NOT NULL,

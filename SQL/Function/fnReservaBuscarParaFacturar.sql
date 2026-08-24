@@ -107,6 +107,19 @@ BEGIN
                             )
                             FROM public."BookingProductItineraryGDS" bpi
                             WHERE bpi."bookingProductId" = bp.id
+                        ), '[]'::jsonb),
+                        'variables', COALESCE((
+                            SELECT jsonb_agg(
+                                jsonb_build_object(
+                                    'masterVariableId', COALESCE(mv.id, 0),
+                                    'code', bpv.code,
+                                    'name', bpv.name,
+                                    'value', bpv.value
+                                )
+                            )
+                            FROM public."BookingProductVariableGDS" bpv
+                            LEFT JOIN public."MasterVariable" mv ON UPPER(mv.code) = UPPER(bpv.code) OR UPPER(mv.name) = UPPER(bpv.name)
+                            WHERE bpv."bookingProductId" = bp.id
                         ), '[]'::jsonb)
                     )
                 )

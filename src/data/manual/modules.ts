@@ -623,18 +623,18 @@ export const MANUAL_MODULES: ManualModule[] = [
                 code: 'MAE-16',
                 masterCode: 'InterfaceExtractParam',
                 name: 'Parámetros de Extracción de Interfaces (PNR/GDS)',
-                summary: 'Configuración dinámica de prefijos y constantes en archivos de interfaz (Amadeus, Sabre, Galileo) para extraer Cliente, Vendedor, Tiqueteador, Sucursal e Implante.',
-                concept: 'Permite definir prefijos constantes como RM*NC-, RM*VE-, RM*TK-, RM*SUC-, RM*IMP- o cualquier campo fijo/personalizado para indicarle al sistema la ubicación exacta de los códigos de facturación en el archivo PNR sin modificar el código fuente.',
+                summary: 'Configuración dinámica de prefijos y constantes en archivos de interfaz (Amadeus, Sabre, Galileo) para extraer Cliente, Vendedor, Tiqueteador, Sucursal, Implante y Variables Adicionales del Sistema (ej. centro de costo, Fecha de Facturación).',
+                concept: 'Permite definir prefijos constantes como RM*NC-, RM*VE-, RM*TK-, RM*SUC-, RM*IMP-, RM*CC- o seleccionar cualquier Variable Adicional (MasterVariable) para indicarle al sistema la ubicación exacta de los datos de facturación en el archivo PNR sin modificar código fuente. Al importar la reserva, las casillas de variables adicionales se marcarán y diligenciarán automáticamente.',
                 fields: [
                     { name: 'Interfaz GDS', type: 'Selección', description: 'Sistema emisor del archivo (Amadeus, Sabre, Galileo, etc.).' },
-                    { name: 'Campo a Extraer', type: 'Texto / Botones', description: 'Client, Seller, TicketPrinter, Branch, Implant, CostCenter o cualquier campo personalizable.' },
-                    { name: 'Prefijo en Archivo', type: 'Texto', description: 'Constante previa al valor deseado (ej. RM*NC- para Cliente o RM*VE- para Vendedor).' },
+                    { name: 'Campo o Variable Adicional', type: 'Selección / Botones', description: 'Campos fijos (Client, Seller, TicketPrinter, Branch, Implant) o cualquier Variable Adicional (ej. centro de costo).' },
+                    { name: 'Prefijo en Archivo', type: 'Texto', description: 'Constante previa al valor deseado (ej. RM*NC- para Cliente, RM*CC- para Centro de Costo).' },
                     { name: 'Delimitador', type: 'Texto', description: 'Caracter separador de fin de campo (ej. - o /).' }
                 ],
                 steps: [
                     { number: 1, title: 'Acceder a Extracción Interfaces', description: 'En /dashboard/settings, haga clic en la pestaña "Extracción Interfaces".' },
-                    { number: 2, title: 'Configurar Regla de Extracción', description: 'Seleccione la interfaz (ej. Amadeus) y defina el prefijo constante en el archivo (ej. RM*NC-).' },
-                    { number: 3, title: 'Guardar y Procesar', description: 'Guarde la regla. El motor SQL de la interfaz extraerá automáticamente el código de facturación correspondiente.' }
+                    { number: 2, title: 'Configurar Regla de Extracción', description: 'Seleccione la interfaz (ej. Amadeus), escoja un campo fijo o una Variable Adicional (ej. centro de costo) y defina su prefijo en el archivo (ej. RM*CC-).' },
+                    { number: 3, title: 'Guardar y Procesar', description: 'Guarde la regla. Al importar reservas GDS en Facturación, las Variables Adicionales se autocompletarán de inmediato.' }
                 ]
             },
             {
