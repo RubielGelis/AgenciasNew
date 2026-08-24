@@ -325,6 +325,45 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                 };
             });
 
+            const COLOMBIAN_AIRPORTS = new Set([
+                'BOG', 'MDE', 'EOH', 'CLO', 'CTG', 'BGA', 'CUC', 'PEI', 'MTR', 'SMR', 
+                'BAQ', 'VUP', 'NVA', 'AYO', 'VVC', 'PSO', 'AXM', 'RCH', 'FLA', 'UIZ', 
+                'MZL', 'ADZ', 'EYP', 'APO', 'IBE', 'GPI', 'TCO', 'PJA', 'PUU', 'NQU', 
+                'PCR', 'RAV', 'SVI', 'TME', 'VGZ', 'AUC', 'OBC', 'IPI', 'CVI', 'CAQ', 
+                'PDA', 'LQM', 'MMP', 'PVP', 'MVP', 'LPD', 'SJH', 'MCJ', 'MQU', 'SNN', 
+                'ORC', 'TBD', 'LCR', 'KGC', 'TLU', 'ULQ', 'ACD', 'PBE', 'BCG', 'MFS', 
+                'SOC', 'RON', 'BSJ', 'HTZ', 'PZA', 'PAL', 'ARQ', 'TRB', 'MHD', 'CPS', 
+                'TQS', 'NOC', 'CUA', 'NKG', 'PACO', 'PVA'
+            ]);
+
+            const calcNationality = (): number => {
+                if (bkItem.inNationality != null) return Number(bkItem.inNationality);
+                if (bkItem.nacionalidad != null) {
+                    const nacStr = bkItem.nacionalidad.toString().toLowerCase();
+                    if (nacStr.includes('internac') || nacStr === '2') return 2;
+                    if (nacStr.includes('nac') || nacStr === '1') return 1;
+                }
+                if (Array.isArray(itineraryList) && itineraryList.length > 0) {
+                    for (const leg of itineraryList) {
+                        const orig = (leg.origin || leg.origen || '').trim().toUpperCase();
+                        const dest = (leg.destination || leg.destino || '').trim().toUpperCase();
+                        if (orig && !COLOMBIAN_AIRPORTS.has(orig)) return 2;
+                        if (dest && !COLOMBIAN_AIRPORTS.has(dest)) return 2;
+                    }
+                    return 1;
+                }
+                const destText = (bkItem.destination || bkItem.destino || '').trim().toUpperCase();
+                if (destText) {
+                    const codes = destText.split(/[\s\/,\-]+/);
+                    for (const code of codes) {
+                        if (code.length === 3 && /^[A-Z]{3}$/.test(code)) {
+                            if (!COLOMBIAN_AIRPORTS.has(code)) return 2;
+                        }
+                    }
+                }
+                return 1;
+            };
+
             return {
                 productId: defaultProduct?.id?.toString() || '',
                 quantity: bkItem.quantity || 1,
@@ -352,7 +391,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                 sellerCommission: 0,
                 ticketPrinterCommission: 0,
                 variables: [],
-                inNationality: 1,
+                inNationality: calcNationality(),
                 _productName: defaultProduct?.description
             };
         });
