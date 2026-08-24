@@ -451,6 +451,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
             }
 
             return {
+                bookingProductId: bkItem.id,
                 productId: defaultProduct?.id?.toString() || '',
                 quantity: bkItem.quantity || 1,
                 price: netBaseFare,

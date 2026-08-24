@@ -48,7 +48,7 @@ model Client {
   address            String?
   mandatoryVariables Json?
   sellerId           Int?
-  Seller             Seller?        @relation(fields: [sellerId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  Seller             Seller?        @relation(fields: [sellerId], references: [id], onUpdate: NoAction)
   preQuotations      PreQuotation[]
   quotations         Quotation[]
 }
@@ -123,9 +123,9 @@ model Seller {
   code          String?        @unique
   name          String
   email         String?
+  clients       Client[]
   preQuotations PreQuotation[]
   quotations    Quotation[]
-  clients       Client[]
 }
 
 model TicketPrinter {
@@ -605,6 +605,7 @@ model BookingProductGDS {
   code                       String                       @db.VarChar(25)
   type                       String?                      @db.VarChar(25)
   service                    String?
+  invoiceId                  Int?
   description                String?
   prestadoracode             String?                      @db.VarChar(25)
   prestadorainitials         String?                      @db.VarChar(25)
@@ -833,7 +834,7 @@ model InterfaceExtractParam {
   createdAt     DateTime?  @default(now()) @db.Timestamp(6)
   Interfaces    Interfaces @relation(fields: [interfaceId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([interfaceId, prefix], map: "InterfaceExtractParam_interfaceId_prefix_key")
+  @@unique([interfaceId, prefix])
 }
 
 model Master {

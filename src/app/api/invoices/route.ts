@@ -25,6 +25,26 @@ export async function POST(req: NextRequest) {
             throw new Error(message || 'Error creating invoice');
         }
 
+        // Marcar los tiquetes de la reserva GDS como FACTURADOS en la BD
+        if (dbInvoiceId && Array.isArray(body.items)) {
+            for (const item of body.items) {
+                const bProdId = item.bookingProductId || (item.isGDS ? item.id : null);
+                if (bProdId && !isNaN(parseInt(bProdId))) {
+                    try {
+                        await prisma.$queryRawUnsafe(
+                            `UPDATE public."BookingProductGDS" 
+                             SET "state" = 'FACTURADO', "invoiceId" = $1 
+                             WHERE id = $2`,
+                            parseInt(dbInvoiceId),
+                            parseInt(bProdId)
+                        );
+                    } catch (e) {
+                        console.error(`Error actualizando estado FACTURADO en BookingProductGDS #${bProdId}:`, e);
+                    }
+                }
+            }
+        }
+
         const invoice = { id: dbInvoiceId };
 
         import('@/lib/logger').then(({ logSystemEvent }) => {

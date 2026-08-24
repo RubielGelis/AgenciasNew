@@ -430,6 +430,10 @@ BEGIN
         v_id_master_branch INTEGER;
         v_id_master_implant INTEGER;
         v_resolved_client TEXT;
+        v_resolved_seller TEXT;
+        v_resolved_tp TEXT;
+        v_resolved_branch TEXT;
+        v_resolved_implant TEXT;
     BEGIN
         SELECT id INTO v_id_master_client FROM public."Master" WHERE UPPER(code) = 'CLIENT' LIMIT 1;
         SELECT id INTO v_id_master_seller FROM public."Master" WHERE UPPER(code) = 'SELLER' LIMIT 1;
@@ -437,46 +441,70 @@ BEGIN
         SELECT id INTO v_id_master_branch FROM public."Master" WHERE UPPER(code) = 'BRANCH' LIMIT 1;
         SELECT id INTO v_id_master_implant FROM public."Master" WHERE UPPER(code) = 'IMPLANT' LIMIT 1;
 
+        -- 1. CLIENT
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Client', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_client := v_dyn_val; END IF;
         IF v_client IS NOT NULL AND v_client <> '' THEN
             IF v_id_master_client IS NOT NULL THEN
                 v_client := public."fnEquivalenceInterface"(2, v_id_master_client, v_client);
             END IF;
-            SELECT document INTO v_resolved_client FROM public."Client" WHERE document = v_client OR CAST(id AS TEXT) = v_client LIMIT 1;
+            SELECT document INTO v_resolved_client FROM public."Client" 
+            WHERE document = v_client OR UPPER(name) ILIKE '%' || UPPER(v_client) || '%' OR CAST(id AS TEXT) = v_client LIMIT 1;
             IF v_resolved_client IS NOT NULL THEN v_client := v_resolved_client; END IF;
         END IF;
 
+        -- 2. SELLER (Comprobar RM*VE- o RM*ASE-)
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Seller', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_seller := v_dyn_val; END IF;
+        IF v_seller IS NULL OR v_seller = '' THEN
+            v_seller := substring(p_Booking from 'RM\*ASE-([A-Za-z0-9]+)');
+        END IF;
         IF v_seller IS NOT NULL AND v_seller <> '' THEN
             IF v_id_master_seller IS NOT NULL THEN
                 v_seller := public."fnEquivalenceInterface"(2, v_id_master_seller, v_seller);
             END IF;
+            SELECT code INTO v_resolved_seller FROM public."Seller" 
+            WHERE UPPER(code) = UPPER(v_seller) OR UPPER(name) ILIKE '%' || UPPER(v_seller) || '%' OR CAST(id AS TEXT) = v_seller LIMIT 1;
+            IF v_resolved_seller IS NOT NULL THEN v_seller := v_resolved_seller; END IF;
         END IF;
 
+        -- 3. TICKETPRINTER
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'TicketPrinter', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_tiquetPrinter := v_dyn_val; END IF;
         IF v_tiquetPrinter IS NOT NULL AND v_tiquetPrinter <> '' THEN
             IF v_id_master_tp IS NOT NULL THEN
                 v_tiquetPrinter := public."fnEquivalenceInterface"(2, v_id_master_tp, v_tiquetPrinter);
             END IF;
+            SELECT code INTO v_resolved_tp FROM public."TicketPrinter" 
+            WHERE UPPER(code) = UPPER(v_tiquetPrinter) OR UPPER(name) ILIKE '%' || UPPER(v_tiquetPrinter) || '%' OR CAST(id AS TEXT) = v_tiquetPrinter LIMIT 1;
+            IF v_resolved_tp IS NOT NULL THEN v_tiquetPrinter := v_resolved_tp; END IF;
         END IF;
 
+        -- 4. BRANCH
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Branch', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_blanch := v_dyn_val; END IF;
         IF v_blanch IS NOT NULL AND v_blanch <> '' THEN
             IF v_id_master_branch IS NOT NULL THEN
                 v_blanch := public."fnEquivalenceInterface"(2, v_id_master_branch, v_blanch);
             END IF;
+            SELECT code INTO v_resolved_branch FROM public."Branch" 
+            WHERE UPPER(code) = UPPER(v_blanch) OR UPPER(name) ILIKE '%' || UPPER(v_blanch) || '%' OR CAST(id AS TEXT) = v_blanch LIMIT 1;
+            IF v_resolved_branch IS NOT NULL THEN v_blanch := v_resolved_branch; END IF;
         END IF;
 
+        -- 5. IMPLANT (RM*IMP-)
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Implant', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_implant := v_dyn_val; END IF;
+        IF v_implant IS NULL OR v_implant = '' THEN
+            v_implant := substring(p_Booking from 'RM\*IMP-([A-Za-z0-9]+)');
+        END IF;
         IF v_implant IS NOT NULL AND v_implant <> '' THEN
             IF v_id_master_implant IS NOT NULL THEN
                 v_implant := public."fnEquivalenceInterface"(2, v_id_master_implant, v_implant);
             END IF;
+            SELECT code INTO v_resolved_implant FROM public."Implant" 
+            WHERE UPPER(code) = UPPER(v_implant) OR UPPER(name) ILIKE '%' || UPPER(v_implant) || '%' OR CAST(id AS TEXT) = v_implant LIMIT 1;
+            IF v_resolved_implant IS NOT NULL THEN v_implant := v_resolved_implant; END IF;
         END IF;
     END;
 
@@ -652,10 +680,10 @@ BEGIN
                 END IF;
             END LOOP;
 
-            -- 6. Formas de Pago para este producto
+            -- 6. Formas de Pago proporcionales por tiquete para que la suma cuadre con el valor del tiquete
             FOR v_i IN 1 .. COALESCE(array_length(v_pay_tipos, 1), 0) LOOP
                 IF v_pay_tipos[v_i] IS NOT NULL THEN
-                    v_prod_pay_val := COALESCE(v_pay_montos[v_i], 0);
+                    v_prod_pay_val := ROUND(COALESCE(v_pay_montos[v_i], 0) / v_num_prods, 2);
                     INSERT INTO public."BookingProductPaymentGDS" (
                         "bookingProductId", "bookingProductFEEId", "code", "name", "type", "typecreditcard", 
                         "numbercreditcard", "vouchercreditcard", "expiredcreditcard", "authcreditcard", "quotas", 

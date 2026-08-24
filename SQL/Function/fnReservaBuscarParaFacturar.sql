@@ -125,16 +125,26 @@ BEGIN
                 )
                 FROM public."BookingProductGDS" bp
                 WHERE bp."bookingId" = b.id
+                  AND COALESCE(bp.state, '') <> 'FACTURADO' 
+                  AND bp."invoiceId" IS NULL
             ), '[]'::jsonb)
         )
     FROM public."BookingGDS" b
     WHERE 
-        (p_client IS NULL OR TRIM(p_client) = '' OR b.client ILIKE '%' || TRIM(p_client) || '%')
+        EXISTS (
+            SELECT 1 FROM public."BookingProductGDS" bp_check 
+            WHERE bp_check."bookingId" = b.id 
+              AND COALESCE(bp_check.state, '') <> 'FACTURADO' 
+              AND bp_check."invoiceId" IS NULL
+        )
+        AND (p_client IS NULL OR TRIM(p_client) = '' OR b.client ILIKE '%' || TRIM(p_client) || '%')
         AND (p_record IS NULL OR TRIM(p_record) = '' OR b.code ILIKE '%' || TRIM(p_record) || '%')
         AND (p_passenger IS NULL OR TRIM(p_passenger) = '' OR EXISTS (
             SELECT 1 FROM public."BookingProductGDS" bp_sub
             INNER JOIN public."BookingProductPassangerGDS" bpp_sub ON bpp_sub."bookingProductId" = bp_sub.id
-            WHERE bp_sub."bookingId" = b.id AND (
+            WHERE bp_sub."bookingId" = b.id 
+              AND COALESCE(bp_sub.state, '') <> 'FACTURADO'
+              AND (
                 (COALESCE(bpp_sub.firstnm, '') || ' ' || COALESCE(bpp_sub.lastnm, '')) ILIKE '%' || TRIM(p_passenger) || '%'
                 OR bpp_sub.identification ILIKE '%' || TRIM(p_passenger) || '%'
             )
@@ -142,11 +152,15 @@ BEGIN
         AND (p_ticket IS NULL OR TRIM(p_ticket) = '' OR EXISTS (
             SELECT 1 FROM public."BookingProductGDS" bp_sub
             INNER JOIN public."BookingProductPassangerGDS" bpp_sub ON bpp_sub."bookingProductId" = bp_sub.id
-            WHERE bp_sub."bookingId" = b.id AND bpp_sub.identification ILIKE '%' || TRIM(p_ticket) || '%'
+            WHERE bp_sub."bookingId" = b.id 
+              AND COALESCE(bp_sub.state, '') <> 'FACTURADO'
+              AND bpp_sub.identification ILIKE '%' || TRIM(p_ticket) || '%'
         ))
         AND (p_airline IS NULL OR TRIM(p_airline) = '' OR EXISTS (
             SELECT 1 FROM public."BookingProductGDS" bp_sub
-            WHERE bp_sub."bookingId" = b.id AND (
+            WHERE bp_sub."bookingId" = b.id 
+              AND COALESCE(bp_sub.state, '') <> 'FACTURADO'
+              AND (
                 bp_sub.prestadoracode ILIKE '%' || TRIM(p_airline) || '%'
                 OR bp_sub.provider ILIKE '%' || TRIM(p_airline) || '%'
             )

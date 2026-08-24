@@ -66,23 +66,57 @@ export default function SearchBookingModal({ isOpen, onClose, onSelectBooking }:
         })
     }
 
-    const calculateBookingTotal = (booking: any) => {
-        let total = 0
-        const items = booking.items || []
-        items.forEach((item: any) => {
-            const itemPrice = Number(item.price || 0) * Number(item.quantity || 1)
-            if (itemPrice > 0) {
-                total += itemPrice
-            } else {
-                let taxSum = 0
-                const taxes = item.appliedTaxes || []
-                taxes.forEach((tax: any) => {
-                    taxSum += Number(tax.amount || 0)
-                })
-                total += taxSum
-            }
+    const [selectedTicketIds, setSelectedTicketIds] = useState<number[]>([])
+
+    // Aplanar tiquetes/productos individuales de todas las reservas
+    const ticketRows: { id: number; booking: any; item: any }[] = []
+    results.forEach((bk: any) => {
+        (bk.items || []).forEach((it: any) => {
+            ticketRows.push({
+                id: it.id,
+                booking: bk,
+                item: it
+            })
         })
-        return total
+    })
+
+    const handleToggleSelectAll = () => {
+        if (selectedTicketIds.length === ticketRows.length) {
+            setSelectedTicketIds([])
+        } else {
+            setSelectedTicketIds(ticketRows.map(r => r.id))
+        }
+    }
+
+    const handleToggleTicket = (id: number) => {
+        if (selectedTicketIds.includes(id)) {
+            setSelectedTicketIds(selectedTicketIds.filter(i => i !== id))
+        } else {
+            setSelectedTicketIds([...selectedTicketIds, id])
+        }
+    }
+
+    const handleImportSelected = (itemsToImport: { booking: any; item: any }[]) => {
+        if (itemsToImport.length === 0) return
+        // Usar la cabecera de la primera reserva y adjuntar los items seleccionados
+        const baseBooking = itemsToImport[0].booking
+        const combinedBooking = {
+            ...baseBooking,
+            items: itemsToImport.map(r => r.item)
+        }
+        onSelectBooking(combinedBooking)
+        onClose()
+    }
+
+    const calculateItemPrice = (item: any) => {
+        const itemPrice = Number(item.price || 0) * Number(item.quantity || 1)
+        if (itemPrice > 0) return itemPrice
+        let taxSum = 0
+        const taxes = item.appliedTaxes || []
+        taxes.forEach((tax: any) => {
+            taxSum += Number(tax.amount || 0)
+        })
+        return taxSum
     }
 
     if (!isOpen) return null
@@ -107,7 +141,7 @@ export default function SearchBookingModal({ isOpen, onClose, onSelectBooking }:
                                     Importar desde Reserva / GDS
                                 </h3>
                                 <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
-                                    Filtra por Cliente, Pasajero, Record (PNR), Tiquete o Aerolínea para cargar automáticamente en la factura
+                                    Selecciona cada tiquete individualmente o varios a la vez para facturar
                                 </p>
                             </div>
                         </div>
@@ -209,41 +243,59 @@ export default function SearchBookingModal({ isOpen, onClose, onSelectBooking }:
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-end gap-3">
-                            <button
-                                type="button"
-                                onClick={handleClear}
-                                className="px-4 py-2.5 text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white transition-colors"
-                            >
-                                Limpiar Filtros
-                            </button>
-                            <button
-                                type="button"
-                                onClick={fetchBookings}
-                                disabled={loading}
-                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 text-xs flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
-                            >
-                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                                Buscar Reservas
-                            </button>
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2">
+                                {selectedTicketIds.length > 0 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const selected = ticketRows.filter(r => selectedTicketIds.includes(r.id))
+                                            handleImportSelected(selected)
+                                        }}
+                                        className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 text-xs flex items-center gap-2 transition-all cursor-pointer"
+                                    >
+                                        <Check className="w-4 h-4" />
+                                        Importar {selectedTicketIds.length} Tiquete(s) Seleccionado(s)
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                                <button
+                                    type="button"
+                                    onClick={handleClear}
+                                    className="px-4 py-2.5 text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-white transition-colors"
+                                >
+                                    Limpiar Filtros
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={fetchBookings}
+                                    disabled={loading}
+                                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 text-xs flex items-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+                                >
+                                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                    Buscar Reservas
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Resultados */}
+                    {/* Resultados por Tiquete */}
                     <div className="flex-1 overflow-y-auto p-6 min-h-[300px]">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center p-16 text-zinc-400">
                                 <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-3" />
-                                <p className="text-sm font-medium">Buscando reservas que coincidan con los filtros...</p>
+                                <p className="text-sm font-medium">Buscando tiquetes disponibles para facturar...</p>
                             </div>
-                        ) : results.length === 0 ? (
+                        ) : ticketRows.length === 0 ? (
                             <div className="flex flex-col items-center justify-center p-16 text-zinc-400 text-center">
                                 <FileText className="w-12 h-12 mb-3 text-zinc-300 dark:text-zinc-700" />
                                 <p className="text-base font-bold text-zinc-700 dark:text-zinc-300 mb-1">
-                                    No se encontraron reservas
+                                    No se encontraron tiquetes pendientes por facturar
                                 </p>
                                 <p className="text-xs text-zinc-400 max-w-sm">
-                                    Asegúrate de haber corrido la interfaz Amadeus/Sabre o ajusta los criterios de búsqueda.
+                                    Todos los tiquetes de las reservas buscadas ya han sido facturados o no existen en el sistema.
                                 </p>
                             </div>
                         ) : (
@@ -251,42 +303,44 @@ export default function SearchBookingModal({ isOpen, onClose, onSelectBooking }:
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="border-b border-zinc-200 dark:border-zinc-800 text-[11px] font-black text-zinc-400 uppercase tracking-wider">
+                                            <th className="py-3 px-3 text-center">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                    checked={selectedTicketIds.length > 0 && selectedTicketIds.length === ticketRows.length}
+                                                    onChange={handleToggleSelectAll}
+                                                />
+                                            </th>
                                             <th className="py-3 px-4">RECORD (PNR)</th>
                                             <th className="py-3 px-4">CLIENTE / VENDEDOR</th>
-                                            <th className="py-3 px-4">PASAJEROS</th>
-                                            <th className="py-3 px-4">TIQUETES / AEROLÍNEA</th>
-                                            <th className="py-3 px-4 text-right">VALOR TOTAL</th>
+                                            <th className="py-3 px-4">PASAJERO</th>
+                                            <th className="py-3 px-4">TIQUETE / AEROLÍNEA</th>
+                                            <th className="py-3 px-4 text-right">VALOR TIQUETE</th>
                                             <th className="py-3 px-4 text-center">ACCIÓN</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800 text-sm">
-                                        {results.map((bk: any) => {
-                                            const items = bk.items || []
-                                            const passengersList: string[] = []
-                                            const ticketsList: string[] = []
-                                            const airlinesList: string[] = []
-
-                                            items.forEach((it: any) => {
-                                                if (it.prestadoracode && !airlinesList.includes(it.prestadoracode)) {
-                                                    airlinesList.push(it.prestadoracode)
-                                                }
-                                                if (it.ticketCode && !ticketsList.includes(it.ticketCode)) {
-                                                    ticketsList.push(it.ticketCode)
-                                                }
-                                                (it.passengers || []).forEach((px: any) => {
-                                                    if (px.name && !passengersList.includes(px.name)) {
-                                                        passengersList.push(px.name)
-                                                    }
-                                                })
-                                            })
-
-                                            const totalEstimated = calculateBookingTotal(bk)
+                                        {ticketRows.map(({ id, booking: bk, item }) => {
+                                            const isSelected = selectedTicketIds.includes(id)
+                                            const paxList = (item.passengers || []).map((p: any) => p.name).filter(Boolean)
+                                            const ticketVal = calculateItemPrice(item)
+                                            const ticketCode = item.code || item.ticketCode || 'VUE'
+                                            const airline = item.prestadoracode || bk.prestadoracode || ''
 
                                             return (
                                                 <tr
-                                                    key={bk.id}
-                                                    className="hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-colors group"
+                                                    key={id}
+                                                    className={`transition-colors group ${isSelected ? 'bg-blue-50/70 dark:bg-blue-900/20' : 'hover:bg-blue-50/30 dark:hover:bg-blue-900/10'}`}
                                                 >
+                                                    <td className="py-4 px-3 text-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                            checked={isSelected}
+                                                            onChange={() => handleToggleTicket(id)}
+                                                        />
+                                                    </td>
+
                                                     <td className="py-4 px-4">
                                                         <div className="font-black text-blue-600 dark:text-blue-400 font-mono text-base">
                                                             {bk.code}
@@ -307,38 +361,32 @@ export default function SearchBookingModal({ isOpen, onClose, onSelectBooking }:
                                                     </td>
 
                                                     <td className="py-4 px-4">
-                                                        {passengersList.length > 0 ? (
-                                                            <div className="space-y-0.5">
-                                                                {passengersList.map((pxName, idx) => (
-                                                                    <div key={idx} className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
-                                                                        <User className="w-3.5 h-3.5 text-zinc-400" />
-                                                                        {pxName}
-                                                                    </div>
-                                                                ))}
+                                                        {paxList.length > 0 ? (
+                                                            <div className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                                                                <User className="w-3.5 h-3.5 text-zinc-400" />
+                                                                {paxList.join(', ')}
                                                             </div>
                                                         ) : (
-                                                            <span className="text-xs text-zinc-400 italic">Sin pasajeros</span>
+                                                            <span className="text-xs text-zinc-400 italic">Pasajero General</span>
                                                         )}
                                                     </td>
 
                                                     <td className="py-4 px-4">
                                                         <div className="flex flex-wrap gap-1.5 items-center">
-                                                            {airlinesList.map((air, idx) => (
-                                                                <span key={idx} className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-md text-xs font-bold font-mono">
-                                                                    {air}
+                                                            {airline && (
+                                                                <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-md text-xs font-bold font-mono">
+                                                                    {airline}
                                                                 </span>
-                                                            ))}
-                                                            {ticketsList.map((tkt, idx) => (
-                                                                <span key={idx} className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-mono font-medium">
-                                                                    Tkt: {tkt}
-                                                                </span>
-                                                            ))}
+                                                            )}
+                                                            <span className="px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-mono font-medium">
+                                                                Tkt: {ticketCode}
+                                                            </span>
                                                         </div>
                                                     </td>
 
                                                     <td className="py-4 px-4 text-right">
                                                         <div className="font-black text-emerald-600 dark:text-emerald-400 text-base font-mono">
-                                                            ${totalEstimated.toLocaleString('es-CO')}
+                                                            ${ticketVal.toLocaleString('es-CO')}
                                                         </div>
                                                         <div className="text-[11px] text-zinc-400 font-bold uppercase">
                                                             {bk.currency || 'COP'}
@@ -348,10 +396,7 @@ export default function SearchBookingModal({ isOpen, onClose, onSelectBooking }:
                                                     <td className="py-4 px-4 text-center">
                                                         <button
                                                             type="button"
-                                                            onClick={() => {
-                                                                onSelectBooking(bk)
-                                                                onClose()
-                                                            }}
+                                                            onClick={() => handleImportSelected([{ booking: bk, item }])}
                                                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md shadow-blue-500/20 transition-all cursor-pointer mx-auto"
                                                         >
                                                             Importar <ArrowRight className="w-3.5 h-3.5" />

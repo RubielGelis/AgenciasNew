@@ -1027,6 +1027,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'description') THEN
         ALTER TABLE public."BookingProductGDS" ADD COLUMN "description" text;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'invoiceId') THEN
+        ALTER TABLE public."BookingProductGDS" ADD COLUMN "invoiceId" integer;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductGDS' AND column_name = 'prestadoracode') THEN
         ALTER TABLE public."BookingProductGDS" ADD COLUMN "prestadoracode" character varying(25);
     END IF;
