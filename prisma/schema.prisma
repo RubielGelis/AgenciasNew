@@ -818,17 +818,17 @@ model Interfaces {
 }
 
 model InterfaceExtractParam {
-  id            Int        @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   interfaceId   Int
-  fieldCode     String     @db.VarChar(50)
-  fieldName     String     @db.VarChar(100)
-  prefix        String     @db.VarChar(100)
-  delimiter     String?    @db.VarChar(20)
-  startPosition Int?       @default(0)
-  length        Int?       @default(0)
-  isActive      Boolean    @default(true)
-  createdAt     DateTime?  @default(now()) @db.Timestamp(6)
-  Interfaces    Interfaces @relation(fields: [interfaceId], references: [id], onDelete: Cascade)
+  fieldCode     String      @db.VarChar(50)
+  fieldName     String      @db.VarChar(100)
+  prefix        String      @db.VarChar(100)
+  delimiter     String?     @default("-") @db.VarChar(20)
+  startPosition Int?        @default(0)
+  length        Int?        @default(0)
+  isActive      Boolean     @default(true)
+  createdAt     DateTime?   @default(now()) @db.Timestamp(6)
+  Interfaces    Interfaces? @relation(fields: [interfaceId], references: [id])
 }
 
 model Master {
