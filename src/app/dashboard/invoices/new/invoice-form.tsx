@@ -382,19 +382,26 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
             }
 
             const importedPayments = (bkItem.payments || []).map((pay: any) => {
+                const isCreditCard = (pay.code || '').toUpperCase().startsWith('CC') || 
+                                     (pay.code || '').toUpperCase().startsWith('FPCC') || 
+                                     (pay.code || '').toUpperCase() === 'TC' ||
+                                     Boolean(pay.numbercreditcard || pay.cardNumber);
+
                 const matchedPayMethod = data?.payments?.find((pm: any) => 
                     pm.code?.toUpperCase() === pay.code?.toUpperCase() ||
-                    pm.name?.toLowerCase()?.includes(pay.name?.toLowerCase())
-                ) || data?.payments?.[0];
+                    (isCreditCard && (pm.code?.toUpperCase() === 'TC' || pm.code?.toUpperCase() === 'CC' || pm.name?.toLowerCase().includes('tarjeta'))) ||
+                    (pay.name && pm.name?.toLowerCase()?.includes(pay.name?.toLowerCase()))
+                ) || (isCreditCard ? (data?.payments?.find((pm: any) => pm.name?.toLowerCase().includes('tarjeta')) || { name: 'Tarjeta de Crédito', code: 'CC' }) : data?.payments?.[0]);
 
                 return {
                     amount: Number(pay.amount || 0),
-                    paymentMethod: matchedPayMethod?.code || 'CA',
+                    paymentMethod: matchedPayMethod?.name || (isCreditCard ? 'Tarjeta de Crédito' : 'Efectivo'),
                     date: format(new Date(), 'yyyy-MM-dd'),
                     reference: pay.numbercreditcard || pay.authcreditcard || pay.vouchercreditcard || '',
-                    authorizationCode: pay.authcreditcard || '',
-                    voucher: pay.vouchercreditcard || '',
-                    cardNumber: pay.numbercreditcard || ''
+                    authorizationCode: pay.authcreditcard || pay.authorizationCode || '',
+                    voucher: pay.vouchercreditcard || pay.voucher || '',
+                    cardNumber: pay.numbercreditcard || pay.cardNumber || '',
+                    expirationDate: pay.expiredcreditcard || pay.expirationDate || ''
                 };
             });
 

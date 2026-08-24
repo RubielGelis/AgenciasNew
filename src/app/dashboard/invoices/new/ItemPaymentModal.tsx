@@ -149,7 +149,7 @@ export default function ItemPaymentModal({ isOpen, onClose, productName, itemTot
                                         <Trash2 className="w-4 h-4" />
                                     </button>
                                 </div>
-                                {(payment.paymentMethod === 'Tarjeta de Credito' || paymentsList?.find(p => p.name === payment.paymentMethod)?.iscredit) && (
+                                {(payment.paymentMethod === 'Tarjeta de Credito' || payment.paymentMethod === 'Tarjeta de Crédito' || payment.paymentMethod?.toLowerCase().includes('tarjeta') || Boolean(payment.cardNumber) || paymentsList?.find(p => p.name === payment.paymentMethod)?.iscredit) && (
                                     <div className="flex gap-3 bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-lg border border-blue-100 dark:border-blue-800/30">
                                         <div className="space-y-1 flex-1">
                                             <label className="text-[10px] uppercase font-bold text-zinc-500">Tipo TC</label>

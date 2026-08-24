@@ -380,18 +380,35 @@ BEGIN
                 END;
             END IF;
 
-        -- FP - FORMAS DE PAGO
+        -- FP - FORMAS DE PAGO (Ej: FPCCVI0000000000007023E01/0528/A076194;S3;P1-2)
         ELSIF starts_with(v_line, 'FP') THEN
             DECLARE
                 v_fp_clean TEXT;
                 v_fp_tipo TEXT := 'CA';
                 v_fp_monto NUMERIC := 0;
+                v_fp_card_number TEXT := '';
+                v_fp_exp TEXT := '__/__';
+                v_fp_auth TEXT := '';
+                v_already_exists BOOLEAN := false;
             BEGIN
                 v_fp_clean := regexp_replace(v_line, '^FP-?', '');
                 IF v_fp_clean LIKE 'CASH%' OR v_fp_clean LIKE 'CA%' THEN
                     v_fp_tipo := 'CA';
                 ELSIF v_fp_clean LIKE 'CC%' OR v_fp_clean LIKE 'TC%' THEN
                     v_fp_tipo := 'CC';
+                    v_fp_card_number := substring(v_line from 'FPCC([A-Za-z0-9]+?)(?:E[0-9]{2}|/|\s|;|$)');
+                    IF v_fp_card_number IS NULL OR v_fp_card_number = '' THEN
+                        v_fp_card_number := substring(v_fp_clean from 'CC([A-Za-z0-9]+?)(?:E[0-9]{2}|/|\s|;|$)');
+                    END IF;
+                    IF v_fp_card_number IS NULL OR v_fp_card_number = '' THEN
+                        v_fp_card_number := substring(v_fp_clean from '([0-9]{13,16})');
+                    END IF;
+
+                    v_fp_exp := substring(v_line from '/([0-9]{4})/');
+                    IF v_fp_exp IS NULL OR v_fp_exp = '' THEN v_fp_exp := '__/__'; END IF;
+
+                    v_fp_auth := substring(v_line from '/([A-Z0-9]+)(?:;|\s|$)');
+                    IF v_fp_auth IS NULL THEN v_fp_auth := ''; END IF;
                 END IF;
 
                 IF v_fp_clean LIKE '%COP%' OR v_fp_clean LIKE '%USD%' THEN
@@ -402,12 +419,22 @@ BEGIN
                     v_fp_monto := COALESCE(v_am_total, 0);
                 END IF;
 
-                v_pay_tipos := array_append(v_pay_tipos, v_fp_tipo);
-                v_pay_tarjetas := array_append(v_pay_tarjetas, '');
-                v_pay_montos := array_append(v_pay_montos, v_fp_monto);
-                v_pay_numbers := array_append(v_pay_numbers, '');
-                v_pay_expiries := array_append(v_pay_expiries, '__/__');
-                v_pay_approvals := array_append(v_pay_approvals, '');
+                -- Prevenir duplicar la misma forma de pago registrada en múltiples líneas del archivo
+                FOR v_i IN 1 .. COALESCE(array_length(v_pay_tipos, 1), 0) LOOP
+                    IF v_pay_tipos[v_i] = v_fp_tipo AND COALESCE(v_pay_numbers[v_i], '') = COALESCE(v_fp_card_number, '') THEN
+                        v_already_exists := true;
+                        EXIT;
+                    END IF;
+                END LOOP;
+
+                IF NOT v_already_exists THEN
+                    v_pay_tipos := array_append(v_pay_tipos, v_fp_tipo);
+                    v_pay_tarjetas := array_append(v_pay_tarjetas, '');
+                    v_pay_montos := array_append(v_pay_montos, v_fp_monto);
+                    v_pay_numbers := array_append(v_pay_numbers, COALESCE(v_fp_card_number, ''));
+                    v_pay_expiries := array_append(v_pay_expiries, v_fp_exp);
+                    v_pay_approvals := array_append(v_pay_approvals, COALESCE(v_fp_auth, ''));
+                END IF;
             END;
 
         -- OTROS REMARKS
