@@ -511,13 +511,7 @@ BEGIN
     END IF;
 
     IF v_booking_gds_id IS NOT NULL THEN
-        -- Si el contenido de la reserva/tiquete ya existe y no presenta cambios, omitir inserción duplicada
-        IF TRIM(REGEXP_REPLACE(COALESCE(v_existing_booking, ''), '\s+', ' ', 'g')) = TRIM(REGEXP_REPLACE(COALESCE(p_Booking, ''), '\s+', ' ', 'g')) THEN
-            RAISE NOTICE 'Reserva/Tiquete % ya existe sin cambios. Se omite la generación de nueva reserva.', COALESCE(v_code, v_tkt);
-            RETURN;
-        END IF;
-
-        -- Si hay cambios, sobrescribir la reserva y sus detalles
+        -- Sobrescribir la reserva y reemplazar sus detalles
         UPDATE public."BookingGDS" SET
             "type" = COALESCE(v_type, 'RES'), 
             "blanch" = v_blanch, 
