@@ -453,11 +453,14 @@ BEGIN
             IF v_resolved_client IS NOT NULL THEN v_client := v_resolved_client; END IF;
         END IF;
 
-        -- 2. SELLER (Comprobar RM*VE- o RM*ASE-)
+        -- 2. SELLER (Comprobar RM*VEN- o RM*VE-)
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Seller', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_seller := v_dyn_val; END IF;
         IF v_seller IS NULL OR v_seller = '' THEN
-            v_seller := substring(p_Booking from 'RM\*ASE-([A-Za-z0-9]+)');
+            v_seller := substring(p_Booking from 'RM\*VEN-([A-Za-z0-9]+)');
+            IF v_seller IS NULL OR v_seller = '' THEN
+                v_seller := substring(p_Booking from 'RM\*VE-([A-Za-z0-9]+)');
+            END IF;
         END IF;
         IF v_seller IS NOT NULL AND v_seller <> '' THEN
             IF v_id_master_seller IS NOT NULL THEN
@@ -468,9 +471,15 @@ BEGIN
             IF v_resolved_seller IS NOT NULL THEN v_seller := v_resolved_seller; END IF;
         END IF;
 
-        -- 3. TICKETPRINTER
+        -- 3. TICKETPRINTER (Comprobar RM*TK- o RM*ASE-)
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'TicketPrinter', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_tiquetPrinter := v_dyn_val; END IF;
+        IF v_tiquetPrinter IS NULL OR v_tiquetPrinter = '' THEN
+            v_tiquetPrinter := substring(p_Booking from 'RM\*ASE-([A-Za-z0-9]+)');
+            IF v_tiquetPrinter IS NULL OR v_tiquetPrinter = '' THEN
+                v_tiquetPrinter := substring(p_Booking from 'RM\*TK-([A-Za-z0-9]+)');
+            END IF;
+        END IF;
         IF v_tiquetPrinter IS NOT NULL AND v_tiquetPrinter <> '' THEN
             IF v_id_master_tp IS NOT NULL THEN
                 v_tiquetPrinter := public."fnEquivalenceInterface"(2, v_id_master_tp, v_tiquetPrinter);

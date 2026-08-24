@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
             (prisma as any).provider?.findMany({ include: { prestadoras: true } }) || Promise.resolve([]),
             (prisma as any).prestadora?.findMany() || Promise.resolve([]),
             (prisma as any).branch?.findMany() || Promise.resolve([]),
-            (prisma as any).implant?.findMany({ select: { id: true, name: true, branchId: true } }) || Promise.resolve([]),
+            (prisma as any).implant?.findMany({ select: { id: true, code: true, name: true, branchId: true } }) || Promise.resolve([]),
             (prisma as any).product?.findMany() || Promise.resolve([]),
             (prisma as any).chargeAndTax?.findMany() || Promise.resolve([]),
             (prisma as any).seller?.findMany() || Promise.resolve([]),

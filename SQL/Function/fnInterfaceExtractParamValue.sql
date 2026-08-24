@@ -36,8 +36,7 @@ BEGIN
         IF UPPER(TRIM(p_field_code)) = 'CLIENT' THEN
             v_prefix := 'RM*NC-';
         ELSIF UPPER(TRIM(p_field_code)) = 'SELLER' THEN
-            -- Probar primero RM*VE- y si no existe en la linea, RM*ASE-
-            v_prefix := 'RM*VE-';
+            v_prefix := 'RM*VEN-';
         ELSIF UPPER(TRIM(p_field_code)) = 'TICKETPRINTER' THEN
             v_prefix := 'RM*TK-';
         ELSIF UPPER(TRIM(p_field_code)) = 'BRANCH' THEN
@@ -63,10 +62,12 @@ BEGIN
 
         v_pos := POSITION(v_prefix IN v_line);
         IF v_pos = 0 AND UPPER(TRIM(p_field_code)) = 'SELLER' THEN
+            v_pos := POSITION('RM*VE-' IN v_line);
+            IF v_pos > 0 THEN v_prefix := 'RM*VE-'; END IF;
+        END IF;
+        IF v_pos = 0 AND UPPER(TRIM(p_field_code)) = 'TICKETPRINTER' THEN
             v_pos := POSITION('RM*ASE-' IN v_line);
-            IF v_pos > 0 THEN
-                v_prefix := 'RM*ASE-';
-            END IF;
+            IF v_pos > 0 THEN v_prefix := 'RM*ASE-'; END IF;
         END IF;
         IF v_pos > 0 THEN
             v_extracted := SUBSTRING(v_line FROM v_pos + CHAR_LENGTH(v_prefix));

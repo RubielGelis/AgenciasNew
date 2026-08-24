@@ -171,10 +171,16 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
             const searchSeller = booking.seller.toString().trim().toLowerCase();
             const foundSeller = data?.sellers?.find((s: any) => 
                 s.id?.toString() === booking.seller?.toString() ||
-                s.code?.toString().toLowerCase() === searchSeller ||
+                s.code?.toString().trim().toLowerCase() === searchSeller ||
                 s.name?.toLowerCase()?.includes(searchSeller)
             );
             if (foundSeller) matchedSellerId = foundSeller.id.toString();
+        }
+        if (!matchedSellerId && matchedClientId) {
+            const foundClient = data?.clients?.find((c: any) => c.id?.toString() === matchedClientId);
+            if (foundClient?.sellerId) {
+                matchedSellerId = foundClient.sellerId.toString();
+            }
         }
 
         // 3. Matchear Tiqueteador
@@ -183,7 +189,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
             const searchTP = booking.tiquetPrinter.toString().trim().toLowerCase();
             const foundTP = data?.ticketPrinters?.find((tp: any) => 
                 tp.id?.toString() === booking.tiquetPrinter?.toString() ||
-                tp.code?.toString().toLowerCase() === searchTP ||
+                tp.code?.toString().trim().toLowerCase() === searchTP ||
                 tp.name?.toLowerCase()?.includes(searchTP)
             );
             if (foundTP) matchedTicketPrinterId = foundTP.id.toString();
@@ -195,7 +201,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
             const searchBranch = booking.blanch.toString().trim().toLowerCase();
             const foundBranch = data?.branches?.find((b: any) => 
                 b.id?.toString() === booking.blanch?.toString() ||
-                b.code?.toString().toLowerCase() === searchBranch ||
+                b.code?.toString().trim().toLowerCase() === searchBranch ||
                 b.name?.toLowerCase()?.includes(searchBranch)
             );
             if (foundBranch) matchedBranchId = foundBranch.id.toString();
@@ -206,7 +212,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
             const searchImplant = booking.implant.toString().trim().toLowerCase();
             const foundImplant = data?.implants?.find((imp: any) => 
                 imp.id?.toString() === booking.implant?.toString() ||
-                imp.code?.toString().toLowerCase() === searchImplant ||
+                imp.code?.toString().trim().toLowerCase() === searchImplant ||
                 imp.name?.toLowerCase()?.includes(searchImplant)
             );
             if (foundImplant) matchedImplantId = foundImplant.id.toString();

@@ -605,7 +605,6 @@ model BookingProductGDS {
   code                       String                       @db.VarChar(25)
   type                       String?                      @db.VarChar(25)
   service                    String?
-  invoiceId                  Int?
   description                String?
   prestadoracode             String?                      @db.VarChar(25)
   prestadorainitials         String?                      @db.VarChar(25)
@@ -632,6 +631,7 @@ model BookingProductGDS {
   typeproduct                String?                      @db.VarChar(25)
   consecutive                String?                      @db.VarChar(25)
   penalty                    String?                      @db.VarChar(25)
+  invoiceId                  Int?
   BookingProductFEEGDS       BookingProductFEEGDS[]
   BookingGDS                 BookingGDS                   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   BookingProductItineraryGDS BookingProductItineraryGDS[]
