@@ -268,27 +268,28 @@ export const MANUAL_MODULES: ManualModule[] = [
                 summary: 'Búsqueda multiterminal y precarga automática de facturas a partir de reservas procesadas por la interfaz Amadeus/Sabre.',
                 concept: 'Permite buscar reservas en base de datos combinando 5 filtros (Cliente, Pasajero, Record/PNR, Tiquete, Aerolínea) y precargar automáticamente la factura desglosando la Tarifa Base neta ($1.953.300) y los cargos/impuestos leídos (IVA, Tasas Aer y Otros), asignando el producto configurado por parámetro, el proveedor aerolínea por sigla, el itinerario editable y calculando Fecha Inicial y Fecha Final.',
                 fields: [
-                    { name: 'Cargar desde Reserva / GDS', type: 'Botonera', description: 'Abre el modal de búsqueda multiterminal de reservas GDS.' },
-                    { name: 'Filtro Cliente / PNR / Tiquete', type: 'Texto', description: 'Filtra las reservas por código PNR, cliente, tiquete o aerolínea.' },
-                    { name: 'Desglose Tarifa e Impuestos', type: 'Cálculo Automático', description: 'Calcula la Tarifa Base neta como precio base e inserta IVA, Tasas (TUA) y Otros (OTR) con sus montos leídos.' },
+                    { name: 'Cargar desde Reserva / GDS', type: 'Botonera', description: 'Abre el modal de búsqueda multiterminal de reservas GDS por tiquete individual.' },
+                    { name: 'Filtro Cliente / PNR / Tiquete', type: 'Texto', description: 'Filtra los tiquetes por código PNR, cliente, tiquete o aerolínea.' },
+                    { name: 'Selección Múltiple de Tiquetes', type: 'Casilla de Selección', description: 'Permite seleccionar uno o varios tiquetes individuales para facturarlos en lote.' },
+                    { name: 'Desglose Tarifa e Impuestos', type: 'Cálculo Automático', description: 'Calcula la Tarifa Base neta como precio base e inserta IVA, Tasas (TUA) y Otros (OTR) con sus montos leídos por tiquete.' },
                     { name: 'Fecha Inicial / Fecha Final', type: 'Fecha', description: 'Fechas del primer y último tramo del itinerario de vuelo.' },
                     { name: 'Itinerario de Vuelo', type: 'Tabla Editable', description: 'Detalle de tramos aéreos (Origen, Destino, Aerolínea, Clase, Vuelo, Fechas, Farebasis).' }
                 ],
                 steps: [
                     {
                         number: 1,
-                        title: 'Abrir Búsqueda de Reservas',
+                        title: 'Abrir Búsqueda de Reservas / Tiquetes',
                         description: 'En la pantalla de Facturación Nueva (/dashboard/invoices/new), presione el botón "Cargar desde Reserva / GDS".'
                     },
                     {
                         number: 2,
-                        title: 'Aplicar Filtros Combinados',
-                        description: 'Ingrese los criterios de búsqueda (Cliente, Pasajero, PNR, Tiquete o Aerolínea) y presione "Buscar Reservas".'
+                        title: 'Aplicar Filtros Combinados y Selección',
+                        description: 'Ingrese los criterios de búsqueda (Cliente, Pasajero, PNR, Tiquete o Aerolínea) y presione "Buscar Reservas". Marque las casillas de los tiquetes que desea facturar.'
                     },
                     {
                         number: 3,
-                        title: 'Importar y Editar Factura',
-                        description: 'En los resultados, presione "Importar". Se desglosarán la Tarifa Base neta, los impuestos marcados (IVA, Tasas, Otros), el proveedor asignado por sigla, el itinerario editable y las fechas inicial/final. Ajuste cualquier campo y presione "Guardar".'
+                        title: 'Importar y Marcar como Vendido',
+                        description: 'Presione "Importar Tiquetes Seleccionados". Al guardar la factura, la base de datos marcará automáticamente dichos tiquetes como FACTURADOS e indicará el ID de factura generado, excluyéndolos de futuras búsquedas.'
                     }
                 ]
             },
