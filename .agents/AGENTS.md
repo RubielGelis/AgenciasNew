@@ -18,6 +18,11 @@ Este documento contiene las directrices, estándares y reglas del proyecto para 
 - **Tratamiento de XML**: 
   - Al generar el XML de exportación en `spExportQuotation`, los nombres de las etiquetas deben ser coherentes (minúsculas).
   - Al agregar tablas secundarias como detalles, verificar la FK correcta usando el ID de referencia del producto/servicio (`orig_id_ref`) y no el ID de la cotización.
+- **Regla General de Integridad Relacional y Consultas API (Foreign Keys & Prisma)**:
+  - **Fórmula de Prevención General**: Para evitar de forma generalizada errores de ORM (`Unknown field 'Model' for include statement`) y fallos de compilación TypeScript (`Type '{ Model: ... }' is not assignable to type 'never'`):
+    1. **FK Obligatoria en PostgreSQL**: Toda tabla con columnas de relación DEBE definir la restricción `CONSTRAINT "Tabla_columna_fkey" FOREIGN KEY ("columnaId") REFERENCES public."TablaRelacionada"("id")` en `SQL/Table/Alter_New_Columns.sql`.
+    2. **Relación Bidireccional en Prisma**: `prisma/schema.prisma` DEBE definir la relación `@relation` en el modelo hijo y el array/propiedad inversa en el modelo padre. Tras cualquier cambio, ejecutar siempre `npx prisma generate`.
+    3. **Patrón de Consulta Seguro en API Routes**: Las API Routes con datos relacionales DEBEN preferir `$queryRawUnsafe` con **`LEFT JOIN`** y `jsonb_build_object('id', r.id, 'code', r.code, 'name', r.name) as "Entidad"` sobre `include` dinámico, previniendo excepciones runtime de campos no encontrados.
 - **Flujo Obligatorio al modificar Funciones SQL / SPs**:
   1. Ejecutar validador y generador de esquema: `node deploy/gen_schema_json.js` (Ejecuta la validación de 4 capas de `updater-verification`).
   2. Consultar al usuario en español si desea generar el instalador y actualizador automáticamente o si prefiere realizarlo manualmente (Skill [`installer-decision`](file:///f:/Proyectos/AgenciasNew/.agents/skills/installer-decision/SKILL.md)).
