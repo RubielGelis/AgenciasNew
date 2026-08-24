@@ -66,8 +66,8 @@ Si el servidor corre en segundo plano y el puerto `3001` está ocupado, podemos 
 4. **Estado Inicial del Formulario (`handleOpenModal`)**: Definir la estructura por defecto de `setFormData({ ... })` al presionar `+ Nuevo...`.
 5. **Resolución de Endpoint de Guardado (`handleSubmit`)**: Mapear `activeTab === '...' ? '/api/endpoint' :` en la variable `endpoint`.
 6. **Resolución de Endpoint de Eliminación (`handleDelete`)**: Mapear `activeTab === '...' ? '/api/endpoint' :` en la variable `endpoint`.
-7. **Título del Encabezado Modal (`formData.id ? 'Editar' : 'Nuevo'`)**: Incluir la etiqueta de texto visible (ej. `activeTab === 'tipos-proveedores' ? 'Tipo de Proveedor' :`).
-8. **Texto del Botón Principal (`+ Nuevo...`)**: Incluir el texto del botón (ej. `activeTab === 'tipos-proveedores' ? 'Nuevo Tipo de Proveedor' :`).
-9. **Placeholder de Búsqueda (`Buscar en...`)**: Incluir el nombre del maestro en el placeholder.
+7. **Título del Encabezado Modal (`formData.id ? 'Editar' : 'Nuevo'`)**: Incluir explícitamente la etiqueta de texto visible (ej. `activeTab === 'extraccion-interfaces' ? 'Parámetro de Extracción' :`). *Si falta, fallará a 'Implant'*.
+8. **Texto del Botón Principal (`+ Nuevo...`)**: Incluir explícitamente el texto del botón (ej. `activeTab === 'extraccion-interfaces' ? 'Nuevo Parámetro' :`). *Si falta, la barra superior mostrará '+ Nuevo Implant'*.
+9. **Placeholder de Búsqueda (`Buscar en...`)**: Incluir la etiqueta descriptiva en el placeholder de búsqueda (ej. `activeTab === 'extraccion-interfaces' ? 'Extracción Interfaces' :`). *Si falta, mostrará 'Buscar en Implants...'*.
 10. **Renderizado de Filas y Modal**: Verificar los campos `<th />`, `<td />` y las cajas de texto dentro del modal.
 
