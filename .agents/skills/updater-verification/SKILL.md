@@ -58,6 +58,11 @@ include: {
 ### B. Fusión de Objetos Maestros en Formularios
 En el componente de formulario (`quotation-form.tsx`), la carga de datos por ID debe fusionar los objetos devueltos (`qData.client`, `qData.seller`, `qData.branch`, `qData.implant`, `qData.ticketPrinter`) en el estado global para que los controles `SearchSelect` desplieguen inmediatamente el nombre y código de las entidades.
 
+### C. Verificación de Relaciones en Prisma Schema (`prisma/schema.prisma`)
+Cualquier modelo o tabla agregada o modificada en `prisma/schema.prisma` que contenga una relación `@relation(fields: [foreignKey], references: [id])` **DEBE contar con su campo relacional correspondiente en el modelo destino** (ej. `Interfaces` debe incluir `InterfaceExtractParam InterfaceExtractParam[]`).
+- *Razón*: Si la relación inversa falta en la entidad principal, las consultas con `include: { TargetModel: true }` en las API Routes fallan en tiempo de compilación TypeScript con el error: `Type '{ TargetModel: ... }' is not assignable to type 'never'`.
+- *Verificación Obligatoria*: Tras cualquier cambio en `schema.prisma`, se DEBE ejecutar obligatoriamente `npx prisma generate` y validar la compilación (`npm run build`).
+
 ---
 
 ## 3. Validador Automatizado Integrado (`deploy/validate_schema_before_package.js`)

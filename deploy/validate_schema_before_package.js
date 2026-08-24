@@ -168,6 +168,19 @@ async function validateAndPrepareSchema() {
   }
   console.log("  [OK] Restricciones UNIQUE para operaciones de Upsert verificadas.");
 
+  // 2.7 Verificación de Prisma Schema y Regeneración del Cliente Prisma Client
+  console.log("\n[PASO 2.7/5] Verificando Prisma Schema y regenerando Prisma Client...");
+  const prismaSchemaPath = path.join(rootDir, 'prisma', 'schema.prisma');
+  if (fs.existsSync(prismaSchemaPath)) {
+    const { execSync } = require('child_process');
+    try {
+      execSync('npx prisma generate', { cwd: rootDir, stdio: 'pipe' });
+      console.log("  [OK] Prisma Client regenerado exitosamente con 'npx prisma generate'.");
+    } catch (prismaErr) {
+      console.warn(`  [WARN] Error ejecutando 'npx prisma generate': ${prismaErr.message}`);
+    }
+  }
+
   // 3. Verificación de regla de LEFT JOIN en funciones de listado/historial
   console.log("\n[PASO 3/4] Verificando regla obligatoria de LEFT JOIN en funciones de consulta...");
   const funcFolder = path.join(rootDir, 'SQL/Function');

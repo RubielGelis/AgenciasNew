@@ -9,15 +9,18 @@ Esta guía contiene los runbooks y flujos para administrar el backend y frontend
 
 ---
 
-## 1. Sincronización del Schema de Base de Datos (Prisma)
+## 1. Sincronización del Schema de Base de Datos y Relaciones (Prisma)
 
-Si realizas cambios en las tablas de PostgreSQL local, debes sincronizar el esquema del ORM Prisma para que TypeScript reconozca las nuevas columnas y relaciones:
+Si realizas cambios en las tablas de PostgreSQL local o agregas nuevos modelos a `prisma/schema.prisma`:
 
 1. **Pull del esquema de la Base de Datos**:
    ```bash
    npx prisma db pull
    ```
-2. **Generar el Cliente Prisma actualizado**:
+2. **Verificación de Relaciones Bidireccionales**:
+   - Todo campo `@relation(fields: [foreignKey], references: [id])` debe tener su propiedad inversa en el modelo relacionado (ejemplo: si `InterfaceExtractParam` se relaciona con `Interfaces`, `Interfaces` debe incluir `InterfaceExtractParam InterfaceExtractParam[]`).
+   - *Prevención de Error*: Evita el fallo de compilación `Type '{ TargetModel: ... }' is not assignable to type 'never'`.
+3. **Generar el Cliente Prisma actualizado**:
    ```bash
    npx prisma generate
    ```
