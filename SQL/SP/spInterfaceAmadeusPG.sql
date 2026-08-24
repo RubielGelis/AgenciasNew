@@ -52,6 +52,7 @@ DECLARE
     v_iti_vuelos TEXT[] := '{}';
     v_iti_clases TEXT[] := '{}';
     v_iti_aerolineas TEXT[] := '{}';
+    v_iti_farebasis TEXT[] := '{}';
     v_iti_fechas_llegada TIMESTAMP[] := '{}';
     v_iti_fechas_salida TIMESTAMP[] := '{}';
 
@@ -237,6 +238,13 @@ BEGIN
                         v_iti_vuelos := array_append(v_iti_vuelos, v_vuelo);
                         v_iti_clases := array_append(v_iti_clases, v_clase);
                         v_iti_aerolineas := array_append(v_iti_aerolineas, v_aero);
+                        IF array_length(v_f_tokens, 1) >= 7 THEN
+                            v_iti_farebasis := array_append(v_iti_farebasis, trim(v_f_tokens[7]));
+                        ELSIF array_length(v_parts, 1) >= 7 THEN
+                            v_iti_farebasis := array_append(v_iti_farebasis, trim(v_parts[7]));
+                        ELSE
+                            v_iti_farebasis := array_append(v_iti_farebasis, '');
+                        END IF;
                         v_iti_fechas_salida := array_append(v_iti_fechas_salida, v_ts_salida);
                         v_iti_fechas_llegada := array_append(v_iti_fechas_llegada, v_ts_llegada);
                     END IF;
@@ -518,7 +526,7 @@ BEGIN
                 "checkOutDate", "terminal", "prestadoraCode", "farebasis", "Numflight", "Typeflight", "amount"
             ) VALUES (
                 v_booking_product_gds_id, v_i, v_iti_origenes[v_i], v_iti_destinos[v_i], v_iti_clases[v_i], v_iti_fechas_salida[v_i], 
-                v_iti_fechas_llegada[v_i], v_iti_destinos[v_i], v_iti_aerolineas[v_i], '', v_iti_vuelos[v_i], '', 0
+                v_iti_fechas_llegada[v_i], v_iti_destinos[v_i], v_iti_aerolineas[v_i], COALESCE(v_iti_farebasis[v_i], ''), v_iti_vuelos[v_i], '', 0
             );
         END IF;
     END LOOP;

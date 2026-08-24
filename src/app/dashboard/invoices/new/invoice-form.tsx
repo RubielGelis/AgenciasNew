@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Save, Trash2, Plus, ChevronDown, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, Search } from 'lucide-react'
+import { Save, Trash2, Plus, ChevronDown, ChevronUp, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, Search } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -66,6 +66,46 @@ interface InvoiceFormData {
     consecutivo?: string;
 }
 
+export function computeItinerarySummaries(itineraryList: any[]) {
+    if (!Array.isArray(itineraryList) || itineraryList.length === 0) {
+        return { flightItinerary: '', classItinerary: '', airlineItinerary: '' };
+    }
+
+    const flightParts: string[] = [];
+    for (let i = 0; i < itineraryList.length; i++) {
+        const leg = itineraryList[i];
+        const orig = (leg.origin || leg.origen || '').trim().toUpperCase();
+        const dest = (leg.destination || leg.destino || '').trim().toUpperCase();
+
+        if (i === 0) {
+            if (orig) flightParts.push(orig);
+            if (dest) flightParts.push(dest);
+        } else {
+            const prevDest = flightParts[flightParts.length - 1] || '';
+            if (orig && orig !== prevDest) {
+                flightParts.push(orig);
+            }
+            if (dest) {
+                flightParts.push(dest);
+            }
+        }
+    }
+
+    const classList = itineraryList
+        .map((leg: any) => (leg.class || leg.clase || '').trim().toUpperCase())
+        .filter(Boolean);
+
+    const airlineList = itineraryList
+        .map((leg: any) => (leg.prestadoraCode || leg.aero || leg.provider || leg.airline || '').trim().toUpperCase())
+        .filter(Boolean);
+
+    return {
+        flightItinerary: flightParts.join('/'),
+        classItinerary: classList.join('/'),
+        airlineItinerary: airlineList.join('/')
+    };
+}
+
 export default function InvoiceForm({ invoiceId, quotationId, initialData, onCancel }: { invoiceId?: string; quotationId?: string; initialData?: any; onCancel?: () => void }) {
     const [data, setData] = useState<any>(null)
     const [formData, setFormData] = useState<InvoiceFormData>({
@@ -90,7 +130,24 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
     const [isSearchBookingOpen, setIsSearchBookingOpen] = useState(false)
     const [attachments, setAttachments] = useState<any[]>([])
     const [uploadingAttachment, setUploadingAttachment] = useState(false)
+    const [openItineraries, setOpenItineraries] = useState<Record<number, boolean>>({})
     const router = useRouter()
+
+    const updateItineraryListAndSummaries = (itemIndex: number, list: any[]) => {
+        const summaries = computeItinerarySummaries(list);
+        setFormData(prev => {
+            const newItems = [...prev.items];
+            const cur = newItems[itemIndex];
+            newItems[itemIndex] = {
+                ...cur,
+                itinerariesItineraryList: list,
+                itinerary: list.length > 0 ? summaries.flightItinerary : cur.itinerary,
+                class: list.length > 0 ? summaries.classItinerary : cur.class,
+                airline: list.length > 0 ? summaries.airlineItinerary : cur.airline,
+            };
+            return { ...prev, items: newItems };
+        });
+    };
 
     const handleImportBooking = (booking: any) => {
         if (!booking) return;
@@ -364,6 +421,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                 return 1;
             };
 
+            const summaries = computeItinerarySummaries(itineraryList);
+
             return {
                 productId: defaultProduct?.id?.toString() || '',
                 quantity: bkItem.quantity || 1,
@@ -388,6 +447,9 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                 appliedTaxes,
                 payments: importedPayments,
                 itinerariesItineraryList: itineraryList,
+                itinerary: summaries.flightItinerary,
+                class: summaries.classItinerary,
+                airline: summaries.airlineItinerary,
                 sellerCommission: 0,
                 ticketPrinterCommission: 0,
                 variables: [],
@@ -1493,132 +1555,163 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                             />
                                                         </div>
                                                     </div>
-                                                       <div className="mb-4">
-                                                        <label className="text-[10px] uppercase font-bold text-zinc-500 mb-2 block">Detalle de Itinerarios</label>
-                                                        <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-700">
-                                                            {item.itinerariesItineraryList && item.itinerariesItineraryList.length > 0 ? (
-                                                                <div className="overflow-x-auto w-full border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900/50 p-2 scrollbar-thin">
-                                                                    <div className="min-w-[1050px] space-y-2">
-                                                                        {/* Encabezado */}
-                                                                        <div className="flex gap-2 text-[9px] uppercase font-bold text-zinc-400 px-1 select-none">
-                                                                            <div className="w-16">Origen</div>
-                                                                            <div className="w-16">Destino</div>
-                                                                            <div className="w-16">Aero</div>
-                                                                            <div className="w-14">Clase</div>
-                                                                            <div className="w-32">Salida</div>
-                                                                            <div className="w-32">Llegada</div>
-                                                                            <div className="w-24">Fare Basis</div>
-                                                                            <div className="w-20">Nro. Vuelo</div>
-                                                                            <div className="w-14">Tipo</div>
-                                                                            <div className="w-24">Valor</div>
-                                                                            <div className="w-20">CO2</div>
-                                                                            <div className="w-8"></div>
-                                                                        </div>
-                                                                        {/* Filas */}
-                                                                        {item.itinerariesItineraryList.map((itin: any, itinIdx: number) => (
-                                                                            <div key={itinIdx} className="flex gap-2 items-center text-xs">
-                                                                                <div className="w-16 flex-shrink-0">
-                                                                                    <input type="text" placeholder="Origen" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.origin || ''} onChange={e => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].origin = e.target.value.toUpperCase();
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} />
-                                                                                </div>
-                                                                                <div className="w-16 flex-shrink-0">
-                                                                                    <input type="text" placeholder="Destino" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.destination || ''} onChange={e => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].destination = e.target.value.toUpperCase();
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} />
-                                                                                </div>
-                                                                                <div className="w-16 flex-shrink-0">
-                                                                                    <input type="text" placeholder="Aero" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.prestadoraCode || ''} onChange={e => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].prestadoraCode = e.target.value.toUpperCase();
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} />
-                                                                                </div>
-                                                                                <div className="w-14 flex-shrink-0">
-                                                                                    <input type="text" placeholder="Clase" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.class || ''} onChange={e => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].class = e.target.value.toUpperCase();
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} />
-                                                                                </div>
-                                                                                <div className="w-32 flex-shrink-0">
-                                                                                    <input type="date" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none text-[10px]" value={itin.checkInDate ? (itin.checkInDate.includes('T') ? itin.checkInDate.split('T')[0] : itin.checkInDate) : ''} onChange={e => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].checkInDate = e.target.value;
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} />
-                                                                                </div>
-                                                                                <div className="w-32 flex-shrink-0">
-                                                                                    <input type="date" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none text-[10px]" value={itin.checkOutDate ? (itin.checkOutDate.includes('T') ? itin.checkOutDate.split('T')[0] : itin.checkOutDate) : ''} onChange={e => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].checkOutDate = e.target.value;
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} />
-                                                                                </div>
-                                                                                <div className="w-24 flex-shrink-0">
-                                                                                    <input type="text" placeholder="Farebasis" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.farebasis || ''} onChange={e => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].farebasis = e.target.value.toUpperCase();
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} />
-                                                                                </div>
-                                                                                <div className="w-20 flex-shrink-0">
-                                                                                    <input type="text" placeholder="Vuelo" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none text-xs" value={itin.Numflight || ''} onChange={e => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].Numflight = e.target.value;
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} />
-                                                                                </div>
-                                                                                <div className="w-14 flex-shrink-0">
-                                                                                    <input type="text" placeholder="Tipo" maxLength={1} className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.Typeflight || ''} onChange={e => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].Typeflight = e.target.value.toUpperCase();
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} />
-                                                                                </div>
-                                                                                <div className="w-24 flex-shrink-0">
-                                                                                    <input type="number" step="any" placeholder="Valor" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none text-xs" value={itin.amount != null ? itin.amount : ''} onChange={e => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].amount = e.target.value !== '' ? parseFloat(e.target.value) : undefined;
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} />
-                                                                                </div>
-                                                                                <div className="w-20 flex-shrink-0">
-                                                                                    <input type="number" step="any" placeholder="CO2" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none text-xs" value={itin.co2 != null ? itin.co2 : ''} onChange={e => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list[itinIdx].co2 = e.target.value !== '' ? parseFloat(e.target.value) : undefined;
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} />
-                                                                                </div>
-                                                                                <div className="w-8 flex-shrink-0 text-center">
-                                                                                    <button type="button" onClick={() => {
-                                                                                        const list = [...(item.itinerariesItineraryList || [])];
-                                                                                        list.splice(itinIdx, 1);
-                                                                                        updateItem(index, 'itinerariesItineraryList', list);
-                                                                                    }} className="text-red-500 hover:text-red-700 bg-red-50 dark:bg-red-900/20 p-1.5 rounded transition-colors">
-                                                                                        <Trash2 className="w-3.5 h-3.5 mx-auto" />
-                                                                                    </button>
-                                                                                </div>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
+                                                    <div className="mb-4">
+                                                            <div className="flex items-center justify-between mb-2 bg-zinc-100 dark:bg-zinc-800/80 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-xs uppercase font-bold text-zinc-700 dark:text-zinc-300">Detalle de Itinerarios</span>
+                                                                    {item.itinerariesItineraryList && item.itinerariesItineraryList.length > 0 ? (
+                                                                        <span className="text-[10px] bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-bold px-2.5 py-0.5 rounded-full">
+                                                                            {item.itinerariesItineraryList.length} tramo{item.itinerariesItineraryList.length > 1 ? 's' : ''}
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[10px] text-zinc-400 italic">(Opcional)</span>
+                                                                    )}
                                                                 </div>
-                                                            ) : (
-                                                                <div className="text-center text-[10px] text-zinc-400 py-3 italic">Sin itinerarios detallados</div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setOpenItineraries(prev => ({ ...prev, [index]: !prev[index] }))}
+                                                                    className="text-xs text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+                                                                >
+                                                                    {openItineraries[index] ? (
+                                                                        <>
+                                                                            <span>Ocultar Detalle</span>
+                                                                            <ChevronUp className="w-4 h-4" />
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <span>+ Desplegar Detalle de Itinerarios</span>
+                                                                            <ChevronDown className="w-4 h-4" />
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            </div>
+
+                                                            {openItineraries[index] && (
+                                                                <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-3 border border-zinc-200 dark:border-zinc-700">
+                                                                    {item.itinerariesItineraryList && item.itinerariesItineraryList.length > 0 ? (
+                                                                        <div className="overflow-x-auto w-full border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900/50 p-2 scrollbar-thin">
+                                                                            <div className="min-w-[1050px] space-y-2">
+                                                                                {/* Encabezado */}
+                                                                                <div className="flex gap-2 text-[9px] uppercase font-bold text-zinc-400 px-1 select-none">
+                                                                                    <div className="w-16">Origen</div>
+                                                                                    <div className="w-16">Destino</div>
+                                                                                    <div className="w-16">Aero</div>
+                                                                                    <div className="w-14">Clase</div>
+                                                                                    <div className="w-32">Salida</div>
+                                                                                    <div className="w-32">Llegada</div>
+                                                                                    <div className="w-24">Fare Basis</div>
+                                                                                    <div className="w-20">Nro. Vuelo</div>
+                                                                                    <div className="w-14">Tipo</div>
+                                                                                    <div className="w-24">Valor</div>
+                                                                                    <div className="w-20">CO2</div>
+                                                                                    <div className="w-8"></div>
+                                                                                </div>
+                                                                                {/* Filas */}
+                                                                                {item.itinerariesItineraryList.map((itin: any, itinIdx: number) => (
+                                                                                    <div key={itinIdx} className="flex gap-2 items-center text-xs">
+                                                                                        <div className="w-16 flex-shrink-0">
+                                                                                            <input type="text" placeholder="Origen" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.origin || ''} onChange={e => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list[itinIdx].origin = e.target.value.toUpperCase();
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} />
+                                                                                        </div>
+                                                                                        <div className="w-16 flex-shrink-0">
+                                                                                            <input type="text" placeholder="Destino" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.destination || ''} onChange={e => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list[itinIdx].destination = e.target.value.toUpperCase();
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} />
+                                                                                        </div>
+                                                                                        <div className="w-16 flex-shrink-0">
+                                                                                            <input type="text" placeholder="Aero" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.prestadoraCode || ''} onChange={e => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list[itinIdx].prestadoraCode = e.target.value.toUpperCase();
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} />
+                                                                                        </div>
+                                                                                        <div className="w-14 flex-shrink-0">
+                                                                                            <input type="text" placeholder="Clase" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.class || ''} onChange={e => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list[itinIdx].class = e.target.value.toUpperCase();
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} />
+                                                                                        </div>
+                                                                                        <div className="w-32 flex-shrink-0">
+                                                                                            <input type="date" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none text-[10px]" value={itin.checkInDate ? (itin.checkInDate.includes('T') ? itin.checkInDate.split('T')[0] : itin.checkInDate) : ''} onChange={e => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list[itinIdx].checkInDate = e.target.value;
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} />
+                                                                                        </div>
+                                                                                        <div className="w-32 flex-shrink-0">
+                                                                                            <input type="date" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1 outline-none text-[10px]" value={itin.checkOutDate ? (itin.checkOutDate.includes('T') ? itin.checkOutDate.split('T')[0] : itin.checkOutDate) : ''} onChange={e => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list[itinIdx].checkOutDate = e.target.value;
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} />
+                                                                                        </div>
+                                                                                        <div className="w-24 flex-shrink-0">
+                                                                                            <input type="text" placeholder="Farebasis" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.farebasis || ''} onChange={e => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list[itinIdx].farebasis = e.target.value.toUpperCase();
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} />
+                                                                                        </div>
+                                                                                        <div className="w-20 flex-shrink-0">
+                                                                                            <input type="text" placeholder="Vuelo" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none text-xs" value={itin.Numflight || ''} onChange={e => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list[itinIdx].Numflight = e.target.value;
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} />
+                                                                                        </div>
+                                                                                        <div className="w-14 flex-shrink-0">
+                                                                                            <input type="text" placeholder="Tipo" maxLength={1} className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none uppercase text-xs" value={itin.Typeflight || ''} onChange={e => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list[itinIdx].Typeflight = e.target.value.toUpperCase();
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} />
+                                                                                        </div>
+                                                                                        <div className="w-24 flex-shrink-0">
+                                                                                            <input type="number" step="any" placeholder="Valor" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none text-xs" value={itin.amount != null ? itin.amount : ''} onChange={e => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list[itinIdx].amount = e.target.value !== '' ? parseFloat(e.target.value) : undefined;
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} />
+                                                                                        </div>
+                                                                                        <div className="w-20 flex-shrink-0">
+                                                                                            <input type="number" step="any" placeholder="CO2" className="w-full h-8 bg-zinc-50 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 px-1.5 outline-none text-xs" value={itin.co2 != null ? itin.co2 : ''} onChange={e => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list[itinIdx].co2 = e.target.value !== '' ? parseFloat(e.target.value) : undefined;
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} />
+                                                                                        </div>
+                                                                                        <div className="w-8 flex-shrink-0 text-center">
+                                                                                            <button type="button" onClick={() => {
+                                                                                                const list = [...(item.itinerariesItineraryList || [])];
+                                                                                                list.splice(itinIdx, 1);
+                                                                                                updateItineraryListAndSummaries(index, list);
+                                                                                            }} className="text-red-500 hover:text-red-700 bg-red-50 dark:bg-red-900/20 p-1.5 rounded transition-colors">
+                                                                                                <Trash2 className="w-3.5 h-3.5 mx-auto" />
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <div className="text-center text-[10px] text-zinc-400 py-3 italic">Sin itinerarios detallados</div>
+                                                                    )}
+                                                                    <button type="button" onClick={() => {
+                                                                        const list = [...(item.itinerariesItineraryList || [])];
+                                                                        list.push({ origin: '', destination: '', class: '', checkInDate: '', checkOutDate: '', prestadoraCode: '', farebasis: '', Numflight: '', Typeflight: '', amount: undefined, co2: undefined });
+                                                                        updateItineraryListAndSummaries(index, list);
+                                                                    }} className="mt-2 text-[10px] text-blue-500 font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2 py-1 rounded transition-colors inline-flex items-center gap-1">
+                                                                        <Plus className="w-3.5 h-3.5" /> Añadir Tramo
+                                                                    </button>
+                                                                </div>
                                                             )}
-                                                            <button type="button" onClick={() => {
-                                                                const list = [...(item.itinerariesItineraryList || [])];
-                                                                list.push({ origin: '', destination: '', class: '', checkInDate: '', checkOutDate: '', prestadoraCode: '', farebasis: '', Numflight: '', Typeflight: '', amount: undefined, co2: undefined });
-                                                                updateItem(index, 'itinerariesItineraryList', list);
-                                                            }} className="mt-2 text-[10px] text-blue-500 font-bold hover:bg-blue-50 dark:hover:bg-blue-900/20 px-2 py-1 rounded transition-colors inline-flex items-center gap-1">
-                                                                <Plus className="w-3.5 h-3.5" /> Añadir Tramo
-                                                            </button>
                                                         </div>
-                                                    </div>
                                                 </>
                                             )}
 
