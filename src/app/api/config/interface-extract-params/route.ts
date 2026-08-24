@@ -45,6 +45,19 @@ export async function POST(request: Request) {
             return NextResponse.json({ message: 'La interfaz, código de campo, nombre y prefijo son obligatorios.' }, { status: 400 });
         }
 
+        // Validación de unicidad por combinación de Interfaz y Prefijo
+        const existing: any[] = await prisma.$queryRawUnsafe(`
+            SELECT id FROM public."InterfaceExtractParam"
+            WHERE "interfaceId" = $1 AND LOWER(TRIM(prefix)) = LOWER(TRIM($2))
+            LIMIT 1
+        `, Number(interfaceId), prefix.trim());
+
+        if (existing && existing.length > 0) {
+            return NextResponse.json({ 
+                message: `Ya existe un parámetro de extracción configurado para la combinación de Interfaz y Prefijo (${prefix.trim()}).` 
+            }, { status: 400 });
+        }
+
         const newRule = await (prisma as any).interfaceExtractParam.create({
             data: {
                 interfaceId: Number(interfaceId),
@@ -71,6 +84,20 @@ export async function PUT(request: Request) {
 
         if (!id) {
             return NextResponse.json({ message: 'El ID de la regla es obligatorio.' }, { status: 400 });
+        }
+
+        if (interfaceId && prefix) {
+            const existing: any[] = await prisma.$queryRawUnsafe(`
+                SELECT id FROM public."InterfaceExtractParam"
+                WHERE "interfaceId" = $1 AND LOWER(TRIM(prefix)) = LOWER(TRIM($2)) AND id <> $3
+                LIMIT 1
+            `, Number(interfaceId), prefix.trim(), Number(id));
+
+            if (existing && existing.length > 0) {
+                return NextResponse.json({ 
+                    message: `Ya existe otro parámetro de extracción configurado para la combinación de Interfaz y Prefijo (${prefix.trim()}).` 
+                }, { status: 400 });
+            }
         }
 
         const updatedRule = await (prisma as any).interfaceExtractParam.update({

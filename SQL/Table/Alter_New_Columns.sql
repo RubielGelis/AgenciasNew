@@ -2535,24 +2535,18 @@ BEGIN
         FOREIGN KEY ("interfaceId") REFERENCES public."Interfaces"("id") ON DELETE CASCADE;
     END IF;
 
-    -- Reglas iniciales para Amadeus (interfaceId = 2)
-    IF NOT EXISTS (SELECT 1 FROM public."InterfaceExtractParam" WHERE "interfaceId" = 2) THEN
-        INSERT INTO public."InterfaceExtractParam" ("interfaceId", "fieldCode", "fieldName", "prefix") VALUES
-        (2, 'Client', 'Cliente', 'RM*NC-'),
-        (2, 'Seller', 'Vendedor', 'RM*VE-'),
-        (2, 'TicketPrinter', 'Tiqueteador', 'RM*TK-'),
-        (2, 'Branch', 'Sucursal', 'RM*SUC-'),
-        (2, 'Implant', 'Implante', 'RM*IMP-');
-    END IF;
+    -- Limpieza de duplicados existentes por combinación de interfaceId y prefix
+    DELETE FROM public."InterfaceExtractParam" a
+    USING public."InterfaceExtractParam" b
+    WHERE a.id > b.id 
+      AND a."interfaceId" = b."interfaceId" 
+      AND LOWER(TRIM(a.prefix)) = LOWER(TRIM(b.prefix));
 
-    -- Reglas iniciales para Sabre (interfaceId = 1)
-    IF NOT EXISTS (SELECT 1 FROM public."InterfaceExtractParam" WHERE "interfaceId" = 1) THEN
-        INSERT INTO public."InterfaceExtractParam" ("interfaceId", "fieldCode", "fieldName", "prefix") VALUES
-        (1, 'Client', 'Cliente', 'RM*NC-'),
-        (1, 'Seller', 'Vendedor', 'RM*VE-'),
-        (1, 'TicketPrinter', 'Tiqueteador', 'RM*TK-'),
-        (1, 'Branch', 'Sucursal', 'RM*SUC-'),
-        (1, 'Implant', 'Implante', 'RM*IMP-');
+    -- Restricción de Unicidad por combinación de Interfaz y Prefijo (interfaceId + prefix)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'InterfaceExtractParam_interfaceId_prefix_key') THEN
+        ALTER TABLE public."InterfaceExtractParam" 
+        ADD CONSTRAINT "InterfaceExtractParam_interfaceId_prefix_key" 
+        UNIQUE ("interfaceId", "prefix");
     END IF;
 
 END $$;
