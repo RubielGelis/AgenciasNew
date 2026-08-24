@@ -152,10 +152,12 @@ BEGIN
                 v_code := trim(substring(v_sub_line from 7 for 6));
             END IF;
             
-        -- A- Aerolínea Vendedora
+        -- A- Aerolínea Vendedora (Ej: A-LATAM AIRLINES COLOMBIA;4C)
         ELSIF starts_with(v_line, 'A-') THEN
-            IF length(v_line) >= 12 THEN
-                v_aerolinea_vende := substring(v_line from 11 for 2);
+            IF position(';' in v_line) > 0 THEN
+                v_aerolinea_vende := trim(substring(v_line from position(';' in v_line) + 1));
+            ELSIF length(v_line) >= 12 THEN
+                v_aerolinea_vende := trim(substring(v_line from 11 for 2));
             END IF;
             
         -- C- Agentes (Tiqueteador, Facturador, Vendedor)
@@ -416,24 +418,63 @@ BEGIN
 
     END LOOP;
 
-    -- Extracción dinámica de parámetros según reglas de la interfaz Amadeus (id_interfaces = 2)
+    -- Extracción dinámica de parámetros según reglas de la interfaz Amadeus (id_interfaces = 2) y resolución de equivalencias
     DECLARE
         v_dyn_val TEXT;
+        v_id_master_client INTEGER;
+        v_id_master_seller INTEGER;
+        v_id_master_tp INTEGER;
+        v_id_master_branch INTEGER;
+        v_id_master_implant INTEGER;
+        v_resolved_client TEXT;
     BEGIN
+        SELECT id INTO v_id_master_client FROM public."Master" WHERE UPPER(code) = 'CLIENT' LIMIT 1;
+        SELECT id INTO v_id_master_seller FROM public."Master" WHERE UPPER(code) = 'SELLER' LIMIT 1;
+        SELECT id INTO v_id_master_tp FROM public."Master" WHERE UPPER(code) = 'TICKETPRINTER' LIMIT 1;
+        SELECT id INTO v_id_master_branch FROM public."Master" WHERE UPPER(code) = 'BRANCH' LIMIT 1;
+        SELECT id INTO v_id_master_implant FROM public."Master" WHERE UPPER(code) = 'IMPLANT' LIMIT 1;
+
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Client', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_client := v_dyn_val; END IF;
+        IF v_client IS NOT NULL AND v_client <> '' THEN
+            IF v_id_master_client IS NOT NULL THEN
+                v_client := public."fnEquivalenceInterface"(2, v_id_master_client, v_client);
+            END IF;
+            SELECT document INTO v_resolved_client FROM public."Client" WHERE document = v_client OR CAST(id AS TEXT) = v_client LIMIT 1;
+            IF v_resolved_client IS NOT NULL THEN v_client := v_resolved_client; END IF;
+        END IF;
 
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Seller', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_seller := v_dyn_val; END IF;
+        IF v_seller IS NOT NULL AND v_seller <> '' THEN
+            IF v_id_master_seller IS NOT NULL THEN
+                v_seller := public."fnEquivalenceInterface"(2, v_id_master_seller, v_seller);
+            END IF;
+        END IF;
 
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'TicketPrinter', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_tiquetPrinter := v_dyn_val; END IF;
+        IF v_tiquetPrinter IS NOT NULL AND v_tiquetPrinter <> '' THEN
+            IF v_id_master_tp IS NOT NULL THEN
+                v_tiquetPrinter := public."fnEquivalenceInterface"(2, v_id_master_tp, v_tiquetPrinter);
+            END IF;
+        END IF;
 
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Branch', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_blanch := v_dyn_val; END IF;
+        IF v_blanch IS NOT NULL AND v_blanch <> '' THEN
+            IF v_id_master_branch IS NOT NULL THEN
+                v_blanch := public."fnEquivalenceInterface"(2, v_id_master_branch, v_blanch);
+            END IF;
+        END IF;
 
         v_dyn_val := public."fnInterfaceExtractParamValue"(2, 'Implant', p_Booking);
         IF v_dyn_val IS NOT NULL AND v_dyn_val <> '' THEN v_implant := v_dyn_val; END IF;
+        IF v_implant IS NOT NULL AND v_implant <> '' THEN
+            IF v_id_master_implant IS NOT NULL THEN
+                v_implant := public."fnEquivalenceInterface"(2, v_id_master_implant, v_implant);
+            END IF;
+        END IF;
     END;
 
     -- ==============================================================
@@ -529,69 +570,146 @@ BEGIN
         ) RETURNING "id" INTO v_booking_gds_id;
     END IF;
 
-    -- 2. Producto Padre (Vuelo)
-    INSERT INTO public."BookingProductGDS" (
-        "bookingId", "code", "type", "description", "prestadoracode", "provider",
-        "quantity", "price", "reservationCode", "inNationality", "state", "typeproduct"
-    ) VALUES (
-        v_booking_gds_id, COALESCE(v_tkt, 'VUE'), 'flight', 'flight', v_aerolinea_vende, COALESCE(v_provider_matched, v_aerolinea_vende),
-        1, v_am_total, COALESCE(v_code, ''), v_nacionalidad, 'NUEVO', 'VUE'
-    ) RETURNING "id" INTO v_booking_product_gds_id;
+    -- ==============================================================
+    -- CREACIÓN DE PRODUCTOS (UN PRODUCTO POR CADA TIQUETE / PASAJERO)
+    -- ==============================================================
+    DECLARE
+        v_num_pax INTEGER;
+        v_num_prods INTEGER;
+        v_pax_i INTEGER;
+        v_prod_code TEXT;
+        v_prod_price NUMERIC;
+        v_prod_tax_base NUMERIC;
+        v_prod_tax_val NUMERIC;
+        v_prod_pay_val NUMERIC;
+    BEGIN
+        v_num_pax := GREATEST(COALESCE(array_length(v_pax_nombres, 1), 0), COALESCE(array_length(v_pax_tiquetes, 1), 0));
+        v_num_prods := GREATEST(1, v_num_pax);
 
-    -- 3. Detalle Itinerarios
-    FOR v_i IN 1 .. COALESCE(array_length(v_iti_origenes, 1), 0) LOOP
-        IF v_iti_origenes[v_i] IS NOT NULL THEN
-            INSERT INTO public."BookingProductItineraryGDS" (
-                "bookingProductId", "orden", "origin", "destination", "class", "checkInDate", 
-                "checkOutDate", "terminal", "prestadoraCode", "farebasis", "Numflight", "Typeflight", "amount"
+        FOR v_pax_i IN 1 .. v_num_prods LOOP
+            IF v_num_pax > 0 AND v_pax_i <= array_length(v_pax_tiquetes, 1) AND v_pax_tiquetes[v_pax_i] IS NOT NULL AND v_pax_tiquetes[v_pax_i] <> '' THEN
+                v_prod_code := v_pax_tiquetes[v_pax_i];
+            ELSE
+                v_prod_code := COALESCE(v_tkt, 'VUE');
+            END IF;
+
+            v_prod_price := ROUND(v_am_total / v_num_prods, 2);
+
+            -- 2. Producto Padre (Vuelo / Tiquete)
+            INSERT INTO public."BookingProductGDS" (
+                "bookingId", "code", "type", "description", "prestadoracode", "provider",
+                "quantity", "price", "reservationCode", "inNationality", "state", "typeproduct"
             ) VALUES (
-                v_booking_product_gds_id, v_i, v_iti_origenes[v_i], v_iti_destinos[v_i], v_iti_clases[v_i], v_iti_fechas_salida[v_i], 
-                v_iti_fechas_llegada[v_i], v_iti_destinos[v_i], v_iti_aerolineas[v_i], COALESCE(v_iti_farebasis[v_i], ''), v_iti_vuelos[v_i], '', 0
-            );
-        END IF;
-    END LOOP;
+                v_booking_gds_id, v_prod_code, 'flight', 'flight', v_aerolinea_vende, COALESCE(v_provider_matched, v_aerolinea_vende),
+                1, v_prod_price, COALESCE(v_code, ''), v_nacionalidad, 'NUEVO', 'VUE'
+            ) RETURNING "id" INTO v_booking_product_gds_id;
 
-    -- 4. Detalle Pasajeros
-    FOR v_i IN 1 .. COALESCE(array_length(v_pax_nombres, 1), 0) LOOP
-        IF v_pax_nombres[v_i] IS NOT NULL THEN
-            INSERT INTO public."BookingProductPassangerGDS" (
-                "bookingProductId", "code", "firstnm", "lastnm", "prefix", "identification", "phone", "email"
-            ) VALUES (
-                v_booking_product_gds_id, v_i::TEXT, v_pax_nombres[v_i], v_pax_apellidos[v_i], v_pax_prefixs[v_i], COALESCE(v_pax_tiquetes[v_i], ''), '', ''
-            );
-        END IF;
-    END LOOP;
+            -- 3. Detalle Itinerarios para este producto
+            FOR v_i IN 1 .. COALESCE(array_length(v_iti_origenes, 1), 0) LOOP
+                IF v_iti_origenes[v_i] IS NOT NULL THEN
+                    INSERT INTO public."BookingProductItineraryGDS" (
+                        "bookingProductId", "orden", "origin", "destination", "class", "checkInDate", 
+                        "checkOutDate", "terminal", "prestadoraCode", "farebasis", "Numflight", "Typeflight", "amount"
+                    ) VALUES (
+                        v_booking_product_gds_id, v_i, v_iti_origenes[v_i], v_iti_destinos[v_i], v_iti_clases[v_i], v_iti_fechas_salida[v_i], 
+                        v_iti_fechas_llegada[v_i], v_iti_destinos[v_i], v_iti_aerolineas[v_i], COALESCE(v_iti_farebasis[v_i], ''), v_iti_vuelos[v_i], '', 0
+                    );
+                END IF;
+            END LOOP;
 
-    -- 5. Detalle Impuestos (Taxes)
-    v_am_impuestos := 0;
-    FOR v_i IN 1 .. COALESCE(array_length(v_tax_codes, 1), 0) LOOP
-        IF v_tax_codes[v_i] IS NOT NULL THEN
-            v_am_impuestos := v_am_impuestos + COALESCE(v_tax_vals[v_i], 0);
-        END IF;
-    END LOOP;
+            -- 4. Detalle Pasajero para este producto
+            IF v_num_pax > 0 AND v_pax_i <= array_length(v_pax_nombres, 1) AND v_pax_nombres[v_pax_i] IS NOT NULL THEN
+                INSERT INTO public."BookingProductPassangerGDS" (
+                    "bookingProductId", "code", "firstnm", "lastnm", "prefix", "identification", "phone", "email"
+                ) VALUES (
+                    v_booking_product_gds_id, v_pax_i::TEXT, v_pax_nombres[v_pax_i], v_pax_apellidos[v_pax_i], v_pax_prefixs[v_pax_i], COALESCE(v_pax_tiquetes[v_pax_i], ''), '', ''
+                );
+            END IF;
 
-    -- Tarifa Base Neta = Total Local - Suma de Impuestos (No TAR)
-    v_am_tarifa_base := GREATEST(0, COALESCE(v_am_tarifalocal, 0) - v_am_impuestos);
+            -- 5. Detalle Impuestos (Taxes) proporcional para este producto
+            v_am_impuestos := 0;
+            FOR v_i IN 1 .. COALESCE(array_length(v_tax_codes, 1), 0) LOOP
+                IF v_tax_codes[v_i] IS NOT NULL THEN
+                    v_am_impuestos := v_am_impuestos + ROUND(COALESCE(v_tax_vals[v_i], 0) / v_num_prods, 2);
+                END IF;
+            END LOOP;
 
-    IF v_am_tarifa_base > 0 OR COALESCE(v_am_tarifalocal, 0) <> 0 THEN
-        INSERT INTO public."BookingProductTaxGDS" (
-            "bookingProductId", "code", "name", "type", "ismain", "percentage", "amount"
-        ) VALUES (
-            v_booking_product_gds_id, 'TAR', 'Tarifa', 'CHARGE', true, 0, v_am_tarifa_base
-        );
-    END IF;
+            v_prod_tax_base := GREATEST(0, v_prod_price - v_am_impuestos);
 
-    FOR v_i IN 1 .. COALESCE(array_length(v_tax_codes, 1), 0) LOOP
-        IF v_tax_codes[v_i] IS NOT NULL THEN
-            INSERT INTO public."BookingProductTaxGDS" (
-                "bookingProductId", "code", "name", "type", "ismain", "percentage", "amount"
-            ) VALUES (
-                v_booking_product_gds_id, v_tax_codes[v_i], v_tax_codes[v_i], 'tax', false, 0, (COALESCE(v_tax_vals[v_i], 0)::DOUBLE PRECISION)
-            );
-        END IF;
-    END LOOP;
+            IF v_prod_tax_base > 0 OR v_prod_price <> 0 THEN
+                INSERT INTO public."BookingProductTaxGDS" (
+                    "bookingProductId", "code", "name", "type", "ismain", "percentage", "amount"
+                ) VALUES (
+                    v_booking_product_gds_id, 'TAR', 'Tarifa', 'CHARGE', true, 0, v_prod_tax_base
+                );
+            END IF;
 
-    -- 6. Productos EMD
+            FOR v_i IN 1 .. COALESCE(array_length(v_tax_codes, 1), 0) LOOP
+                IF v_tax_codes[v_i] IS NOT NULL THEN
+                    v_prod_tax_val := ROUND(COALESCE(v_tax_vals[v_i], 0) / v_num_prods, 2);
+                    INSERT INTO public."BookingProductTaxGDS" (
+                        "bookingProductId", "code", "name", "type", "ismain", "percentage", "amount"
+                    ) VALUES (
+                        v_booking_product_gds_id, v_tax_codes[v_i], v_tax_codes[v_i], 'tax', false, 0, (v_prod_tax_val::DOUBLE PRECISION)
+                    );
+                END IF;
+            END LOOP;
+
+            -- 6. Formas de Pago para este producto
+            FOR v_i IN 1 .. COALESCE(array_length(v_pay_tipos, 1), 0) LOOP
+                IF v_pay_tipos[v_i] IS NOT NULL THEN
+                    v_prod_pay_val := ROUND(COALESCE(v_pay_montos[v_i], 0) / v_num_prods, 2);
+                    INSERT INTO public."BookingProductPaymentGDS" (
+                        "bookingProductId", "bookingProductFEEId", "code", "name", "type", "typecreditcard", 
+                        "numbercreditcard", "vouchercreditcard", "expiredcreditcard", "authcreditcard", "quotas", 
+                        "bank", "square", "reference", "policy", "policyannex", "amount"
+                    ) VALUES (
+                        v_booking_product_gds_id, NULL, v_pay_tipos[v_i], v_pay_tipos[v_i], v_pay_tipos[v_i], v_pay_tarjetas[v_i],
+                        COALESCE(v_pay_numbers[v_i], ''), '', COALESCE(v_pay_expiries[v_i], '__/__'), COALESCE(v_pay_approvals[v_i], ''), 0,
+                        '', '', '', '', '', v_prod_pay_val
+                    );
+                END IF;
+            END LOOP;
+
+            -- 7. Variables Adicionales Dinámicas para este producto
+            DECLARE
+                r_param RECORD;
+                v_var_value TEXT;
+                v_mv_code TEXT;
+                v_mv_name TEXT;
+            BEGIN
+                FOR r_param IN 
+                    SELECT "fieldCode", "fieldName"
+                    FROM public."InterfaceExtractParam"
+                    WHERE "interfaceId" = 2
+                      AND "isActive" = TRUE
+                      AND UPPER("fieldCode") NOT IN ('CLIENT', 'SELLER', 'TICKETPRINTER', 'BRANCH', 'IMPLANT')
+                LOOP
+                    v_var_value := public."fnInterfaceExtractParamValue"(2, r_param."fieldCode", p_Booking);
+                    IF v_var_value IS NOT NULL AND v_var_value <> '' THEN
+                        SELECT code, name INTO v_mv_code, v_mv_name
+                        FROM public."MasterVariable"
+                        WHERE UPPER(code) = UPPER(r_param."fieldCode") OR UPPER(name) = UPPER(r_param."fieldName")
+                        LIMIT 1;
+
+                        IF v_mv_code IS NULL THEN
+                            v_mv_code := r_param."fieldCode";
+                            v_mv_name := r_param."fieldName";
+                        END IF;
+
+                        INSERT INTO public."BookingProductVariableGDS" (
+                            "bookingProductId", "code", "name", "value"
+                        ) VALUES (
+                            v_booking_product_gds_id, v_mv_code, v_mv_name, v_var_value
+                        );
+                    END IF;
+                END LOOP;
+            END;
+
+        END LOOP;
+    END;
+
+    -- 8. Productos EMD
     FOR v_i IN 1 .. COALESCE(array_length(v_emd_codigos, 1), 0) LOOP
         IF v_emd_codigos[v_i] IS NOT NULL THEN
             INSERT INTO public."BookingProductGDS" (
@@ -603,56 +721,6 @@ BEGIN
             ) RETURNING "id" INTO v_booking_product_emd_id;
         END IF;
     END LOOP;
-
-    -- 7. Formas de Pago
-    FOR v_i IN 1 .. COALESCE(array_length(v_pay_tipos, 1), 0) LOOP
-        IF v_pay_tipos[v_i] IS NOT NULL THEN
-            INSERT INTO public."BookingProductPaymentGDS" (
-                "bookingProductId", "bookingProductFEEId", "code", "name", "type", "typecreditcard", 
-                "numbercreditcard", "vouchercreditcard", "expiredcreditcard", "authcreditcard", "quotas", 
-                "bank", "square", "reference", "policy", "policyannex", "amount"
-            ) VALUES (
-                v_booking_product_gds_id, NULL, v_pay_tipos[v_i], v_pay_tipos[v_i], v_pay_tipos[v_i], v_pay_tarjetas[v_i],
-                COALESCE(v_pay_numbers[v_i], ''), '', COALESCE(v_pay_expiries[v_i], '__/__'), COALESCE(v_pay_approvals[v_i], ''), 0,
-                '', '', '', '', '', COALESCE(v_pay_montos[v_i], 0)
-            );
-        END IF;
-    END LOOP;
-
-    -- 8. Variables Adicionales Dinámicas (BookingProductVariableGDS)
-    DECLARE
-        r_param RECORD;
-        v_var_value TEXT;
-        v_mv_code TEXT;
-        v_mv_name TEXT;
-    BEGIN
-        FOR r_param IN 
-            SELECT "fieldCode", "fieldName"
-            FROM public."InterfaceExtractParam"
-            WHERE "interfaceId" = 2
-              AND "isActive" = TRUE
-              AND UPPER("fieldCode") NOT IN ('CLIENT', 'SELLER', 'TICKETPRINTER', 'BRANCH', 'IMPLANT')
-        LOOP
-            v_var_value := public."fnInterfaceExtractParamValue"(2, r_param."fieldCode", p_Booking);
-            IF v_var_value IS NOT NULL AND v_var_value <> '' THEN
-                SELECT code, name INTO v_mv_code, v_mv_name
-                FROM public."MasterVariable"
-                WHERE UPPER(code) = UPPER(r_param."fieldCode") OR UPPER(name) = UPPER(r_param."fieldName")
-                LIMIT 1;
-
-                IF v_mv_code IS NULL THEN
-                    v_mv_code := r_param."fieldCode";
-                    v_mv_name := r_param."fieldName";
-                END IF;
-
-                INSERT INTO public."BookingProductVariableGDS" (
-                    "bookingProductId", "code", "name", "value"
-                ) VALUES (
-                    v_booking_product_gds_id, v_mv_code, v_mv_name, v_var_value
-                );
-            END IF;
-        END LOOP;
-    END;
 
     RAISE NOTICE 'Amadeus Booking % successfully parsed and inserted.', v_code;
 

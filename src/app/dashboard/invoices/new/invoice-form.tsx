@@ -152,13 +152,15 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
     const handleImportBooking = (booking: any) => {
         if (!booking) return;
 
-        // 1. Matchear Cliente por código/nombre/documento
+        // 1. Matchear Cliente por código/nombre/documento/id
         let matchedClientId = '';
         if (booking.client) {
+            const searchClient = booking.client.toString().trim().toLowerCase();
             const foundClient = data?.clients?.find((c: any) => 
-                c.code?.toLowerCase() === booking.client?.toLowerCase() ||
-                c.name?.toLowerCase()?.includes(booking.client?.toLowerCase()) ||
-                c.document === booking.client
+                c.id?.toString() === booking.client?.toString() ||
+                c.document?.toString().toLowerCase() === searchClient ||
+                c.code?.toString().toLowerCase() === searchClient ||
+                c.name?.toLowerCase()?.includes(searchClient)
             );
             if (foundClient) matchedClientId = foundClient.id.toString();
         }
@@ -166,9 +168,11 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
         // 2. Matchear Vendedor
         let matchedSellerId = '';
         if (booking.seller) {
+            const searchSeller = booking.seller.toString().trim().toLowerCase();
             const foundSeller = data?.sellers?.find((s: any) => 
-                s.code?.toLowerCase() === booking.seller?.toLowerCase() ||
-                s.name?.toLowerCase()?.includes(booking.seller?.toLowerCase())
+                s.id?.toString() === booking.seller?.toString() ||
+                s.code?.toString().toLowerCase() === searchSeller ||
+                s.name?.toLowerCase()?.includes(searchSeller)
             );
             if (foundSeller) matchedSellerId = foundSeller.id.toString();
         }
@@ -176,9 +180,11 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
         // 3. Matchear Tiqueteador
         let matchedTicketPrinterId = '';
         if (booking.tiquetPrinter) {
+            const searchTP = booking.tiquetPrinter.toString().trim().toLowerCase();
             const foundTP = data?.ticketPrinters?.find((tp: any) => 
-                tp.code?.toLowerCase() === booking.tiquetPrinter?.toLowerCase() ||
-                tp.name?.toLowerCase()?.includes(booking.tiquetPrinter?.toLowerCase())
+                tp.id?.toString() === booking.tiquetPrinter?.toString() ||
+                tp.code?.toString().toLowerCase() === searchTP ||
+                tp.name?.toLowerCase()?.includes(searchTP)
             );
             if (foundTP) matchedTicketPrinterId = foundTP.id.toString();
         }
@@ -186,18 +192,22 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
         // 4. Matchear Sucursal e Implant
         let matchedBranchId = '';
         if (booking.blanch) {
+            const searchBranch = booking.blanch.toString().trim().toLowerCase();
             const foundBranch = data?.branches?.find((b: any) => 
-                b.code?.toLowerCase() === booking.blanch?.toLowerCase() ||
-                b.name?.toLowerCase()?.includes(booking.blanch?.toLowerCase())
+                b.id?.toString() === booking.blanch?.toString() ||
+                b.code?.toString().toLowerCase() === searchBranch ||
+                b.name?.toLowerCase()?.includes(searchBranch)
             );
             if (foundBranch) matchedBranchId = foundBranch.id.toString();
         }
 
         let matchedImplantId = '';
         if (booking.implant) {
+            const searchImplant = booking.implant.toString().trim().toLowerCase();
             const foundImplant = data?.implants?.find((imp: any) => 
-                imp.code?.toLowerCase() === booking.implant?.toLowerCase() ||
-                imp.name?.toLowerCase()?.includes(booking.implant?.toLowerCase())
+                imp.id?.toString() === booking.implant?.toString() ||
+                imp.code?.toString().toLowerCase() === searchImplant ||
+                imp.name?.toLowerCase()?.includes(searchImplant)
             );
             if (foundImplant) matchedImplantId = foundImplant.id.toString();
         }
