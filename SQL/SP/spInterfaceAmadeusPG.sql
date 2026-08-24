@@ -386,6 +386,7 @@ BEGIN
                 v_fp_clean TEXT;
                 v_fp_tipo TEXT := 'CA';
                 v_fp_monto NUMERIC := 0;
+                v_fp_card_type TEXT := '';
                 v_fp_card_number TEXT := '';
                 v_fp_exp TEXT := '__/__';
                 v_fp_auth TEXT := '';
@@ -396,6 +397,13 @@ BEGIN
                     v_fp_tipo := 'CA';
                 ELSIF v_fp_clean LIKE 'CC%' OR v_fp_clean LIKE 'TC%' THEN
                     v_fp_tipo := 'CC';
+                    -- Extraer franquicia (ej: VI, MC, AX, DC)
+                    v_fp_card_type := substring(v_fp_clean from '^(?:CC|TC)([A-Za-z]{2})');
+                    IF v_fp_card_type IS NULL OR v_fp_card_type = '' THEN
+                        v_fp_card_type := substring(v_line from 'FPCC([A-Za-z]{2})');
+                    END IF;
+                    IF v_fp_card_type IS NULL THEN v_fp_card_type := ''; END IF;
+
                     v_fp_card_number := substring(v_line from 'FPCC([A-Za-z0-9]+?)(?:E[0-9]{2}|/|\s|;|$)');
                     IF v_fp_card_number IS NULL OR v_fp_card_number = '' THEN
                         v_fp_card_number := substring(v_fp_clean from 'CC([A-Za-z0-9]+?)(?:E[0-9]{2}|/|\s|;|$)');
@@ -429,7 +437,7 @@ BEGIN
 
                 IF NOT v_already_exists THEN
                     v_pay_tipos := array_append(v_pay_tipos, v_fp_tipo);
-                    v_pay_tarjetas := array_append(v_pay_tarjetas, '');
+                    v_pay_tarjetas := array_append(v_pay_tarjetas, COALESCE(v_fp_card_type, ''));
                     v_pay_montos := array_append(v_pay_montos, v_fp_monto);
                     v_pay_numbers := array_append(v_pay_numbers, COALESCE(v_fp_card_number, ''));
                     v_pay_expiries := array_append(v_pay_expiries, v_fp_exp);
@@ -719,7 +727,7 @@ BEGIN
             -- 6. Formas de Pago proporcionales por tiquete para que la suma cuadre con el valor del tiquete
             FOR v_i IN 1 .. COALESCE(array_length(v_pay_tipos, 1), 0) LOOP
                 IF v_pay_tipos[v_i] IS NOT NULL THEN
-                    v_prod_pay_val := ROUND(COALESCE(v_pay_montos[v_i], 0) / v_num_prods, 2);
+                    v_prod_pay_val := COALESCE(v_pay_montos[v_i], v_am_total);
                     INSERT INTO public."BookingProductPaymentGDS" (
                         "bookingProductId", "bookingProductFEEId", "code", "name", "type", "typecreditcard", 
                         "numbercreditcard", "vouchercreditcard", "expiredcreditcard", "authcreditcard", "quotas", 

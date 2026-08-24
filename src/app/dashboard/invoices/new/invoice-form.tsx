@@ -393,6 +393,20 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                     (pay.name && pm.name?.toLowerCase()?.includes(pay.name?.toLowerCase()))
                 ) || (isCreditCard ? (data?.payments?.find((pm: any) => pm.name?.toLowerCase().includes('tarjeta')) || { name: 'Tarjeta de Crédito', code: 'CC' }) : data?.payments?.[0]);
 
+                let matchedCreditCardId: number | undefined = undefined;
+                const rawCardType = (pay.typecreditcard || pay.typeCreditCard || pay.cardNumber?.substring(0, 2) || pay.numbercreditcard?.substring(0, 2) || '').toString().trim().toUpperCase();
+                if (rawCardType && data?.creditCards) {
+                    const foundCard = data.creditCards.find((c: any) => 
+                        c.code?.toUpperCase() === rawCardType ||
+                        c.name?.toUpperCase()?.includes(rawCardType) ||
+                        (rawCardType === 'VI' && c.name?.toUpperCase()?.includes('VISA')) ||
+                        (rawCardType === 'MC' && c.name?.toUpperCase()?.includes('MASTER')) ||
+                        (rawCardType === 'AX' && c.name?.toUpperCase()?.includes('AMEX')) ||
+                        (rawCardType === 'DC' && c.name?.toUpperCase()?.includes('DINERS'))
+                    );
+                    if (foundCard) matchedCreditCardId = Number(foundCard.id);
+                }
+
                 return {
                     amount: Number(pay.amount || 0),
                     paymentMethod: matchedPayMethod?.name || (isCreditCard ? 'Tarjeta de Crédito' : 'Efectivo'),
@@ -401,7 +415,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                     authorizationCode: pay.authcreditcard || pay.authorizationCode || '',
                     voucher: pay.vouchercreditcard || pay.voucher || '',
                     cardNumber: pay.numbercreditcard || pay.cardNumber || '',
-                    expirationDate: pay.expiredcreditcard || pay.expirationDate || ''
+                    expirationDate: pay.expiredcreditcard || pay.expirationDate || '',
+                    creditCardId: matchedCreditCardId
                 };
             });
 
@@ -727,25 +742,43 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
         document.body.removeChild(link)
     }
 
-    // Get unique taxes that have been applied anywhere, and sum their amounts
-    const taxSummary = React.useMemo(() => {
-        const summary: Record<string, number> = {}
-        if (!data?.taxes) return summary;
+    // Get unique taxes that have been applied anywhere, putting Tarifa first and respecting master order
+    const sortedTaxSummaryList = React.useMemo(() => {
+        const map = new Map<string, { id: number; code: string; name: string; orden: number; amount: number }>();
+        if (!data?.taxes) return [];
 
         formData.items.forEach(item => {
-            // All charges and taxes are now consolidated in appliedTaxes
             (item.appliedTaxes || []).forEach(tax => {
                 const rawTaxId = (tax as any).id ?? (tax as any).chargeAndTaxId;
                 const taxId = rawTaxId != null ? Number(rawTaxId) : null;
                 const master = data.taxes.find((t: any) => Number(t.id) === taxId);
-                const name = master ? master.name : ((tax as any).name || 'Otros');
-                summary[name] = (summary[name] || 0) + (tax.amount || 0);
+                const key = master ? master.name : ((tax as any).name || 'Otros');
+                const code = master ? (master.code || '') : ((tax as any).code || '');
+                const orden = master && master.orden != null ? Number(master.orden) : 9999;
+                const id = master ? Number(master.id) : 9999;
+
+                if (!map.has(key)) {
+                    map.set(key, { id, code, name: key, orden, amount: 0 });
+                }
+                const curr = map.get(key)!;
+                curr.amount += Number(tax.amount || 0);
             });
         });
-        return summary;
+
+        const list = Array.from(map.values());
+        list.sort((a, b) => {
+            const isTarA = a.code === 'TAR' || a.name.toUpperCase().includes('TARIFA');
+            const isTarB = b.code === 'TAR' || b.name.toUpperCase().includes('TARIFA');
+            if (isTarA && !isTarB) return -1;
+            if (!isTarA && isTarB) return 1;
+            if (a.orden !== b.orden) return a.orden - b.orden;
+            return a.id - b.id;
+        });
+
+        return list;
     }, [formData.items, data?.taxes]);
 
-    const total = Object.values(taxSummary).reduce((sum, val) => sum + val, 0);
+    const total = sortedTaxSummaryList.reduce((sum, item) => sum + item.amount, 0);
 
     const handleCalculateTaxes = (index: number) => {
         const item = formData.items[index];
@@ -1206,10 +1239,15 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-500">Implant</label>
                                 <SearchSelect
-                                    options={data.implants.filter((i: any) => i.branchId?.toString() === formData.branchId)}
+                                    options={(data.implants || []).filter((i: any) => 
+                                        !formData.branchId || 
+                                        !i.branchId || 
+                                        i.branchId?.toString() === formData.branchId || 
+                                        i.id?.toString() === formData.implantId
+                                    )}
                                     value={formData.implantId}
                                     onChange={(val) => setFormData({ ...formData, implantId: val })}
-                                    disabled={!formData.branchId}
+                                    disabled={!formData.branchId && (data.implants || []).length === 0}
                                     placeholder="Sel. Implant"
                                     secondaryKey="code"
                                 />
@@ -2196,16 +2234,16 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                             </div>
 
                             <div className="space-y-4 relative z-10 pt-4">
-                                {Object.entries(taxSummary).length === 0 && (
+                                {sortedTaxSummaryList.length === 0 && (
                                     <div className="text-zinc-500 text-sm font-medium text-center pb-4">Aún no se han configurado cargos en los productos.</div>
                                 )}
-                                {Object.entries(taxSummary).map(([name, amount]) => (
-                                    <div key={name} className="flex justify-between items-center text-sm font-bold text-zinc-300 border-b border-zinc-800 pb-3">
+                                {sortedTaxSummaryList.map((taxItem) => (
+                                    <div key={taxItem.name} className="flex justify-between items-center text-sm font-bold text-zinc-300 border-b border-zinc-800 pb-3">
                                         <span className="flex items-center gap-2">
                                             <Tag className="w-4 h-4 text-emerald-400" />
-                                            {name}
+                                            {taxItem.name}
                                         </span>
-                                        <span className="text-white">${amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</span>
+                                        <span className="text-white">${taxItem.amount.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}</span>
                                     </div>
                                 ))}
                             </div>
