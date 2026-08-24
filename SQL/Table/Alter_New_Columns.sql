@@ -1196,7 +1196,9 @@ BEGIN
         ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "typecreditcard" character varying(25);
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'numbercreditcard') THEN
-        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "numbercreditcard" character varying(16);
+        ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "numbercreditcard" character varying(50);
+    ELSE
+        ALTER TABLE public."BookingProductPaymentGDS" ALTER COLUMN "numbercreditcard" TYPE character varying(50);
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'BookingProductPaymentGDS' AND column_name = 'vouchercreditcard') THEN
         ALTER TABLE public."BookingProductPaymentGDS" ADD COLUMN "vouchercreditcard" character varying(25);

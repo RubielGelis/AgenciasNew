@@ -680,7 +680,7 @@ model BookingProductPaymentGDS {
   name                 String                @db.VarChar(50)
   type                 String                @db.VarChar(50)
   typecreditcard       String?               @db.VarChar(25)
-  numbercreditcard     String?               @db.VarChar(16)
+  numbercreditcard     String?               @db.VarChar(50)
   vouchercreditcard    String?               @db.VarChar(25)
   expiredcreditcard    String?               @db.VarChar(5)
   authcreditcard       String?               @db.VarChar(25)
