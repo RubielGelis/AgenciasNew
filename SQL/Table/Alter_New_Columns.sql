@@ -2528,6 +2528,13 @@ BEGIN
         );
     END IF;
 
+    -- Foreign Key de InterfaceExtractParam hacia Interfaces
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'InterfaceExtractParam_interfaceId_fkey') THEN
+        ALTER TABLE public."InterfaceExtractParam" 
+        ADD CONSTRAINT "InterfaceExtractParam_interfaceId_fkey" 
+        FOREIGN KEY ("interfaceId") REFERENCES public."Interfaces"("id") ON DELETE CASCADE;
+    END IF;
+
     -- Reglas iniciales para Amadeus (interfaceId = 2)
     IF NOT EXISTS (SELECT 1 FROM public."InterfaceExtractParam" WHERE "interfaceId" = 2) THEN
         INSERT INTO public."InterfaceExtractParam" ("interfaceId", "fieldCode", "fieldName", "prefix") VALUES

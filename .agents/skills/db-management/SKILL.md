@@ -56,7 +56,24 @@ Este script ejecuta la validación pre-compilación de 4 capas:
 
 ---
 
-## 3. Reglas Críticas para Funciones SQL de Listado (`public.fn...Listar()`)
+## 4. Reglas de Llaves Foráneas y Consultas Relacionales (Prisma / SQL)
+
+1. **Definición Obligatoria de Llaves Foráneas (FK Constraints)**:
+   Al crear o modificar tablas en [`SQL/Table/Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql), **es obligatorio agregar la restricción de Foreign Key (`CONSTRAINT ... FOREIGN KEY ("columnaId") REFERENCES public."Tabla" ("id")`)**.
+   - *Razón*: Si la FK falta en la BD PostgreSQL, `npx prisma db pull` no genera la relación de modelos en `prisma/schema.prisma`.
+
+2. **Patrón Seguro para Consultas con Relaciones en API Routes**:
+   Para consultar datos relacionales en Next.js, se DEBE utilizar preferentemente `$queryRawUnsafe` con **`LEFT JOIN`** y `jsonb_build_object`:
+   ```typescript
+   const list = await prisma.$queryRawUnsafe(`
+       SELECT 
+           t.*,
+           jsonb_build_object('id', r.id, 'code', r.code, 'name', r.name) as "Relacion"
+       FROM public."TablaPrincipal" t
+       LEFT JOIN public."TablaRelacionada" r ON r.id = t."relacionId"
+   `);
+   ```
+   - *Ventajas*: Cumple la regla estricta de `LEFT JOIN` y previene errores en tiempo de ejecución del ORM (`Unknown field 'Model' for include statement`).
 
 > [!CAUTION]
 > **LISTADOS VACÍOS O RETORNO ERROR 500 (PREVENCIÓN OBLIGATORIA)**:

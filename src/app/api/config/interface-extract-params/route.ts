@@ -6,20 +6,29 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const interfaceIdParam = searchParams.get('interfaceId');
 
-        let whereClause = {};
+        let whereCondition = '';
         if (interfaceIdParam) {
-            whereClause = { interfaceId: Number(interfaceIdParam) };
+            whereCondition = `WHERE iep."interfaceId" = ${Number(interfaceIdParam)}`;
         }
 
-        const list = await (prisma as any).interfaceExtractParam.findMany({
-            where: whereClause,
-            include: {
-                Interfaces: {
-                    select: { id: true, code: true, name: true }
-                }
-            },
-            orderBy: { id: 'asc' }
-        });
+        const list: any[] = await prisma.$queryRawUnsafe(`
+            SELECT 
+                iep.id,
+                iep."interfaceId",
+                iep."fieldCode",
+                iep."fieldName",
+                iep.prefix,
+                iep.delimiter,
+                iep."startPosition",
+                iep.length,
+                iep."isActive",
+                iep."createdAt",
+                jsonb_build_object('id', i.id, 'code', i.code, 'name', i.name) as "Interfaces"
+            FROM public."InterfaceExtractParam" iep
+            LEFT JOIN public."Interfaces" i ON i.id = iep."interfaceId"
+            ${whereCondition}
+            ORDER BY iep.id ASC
+        `);
 
         return NextResponse.json(list);
     } catch (error: any) {
