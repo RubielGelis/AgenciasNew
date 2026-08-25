@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, DollarSign, CreditCard, Calendar, CheckCircle } from 'lucide-react';
+import { X, DollarSign, CreditCard, Calendar, CheckCircle, AlertTriangle } from 'lucide-react';
+import { parseAndValidateCreditCard } from '@/lib/creditCardUtils';
 
 interface GlobalPaymentModalProps {
     isOpen: boolean;
@@ -10,7 +11,7 @@ interface GlobalPaymentModalProps {
     paymentsList?: any[];
 }
 
-export default function GlobalPaymentModal({ isOpen, onClose, totalAmount, onApplyPayment, creditCards, paymentsList = [] }: GlobalPaymentModalProps) {
+export default function GlobalPaymentModal({ isOpen, onClose, totalAmount, onApplyPayment, creditCards = [], paymentsList = [] }: GlobalPaymentModalProps) {
     const [amount, setAmount] = useState(totalAmount);
     const [method, setMethod] = useState(paymentsList && paymentsList.length > 0 ? paymentsList[0].name : 'Efectivo');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -23,14 +24,44 @@ export default function GlobalPaymentModal({ isOpen, onClose, totalAmount, onApp
 
     if (!isOpen) return null;
 
+    const handleRefChange = (val: string) => {
+        setReference(val);
+        const result = parseAndValidateCreditCard(val, creditCards);
+        if (result.isCardFormat) {
+            if (result.isValid && result.matchedCard) {
+                setCreditCardId(result.matchedCard.id);
+                if (result.cardNumber) setCardNumber(result.cardNumber);
+            } else {
+                setCreditCardId(undefined);
+                if (result.cardNumber) setCardNumber(result.cardNumber);
+            }
+        }
+    };
+
+    const handleCardNumberChange = (val: string) => {
+        setCardNumber(val);
+        const result = parseAndValidateCreditCard(val, creditCards);
+        if (result.isCardFormat) {
+            if (result.isValid && result.matchedCard) {
+                setCreditCardId(result.matchedCard.id);
+                if (result.cardNumber) setCardNumber(result.cardNumber);
+            } else {
+                setCreditCardId(undefined);
+            }
+        }
+    };
+
+    const isCardMethod = method === 'Tarjeta de Credito' || method === 'Tarjeta de Crédito' || method?.toLowerCase().includes('tarjeta') || paymentsList?.find(p => p.name === method)?.iscredit;
+    const refValidation = parseAndValidateCreditCard(reference || cardNumber, creditCards);
+
     const handleApply = () => {
-        onApplyPayment(amount, method, date, reference, method === 'Tarjeta de Credito' ? { creditCardId, cardNumber, authorizationCode, voucher, expirationDate } : undefined);
+        onApplyPayment(amount, method, date, reference, isCardMethod ? { creditCardId, cardNumber, authorizationCode, voucher, expirationDate } : undefined);
         onClose();
     };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-            <div className={`bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full ${(method === 'Tarjeta de Credito' || paymentsList?.find(p => p.name === method)?.iscredit) ? 'max-w-2xl' : 'max-w-md'} shadow-2xl border border-zinc-200 dark:border-zinc-800 transition-all`}>
+            <div className={`bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full ${isCardMethod ? 'max-w-2xl' : 'max-w-md'} shadow-2xl border border-zinc-200 dark:border-zinc-800 transition-all`}>
                 <div className="flex justify-between items-center mb-6">
                     <h3 className="text-lg font-bold flex items-center gap-2">
                         <DollarSign className="w-5 h-5 text-emerald-500" />
@@ -95,39 +126,65 @@ export default function GlobalPaymentModal({ isOpen, onClose, totalAmount, onApp
                             <label className="text-xs font-bold text-zinc-500 uppercase">Referencia</label>
                             <input
                                 type="text"
-                                placeholder="Ref / Voucher"
-                                className="w-full h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-3 border border-zinc-200 dark:border-zinc-700 outline-none text-sm font-medium"
+                                placeholder="Ej: VI0000000000007023"
+                                className={`w-full h-11 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-3 border outline-none text-sm font-medium ${refValidation.isCardFormat && !refValidation.isValid ? 'border-red-500 text-red-600 bg-red-50/20' : 'border-zinc-200 dark:border-zinc-700'}`}
                                 value={reference}
-                                onChange={(e) => setReference(e.target.value)}
+                                onChange={(e) => handleRefChange(e.target.value)}
                             />
                         </div>
                     </div>
 
-                    {(method === 'Tarjeta de Credito' || paymentsList?.find(p => p.name === method)?.iscredit) && (
-                        <div className="flex gap-4 bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
-                            <div className="space-y-1 col-span-3 sm:col-span-1">
-                                <label className="text-[10px] uppercase font-bold text-zinc-500">Tipo TC</label>
-                                <select className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none text-xs" value={creditCardId || ''} onChange={(e) => setCreditCardId(parseInt(e.target.value) || undefined)}>
-                                    <option value="">Seleccione...</option>
-                                    {creditCards.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                </select>
+                    {isCardMethod && (
+                        <div className="flex flex-col gap-3 bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                            <div className="grid grid-cols-5 gap-3">
+                                <div className="space-y-1 col-span-1">
+                                    <label className="text-[10px] uppercase font-bold text-zinc-500">Tipo TC</label>
+                                    <select 
+                                        className={`w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border outline-none text-xs ${refValidation.isCardFormat && !refValidation.isValid ? 'border-red-400 ring-1 ring-red-400' : 'border-zinc-200 dark:border-zinc-700'}`}
+                                        value={creditCardId || ''} 
+                                        onChange={(e) => setCreditCardId(parseInt(e.target.value) || undefined)}
+                                    >
+                                        <option value="">Seleccione...</option>
+                                        {creditCards.map(c => <option key={c.id} value={c.id}>[{c.code}] {c.name}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-1 col-span-1">
+                                    <label className="text-[10px] uppercase font-bold text-zinc-500">Núm. Tarjeta</label>
+                                    <input 
+                                        type="text" 
+                                        placeholder="0000000000007023" 
+                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none text-xs font-mono" 
+                                        value={cardNumber} 
+                                        onChange={(e) => handleCardNumberChange(e.target.value)} 
+                                    />
+                                </div>
+                                <div className="space-y-1 col-span-1">
+                                    <label className="text-[10px] uppercase font-bold text-zinc-500">Autorización</label>
+                                    <input type="text" placeholder="A076194" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none text-xs" value={authorizationCode} onChange={(e) => setAuthorizationCode(e.target.value)} />
+                                </div>
+                                <div className="space-y-1 col-span-1">
+                                    <label className="text-[10px] uppercase font-bold text-zinc-500">Voucher</label>
+                                    <input type="text" placeholder="V-12345" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none text-xs" value={voucher} onChange={(e) => setVoucher(e.target.value)} />
+                                </div>
+                                <div className="space-y-1 col-span-1">
+                                    <label className="text-[10px] uppercase font-bold text-zinc-500">Vencimiento</label>
+                                    <input type="text" placeholder="MM/AA" maxLength={5} className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none text-xs" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} />
+                                </div>
                             </div>
-                            <div className="space-y-1 col-span-3 sm:col-span-2">
-                                <label className="text-[10px] uppercase font-bold text-zinc-500">Núm. Tarjeta</label>
-                                <input type="text" placeholder="**** **** **** 1234" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none text-xs" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} />
-                            </div>
-                            <div className="space-y-1 col-span-1">
-                                <label className="text-[10px] uppercase font-bold text-zinc-500">Autorización</label>
-                                <input type="text" placeholder="000000" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none text-xs" value={authorizationCode} onChange={(e) => setAuthorizationCode(e.target.value)} />
-                            </div>
-                            <div className="space-y-1 col-span-1">
-                                <label className="text-[10px] uppercase font-bold text-zinc-500">Voucher</label>
-                                <input type="text" placeholder="V-12345" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none text-xs" value={voucher} onChange={(e) => setVoucher(e.target.value)} />
-                            </div>
-                            <div className="space-y-1 col-span-1">
-                                <label className="text-[10px] uppercase font-bold text-zinc-500">Vencimiento</label>
-                                <input type="text" placeholder="MM/AA" maxLength={5} className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-700 outline-none text-xs" value={expirationDate} onChange={(e) => setExpirationDate(e.target.value)} />
-                            </div>
+
+                            {/* Validation feedback message */}
+                            {refValidation.isCardFormat && refValidation.isValid && refValidation.matchedCard && (
+                                <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 mt-0.5">
+                                    <CheckCircle className="w-3.5 h-3.5" />
+                                    Código "{refValidation.cardCode}" validado: Tarjeta {refValidation.matchedCard.name} ({refValidation.matchedCard.code})
+                                </div>
+                            )}
+                            {refValidation.isCardFormat && !refValidation.isValid && (
+                                <div className="text-[11px] font-bold text-red-600 dark:text-red-400 flex items-center gap-1 mt-0.5 bg-red-50 dark:bg-red-950/40 p-1.5 rounded-md border border-red-200 dark:border-red-800">
+                                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-red-500" />
+                                    {refValidation.errorMessage}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

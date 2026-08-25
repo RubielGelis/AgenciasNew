@@ -598,13 +598,15 @@ export const MANUAL_MODULES: ManualModule[] = [
                 code: 'MAE-13',
                 masterCode: 'CreditCard',
                 name: 'Maestro de Tarjetas de Crédito',
-                summary: 'Registro de franquicias de tarjetas de crédito aceptadas como medio de pago.',
-                concept: 'Administra las franquicias (Visa, Mastercard, American Express) para conciliar cobros.',
+                summary: 'Registro y validación de franquicias de tarjetas de crédito (Visa, Mastercard, Amex, Diners, etc.) asociadas a los pagos.',
+                concept: 'Administra las franquicias de tarjetas de crédito y sus códigos de 2 letras (ej. VI, MC, AX, DC). Al ingresar referencias de pago con tarjeta en facturación (ej. VI0000000000007023), el sistema extrae automáticamente las 2 primeras letras como código de franquicia, las valida contra este maestro y asigna el ID de la tarjeta correspondiente.',
                 fields: [
+                    { name: 'Código Franquicia', type: 'Texto (2 letras)', description: 'VI (Visa), MC (Mastercard), AX (Amex), DC (Diners).' },
                     { name: 'Nombre Franquicia', type: 'Texto', description: 'Visa, Mastercard, Diners, Amex.' }
                 ],
                 steps: [
-                    { number: 1, title: 'Administrar Franquicia', description: 'En la pestaña "Tarjetas de Crédito", habilite las franquicias recibidas.' }
+                    { number: 1, title: 'Administrar Franquicia', description: 'En la pestaña "Tarjetas de Crédito", administre las franquicias y sus códigos asignados.' },
+                    { number: 2, title: 'Validación en Pagos', description: 'En el modal de formas de pago de facturación, la referencia tipo "VI0000000000007023" separará automáticamente el código "VI" para seleccionar la tarjeta de crédito y el número "0000000000007023".' }
                 ]
             },
             {

@@ -12,6 +12,8 @@ import GlobalPaymentModal from './GlobalPaymentModal';
 import ItemPaymentModal from './ItemPaymentModal';
 import SearchBookingModal from './SearchBookingModal';
 import { CreditCard } from 'lucide-react';
+import { parseAndValidateCreditCard } from '@/lib/creditCardUtils';
+
 
 interface InvoiceFormData {
     clientId: string;
@@ -393,31 +395,35 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                     (pay.name && pm.name?.toLowerCase()?.includes(pay.name?.toLowerCase()))
                 ) || (isCreditCard ? (data?.payments?.find((pm: any) => pm.name?.toLowerCase().includes('tarjeta')) || { name: 'Tarjeta de Crédito', code: 'CC' }) : data?.payments?.[0]);
 
-                let matchedCreditCardId: number | undefined = undefined;
-                const rawCardType = (pay.typecreditcard || pay.typeCreditCard || pay.cardNumber?.substring(0, 2) || pay.numbercreditcard?.substring(0, 2) || '').toString().trim().toUpperCase();
-                if (rawCardType && data?.creditCards) {
-                    const foundCard = data.creditCards.find((c: any) => 
-                        c.code?.toUpperCase() === rawCardType ||
-                        c.name?.toUpperCase()?.includes(rawCardType) ||
-                        (rawCardType === 'VI' && c.name?.toUpperCase()?.includes('VISA')) ||
-                        (rawCardType === 'MC' && c.name?.toUpperCase()?.includes('MASTER')) ||
-                        (rawCardType === 'AX' && c.name?.toUpperCase()?.includes('AMEX')) ||
-                        (rawCardType === 'DC' && c.name?.toUpperCase()?.includes('DINERS'))
-                    );
-                    if (foundCard) matchedCreditCardId = Number(foundCard.id);
+                const fullRefStr = (pay.numbercreditcard || pay.cardNumber || pay.reference || '').toString().trim();
+                const cardParseResult = parseAndValidateCreditCard(fullRefStr, data?.creditCards || []);
+                let matchedCreditCardId = cardParseResult.matchedCard?.id;
+
+                if (!matchedCreditCardId) {
+                    const rawCardType = (pay.typecreditcard || pay.typeCreditCard || fullRefStr.substring(0, 2) || '').toString().trim().toUpperCase();
+                    if (rawCardType && data?.creditCards) {
+                        const foundCard = data.creditCards.find((c: any) => 
+                            c.code?.toUpperCase() === rawCardType ||
+                            c.name?.toUpperCase()?.includes(rawCardType) ||
+                            (rawCardType === 'VI' && c.name?.toUpperCase()?.includes('VISA')) ||
+                            (rawCardType === 'MC' && c.name?.toUpperCase()?.includes('MASTER'))
+                        );
+                        if (foundCard) matchedCreditCardId = Number(foundCard.id);
+                    }
                 }
 
                 return {
                     amount: Number(pay.amount || 0),
                     paymentMethod: matchedPayMethod?.name || (isCreditCard ? 'Tarjeta de Crédito' : 'Efectivo'),
                     date: format(new Date(), 'yyyy-MM-dd'),
-                    reference: pay.numbercreditcard || pay.authcreditcard || pay.vouchercreditcard || '',
+                    reference: fullRefStr || pay.authcreditcard || pay.vouchercreditcard || '',
                     authorizationCode: pay.authcreditcard || pay.authorizationCode || '',
                     voucher: pay.vouchercreditcard || pay.voucher || '',
-                    cardNumber: pay.numbercreditcard || pay.cardNumber || '',
+                    cardNumber: cardParseResult.cardNumber || pay.numbercreditcard || pay.cardNumber || '',
                     expirationDate: pay.expiredcreditcard || pay.expirationDate || '',
                     creditCardId: matchedCreditCardId
                 };
+
             });
 
             const COLOMBIAN_AIRPORTS = new Set([

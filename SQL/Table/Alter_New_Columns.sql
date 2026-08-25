@@ -463,6 +463,23 @@ BEGIN
             "inactive" boolean DEFAULT false NOT NULL
         );
     END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM public."CreditCard" WHERE UPPER(TRIM("code")) = 'VI') THEN
+        INSERT INTO public."CreditCard" ("code", "name", "type", "inactive") VALUES ('VI', 'Visa', 'CREDITO', false);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public."CreditCard" WHERE UPPER(TRIM("code")) = 'MC') THEN
+        INSERT INTO public."CreditCard" ("code", "name", "type", "inactive") VALUES ('MC', 'Mastercard', 'CREDITO', false);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public."CreditCard" WHERE UPPER(TRIM("code")) = 'AX') THEN
+        INSERT INTO public."CreditCard" ("code", "name", "type", "inactive") VALUES ('AX', 'American Express', 'CREDITO', false);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public."CreditCard" WHERE UPPER(TRIM("code")) = 'DC') THEN
+        INSERT INTO public."CreditCard" ("code", "name", "type", "inactive") VALUES ('DC', 'Diners Club', 'CREDITO', false);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM public."CreditCard" WHERE UPPER(TRIM("code")) = 'TP') THEN
+        INSERT INTO public."CreditCard" ("code", "name", "type", "inactive") VALUES ('TP', 'Tarjeta Propia / UATP', 'CREDITO', false);
+    END IF;
+
     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Countries') THEN
         CREATE TABLE public."Countries" (
             "id" integer DEFAULT nextval('"Countries_id_seq"'::regclass) NOT NULL,

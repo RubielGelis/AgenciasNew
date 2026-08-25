@@ -653,7 +653,7 @@ export default function SettingsPage() {
                 setBranches(Array.isArray(b) ? b : []);
                 setImplants(Array.isArray(i) ? i : []);
                 setTicketPrinters(Array.isArray(tp) ? tp : []);
-            } else if (tab === 'clientes' || tab === 'sucursales' || tab === 'implants') {
+            } else if (tab === 'clientes' || tab === 'sucursales' || tab === 'implants' || tab === 'extraccion-interfaces') {
                 const res = await fetch('/api/config/variables').then(res => res.json());
                 setVariables(Array.isArray(res) ? res : []);
             } else if (tab === 'parametros') {
