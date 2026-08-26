@@ -36,7 +36,7 @@ DECLARE
     v_tkt_pay_cards TEXT[] := ARRAY[]::TEXT[];
     v_tkt_pay_numbers TEXT[] := ARRAY[]::TEXT[];
     
-    -- Itinerarios
+    -- Itinerarios M30
     v_iti_origenes TEXT[] := ARRAY[]::TEXT[];
     v_iti_destinos TEXT[] := ARRAY[]::TEXT[];
     v_iti_vuelos TEXT[] := ARRAY[]::TEXT[];
@@ -96,33 +96,68 @@ BEGIN
             END;
         END IF;
 
-        -- Itinerarios Vuelos M30
+        -- Itinerarios Vuelos M30 (AIRN)
         IF v_line LIKE 'M30%' THEN
             DECLARE
+                v_airn_pos INT;
+                v_date_str TEXT;
+                v_day INT;
+                v_mon_str TEXT;
+                v_mon INT;
+                v_year INT := EXTRACT(YEAR FROM CURRENT_TIMESTAMP)::INT;
                 v_orig TEXT;
                 v_dest TEXT;
-                v_aero TEXT;
+                v_rest TEXT;
+                v_airline TEXT;
                 v_flight TEXT;
                 v_class TEXT;
+                v_dep_time TEXT;
+                v_arr_time TEXT;
+                v_check_in TIMESTAMP;
+                v_check_out TIMESTAMP;
             BEGIN
-                v_orig := NULLIF(TRIM(SUBSTRING(v_line FROM 26 FOR 3)), '');
-                v_dest := NULLIF(TRIM(SUBSTRING(v_line FROM 46 FOR 3)), '');
-                v_aero := NULLIF(TRIM(SUBSTRING(v_line FROM 66 FOR 2)), '');
-                v_flight := NULLIF(TRIM(SUBSTRING(v_line FROM 69 FOR 4)), '');
-                v_class := NULLIF(TRIM(SUBSTRING(v_line FROM 73 FOR 1)), '');
-                
-                IF v_aero IS NOT NULL THEN
-                    v_aerolinea_vende := v_aero;
-                END IF;
+                v_airn_pos := POSITION('AIRN' IN v_line);
+                IF v_airn_pos > 0 THEN
+                    v_date_str := SUBSTRING(v_line FROM 10 FOR 5);
+                    v_day := (SUBSTRING(v_date_str FROM 1 FOR 2))::INT;
+                    v_mon_str := UPPER(SUBSTRING(v_date_str FROM 3 FOR 3));
+                    
+                    v_mon := CASE v_mon_str
+                        WHEN 'JAN' THEN 1 WHEN 'FEB' THEN 2 WHEN 'MAR' THEN 3
+                        WHEN 'APR' THEN 4 WHEN 'MAY' THEN 5 WHEN 'JUN' THEN 6
+                        WHEN 'JUL' THEN 7 WHEN 'AUG' THEN 8 WHEN 'SEP' THEN 9
+                        WHEN 'OCT' THEN 10 WHEN 'NOV' THEN 11 WHEN 'DEC' THEN 12
+                        ELSE 1 END;
+                        
+                    v_orig := SUBSTRING(v_line FROM v_airn_pos + 4 FOR 3);
+                    v_dest := SUBSTRING(v_line FROM v_airn_pos + 24 FOR 3);
+                    
+                    v_rest := TRIM(SUBSTRING(v_line FROM v_airn_pos + 44));
+                    v_airline := SUBSTRING(v_rest FROM 1 FOR 2);
+                    v_flight := TRIM(SUBSTRING(v_rest FROM 4 FOR 4));
+                    v_class := SUBSTRING(v_rest FROM 8 FOR 1);
+                    v_dep_time := SUBSTRING(v_rest FROM 10 FOR 4);
+                    v_arr_time := SUBSTRING(v_rest FROM 15 FOR 4);
+                    
+                    v_check_in := MAKE_TIMESTAMP(v_year, v_mon, v_day, (SUBSTRING(v_dep_time FROM 1 FOR 2))::INT, (SUBSTRING(v_dep_time FROM 3 FOR 2))::INT, 0);
+                    v_check_out := MAKE_TIMESTAMP(v_year, v_mon, v_day, (SUBSTRING(v_arr_time FROM 1 FOR 2))::INT, (SUBSTRING(v_arr_time FROM 3 FOR 2))::INT, 0);
+                    IF v_check_out < v_check_in THEN
+                        v_check_out := v_check_out + INTERVAL '1 day';
+                    END IF;
 
-                IF v_orig IS NOT NULL AND v_dest IS NOT NULL THEN
-                    v_iti_origenes := array_append(v_iti_origenes, v_orig);
-                    v_iti_destinos := array_append(v_iti_destinos, v_dest);
-                    v_iti_aerolineas := array_append(v_iti_aerolineas, COALESCE(v_aero, 'AA'));
-                    v_iti_vuelos := array_append(v_iti_vuelos, COALESCE(v_flight, '0000'));
-                    v_iti_clases := array_append(v_iti_clases, COALESCE(v_class, 'Y'));
-                    v_iti_fechas_salida := array_append(v_iti_fechas_salida, CURRENT_TIMESTAMP);
-                    v_iti_fechas_llegada := array_append(v_iti_fechas_llegada, CURRENT_TIMESTAMP);
+                    IF v_airline IS NOT NULL AND v_airline <> '' THEN
+                        v_aerolinea_vende := v_airline;
+                    END IF;
+
+                    IF v_orig IS NOT NULL AND v_dest IS NOT NULL THEN
+                        v_iti_origenes := array_append(v_iti_origenes, v_orig);
+                        v_iti_destinos := array_append(v_iti_destinos, v_dest);
+                        v_iti_aerolineas := array_append(v_iti_aerolineas, COALESCE(v_airline, 'AA'));
+                        v_iti_vuelos := array_append(v_iti_vuelos, COALESCE(v_flight, '0000'));
+                        v_iti_clases := array_append(v_iti_clases, COALESCE(v_class, 'Y'));
+                        v_iti_fechas_salida := array_append(v_iti_fechas_salida, v_check_in);
+                        v_iti_fechas_llegada := array_append(v_iti_fechas_llegada, v_check_out);
+                    END IF;
                 END IF;
             END;
         END IF;
@@ -162,7 +197,7 @@ BEGIN
                         END IF;
                     END IF;
 
-                    -- 2. Valor Tarifa (Segmento 3 de string_to_array por '/')
+                    -- 2. Valor Tarifa (Segmento 3 por '/')
                     IF array_length(v_parts, 1) >= 3 THEN
                         v_raw_tarifa := regexp_replace(v_parts[3], '[^0-9.]', '', 'g');
                         IF v_raw_tarifa <> '' THEN
@@ -170,7 +205,7 @@ BEGIN
                         END IF;
                     END IF;
 
-                    -- 3. Valor Otros Impuestos (Segmento 4 de string_to_array por '/')
+                    -- 3. Valor Otros Impuestos (Segmento 4 por '/')
                     IF array_length(v_parts, 1) >= 4 THEN
                         v_raw_tax := regexp_replace(v_parts[4], '[^0-9.]', '', 'g');
                         IF v_raw_tax <> '' THEN
@@ -328,8 +363,9 @@ BEGIN
                         "bookingProductId", "orden", "origin", "destination", "class", "checkInDate", 
                         "checkOutDate", "terminal", "prestadoraCode", "farebasis", "Numflight", "Typeflight", "amount"
                     ) VALUES (
-                        v_booking_product_gds_id, v_i, v_iti_origenes[v_i], v_iti_destinos[v_i], v_iti_clases[v_i], v_iti_fechas_salida[v_i], 
-                        v_iti_fechas_llegada[v_i], v_iti_destinos[v_i], v_iti_aerolineas[v_i], '', v_iti_vuelos[v_i], '', 0
+                        v_booking_product_gds_id, v_i, v_iti_origenes[v_i], v_iti_destinos[v_i], v_iti_clases[v_i], 
+                        v_iti_fechas_salida[v_i], v_iti_fechas_llegada[v_i], v_iti_destinos[v_i], v_iti_aerolineas[v_i], 
+                        '', v_iti_vuelos[v_i], '', 0
                     );
                 END IF;
             END LOOP;
