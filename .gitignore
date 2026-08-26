@@ -65,3 +65,6 @@ Instalador/
 unins000.dat
 unins000.exe
 install_log.txt
+scratch/
+resolve*.js
+

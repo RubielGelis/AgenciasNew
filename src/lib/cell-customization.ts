@@ -63,7 +63,19 @@ const FIELD_LABELS: Record<string, string> = {
     baseComisionable: 'Base Comisión',
     comisionAsesor: 'Comisión Asesor',
     baseComisionTop: 'Comisión Top',
-    observaciones: 'Observaciones'
+    observaciones: 'Observaciones',
+    // Invoice specific fields
+    idFactura: 'ID / Consecutivo Factura',
+    internalNumber: 'Número Interno',
+    sucursal: 'Sucursal',
+    implante: 'Implante',
+    vendedor: 'Vendedor / Asesor',
+    resolucionTexto: 'Resolución Texto',
+    resolucionPrefijo: 'Resolución Prefijo',
+    resolucionAutoriza: 'Resolución Autorización',
+    moneda: 'Moneda',
+    totalAmount: 'Total Factura',
+    formaPago: 'Forma de Pago'
 };
 
 export async function getCellCustomizationConfig(

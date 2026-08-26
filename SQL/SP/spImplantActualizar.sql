@@ -7,8 +7,12 @@ CREATE OR REPLACE PROCEDURE public.spImplantActualizar(
     p_template_config JSONB,
     p_html_template TEXT,
     p_branch_id INT,
-    p_acting_user_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_resolution_id INT DEFAULT NULL,
+    p_invoice_template BYTEA DEFAULT NULL,
+    p_invoice_template_config JSONB DEFAULT NULL,
+    p_invoice_html_template TEXT DEFAULT NULL,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
@@ -25,7 +29,11 @@ BEGIN
         "template" = COALESCE(p_template, "template"),
         "templateConfig" = COALESCE(p_template_config, "templateConfig"),
         "htmlTemplate" = COALESCE(p_html_template, "htmlTemplate"),
-        "branchId" = p_branch_id
+        "branchId" = p_branch_id,
+        "resolutionId" = p_resolution_id,
+        "invoiceTemplate" = COALESCE(p_invoice_template, "invoiceTemplate"),
+        "invoiceTemplateConfig" = COALESCE(p_invoice_template_config, "invoiceTemplateConfig"),
+        "invoiceHtmlTemplate" = COALESCE(p_invoice_html_template, "invoiceHtmlTemplate")
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Implant actualizado exitosamente.';

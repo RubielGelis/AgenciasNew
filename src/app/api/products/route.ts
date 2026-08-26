@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
                 airlineItinerary: airlineItinerary || null,
                 ticketTypeId: ticketTypeId ? parseInt(ticketTypeId) : null,
                 mandatoryFields: mandatoryFields || null,
-            }
+            } as any
         });
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
@@ -72,7 +72,7 @@ export async function PUT(req: NextRequest) {
                 airlineItinerary: airlineItinerary || null,
                 ticketTypeId: ticketTypeId ? parseInt(ticketTypeId) : null,
                 mandatoryFields: mandatoryFields || null,
-            }
+            } as any
         });
 
         import('@/lib/logger').then(({ logSystemEvent }) => {

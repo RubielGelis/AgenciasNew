@@ -1689,3 +1689,47 @@ BEGIN
     END IF;
 
 END $$;
+    -- 7. Columnas resolutionId e invoiceTemplate para Branch e Implant
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'resolutionId') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "resolutionId" INT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceTemplate') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceTemplate" BYTEA;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceTemplateConfig') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceTemplateConfig" JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceHtmlTemplate') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceHtmlTemplate" TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'resolutionId') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "resolutionId" INT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceTemplate') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceTemplate" BYTEA;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceTemplateConfig') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceTemplateConfig" JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceHtmlTemplate') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceHtmlTemplate" TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'SysConsecutivo') THEN
+        CREATE TABLE public."SysConsecutivo" (
+            "id" SERIAL PRIMARY KEY,
+            "codigo" VARCHAR(50) NOT NULL,
+            "nombre" VARCHAR(255) NOT NULL,
+            "branchId" INT REFERENCES public."Branch"(id) ON DELETE SET NULL,
+            "implantId" INT REFERENCES public."Implant"(id) ON DELETE SET NULL,
+            "fuente" VARCHAR(50),
+            "serie" VARCHAR(50),
+            "consecutivo" BIGINT NOT NULL DEFAULT 0,
+            "createdAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX "idx_sysconsecutivo_codigo" ON public."SysConsecutivo"("codigo");
+        CREATE INDEX "idx_sysconsecutivo_branch" ON public."SysConsecutivo"("branchId");
+        CREATE INDEX "idx_sysconsecutivo_implant" ON public."SysConsecutivo"("implantId");
+    END IF;
+END $$;

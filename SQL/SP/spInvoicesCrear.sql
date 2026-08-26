@@ -20,6 +20,12 @@ DECLARE
     v_real_product_id INT;
     v_existing_invoice_number TEXT;
     v_temp_msg TEXT;
+    v_fuente TEXT;
+    v_serie TEXT;
+    v_consecutivo TEXT;
+    v_consec_id INT;
+    v_next_num BIGINT;
+    v_billing_code TEXT;
 BEGIN
     -- Validaciones
     IF NULLIF(p_data->>'clientId', '') IS NULL THEN
@@ -34,6 +40,48 @@ BEGIN
 
     v_internal_number := 'INV-' || to_char(CURRENT_DATE, 'YYYYMMDD') || '-' || floor(random() * 1000)::text;
 
+    v_fuente := NULLIF(p_data->>'fuente', '');
+    v_serie := NULLIF(p_data->>'serie', '');
+    v_consecutivo := NULLIF(p_data->>'consecutivo', '');
+
+    -- Lógica de asignación de consecutivo automático desde SysConsecutivo si consecutivo es nulo o vacío
+    IF v_consecutivo IS NULL THEN
+        v_billing_code := COALESCE(
+            NULLIF(p_data->>'codigo', ''), 
+            NULLIF(p_data->>'codigoFacturacion', ''), 
+            NULLIF(p_data->>'billingCode', ''), 
+            v_fuente, 
+            'FACT'
+        );
+
+        SELECT id, NULLIF(fuente, ''), NULLIF(serie, '') 
+        INTO v_consec_id, v_fuente, v_serie
+        FROM public."SysConsecutivo"
+        WHERE LOWER(codigo) = LOWER(v_billing_code)
+           OR ("branchId" = NULLIF(p_data->>'branchId', '')::INT AND ("implantId" IS NULL OR "implantId" = NULLIF(p_data->>'implantId', '')::INT))
+        ORDER BY 
+            (CASE WHEN LOWER(codigo) = LOWER(v_billing_code) THEN 1 ELSE 2 END),
+            (CASE WHEN "implantId" IS NOT NULL THEN 1 WHEN "branchId" IS NOT NULL THEN 2 ELSE 3 END),
+            id DESC
+        LIMIT 1;
+
+        IF v_consec_id IS NOT NULL THEN
+            UPDATE public."SysConsecutivo"
+            SET consecutivo = consecutivo + 1,
+                "updatedAt" = CURRENT_TIMESTAMP
+            WHERE id = v_consec_id
+            RETURNING consecutivo INTO v_next_num;
+
+            v_consecutivo := LPAD(v_next_num::TEXT, 8, '0');
+        ELSE
+            SELECT COALESCE(MAX(consecutivo::BIGINT), 0) + 1 INTO v_next_num 
+            FROM public."Invoices" 
+            WHERE consecutivo ~ '^[0-9]+$';
+
+            v_consecutivo := LPAD(v_next_num::TEXT, 8, '0');
+        END IF;
+    END IF;
+
     INSERT INTO public."Invoices" (
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
         "branchId", "implantId", "sellerId", "ticketPrinterId", 
@@ -44,7 +92,7 @@ BEGIN
         NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
         0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
         NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO',
-        NULLIF(p_data->>'fuente', ''), NULLIF(p_data->>'serie', ''), NULLIF(p_data->>'consecutivo', '')
+        v_fuente, v_serie, v_consecutivo
     ) RETURNING id INTO v_invoice_id;
 
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)

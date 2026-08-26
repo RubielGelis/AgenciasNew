@@ -22,23 +22,23 @@ model Role {
 }
 
 model User {
-  id                   Int                     @id @default(autoincrement())
-  name                 String
-  email                String                  @unique
-  passwordHash         String
-  resetPasswordToken   String?                 @unique
-  resetPasswordExpires DateTime?
-  roleId               Int
-  branchId             Int?
-  implantId            Int?
-  ticketPrinterId      Int?
-  quotations           Quotation[]
-  stateHistories       QuotationStateHistory[]
-  logs                 SystemLog[]
-  branch               Branch?                 @relation(fields: [branchId], references: [id])
-  implant              Implant?                @relation(fields: [implantId], references: [id])
-  role                 Role                    @relation(fields: [roleId], references: [id])
-  ticketPrinter        TicketPrinter?          @relation(fields: [ticketPrinterId], references: [id])
+  id                    Int                     @id @default(autoincrement())
+  name                  String
+  email                 String                  @unique
+  passwordHash          String
+  resetPasswordToken    String?                 @unique
+  resetPasswordExpires  DateTime?
+  roleId                Int
+  branchId              Int?
+  implantId             Int?
+  ticketPrinterId       Int?
+  quotations            Quotation[]
+  QuotationStateHistory QuotationStateHistory[]
+  logs                  SystemLog[]
+  branch                Branch?                 @relation(fields: [branchId], references: [id])
+  implant               Implant?                @relation(fields: [implantId], references: [id])
+  role                  Role                    @relation(fields: [roleId], references: [id])
+  ticketPrinter         TicketPrinter?          @relation(fields: [ticketPrinterId], references: [id])
 }
 
 model Client {
@@ -78,34 +78,64 @@ model Prestadora {
 }
 
 model Branch {
-  id                   Int                    @id @default(autoincrement())
-  code                 String                 @unique
-  name                 String
-  logo                 Bytes?
-  template             Bytes?
-  templateConfig       Json?
-  htmlTemplate         String?
-  BranchGDSInvoiceAuto BranchGDSInvoiceAuto[]
-  cellCustomizations   CellCustomization[]
-  implants             Implant[]
-  quotations           Quotation[]
-  users                User[]
+  id                    Int                    @id @default(autoincrement())
+  code                  String                 @unique
+  name                  String
+  logo                  Bytes?
+  template              Bytes?
+  templateConfig        Json?
+  htmlTemplate          String?
+  invoiceHtmlTemplate   String?
+  invoiceTemplate       Bytes?
+  invoiceTemplateConfig Json?
+  resolutionId          Int?
+  resolution            Resolution?            @relation(fields: [resolutionId], references: [id])
+  BranchGDSInvoiceAuto  BranchGDSInvoiceAuto[]
+  cellCustomizations    CellCustomization[]
+  implants              Implant[]
+  quotations            Quotation[]
+  sysConsecutivos       SysConsecutivo[]
+  users                 User[]
 }
 
 model Implant {
-  id                 Int                 @id @default(autoincrement())
-  code               String              @unique
-  name               String
-  branchId           Int?
-  logo               Bytes?
-  template           Bytes?
-  templateConfig     Json?
-  htmlTemplate       String?
-  Logo               Bytes?
-  cellCustomizations CellCustomization[]
-  branch             Branch?             @relation(fields: [branchId], references: [id])
-  quotations         Quotation[]
-  users              User[]
+  id                    Int                 @id @default(autoincrement())
+  code                  String              @unique
+  name                  String
+  branchId              Int?
+  logo                  Bytes?
+  template              Bytes?
+  templateConfig        Json?
+  htmlTemplate          String?
+  Logo                  Bytes?
+  invoiceHtmlTemplate   String?
+  invoiceTemplate       Bytes?
+  invoiceTemplateConfig Json?
+  resolutionId          Int?
+  cellCustomizations    CellCustomization[]
+  branch                Branch?             @relation(fields: [branchId], references: [id])
+  resolution            Resolution?         @relation(fields: [resolutionId], references: [id])
+  quotations            Quotation[]
+  sysConsecutivos       SysConsecutivo[]
+  users                 User[]
+}
+
+model Resolution {
+  id       Int       @id @default(autoincrement())
+  code     String    @unique
+  name     String
+  date     DateTime?
+  expira   DateTime?
+  inicial  BigInt?
+  end      BigInt?
+  autoriza String?
+  prefijo  String?
+  alerta   Int?
+  day      Int?
+  permitir Boolean?  @default(false)
+  activo   Boolean?  @default(true)
+  branches Branch[]
+  implants Implant[]
 }
 
 model Seller {
@@ -130,10 +160,10 @@ model Product {
   type              String
   description       String
   basePrice         Float
-  cost              Float?             @default(0)
   billingConcept    String?
   serviceType       String?
   code              String?            @unique
+  cost              Float?             @default(0)
   airlineItinerary  String?
   classItinerary    String?
   flightItinerary   String?
@@ -160,7 +190,7 @@ model Quotation {
   chargesAndTaxes             Float
   totalAmount                 Float
   userId                      Int?
-  state                       String?                 @default("Nuevo") @db.VarChar(25)
+  state                       String?                 @default("NUEVO") @db.VarChar(25)
   stateDescription            String?
   stateUpdatedAt              DateTime?               @db.Timestamp(6)
   costoTotal                  Float?                  @default(0)
@@ -181,7 +211,7 @@ model Quotation {
   user                        User?                   @relation(fields: [userId], references: [id])
   combos                      QuotationCombo[]
   products                    QuotationProduct[]
-  stateHistory                QuotationStateHistory[]
+  QuotationStateHistory       QuotationStateHistory[]
 }
 
 model QuotationCombo {
@@ -209,7 +239,6 @@ model QuotationProduct {
   productId               Int
   quantity                Int
   price                   Float
-  cost                    Float?                      @default(0)
   providerId              Int?
   prestadoraId            Int?
   checkInDate             DateTime?
@@ -225,6 +254,7 @@ model QuotationProduct {
   comboId                 Int?
   mainTaxId               Int?
   inNationality           Int?                        @default(1)
+  cost                    Float?                      @default(0)
   service                 String?
   description             String?
   servicios               String?
@@ -311,10 +341,10 @@ model Combo {
   id              Int              @id @default(autoincrement())
   code            String           @unique
   name            String
-  cupos           Int?             @default(0)
-  currencyId      Int?
   createdAt       DateTime         @default(now())
-  updatedAt       DateTime?        @default(now()) @updatedAt @db.Timestamp(6)
+  updatedAt       DateTime?        @updatedAt
+  currencyId      Int?
+  cupos           Int?             @default(0)
   currency        Currency?        @relation(fields: [currencyId], references: [id])
   products        ComboProduct[]
   quotationCombos QuotationCombo[]
@@ -325,7 +355,6 @@ model ComboProduct {
   comboId       Int
   productId     Int
   price         Float
-  cost          Float?            @default(0)
   checkInDate   DateTime?
   checkOutDate  DateTime?
   prestadoraId  Int?
@@ -335,6 +364,7 @@ model ComboProduct {
   providerId    Int?
   inNationality Int?              @default(1)
   quantity      Int               @default(1)
+  cost          Float?            @default(0)
   combo         Combo             @relation(fields: [comboId], references: [id], onDelete: Cascade)
   prestadora    Prestadora?       @relation(fields: [prestadoraId], references: [id])
   product       Product           @relation(fields: [productId], references: [id])
@@ -392,6 +422,9 @@ model Invoices {
   totalAmount          Float
   userId               Int?
   state                String?  @default("NUEVO") @db.VarChar(25)
+  consecutivo          String?  @db.VarChar(25)
+  fuente               String?  @db.VarChar(25)
+  serie                String?  @db.VarChar(25)
 }
 
 model InvoicesProduct {
@@ -432,14 +465,15 @@ model InvoicesProductItinerary {
   origin           String          @db.VarChar(255)
   destination      String          @db.VarChar(255)
   class            String?         @db.VarChar(255)
-  checkInDate      DateTime?       @db.Timestamp(6)
-  checkOutDate     DateTime?       @db.Timestamp(6)
+  checkInDate      DateTime?
+  checkOutDate     DateTime?
   terminal         String?         @db.VarChar(255)
   prestadoraCode   String?         @db.VarChar(255)
   farebasis        String?         @db.VarChar(255)
   Numflight        String?         @db.VarChar(25)
   Typeflight       String?         @db.VarChar(1)
   amount           Float?
+  co2              Decimal?        @db.Decimal(10, 4)
   InvoicesProduct  InvoicesProduct @relation(fields: [invoiceProductId], references: [id], onDelete: Cascade)
 }
 
@@ -480,11 +514,11 @@ model InvoicesProductPayment {
   paymentMethod     String?     @db.VarChar(100)
   date              DateTime?   @default(now()) @db.Timestamp(6)
   reference         String?     @db.VarChar(255)
-  authorizationCode String?
-  cardNumber        String?
   creditCardId      Int?
-  expirationDate    String?
+  cardNumber        String?
+  authorizationCode String?
   voucher           String?
+  expirationDate    String?
   CreditCard        CreditCard? @relation(fields: [creditCardId], references: [id])
 }
 
@@ -588,8 +622,8 @@ model BookingProductGDS {
   conjunction                Int?                         @default(0)
   revised                    String?                      @db.VarChar(25)
   typeproduct                String?                      @db.VarChar(25)
-  consecutive                String?                      @db.VarChar(25)
   penalty                    String?                      @db.VarChar(25)
+  consecutive                String?                      @db.VarChar(25)
   BookingProductFEEGDS       BookingProductFEEGDS[]
   BookingGDS                 BookingGDS                   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   BookingProductItineraryGDS BookingProductItineraryGDS[]
@@ -800,8 +834,8 @@ model Report {
   name          String          @db.VarChar(255)
   base_table    String?         @db.VarChar(100)
   description   String?
-  custom_sql    String?
   created_at    DateTime?       @default(now()) @db.Timestamp(6)
+  custom_sql    String?
   ReportColumns ReportColumns[]
   ReportFilters ReportFilters[]
   ReportJoins   ReportJoins[]
@@ -815,9 +849,9 @@ model ReportColumns {
   column_name        String   @db.VarChar(100)
   alias              String?  @db.VarChar(150)
   is_calculated      Boolean? @default(false)
-  is_visible         Boolean? @default(true)
   formula_expression String?
   sort_order         Int?     @default(0)
+  is_visible         Boolean? @default(true)
   Report             Report   @relation(fields: [report_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
@@ -877,12 +911,31 @@ model QuotationProductPayment {
   QuotationProduct   QuotationProduct @relation(fields: [quotationProductId], references: [id], onDelete: Cascade)
 }
 
+model SysConsecutivo {
+  id          Int      @id @default(autoincrement())
+  codigo      String   @db.VarChar(50)
+  nombre      String   @db.VarChar(255)
+  branchId    Int?
+  implantId   Int?
+  fuente      String?  @db.VarChar(50)
+  serie       String?  @db.VarChar(50)
+  consecutivo BigInt   @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  branch      Branch?  @relation(fields: [branchId], references: [id])
+  implant     Implant? @relation(fields: [implantId], references: [id])
+
+  @@index([codigo], map: "idx_sysconsecutivo_codigo")
+  @@index([branchId], map: "idx_sysconsecutivo_branch")
+  @@index([implantId], map: "idx_sysconsecutivo_implant")
+}
+
 model QuotationState {
   id        Int      @id @default(autoincrement())
-  code      String   @unique @db.VarChar(25)
   name      String   @db.VarChar(50)
   color     String?  @db.VarChar(20)
   createdAt DateTime @default(now()) @db.Timestamp(6)
+  code      String   @unique @db.VarChar(25)
 }
 
 model QuotationStateHistory {
@@ -892,8 +945,8 @@ model QuotationStateHistory {
   description String?
   createdAt   DateTime  @default(now()) @db.Timestamp(6)
   userId      Int?
-  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
-  user        User?     @relation(fields: [userId], references: [id])
+  Quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  User        User?     @relation(fields: [userId], references: [id])
 
   @@index([quotationId])
 }

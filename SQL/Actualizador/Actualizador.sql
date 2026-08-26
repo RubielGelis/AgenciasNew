@@ -3742,6 +3742,51 @@ BEGIN
     END IF;
 
 END $$;
+    -- 7. Columnas resolutionId e invoiceTemplate para Branch e Implant
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'resolutionId') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "resolutionId" INT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceTemplate') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceTemplate" BYTEA;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceTemplateConfig') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceTemplateConfig" JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceHtmlTemplate') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceHtmlTemplate" TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'resolutionId') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "resolutionId" INT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceTemplate') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceTemplate" BYTEA;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceTemplateConfig') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceTemplateConfig" JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceHtmlTemplate') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceHtmlTemplate" TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'SysConsecutivo') THEN
+        CREATE TABLE public."SysConsecutivo" (
+            "id" SERIAL PRIMARY KEY,
+            "codigo" VARCHAR(50) NOT NULL,
+            "nombre" VARCHAR(255) NOT NULL,
+            "branchId" INT REFERENCES public."Branch"(id) ON DELETE SET NULL,
+            "implantId" INT REFERENCES public."Implant"(id) ON DELETE SET NULL,
+            "fuente" VARCHAR(50),
+            "serie" VARCHAR(50),
+            "consecutivo" BIGINT NOT NULL DEFAULT 0,
+            "createdAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX "idx_sysconsecutivo_codigo" ON public."SysConsecutivo"("codigo");
+        CREATE INDEX "idx_sysconsecutivo_branch" ON public."SysConsecutivo"("branchId");
+        CREATE INDEX "idx_sysconsecutivo_implant" ON public."SysConsecutivo"("implantId");
+    END IF;
+END $$;
+
 
 -- >>> 2. FUNCIONES <<<
 
@@ -4640,6 +4685,18 @@ END;
 $$;
 
 
+-- Archivo: fnResolucionListar.sql
+CREATE OR REPLACE FUNCTION public.fnResolucionListar()
+RETURNS SETOF public."Resolution"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."Resolution" ORDER BY name ASC;
+END;
+$$;
+
+
 -- Archivo: fnRptCotizacion.sql
 CREATE OR REPLACE FUNCTION public."fnRptCotizacion"(
 	p_id_ini integer,
@@ -4827,6 +4884,47 @@ END;
 $$;
 
 
+-- Archivo: fnSysConsecutivoListar.sql
+CREATE OR REPLACE FUNCTION public.fnSysConsecutivoListar()
+RETURNS TABLE (
+    id INT,
+    codigo VARCHAR,
+    nombre VARCHAR,
+    "branchId" INT,
+    "branchName" VARCHAR,
+    "implantId" INT,
+    "implantName" VARCHAR,
+    fuente VARCHAR,
+    serie VARCHAR,
+    consecutivo BIGINT,
+    "createdAt" TIMESTAMP,
+    "updatedAt" TIMESTAMP
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        sc.id,
+        sc.codigo,
+        sc.nombre,
+        sc."branchId",
+        b.name AS "branchName",
+        sc."implantId",
+        imp.name AS "implantName",
+        sc.fuente,
+        sc.serie,
+        sc.consecutivo,
+        sc."createdAt",
+        sc."updatedAt"
+    FROM public."SysConsecutivo" sc
+    LEFT JOIN public."Branch" b ON b.id = sc."branchId"
+    LEFT JOIN public."Implant" imp ON imp.id = sc."implantId"
+    ORDER BY sc.id DESC;
+END;
+$$;
+
+
 -- Archivo: fnTicketPrinterListar.sql
 CREATE OR REPLACE FUNCTION public.fnTicketPrinterListar()
 RETURNS SETOF public."TicketPrinter"
@@ -4932,21 +5030,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-
--- Archivo: fnQuitarEspeciales.sql
-CREATE OR REPLACE FUNCTION public."fnQuitarEspeciales"(texto TEXT)
-RETURNS TEXT AS $$
-BEGIN
-    IF texto IS NULL THEN
-        RETURN NULL;
-    END IF;
-
-    -- Reemplaza cualquier carácter que NO sea letra, número o espacio por un espacio ' '
-    -- Incluye soporte para letras con tildes y ñ (a-zA-Z0-9áéíóúÁÉÍÓÚñÑ)
-    RETURN REGEXP_REPLACE(texto, '[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ ]', ' ', 'g');
-END;
-$$ LANGUAGE plpgsql IMMUTABLE;
-
 -- >>> 3. PROCEDIMIENTOS ALMACENADOS (SP) <<<
 
 -- Archivo: spAirportActualizar.sql
@@ -4989,8 +5072,12 @@ CREATE OR REPLACE PROCEDURE public.spBranchActualizar(
     p_template BYTEA,
     p_template_config JSONB,
     p_html_template TEXT,
-    p_acting_user_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_resolution_id INT DEFAULT NULL,
+    p_invoice_template BYTEA DEFAULT NULL,
+    p_invoice_template_config JSONB DEFAULT NULL,
+    p_invoice_html_template TEXT DEFAULT NULL,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
@@ -5006,7 +5093,11 @@ BEGIN
         "logo" = COALESCE(p_logo, "logo"),
         "template" = COALESCE(p_template, "template"),
         "templateConfig" = COALESCE(p_template_config, "templateConfig"),
-        "htmlTemplate" = COALESCE(p_html_template, "htmlTemplate")
+        "htmlTemplate" = COALESCE(p_html_template, "htmlTemplate"),
+        "resolutionId" = p_resolution_id,
+        "invoiceTemplate" = COALESCE(p_invoice_template, "invoiceTemplate"),
+        "invoiceTemplateConfig" = COALESCE(p_invoice_template_config, "invoiceTemplateConfig"),
+        "invoiceHtmlTemplate" = COALESCE(p_invoice_html_template, "invoiceHtmlTemplate")
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Sucursal actualizada exitosamente.';
@@ -5025,15 +5116,25 @@ CREATE OR REPLACE PROCEDURE public.spBranchCrear(
     p_template BYTEA,
     p_template_config JSONB,
     p_html_template TEXT,
-    p_acting_user_id INT,
-    INOUT p_branch_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_resolution_id INT DEFAULT NULL,
+    p_invoice_template BYTEA DEFAULT NULL,
+    p_invoice_template_config JSONB DEFAULT NULL,
+    p_invoice_html_template TEXT DEFAULT NULL,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_branch_id INT DEFAULT 0,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO public."Branch" ("code", "name", "logo", "template", "templateConfig", "htmlTemplate")
-    VALUES (p_code, p_name, p_logo, p_template, p_template_config, p_html_template)
+    INSERT INTO public."Branch" (
+        "code", "name", "logo", "template", "templateConfig", "htmlTemplate",
+        "resolutionId", "invoiceTemplate", "invoiceTemplateConfig", "invoiceHtmlTemplate"
+    )
+    VALUES (
+        p_code, p_name, p_logo, p_template, p_template_config, p_html_template,
+        p_resolution_id, p_invoice_template, p_invoice_template_config, p_invoice_html_template
+    )
     RETURNING id INTO p_branch_id;
 
     p_mensaje_resultado := 'SUCCESS: Sucursal creada con ID ' || p_branch_id;
@@ -6611,7 +6712,7 @@ BEGIN
 		ds_cliente_contacto VARCHAR(40),
 		ds_cliente_contacto_email VARCHAR(60),
 		id_monedas_iata INTEGER,
-		cd_vendedor VARCHAR(3),
+		cd_vendedor CHAR(3),
 		id_tiqueteador INTEGER,
 		bn_anexo BYTEA,
 		Tcambio DECIMAL,
@@ -6626,9 +6727,9 @@ BEGIN
 		ds_Observacion VARCHAR(8000),
 		ds_Campo_libre1 varchar(500),
 		ds_Campo_libre2 varchar(500),
-		cd_fuente_Reemplaza VARCHAR(2),
-		cd_serie_Reemplaza VARCHAR(2),
-		cd_consecutivo_Reemplaza VARCHAR(8),		
+		cd_fuente_Reemplaza CHAR(2),
+		cd_serie_Reemplaza CHAR(2),
+		cd_consecutivo_Reemplaza CHAR(8),		
 		ds_Actividad_Economica VARCHAR(10),
 		ds_Tarifa_ICA VARCHAR(15),	
 		SqlStmt TEXT,
@@ -6639,7 +6740,7 @@ BEGIN
 		bl_generadaauto BIT(1),
 		ds_CotizacionesId Varchar(500),
 		Id_Cierre INTEGER,
-		cd_TipoFact VARCHAR(2),
+		cd_TipoFact CHAR(2),
 		id_fac_remisionRelacionada INTEGER,
 		id_fac_facturaRelacionada INTEGER,
 		ds_DescripcionFac VARCHAR(500),
@@ -6694,10 +6795,10 @@ BEGIN
 		am_Comision DECIMAL,
 		ds_paxname VARCHAR(30),
 		ds_paxape VARCHAR(30),
-		ds_paxprefix VARCHAR(3),
+		ds_paxprefix CHAR(3),
 		cd_tourcode VARCHAR(25),
 		NumTktConj INTEGER,
-		cd_TipoTiquete VARCHAR(3),
+		cd_TipoTiquete CHAR(3),
 		id_air INTEGER,
 		ds_itinerario VARCHAR(250),
 		ds_itinerarioaerolinea VARCHAR(128),
@@ -6716,7 +6817,7 @@ BEGIN
 		cd_FormaPagoTAO VARCHAR(3),
 		cd_TarjetaCreditoTAO VARCHAR(4),
 		cd_NumeroTarjetaTAO VARCHAR(25),
-		cd_VencimientoTarjetaTAO VARCHAR(6),
+		cd_VencimientoTarjetaTAO CHAR(6),
 		cd_NumeroPolizaTAO VARCHAR(50),
 		cd_AnexoPolizaTAO VARCHAR(50),
 		ds_AutorizacionTarjetaTAO VARCHAR(25),
@@ -6802,12 +6903,12 @@ BEGIN
 		id_tipoitem VARCHAR(25),
 		ds_paxape VARCHAR(30),
 		ds_paxname VARCHAR(30),
-		ds_paxprefix VARCHAR(3),
-		ds_paxClasificacion VARCHAR(25),
+		ds_paxprefix CHAR(3),
+		ds_paxClasificacion CHAR(25),
 		cd_voucherpax VARCHAR(25),
 		cd_paxidentificacion VARCHAR(25),
 		in_edad INT,
-		cd_tiquete VARCHAR(50)
+		cd_tiquete CHAR(50)
 	) ON COMMIT DROP;
 
 	CREATE TEMP TABLE IF NOT EXISTS CargosImpuestos(
@@ -6817,7 +6918,7 @@ BEGIN
 		id_tipoitem VARCHAR(25),
 		cd_codigo VARCHAR(20),
 		ds_nombre VARCHAR(100),
-		cd_tipo VARCHAR(1),
+		cd_tipo CHAR(1),
 		am_porcentaje NUMERIC(8,4),
 		am_valor DECIMAL,
 		am_contado DECIMAL,
@@ -6895,10 +6996,10 @@ BEGIN
         e.date AS dt_fechacont,
         e.date AS dt_vence,
         SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_tercero_codigo,
-        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.name, '')), 1, 250) AS ds_tercero_nombre,
+        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_tercero_nombre,
         SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_cliente_codigo,
-        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.name, '')), 1, 250) AS ds_cliente_nombre,
-        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.address, '')), 1, 250) AS ds_cliente_dir,
+        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_cliente_nombre,
+        SUBSTRING(COALESCE(c.address, ''), 1, 250) AS ds_cliente_dir,
         '' AS ds_cliente_ciudad,
         '' AS ds_cliente_tel,
         '' AS ds_cliente_dirdesp,
@@ -7462,7 +7563,7 @@ BEGIN
 		ds_cliente_contacto VARCHAR(40),
 		ds_cliente_contacto_email VARCHAR(60),
 		cd_monedas_iata VARCHAR(25),
-		cd_vendedor VARCHAR(3),
+		cd_vendedor CHAR(3),
 		cd_tiqueteador VARCHAR(25),
 		bn_anexo BYTEA,
 		Tcambio DECIMAL,
@@ -7477,9 +7578,9 @@ BEGIN
 		ds_Observacion VARCHAR(8000),
 		ds_Campo_libre1 varchar(500),
 		ds_Campo_libre2 varchar(500),
-		cd_fuente_Reemplaza VARCHAR(2),
-		cd_serie_Reemplaza VARCHAR(2),
-		cd_consecutivo_Reemplaza VARCHAR(8),		
+		cd_fuente_Reemplaza CHAR(2),
+		cd_serie_Reemplaza CHAR(2),
+		cd_consecutivo_Reemplaza CHAR(8),		
 		ds_Actividad_Economica VARCHAR(10),
 		ds_Tarifa_ICA VARCHAR(15),	
 		SqlStmt TEXT,
@@ -7490,7 +7591,7 @@ BEGIN
 		bl_generadaauto BIT(1),
 		ds_CotizacionesId Varchar(500),
 		Id_Cierre INTEGER,
-		cd_TipoFact VARCHAR(2),
+		cd_TipoFact CHAR(2),
 		id_fac_remisionRelacionada INTEGER,
 		id_fac_facturaRelacionada INTEGER,
 		ds_DescripcionFac VARCHAR(500),
@@ -7545,10 +7646,10 @@ BEGIN
 		am_Comision DECIMAL,
 		ds_paxname VARCHAR(30),
 		ds_paxape VARCHAR(30),
-		ds_paxprefix VARCHAR(3),
+		ds_paxprefix CHAR(3),
 		cd_tourcode VARCHAR(25),
 		NumTktConj INTEGER,
-		cd_TipoTiquete VARCHAR(3),
+		cd_TipoTiquete CHAR(3),
 		id_air INTEGER,
 		ds_itinerario VARCHAR(250),
 		ds_itinerarioaerolinea VARCHAR(128),
@@ -7567,7 +7668,7 @@ BEGIN
 		cd_FormaPagoTAO VARCHAR(3),
 		cd_TarjetaCreditoTAO VARCHAR(4),
 		cd_NumeroTarjetaTAO VARCHAR(25),
-		cd_VencimientoTarjetaTAO VARCHAR(6),
+		cd_VencimientoTarjetaTAO CHAR(6),
 		cd_NumeroPolizaTAO VARCHAR(50),
 		cd_AnexoPolizaTAO VARCHAR(50),
 		ds_AutorizacionTarjetaTAO VARCHAR(25),
@@ -7664,12 +7765,12 @@ BEGIN
 		in_tipoitem INTEGER,
 		ds_paxape VARCHAR(30),
 		ds_paxname VARCHAR(30),
-		ds_paxprefix VARCHAR(3),
-		ds_paxClasificacion VARCHAR(25),
+		ds_paxprefix CHAR(3),
+		ds_paxClasificacion CHAR(25),
 		cd_voucherpax VARCHAR(25),
 		cd_paxidentificacion VARCHAR(25),
 		in_edad INT,
-		cd_tiquete VARCHAR(50)
+		cd_tiquete CHAR(50)
 	) ON COMMIT DROP;
 
 	CREATE TEMP TABLE IF NOT EXISTS CargosImpuestos(
@@ -7679,7 +7780,7 @@ BEGIN
 		in_tipoitem INTEGER,
 		cd_codigo VARCHAR(20),
 		ds_nombre VARCHAR(100),
-		cd_tipo VARCHAR(1),
+		cd_tipo CHAR(1),
 		am_porcentaje NUMERIC(8,4),
 		am_valor DECIMAL,
 		am_contado DECIMAL,
@@ -7758,10 +7859,10 @@ BEGIN
         e.date AS dt_fechacont,
         e.date AS dt_vence,
         SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_tercero_codigo,
-        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.name, '')), 1, 250) AS ds_tercero_nombre,
+        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_tercero_nombre,
         SUBSTRING(COALESCE(c.document, ''), 1, 25) AS cd_cliente_codigo,
-        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.name, '')), 1, 250) AS ds_cliente_nombre,
-        SUBSTRING(public."fnQuitarEspeciales"(COALESCE(c.address, '')), 1, 250) AS ds_cliente_dir,
+        SUBSTRING(COALESCE(c.name, ''), 1, 250) AS ds_cliente_nombre,
+        SUBSTRING(COALESCE(c.address, ''), 1, 250) AS ds_cliente_dir,
         '' AS ds_cliente_ciudad,
         '' AS ds_cliente_tel,
         '' AS ds_cliente_dirdesp,
@@ -8340,11 +8441,11 @@ BEGIN
 		cd_cliente_codigo VARCHAR(25) ,
 		ds_cliente_nombre VARCHAR(250) ,
 		ds_cliente_dir VARCHAR(250) ,
-		ds_cliente_ciudad VARCHAR(40) ,
+		ds_cliente_ciudad VARCHAR(100) ,
 		ds_cliente_tel VARCHAR(25) ,
 		ds_cliente_dirdesp VARCHAR(250) ,
 		ds_cliente_email VARCHAR(60) ,
-		ds_cliente_contacto VARCHAR(40) ,
+		ds_cliente_contacto VARCHAR(100) ,
 		ds_cliente_contacto_email VARCHAR(60) ,
 		cd_monedas_IATA VARCHAR(25),
 		cd_vendedor VARCHAR(25) ,
@@ -8514,11 +8615,11 @@ BEGIN
 		ds_paxape VARCHAR(30),
 		ds_paxname VARCHAR(30),
 		ds_paxprefix CHAR(25),
-		ds_paxClasificacion VARCHAR(25),
+		ds_paxClasificacion CHAR(25),
 		cd_voucherpax VARCHAR(25),
 		cd_paxidentificacion VARCHAR(25),
 		in_edad INT,
-		cd_tiquete VARCHAR(50)
+		cd_tiquete CHAR(50)
 	) ON COMMIT DROP;
 
 	CREATE TEMP TABLE IF NOT EXISTS CotizacionServicios_VariableAdicional(
@@ -8588,6 +8689,30 @@ BEGIN
 		ds_TipoProveedores varchar(60),
 		cd_proveedores varchar(25),
 		ds_proveedores varchar(250)
+	) ON COMMIT DROP;
+
+	CREATE TEMP TABLE IF NOT EXISTS CotizacionServiciosFormasPago(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		cd_Cotizacion VARCHAR(25),
+		cd_CotizacionServicios VARCHAR(25),
+		cd_codigo VARCHAR(3),
+		ds_FPnm VARCHAR(100),
+		bl_FPrepresenta BIT(1) DEFAULT B'0',
+		id_TarjetasCredito INT,
+		cd_tccode VARCHAR(10),
+		ds_tcnumber VARCHAR(16),
+		ds_tcvoucher VARCHAR(25),
+		cd_idbanco VARCHAR(3),
+		ds_cheque VARCHAR(30),
+		ds_referencia VARCHAR(50),
+		am_valor DECIMAL,
+		ds_tcexp VARCHAR(7),
+		ds_plaza VARCHAR(3),
+		ds_Poliza VARCHAR(20),
+		ds_PolAnexo VARCHAR(20),
+		am_valor_ME DECIMAL DEFAULT 0,
+		ds_tcautorizacion VARCHAR(25),
+		in_tccuotas INT
 	) ON COMMIT DROP;
 
     -- 4. Poblar Tablas Temporales (POBLANDO TODAS LAS COLUMNAS CON NOMBRES EXPLÍCITOS)
@@ -9021,7 +9146,40 @@ BEGIN
 	FROM public."QuotationProduct" qp
 	JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
 	LEFT JOIN public."Prestadora" pre ON pre."id" = qp."prestadoraId";
-	
+
+	-- Poblar formas de pago por servicio desde QuotationProductPayment
+	INSERT INTO CotizacionServiciosFormasPago(
+		cd_Cotizacion,
+		cd_CotizacionServicios,
+		cd_codigo,
+		ds_FPnm,
+		bl_FPrepresenta,
+		ds_tcnumber,
+		ds_tcvoucher,
+		ds_referencia,
+		am_valor,
+		ds_tcexp,
+		am_valor_ME,
+		ds_tcautorizacion
+	)
+	SELECT
+		cs.cd_Cotizacion,
+		cs.cd_Consecutivo_VARiablesAdicionales AS cd_CotizacionServicios,
+		COALESCE(p.code,'') AS cd_codigo,
+		COALESCE(qpmt."paymentMethod", '') AS ds_FPnm,
+		B'0' AS bl_FPrepresenta,
+		COALESCE(qpmt."cardNumber", '') AS ds_tcnumber,
+		COALESCE(qpmt."voucher", '') AS ds_tcvoucher,
+		COALESCE(qpmt."reference", '') AS ds_referencia,
+		COALESCE(qpmt."amount", 0) AS am_valor,
+		COALESCE(qpmt."expirationDate", '') AS ds_tcexp,
+		0 AS am_valor_ME,
+		COALESCE(qpmt."authorizationCode", '') AS ds_tcautorizacion
+	FROM CotizacionServicios cs
+	JOIN public."QuotationProductPayment" qpmt ON qpmt."quotationProductId" = cs.orig_id_ref
+	LEFT JOIN public."Payment" p ON LOWER(p.name)=LOWER(qpmt."paymentMethod")  
+	WHERE qpmt."paymentMethod" IS NOT NULL AND qpmt."paymentMethod" <> '';
+
     -- 5. Generar XML
     SELECT xmlroot(
         xmlelement(name "Cotizaciones",
@@ -9180,6 +9338,28 @@ BEGIN
                                     )				
 									FROM CotizacionServicios_TipoProv PRE
 									WHERE PRE.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales			
+								),
+								(
+									SELECT xmlagg(
+										xmlelement(name "CotizacionServiciosFormasPago",
+											xmlforest(
+												FP.cd_Cotizacion AS cd_Cotizacion,
+												FP.cd_CotizacionServicios AS cd_CotizacionServicios,
+												FP.cd_codigo AS cd_codigo,
+												FP.ds_FPnm AS ds_FPnm,
+												FP.bl_FPrepresenta::int AS bl_FPrepresenta,
+												FP.ds_tcnumber AS ds_tcnumber,
+												FP.ds_tcvoucher AS ds_tcvoucher,
+												FP.ds_referencia AS ds_referencia,
+												FP.am_valor AS am_valor,
+												FP.ds_tcexp AS ds_tcexp,
+												FP.am_valor_ME AS am_valor_ME,
+												FP.ds_tcautorizacion AS ds_tcautorizacion
+											)
+										)
+									)
+									FROM CotizacionServiciosFormasPago FP
+									WHERE FP.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
 								)
                             )
                         )
@@ -9249,8 +9429,12 @@ CREATE OR REPLACE PROCEDURE public.spImplantActualizar(
     p_template_config JSONB,
     p_html_template TEXT,
     p_branch_id INT,
-    p_acting_user_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_resolution_id INT DEFAULT NULL,
+    p_invoice_template BYTEA DEFAULT NULL,
+    p_invoice_template_config JSONB DEFAULT NULL,
+    p_invoice_html_template TEXT DEFAULT NULL,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
@@ -9267,7 +9451,11 @@ BEGIN
         "template" = COALESCE(p_template, "template"),
         "templateConfig" = COALESCE(p_template_config, "templateConfig"),
         "htmlTemplate" = COALESCE(p_html_template, "htmlTemplate"),
-        "branchId" = p_branch_id
+        "branchId" = p_branch_id,
+        "resolutionId" = p_resolution_id,
+        "invoiceTemplate" = COALESCE(p_invoice_template, "invoiceTemplate"),
+        "invoiceTemplateConfig" = COALESCE(p_invoice_template_config, "invoiceTemplateConfig"),
+        "invoiceHtmlTemplate" = COALESCE(p_invoice_html_template, "invoiceHtmlTemplate")
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Implant actualizado exitosamente.';
@@ -9287,15 +9475,25 @@ CREATE OR REPLACE PROCEDURE public.spImplantCrear(
     p_template_config JSONB,
     p_html_template TEXT,
     p_branch_id INT,
-    p_acting_user_id INT,
-    INOUT p_implant_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_resolution_id INT DEFAULT NULL,
+    p_invoice_template BYTEA DEFAULT NULL,
+    p_invoice_template_config JSONB DEFAULT NULL,
+    p_invoice_html_template TEXT DEFAULT NULL,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_implant_id INT DEFAULT 0,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO public."Implant" ("code", "name", "logo", "template", "templateConfig", "htmlTemplate", "branchId")
-    VALUES (p_code, p_name, p_logo, p_template, p_template_config, p_html_template, p_branch_id)
+    INSERT INTO public."Implant" (
+        "code", "name", "logo", "template", "templateConfig", "htmlTemplate", "branchId",
+        "resolutionId", "invoiceTemplate", "invoiceTemplateConfig", "invoiceHtmlTemplate"
+    )
+    VALUES (
+        p_code, p_name, p_logo, p_template, p_template_config, p_html_template, p_branch_id,
+        p_resolution_id, p_invoice_template, p_invoice_template_config, p_invoice_html_template
+    )
     RETURNING id INTO p_implant_id;
 
     p_mensaje_resultado := 'SUCCESS: Implant creado con ID ' || p_implant_id;
@@ -10570,6 +10768,12 @@ DECLARE
     v_real_product_id INT;
     v_existing_invoice_number TEXT;
     v_temp_msg TEXT;
+    v_fuente TEXT;
+    v_serie TEXT;
+    v_consecutivo TEXT;
+    v_consec_id INT;
+    v_next_num BIGINT;
+    v_billing_code TEXT;
 BEGIN
     -- Validaciones
     IF NULLIF(p_data->>'clientId', '') IS NULL THEN
@@ -10584,6 +10788,48 @@ BEGIN
 
     v_internal_number := 'INV-' || to_char(CURRENT_DATE, 'YYYYMMDD') || '-' || floor(random() * 1000)::text;
 
+    v_fuente := NULLIF(p_data->>'fuente', '');
+    v_serie := NULLIF(p_data->>'serie', '');
+    v_consecutivo := NULLIF(p_data->>'consecutivo', '');
+
+    -- Lógica de asignación de consecutivo automático desde SysConsecutivo si consecutivo es nulo o vacío
+    IF v_consecutivo IS NULL THEN
+        v_billing_code := COALESCE(
+            NULLIF(p_data->>'codigo', ''), 
+            NULLIF(p_data->>'codigoFacturacion', ''), 
+            NULLIF(p_data->>'billingCode', ''), 
+            v_fuente, 
+            'FACT'
+        );
+
+        SELECT id, NULLIF(fuente, ''), NULLIF(serie, '') 
+        INTO v_consec_id, v_fuente, v_serie
+        FROM public."SysConsecutivo"
+        WHERE LOWER(codigo) = LOWER(v_billing_code)
+           OR ("branchId" = NULLIF(p_data->>'branchId', '')::INT AND ("implantId" IS NULL OR "implantId" = NULLIF(p_data->>'implantId', '')::INT))
+        ORDER BY 
+            (CASE WHEN LOWER(codigo) = LOWER(v_billing_code) THEN 1 ELSE 2 END),
+            (CASE WHEN "implantId" IS NOT NULL THEN 1 WHEN "branchId" IS NOT NULL THEN 2 ELSE 3 END),
+            id DESC
+        LIMIT 1;
+
+        IF v_consec_id IS NOT NULL THEN
+            UPDATE public."SysConsecutivo"
+            SET consecutivo = consecutivo + 1,
+                "updatedAt" = CURRENT_TIMESTAMP
+            WHERE id = v_consec_id
+            RETURNING consecutivo INTO v_next_num;
+
+            v_consecutivo := LPAD(v_next_num::TEXT, 8, '0');
+        ELSE
+            SELECT COALESCE(MAX(consecutivo::BIGINT), 0) + 1 INTO v_next_num 
+            FROM public."Invoices" 
+            WHERE consecutivo ~ '^[0-9]+$';
+
+            v_consecutivo := LPAD(v_next_num::TEXT, 8, '0');
+        END IF;
+    END IF;
+
     INSERT INTO public."Invoices" (
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
         "branchId", "implantId", "sellerId", "ticketPrinterId", 
@@ -10594,7 +10840,7 @@ BEGIN
         NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
         0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
         NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO',
-        NULLIF(p_data->>'fuente', ''), NULLIF(p_data->>'serie', ''), NULLIF(p_data->>'consecutivo', '')
+        v_fuente, v_serie, v_consecutivo
     ) RETURNING id INTO v_invoice_id;
 
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
@@ -11560,6 +11806,115 @@ EXCEPTION
 END; $$;
 
 
+-- Archivo: spResolucionActualizar.sql
+CREATE OR REPLACE PROCEDURE public.spResolucionActualizar(
+    p_id INT,
+    p_code TEXT,
+    p_name TEXT,
+    p_date TIMESTAMP WITH TIME ZONE,
+    p_expira TIMESTAMP WITH TIME ZONE,
+    p_inicial BIGINT,
+    p_end BIGINT,
+    p_autoriza TEXT,
+    p_prefijo TEXT,
+    p_alerta INT,
+    p_day INT,
+    p_permitir BOOLEAN,
+    p_activo BOOLEAN,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."Resolution" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Resolución con ID ' || p_id || ' no encontrada.';
+        RETURN;
+    END IF;
+
+    UPDATE public."Resolution"
+    SET "code" = p_code,
+        "name" = p_name,
+        "date" = p_date,
+        "expira" = p_expira,
+        "inicial" = p_inicial,
+        "end" = p_end,
+        "autoriza" = p_autoriza,
+        "prefijo" = p_prefijo,
+        "alerta" = p_alerta,
+        "day" = p_day,
+        "permitir" = COALESCE(p_permitir, false),
+        "activo" = COALESCE(p_activo, true)
+    WHERE id = p_id;
+
+    p_mensaje_resultado := 'SUCCESS: Resolución actualizada exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+-- Archivo: spResolucionCrear.sql
+CREATE OR REPLACE PROCEDURE public.spResolucionCrear(
+    p_code TEXT,
+    p_name TEXT,
+    p_date TIMESTAMP WITH TIME ZONE,
+    p_expira TIMESTAMP WITH TIME ZONE,
+    p_inicial BIGINT,
+    p_end BIGINT,
+    p_autoriza TEXT,
+    p_prefijo TEXT,
+    p_alerta INT,
+    p_day INT,
+    p_permitir BOOLEAN,
+    p_activo BOOLEAN,
+    p_acting_user_id INT,
+    INOUT p_resolution_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO public."Resolution" (
+        "code", "name", "date", "expira", "inicial", "end", "autoriza", "prefijo", "alerta", "day", "permitir", "activo"
+    )
+    VALUES (
+        p_code, p_name, p_date, p_expira, p_inicial, p_end, p_autoriza, p_prefijo, p_alerta, p_day, COALESCE(p_permitir, false), COALESCE(p_activo, true)
+    )
+    RETURNING id INTO p_resolution_id;
+
+    p_mensaje_resultado := 'SUCCESS: Resolución creada con ID ' || p_resolution_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+-- Archivo: spResolucionEliminar.sql
+CREATE OR REPLACE PROCEDURE public.spResolucionEliminar(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."Resolution" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Resolución con ID ' || p_id || ' no encontrada.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."Resolution" WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Resolución eliminada exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
 -- Archivo: spSellerActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spSellerActualizar(
     p_id INT,
@@ -11634,6 +11989,129 @@ BEGIN
 EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+-- Archivo: spSysConsecutivoActualizar.sql
+CREATE OR REPLACE PROCEDURE public.spSysConsecutivoActualizar(
+    p_id INT,
+    p_codigo VARCHAR,
+    p_nombre VARCHAR,
+    p_branch_id INT,
+    p_implant_id INT,
+    p_fuente VARCHAR,
+    p_serie VARCHAR,
+    p_consecutivo BIGINT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_id IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El ID del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    IF NULLIF(TRIM(p_codigo), '') IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El código del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    IF NULLIF(TRIM(p_nombre), '') IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El nombre del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    UPDATE public."SysConsecutivo"
+    SET 
+        "codigo" = TRIM(p_codigo),
+        "nombre" = TRIM(p_nombre),
+        "branchId" = p_branch_id,
+        "implantId" = p_implant_id,
+        "fuente" = TRIM(p_fuente),
+        "serie" = TRIM(p_serie),
+        "consecutivo" = COALESCE(p_consecutivo, 0),
+        "updatedAt" = CURRENT_TIMESTAMP
+    WHERE id = p_id;
+
+    IF NOT FOUND THEN
+        p_mensaje_resultado := 'ERROR: No se encontró el consecutivo con ID ' || p_id;
+        RETURN;
+    END IF;
+
+    p_mensaje_resultado := 'SUCCESS: Consecutivo actualizado exitosamente.';
+EXCEPTION WHEN OTHERS THEN
+    p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+-- Archivo: spSysConsecutivoCrear.sql
+CREATE OR REPLACE PROCEDURE public.spSysConsecutivoCrear(
+    p_codigo VARCHAR,
+    p_nombre VARCHAR,
+    p_branch_id INT,
+    p_implant_id INT,
+    p_fuente VARCHAR,
+    p_serie VARCHAR,
+    p_consecutivo BIGINT,
+    p_acting_user_id INT,
+    INOUT p_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NULLIF(TRIM(p_codigo), '') IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El código del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    IF NULLIF(TRIM(p_nombre), '') IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El nombre del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    INSERT INTO public."SysConsecutivo" (
+        "codigo", "nombre", "branchId", "implantId", "fuente", "serie", "consecutivo", "createdAt", "updatedAt"
+    ) VALUES (
+        TRIM(p_codigo), TRIM(p_nombre), p_branch_id, p_implant_id, TRIM(p_fuente), TRIM(p_serie), COALESCE(p_consecutivo, 0), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    ) RETURNING id INTO p_id;
+
+    p_mensaje_resultado := 'SUCCESS: Consecutivo creado exitosamente.';
+EXCEPTION WHEN OTHERS THEN
+    p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+
+-- Archivo: spSysConsecutivoEliminar.sql
+CREATE OR REPLACE PROCEDURE public.spSysConsecutivoEliminar(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_id IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El ID del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."SysConsecutivo"
+    WHERE id = p_id;
+
+    IF NOT FOUND THEN
+        p_mensaje_resultado := 'ERROR: No se encontró el consecutivo con ID ' || p_id;
+        RETURN;
+    END IF;
+
+    p_mensaje_resultado := 'SUCCESS: Consecutivo eliminado exitosamente.';
+EXCEPTION WHEN OTHERS THEN
+    p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
 
