@@ -88,9 +88,7 @@ VALUES
 	('EnviarFacturacionAutoSQLserver',   'Envío automático a Facturacion SQL Server (1: Sí, 0: No)', '1'),
 	('Pais',                    		 'Pais',                     					 'Colombia'),
 	('MOSTRAR_TOTALIZACION_COTIZACION',  'Mostrar totalización financiera en cotización', 'true')
-ON CONFLICT (code) DO UPDATE
-    SET name  = EXCLUDED.name,
-        value = EXCLUDED.value;
+ON CONFLICT (code) DO NOTHING;
 
 -- 8. Monedas iniciales
 INSERT INTO public."Currency" (code, name, "exchangeRate")

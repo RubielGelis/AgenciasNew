@@ -35,6 +35,7 @@ import { cn } from '@/lib/utils'
 import { SearchSelect } from '@/components/SearchSelect'
 import { QuotationFormatsTab } from '@/components/QuotationFormatsTab'
 import RoleManagerTab from '@/components/RoleManagerTab'
+import LicenseStatusCard from '@/components/LicenseStatusCard'
 
 type Tab = 'parametros' | 'roles' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'tipos-proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'extraccion-interfaces' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion' | 'modulos-sitio' | 'resoluciones-documentos' | 'consecutivos-transacciones';
 
@@ -1124,6 +1125,10 @@ export default function SettingsPage() {
                     )}
                 </div>
             </header>
+
+            <div className="mb-8">
+                <LicenseStatusCard />
+            </div>
 
             {/* Tabs Layout */}
             <div className="flex flex-wrap items-center gap-1 p-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl mb-8 shadow-sm">

@@ -1,0 +1,3 @@
+{
+  "/api/config/transaction-consecutives/route": "app/api/config/transaction-consecutives/route.js"
+}

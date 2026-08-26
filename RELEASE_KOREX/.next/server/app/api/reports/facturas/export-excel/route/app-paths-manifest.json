@@ -1,0 +1,3 @@
+{
+  "/api/reports/facturas/export-excel/route": "app/api/reports/facturas/export-excel/route.js"
+}
