@@ -1,0 +1,22 @@
+CREATE OR REPLACE PROCEDURE public."spTransactionConsecutiveEliminar"(
+    IN p_id integer,
+    IN p_user_id integer,
+    INOUT p_mensaje_resultado text
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_id IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El ID del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."TransactionConsecutive"
+    WHERE id = p_id;
+
+    p_mensaje_resultado := 'SUCCESS';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;

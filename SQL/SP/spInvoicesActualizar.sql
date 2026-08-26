@@ -108,29 +108,29 @@ BEGIN
             RETURN;
         END IF;
 
-        -- 2. Validación de Unicidad para Aire/Tiquete
-        IF v_item."type" ILIKE '%Aire%' OR v_item."type" ILIKE '%tiquete%' OR v_item."serviceType" ILIKE '%Aire%' OR v_item."serviceType" ILIKE '%tiquete%' THEN
+        -- 2. Validación de Unicidad para Aire/Tiquete por número de tiquete (ticketCode)
+        IF v_item."ticketCode" IS NOT NULL AND TRIM(v_item."ticketCode") <> '' AND TRIM(v_item."ticketCode") <> 'TAN' THEN
             SELECT inv."internalNumber" INTO v_existing_invoice_number
             FROM public."InvoicesProduct" ip
             JOIN public."Invoices" inv ON ip."invoiceId" = inv.id
-            WHERE ip."productId" = v_real_product_id AND ip."invoiceId" <> p_id
+            WHERE ip."ticketCode" = TRIM(v_item."ticketCode") AND inv.id <> p_id
             LIMIT 1;
 
             IF v_existing_invoice_number IS NOT NULL THEN
-                p_mensaje_resultado := 'ERROR: El tiquete ' || COALESCE(v_item."ticketCode", v_real_product_id::text) || ' ya está facturado en la factura ' || v_existing_invoice_number;
+                p_mensaje_resultado := 'ERROR: El tiquete N° ' || TRIM(v_item."ticketCode") || ' ya está facturado en la factura ' || v_existing_invoice_number;
                 RETURN;
             END IF;
         END IF;
 
         -- 3. Inserción de Producto
         INSERT INTO public."InvoicesProduct" (
-            "invoiceId", "productId", "quantity", "price", "cost", "providerId", "prestadoraId",
+            "invoiceId", "productId", "ticketCode", "quantity", "price", "cost", "providerId", "prestadoraId",
             "checkInDate", "checkOutDate", "nights", "paxAdults", "paxChildren",
             "serviceType", "destination", "reservationCode", "sellerCommission", 
             "ticketPrinterCommission", "comboId", "mainTaxId", "inNationality",
             "servicios", "descripcion", "itinerary", "class", "airline", "ticketTypeId"
         ) VALUES (
-            p_id, v_real_product_id, v_item.quantity, 
+            p_id, v_real_product_id, NULLIF(TRIM(v_item."ticketCode"), ''), v_item.quantity, 
             ROUND(v_item.price::numeric, v_decimals)::double precision, 
             ROUND(v_item.cost::numeric, v_decimals)::double precision, 
             NULLIF(v_item."providerId", '')::INT, NULLIF(v_item."prestadoraId", '')::INT,

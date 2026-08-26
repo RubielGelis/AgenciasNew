@@ -85,37 +85,41 @@ model Prestadora {
 }
 
 model Branch {
-  id                   Int                    @id @default(autoincrement())
-  code                 String                 @unique
-  name                 String
-  logo                 Bytes?
-  template             Bytes?
-  templateConfig       Json?
-  htmlTemplate         String?
-  BranchGDSInvoiceAuto BranchGDSInvoiceAuto[]
-  cellCustomizations   CellCustomization[]
-  implants             Implant[]
-  preQuotations        PreQuotation[]
-  quotations           Quotation[]
-  QuotationFormat      QuotationFormat[]
-  users                User[]
+  id                      Int                      @id @default(autoincrement())
+  code                    String                   @unique
+  name                    String
+  logo                    Bytes?
+  template                Bytes?
+  templateConfig          Json?
+  htmlTemplate            String?
+  BranchGDSInvoiceAuto    BranchGDSInvoiceAuto[]
+  cellCustomizations      CellCustomization[]
+  documentResolutions     DocumentResolution[]
+  implants                Implant[]
+  preQuotations           PreQuotation[]
+  quotations              Quotation[]
+  QuotationFormat         QuotationFormat[]
+  transactionConsecutives TransactionConsecutive[]
+  users                   User[]
 }
 
 model Implant {
-  id                 Int                 @id @default(autoincrement())
-  code               String              @unique
-  name               String
-  branchId           Int?
-  logo               Bytes?
-  template           Bytes?
-  templateConfig     Json?
-  htmlTemplate       String?
-  Logo               Bytes?
-  cellCustomizations CellCustomization[]
-  branch             Branch?             @relation(fields: [branchId], references: [id])
-  quotations         Quotation[]
-  QuotationFormat    QuotationFormat[]
-  users              User[]
+  id                      Int                      @id @default(autoincrement())
+  code                    String                   @unique
+  name                    String
+  branchId                Int?
+  logo                    Bytes?
+  template                Bytes?
+  templateConfig          Json?
+  htmlTemplate            String?
+  Logo                    Bytes?
+  cellCustomizations      CellCustomization[]
+  documentResolutions     DocumentResolution[]
+  branch                  Branch?                  @relation(fields: [branchId], references: [id])
+  quotations              Quotation[]
+  QuotationFormat         QuotationFormat[]
+  transactionConsecutives TransactionConsecutive[]
+  users                   User[]
 }
 
 model Seller {
@@ -433,6 +437,9 @@ model Invoices {
   totalAmount          Float
   userId               Int?
   state                String?  @default("NUEVO") @db.VarChar(25)
+  fuente               String?  @db.VarChar(50)
+  serie                String?  @db.VarChar(50)
+  consecutivo          String?  @db.VarChar(50)
 }
 
 model InvoicesProduct {
@@ -463,6 +470,7 @@ model InvoicesProduct {
   class                   String?                    @db.VarChar(100)
   ticketTypeId            Int?
   airline                 String?                    @db.VarChar(100)
+  ticketCode              String?
   itineraries             InvoicesProductItinerary[]
 }
 
@@ -481,6 +489,7 @@ model InvoicesProductItinerary {
   Numflight        String?         @db.VarChar(25)
   Typeflight       String?         @db.VarChar(1)
   amount           Float?
+  co2              Float?
   InvoicesProduct  InvoicesProduct @relation(fields: [invoiceProductId], references: [id], onDelete: Cascade)
 }
 
@@ -1079,4 +1088,36 @@ model ProviderType {
   createdAt DateTime?  @default(now()) @db.Timestamptz(6)
   updatedAt DateTime?  @default(now()) @db.Timestamptz(6)
   Provider  Provider[]
+}
+
+model DocumentResolution {
+  id               Int      @id @default(autoincrement())
+  branchId         Int
+  implantId        Int?
+  resolutionNumber String   @db.VarChar(100)
+  initialNumber    Int
+  finalNumber      Int
+  currentNumber    Int
+  resolutionDate   DateTime @default(now()) @db.Timestamp(6)
+  prefix           String?  @db.VarChar(20)
+  expirationDate   DateTime @db.Timestamp(6)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now()) @db.Timestamp(6)
+  branch           Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  implant          Implant? @relation(fields: [implantId], references: [id], onUpdate: NoAction)
+}
+
+model TransactionConsecutive {
+  id              Int      @id @default(autoincrement())
+  transactionType String   @db.VarChar(50)
+  description     String   @db.VarChar(150)
+  prefix          String?  @db.VarChar(20)
+  initialNumber   Int
+  currentNumber   Int
+  branchId        Int?
+  implantId       Int?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now()) @db.Timestamp(6)
+  branch          Branch?  @relation(fields: [branchId], references: [id], onUpdate: NoAction)
+  implant         Implant? @relation(fields: [implantId], references: [id], onUpdate: NoAction)
 }

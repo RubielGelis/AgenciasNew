@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Save, Trash2, Plus, ChevronDown, ChevronUp, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, Search } from 'lucide-react'
+import { Save, Trash2, Plus, ChevronDown, ChevronUp, Calendar, Users, Globe, DollarSign, Briefcase, Hotel as HotelIcon, Tag, Tags, Percent, Calculator, ArrowRight, Loader2, FileDown, Paperclip, FileText, Download, X, Printer, Search, ExternalLink, CheckCircle2, AlertTriangle, Lock } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -109,6 +109,12 @@ export function computeItinerarySummaries(itineraryList: any[]) {
 }
 
 export default function InvoiceForm({ invoiceId, quotationId, initialData, onCancel }: { invoiceId?: string; quotationId?: string; initialData?: any; onCancel?: () => void }) {
+    const router = useRouter()
+    const isReadOnly = Boolean(invoiceId)
+    const [invoiceNumberDisplay, setInvoiceNumberDisplay] = useState<string>('')
+    const [resolutionModalOpen, setResolutionModalOpen] = useState(false)
+    const [activeResolutionInfo, setActiveResolutionInfo] = useState<any>(null)
+    const [loadingResolution, setLoadingResolution] = useState(false)
     const [data, setData] = useState<any>(null)
     const [formData, setFormData] = useState<InvoiceFormData>({
         clientId: '',
@@ -133,7 +139,6 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
     const [attachments, setAttachments] = useState<any[]>([])
     const [uploadingAttachment, setUploadingAttachment] = useState(false)
     const [openItineraries, setOpenItineraries] = useState<Record<number, boolean>>({})
-    const router = useRouter()
 
     const updateItineraryListAndSummaries = (itemIndex: number, list: any[]) => {
         const summaries = computeItinerarySummaries(list);
@@ -493,7 +498,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                 providerId: matchedProviderId,
                 prestadoraId: matchedPrestadoraId,
                 reservationCode: bkItem.reservationCode || booking.code || '',
-                ticketCode: bkItem.ticketCode || '',
+                ticketCode: bkItem.code || bkItem.ticketCode || bkItem.ticketNumber || '',
                 serviceType: 'Tiquete',
                 descripcion: bkItem.description || bkItem.service || 'flight',
                 checkIn: initialDate,
@@ -858,7 +863,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
 
                                 return {
                                     productId: p.productId?.toString() || '',
-                                    ticketCode: p.ticketCode || p.product?.code || '',
+                                    ticketCode: p.ticketCode || (Array.isArray(p.passengers) && p.passengers[0]?.document ? p.passengers[0].document : ''),
                                     ticketTypeId: p.ticketTypeId || '',
                                     quantity: p.quantity || 1,
                                     price: p.price || 0,
@@ -909,6 +914,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                     const qRes = await fetch(`/api/invoices/${invoiceId}`)
                     if (qRes.ok) {
                         const qData = await qRes.json()
+                        const formattedNum = qData.internalNumber || (qData.serie && qData.consecutivo ? `${qData.serie}-${qData.consecutivo}` : qData.consecutivo) || `#${invoiceId}`;
+                        setInvoiceNumberDisplay(formattedNum);
                         setFormData({
                             clientId: qData.clientId?.toString() || '',
                             branchId: qData.branchId?.toString() || '',
@@ -938,7 +945,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
 
                                 return {
                                     productId: p.productId?.toString() || '',
-                                    ticketCode: p.ticketCode || p.product?.code || '',
+                                    ticketCode: p.ticketCode || (Array.isArray(p.passengers) && p.passengers[0]?.document ? p.passengers[0].document : ''),
                                     ticketTypeId: p.ticketTypeId || '',
                                     quantity: p.quantity,
                                     price: inferredPrice,
@@ -1143,20 +1150,22 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
         <form onSubmit={handleSave} className="max-w-6xl mx-auto space-y-8 pb-20">
             <div className="flex items-center justify-between bg-white dark:bg-zinc-900 p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                 <div>
-                    <h2 className="text-2xl font-bold dark:text-white">
-                        {invoiceId ? `Facturación #${invoiceId}` : 'Generar Facturación'}
+                    <h2 className="text-2xl font-bold dark:text-white flex items-center gap-3">
+                        {invoiceId ? `Facturación ${invoiceNumberDisplay || (formData.serie && formData.consecutivo ? `${formData.serie}-${formData.consecutivo}` : formData.consecutivo || `#${invoiceId}`)}` : 'Generar Facturación'}
                     </h2>
                     <p className="text-zinc-500 text-sm mt-1">Completa los detalles para tu cliente</p>
                 </div>
-                <div className="flex gap-4">
-                    <button
-                        type="button"
-                        onClick={() => setIsSearchBookingOpen(true)}
-                        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer"
-                    >
-                        <Search className="w-5 h-5" />
-                        Cargar desde Reserva / GDS
-                    </button>
+                <div className="flex gap-4 items-center">
+                    {!isReadOnly && (
+                        <button
+                            type="button"
+                            onClick={() => setIsSearchBookingOpen(true)}
+                            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer text-sm"
+                        >
+                            <Search className="w-5 h-5" />
+                            Cargar desde Reserva / GDS
+                        </button>
+                    )}
                     {onCancel ? (
                         <button
                             type="button"
@@ -1184,14 +1193,20 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                         <Printer className="w-5 h-5" />
                         Imprimir
                     </button>
-                    <button
-                        type="submit"
-                        disabled={saving}
-                        className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
-                    >
-                        {saving ? <Loader2 className="animate-spin w-5 h-5" /> : <Save className="w-5 h-5" />}
-                        {saving ? 'Guardando...' : 'Guardar'}
-                    </button>
+                    {isReadOnly ? (
+                        <div className="px-6 py-3 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 font-bold rounded-xl flex items-center gap-2 border border-amber-200 dark:border-amber-800/50 shadow-sm text-sm">
+                            <Lock className="w-4 h-4 text-amber-500" /> Factura Guardada (Solo Lectura)
+                        </div>
+                    ) : (
+                        <button
+                            type="submit"
+                            disabled={saving}
+                            className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 disabled:opacity-50"
+                        >
+                            {saving ? <Loader2 className="animate-spin w-5 h-5" /> : <Save className="w-5 h-5" />}
+                            {saving ? 'Guardando...' : 'Guardar'}
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -1219,6 +1234,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                             sellerId: selectedC?.sellerId ? String(selectedC.sellerId) : prev.sellerId
                                         }));
                                     }}
+                                    disabled={isReadOnly}
                                     placeholder="Seleccionar Cliente"
                                     secondaryKey="document"
                                 />
@@ -1229,6 +1245,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                     options={data.sellers || []}
                                     value={formData.sellerId}
                                     onChange={(val) => setFormData({ ...formData, sellerId: val })}
+                                    disabled={isReadOnly}
                                     placeholder="Seleccionar Vendedor"
                                 />
                             </div>
@@ -1238,6 +1255,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                     options={data.branches}
                                     value={formData.branchId}
                                     onChange={(val) => setFormData({ ...formData, branchId: val, implantId: '' })}
+                                    disabled={isReadOnly}
                                     placeholder="Sel. Sucursal"
                                     secondaryKey="code"
                                 />
@@ -1253,7 +1271,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                     )}
                                     value={formData.implantId}
                                     onChange={(val) => setFormData({ ...formData, implantId: val })}
-                                    disabled={!formData.branchId && (data.implants || []).length === 0}
+                                    disabled={isReadOnly || (!formData.branchId && (data.implants || []).length === 0)}
                                     placeholder="Sel. Implant"
                                     secondaryKey="code"
                                 />
@@ -1264,6 +1282,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                     options={data.ticketPrinters || []}
                                     value={formData.ticketPrinterId}
                                     onChange={(val) => setFormData({ ...formData, ticketPrinterId: val })}
+                                    disabled={isReadOnly}
                                     placeholder="Sel. Tiqueteador"
                                     secondaryKey="code"
                                 />
@@ -1271,7 +1290,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-500">Moneda a Cotizar</label>
                                 <select
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                    disabled={isReadOnly}
+                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                     value={formData.currency}
                                     onChange={(e) => {
                                         const code = e.target.value;
@@ -1291,8 +1311,9 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-zinc-500">Estado de Facturación</label>
                                 <select
+                                    disabled={isReadOnly}
                                     className={cn(
-                                        "w-full h-12 rounded-xl px-4 border outline-none font-bold focus:ring-2 transition-all",
+                                        "w-full h-12 rounded-xl px-4 border outline-none font-bold focus:ring-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed",
                                         formData.state === 'ENVIADO' 
                                             ? "bg-emerald-50/50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20 text-emerald-600 dark:text-emerald-400 focus:ring-emerald-500" 
                                             : "bg-blue-50/50 dark:bg-blue-500/5 border-blue-200 dark:border-blue-500/20 text-blue-600 dark:text-blue-400 focus:ring-blue-500"
@@ -1309,9 +1330,11 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                 <input
                                     type="text"
                                     maxLength={25}
+                                    readOnly={isReadOnly}
+                                    disabled={isReadOnly}
                                     value={formData.fuente || ''}
                                     onChange={(e) => setFormData({ ...formData, fuente: e.target.value })}
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                     placeholder="Ej: FAC"
                                 />
                             </div>
@@ -1320,9 +1343,11 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                 <input
                                     type="text"
                                     maxLength={25}
+                                    readOnly={isReadOnly}
+                                    disabled={isReadOnly}
                                     value={formData.serie || ''}
                                     onChange={(e) => setFormData({ ...formData, serie: e.target.value })}
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                     placeholder="Ej: A"
                                 />
                             </div>
@@ -1331,11 +1356,50 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                 <input
                                     type="text"
                                     maxLength={25}
+                                    readOnly={isReadOnly}
+                                    disabled={isReadOnly}
                                     value={formData.consecutivo || ''}
                                     onChange={(e) => setFormData({ ...formData, consecutivo: e.target.value })}
-                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
                                     placeholder="Ej: 0000123"
                                 />
+                            </div>
+                            
+                            <div className="col-span-full pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-zinc-100 dark:border-zinc-800">
+                                <div className="flex items-center gap-2 text-xs text-zinc-500 font-medium">
+                                    <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                                    <span>Resolución de Documentos DIAN para la Sucursal</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        setLoadingResolution(true);
+                                        setResolutionModalOpen(true);
+                                        try {
+                                            const res = await fetch('/api/config/document-resolutions');
+                                            if (res.ok) {
+                                                const list = await res.json();
+                                                const curBranch = formData.branchId ? parseInt(formData.branchId) : null;
+                                                const curImplant = formData.implantId ? parseInt(formData.implantId) : null;
+                                                const matched = (Array.isArray(list) ? list : []).find((item: any) => 
+                                                    item.isActive && (
+                                                        (curBranch && item.branchId === curBranch) || 
+                                                        (curImplant && item.implantId === curImplant) ||
+                                                        (!item.branchId && !item.implantId)
+                                                    )
+                                                ) || (Array.isArray(list) ? list : []).find((item: any) => item.isActive) || null;
+                                                setActiveResolutionInfo(matched);
+                                            }
+                                        } catch (err) {
+                                            console.error('Error loading resolution:', err);
+                                        } finally {
+                                            setLoadingResolution(false);
+                                        }
+                                    }}
+                                    className="px-4 py-2 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-600 dark:text-blue-400 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border border-blue-200 dark:border-blue-800/50 shadow-sm"
+                                >
+                                    <FileText className="w-3.5 h-3.5" /> Validar Resolución Aplicada <ExternalLink className="w-3 h-3 opacity-60" />
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1347,19 +1411,22 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                 <Briefcase className="w-5 h-5 text-purple-500" />
                                 Combos de Venta
                             </h3>
-                            <div className="flex items-center gap-3">
-                                <div className="w-[300px]">
-                                    <SearchSelect
-                                        options={(data.combos || []).map((c: any) => ({...c, cuposText: c.cupos != null ? `${c.cupos} cupos` : 'Sin límite'}))}
-                                        value=""
-                                        onChange={(val) => {
-                                            if (val) addCombo(parseInt(val));
-                                        }}
-                                        placeholder="+ Agregar un Combo..."
-                                        secondaryKey="cuposText"
-                                    />
+                            {!isReadOnly && (
+                                <div className="flex items-center gap-3">
+                                    <div className="w-[300px]">
+                                        <SearchSelect
+                                            options={(data.combos || []).map((c: any) => ({...c, cuposText: c.cupos != null ? `${c.cupos} cupos` : 'Sin límite'}))}
+                                            value=""
+                                            onChange={(val) => {
+                                                if (val) addCombo(parseInt(val));
+                                            }}
+                                            disabled={isReadOnly}
+                                            placeholder="+ Agregar un Combo..."
+                                            secondaryKey="cuposText"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
                         {formData.selectedCombos && formData.selectedCombos.length > 0 ? (
@@ -1392,13 +1459,15 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                 <Tag className="w-5 h-5 text-emerald-500" />
                                 Desglose de Productos
                             </h3>
-                            <button
-                                type="button"
-                                onClick={addItem}
-                                className="text-emerald-600 font-bold flex items-center gap-1 hover:underline text-sm"
-                            >
-                                <Plus className="w-4 h-4" /> Agregar Producto
-                            </button>
+                            {!isReadOnly && (
+                                <button
+                                    type="button"
+                                    onClick={addItem}
+                                    className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl font-bold text-xs hover:bg-blue-100 transition-all flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" /> Agregar Producto
+                                </button>
+                            )}
                         </div>
 
                         <div className="space-y-4">
@@ -1432,6 +1501,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                     };
                                                     setFormData({ ...formData, items: newItems });
                                                 }}
+                                                disabled={isReadOnly}
                                                 placeholder="Seleccionar Producto"
                                                 labelKey="description"
                                             />
@@ -1441,7 +1511,9 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                             <input
                                                 type="number"
                                                 min="1"
-                                                className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-sm"
+                                                readOnly={isReadOnly}
+                                                disabled={isReadOnly}
+                                                className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-sm disabled:opacity-60"
                                                 value={item.quantity}
                                                 onChange={(e) => updateItem(index, 'quantity', Math.max(1, parseInt(e.target.value) || 1))}
                                             />
@@ -1452,7 +1524,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                             </div>
                                             <div className="flex gap-2">
                                                 <select
-                                                    className="flex-1 h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500"
+                                                    disabled={isReadOnly}
+                                                    className="flex-1 h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
                                                     value={item.mainTaxId || ''}
                                                     onChange={(e) => {
                                                         const val = e.target.value ? parseInt(e.target.value) : undefined;
@@ -1491,7 +1564,9 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                     <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
                                                     <input
                                                         type="number"
-                                                        className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-2 border border-blue-200 dark:border-blue-800 outline-none text-sm font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500 shadow-sm"
+                                                        readOnly={isReadOnly}
+                                                        disabled={isReadOnly}
+                                                        className="w-full h-11 bg-white dark:bg-zinc-900 rounded-lg pl-7 pr-2 border border-blue-200 dark:border-blue-800 outline-none text-sm font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500 shadow-sm disabled:opacity-60"
                                                         value={((item.appliedTaxes || []).reduce((acc: number, t: any) => acc + (t.amount || 0), 0)).toFixed(decimals)}
                                                         onChange={(e) => {
                                                             const newTotal = parseFloat(e.target.value) || 0;
@@ -1519,15 +1594,17 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="col-span-2 md:col-span-1 flex justify-center pb-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => removeItem(index)}
-                                                className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
-                                        </div>
+                                        {!isReadOnly && (
+                                            <div className="col-span-2 md:col-span-1 flex justify-center pb-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeItem(index)}
+                                                    className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        )}
 
                                         {/* Per-Product Details Row */}
                                         <div className="col-span-12 mt-2 pt-4 border-t border-zinc-200 dark:border-zinc-700/50">
@@ -1543,6 +1620,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                         className="w-full h-9 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-2 border border-blue-200 dark:border-blue-800 outline-none text-xs"
                                                         value={item.ticketCode || ''}
                                                         onChange={(e) => updateItem(index, 'ticketCode', e.target.value)}
+                                                        disabled={isReadOnly}
+                                                        readOnly={isReadOnly}
                                                     />
                                                 </div>
                                                 <div className="space-y-1">
@@ -1551,6 +1630,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                         className="w-full h-9 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-2 border border-blue-200 dark:border-blue-800 outline-none text-xs"
                                                         value={item.serviceType || ''}
                                                         onChange={(e) => updateItem(index, 'serviceType', e.target.value)}
+                                                        disabled={isReadOnly}
                                                     >
                                                         <option value="">(Ninguno)</option>
                                                         <option value="Tiquete">Tiquete</option>
@@ -1566,6 +1646,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                          className="w-full h-9 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-2 border border-blue-200 dark:border-blue-800 outline-none text-xs"
                                                          value={item.ticketTypeId || ''}
                                                          onChange={(e) => updateItem(index, 'ticketTypeId', e.target.value ? parseInt(e.target.value) : undefined)}
+                                                         disabled={isReadOnly}
                                                      >
                                                          <option value="">(Ninguno)</option>
                                                          {data.ticketTypes?.map((t: any) => (
@@ -1581,6 +1662,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                          className="w-full h-9 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-2 border border-blue-200 dark:border-blue-800 outline-none text-xs"
                                                          value={item.servicios || ''}
                                                          onChange={(e) => updateItem(index, 'servicios', e.target.value)}
+                                                         disabled={isReadOnly}
+                                                         readOnly={isReadOnly}
                                                      />
                                                  </div>
                                                  <div className="md:col-span-2 space-y-1">
@@ -1591,6 +1674,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                          className="w-full h-9 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-2 border border-blue-200 dark:border-blue-800 outline-none text-xs"
                                                          value={item.descripcion || ''}
                                                          onChange={(e) => updateItem(index, 'descripcion', e.target.value)}
+                                                         disabled={isReadOnly}
+                                                         readOnly={isReadOnly}
                                                      />
                                                  </div>
                                             </div>
@@ -1606,6 +1691,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                                 className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs uppercase"
                                                                 value={item.itinerary || ''}
                                                                 onChange={(e) => updateItem(index, 'itinerary', e.target.value)}
+                                                                disabled={isReadOnly}
+                                                                readOnly={isReadOnly}
                                                                 onBlur={() => {
                                                                     if (item.itinerary && item.itinerary.includes('/')) {
                                                                         const parts = item.itinerary.split('/');
@@ -1634,6 +1721,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                                 className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs uppercase"
                                                                 value={item.class || ''}
                                                                 onChange={(e) => updateItem(index, 'class', e.target.value)}
+                                                                disabled={isReadOnly}
+                                                                readOnly={isReadOnly}
                                                             />
                                                         </div>
                                                         <div className="space-y-1">
@@ -1644,6 +1733,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                                 className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs uppercase"
                                                                 value={item.airline || ''}
                                                                 onChange={(e) => updateItem(index, 'airline', e.target.value)}
+                                                                disabled={isReadOnly}
+                                                                readOnly={isReadOnly}
                                                             />
                                                         </div>
                                                     </div>
@@ -2202,7 +2293,8 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                 <div className="space-y-1 flex-1">
                                     <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Moneda</label>
                                     <select
-                                        className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold"
+                                        disabled={isReadOnly}
+                                        className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold disabled:opacity-60 disabled:cursor-not-allowed"
                                         value={formData.currency}
                                         onChange={(e) => {
                                             const code = e.target.value;
@@ -2223,7 +2315,9 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                     <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Tasa Cambio</label>
                                     <input
                                         type="number"
-                                        className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right"
+                                        readOnly={isReadOnly}
+                                        disabled={isReadOnly}
+                                        className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right disabled:opacity-60 disabled:cursor-not-allowed"
                                         value={formData.exchangeRate}
                                         onChange={(e) => setFormData({ ...formData, exchangeRate: parseFloat(e.target.value) })}
                                     />
@@ -2232,7 +2326,9 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                     <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Comisión (%)</label>
                                     <input
                                         type="number"
-                                        className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right"
+                                        readOnly={isReadOnly}
+                                        disabled={isReadOnly}
+                                        className="w-full h-11 bg-zinc-800 rounded-xl px-3 border border-zinc-700 outline-none text-sm font-bold text-right disabled:opacity-60 disabled:cursor-not-allowed"
                                         value={formData.commissionPercentage}
                                         onChange={(e) => setFormData({ ...formData, commissionPercentage: parseFloat(e.target.value) || 0 })}
                                     />
@@ -2263,11 +2359,13 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                             ${total.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}
                                         </div>
                                         <p className="text-[10px] uppercase text-zinc-500 mt-1">Suma exacta en {formData.currency}</p>
-                                        <div className="mt-4">
-                                            <button type="button" onClick={() => setIsGlobalPaymentOpen(true)} className="w-full py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 font-bold rounded-xl border border-emerald-500/50 transition-all flex items-center justify-center gap-2">
-                                                <DollarSign className="w-4 h-4" /> Distribuir Pago Global
-                                            </button>
-                                        </div>
+                                        {!isReadOnly && (
+                                            <div className="mt-4">
+                                                <button type="button" onClick={() => setIsGlobalPaymentOpen(true)} className="w-full py-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 font-bold rounded-xl border border-emerald-500/50 transition-all flex items-center justify-center gap-2">
+                                                    <DollarSign className="w-4 h-4" /> Distribuir Pago Global
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -2331,6 +2429,117 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
         </form>
             <GlobalPaymentModal isOpen={isGlobalPaymentOpen} onClose={() => setIsGlobalPaymentOpen(false)} totalAmount={total} onApplyPayment={applyGlobalPayment} creditCards={data.creditCards || []} paymentsList={data.payments || []} />
             <SearchBookingModal isOpen={isSearchBookingOpen} onClose={() => setIsSearchBookingOpen(false)} onSelectBooking={handleImportBooking} />
+            
+            {/* Modal Popover de Validación de Resolución DIAN */}
+            <AnimatePresence>
+                {resolutionModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 max-w-lg w-full shadow-2xl space-y-6"
+                        >
+                            <div className="flex items-center justify-between border-b border-zinc-100 dark:border-zinc-800 pb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-3 bg-blue-50 dark:bg-blue-950/50 text-blue-600 rounded-2xl">
+                                        <FileText className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Resolución de Documentos</h3>
+                                        <p className="text-xs text-zinc-500 font-medium">Información DIAN de la Sucursal / Implante</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setResolutionModalOpen(false)}
+                                    className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+                                >
+                                    <X className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            {loadingResolution ? (
+                                <div className="flex flex-col items-center justify-center py-12 text-zinc-400 gap-3">
+                                    <Loader2 className="animate-spin w-8 h-8 text-blue-600" />
+                                    <span className="text-sm font-medium">Consultando resolución activa...</span>
+                                </div>
+                            ) : activeResolutionInfo ? (
+                                <div className="space-y-4 text-sm">
+                                    <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-emerald-700 dark:text-emerald-400 font-bold">
+                                            <CheckCircle2 className="w-5 h-5" />
+                                            <span>Resolución Vigente y Activa</span>
+                                        </div>
+                                        <span className="px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-black rounded-lg uppercase tracking-wider">
+                                            {activeResolutionInfo.prefix || 'Sin Prefijo'}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
+                                            <span className="text-xs text-zinc-400 font-semibold uppercase block">N° Resolución</span>
+                                            <span className="text-base font-black text-zinc-900 dark:text-white font-mono">{activeResolutionInfo.resolutionNumber || '-'}</span>
+                                        </div>
+                                        <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
+                                            <span className="text-xs text-zinc-400 font-semibold uppercase block">Prefijo</span>
+                                            <span className="text-base font-black text-blue-600 dark:text-blue-400 font-mono">{activeResolutionInfo.prefix || '-'}</span>
+                                        </div>
+                                        <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
+                                            <span className="text-xs text-zinc-400 font-semibold uppercase block">Rango Autorizado</span>
+                                            <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200 font-mono">{activeResolutionInfo.initialNumber} al {activeResolutionInfo.finalNumber}</span>
+                                        </div>
+                                        <div className="p-3.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl">
+                                            <span className="text-xs text-zinc-400 font-semibold uppercase block">Consecutivo Actual</span>
+                                            <span className="text-base font-black text-emerald-600 dark:text-emerald-400 font-mono">{activeResolutionInfo.currentNumber}</span>
+                                        </div>
+                                        <div className="col-span-2 p-3.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl flex items-center justify-between">
+                                            <div>
+                                                <span className="text-xs text-zinc-400 font-semibold uppercase block">Fecha de Vencimiento</span>
+                                                <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                                                    {activeResolutionInfo.expirationDate ? new Date(activeResolutionInfo.expirationDate).toLocaleDateString() : 'Sin fecha'}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-zinc-400 font-semibold uppercase block">Sucursal / Implante</span>
+                                                <span className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
+                                                    {activeResolutionInfo.branchName || activeResolutionInfo.implantName || 'Global'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="p-6 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 rounded-2xl space-y-2 text-center">
+                                    <div className="flex justify-center text-amber-600">
+                                        <AlertTriangle className="w-8 h-8" />
+                                    </div>
+                                    <h4 className="font-bold text-amber-900 dark:text-amber-300">Sin Resolución Específica Activa</h4>
+                                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                                        Esta sucursal usará la secuencia por defecto del Maestro de Consecutivos. Puedes configurar una resolución oficial DIAN en Maestros.
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                <button
+                                    type="button"
+                                    onClick={() => window.open('/dashboard/settings?tab=resoluciones-documentos', '_blank')}
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs transition-all flex items-center gap-2 cursor-pointer shadow-lg shadow-blue-500/20"
+                                >
+                                    <ExternalLink className="w-4 h-4" /> Ir a Maestro de Resoluciones
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setResolutionModalOpen(false)}
+                                    className="px-5 py-2.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-xl font-bold text-xs transition-all"
+                                >
+                                    Cerrar
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </>
     )
 }

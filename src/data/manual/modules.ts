@@ -809,6 +809,49 @@ export const MANUAL_MODULES: ManualModule[] = [
                     { number: 2, title: 'Crear o Editar Rol', description: 'Haga clic en "+ Crear Nuevo Rol", ingrese el nombre y configure la matriz de permisos deseada.' },
                     { number: 3, title: 'Asignar Rol a Usuario', description: 'En la pestaña "Usuarios", edite el colaborador deseado y asigne su nuevo rol en la lista desplegable.' }
                 ]
+            },
+            {
+                code: 'MAE-27',
+                masterCode: 'DocumentResolution',
+                name: 'Maestro de Resoluciones de Documentos',
+                summary: 'Configuración de números de resolución DIAN/ERP por Sucursal e Implante con regla de resolución activa única.',
+                concept: 'Permite registrar la autorización de numeración de la DIAN o del sistema ERP Zeus indicando la sucursal, implante opcional, número de resolución, prefijo, rangos autorizados (inicial/final) y fechas de vencimiento. Garantiza que solo pueda existir una resolución activa para la misma combinación de sucursal e implante.',
+                fields: [
+                    { name: 'Sucursal', type: 'Selección Obligatoria', description: 'Sucursal asignada a la resolución.' },
+                    { name: 'Implante', type: 'Selección Opcional', description: 'Implante específico o global para todas las unidades.' },
+                    { name: 'Número de Resolución', type: 'Texto', description: 'Número oficial otorgado por la DIAN o ERP.' },
+                    { name: 'Rango de Numeración', type: 'Numérico', description: 'Numeración inicial y final autorizada.' },
+                    { name: 'Prefijo y Vencimiento', type: 'Texto / Fechas', description: 'Prefijo oficial del documento y fecha límite de vigencia.' },
+                    { name: 'Resolución Activa', type: 'Switch', description: 'Al activarla, desactiva automáticamente cualquier otra resolución previamente activa para la misma sucursal/implante.' }
+                ],
+                businessRules: [
+                    'Solo puede haber una resolución marcada como activa por cada combinación de sucursal e implante.',
+                    'Al registrar una nueva resolución activa, la base de datos desactiva de forma automática la anterior.'
+                ],
+                steps: [
+                    { number: 1, title: 'Acceder a Resoluciones', description: 'En el menú Ajustes del sistema, haga clic en la pestaña "Resoluciones".' },
+                    { number: 2, title: 'Registrar Resolución', description: 'Haga clic en "+ Nuevo", seleccione la sucursal, digite el número de resolución, rango y fecha de vencimiento.' }
+                ]
+            },
+            {
+                code: 'MAE-28',
+                masterCode: 'TransactionConsecutive',
+                name: 'Maestro de Consecutivos de Transacciones',
+                summary: 'Control atómico del punto de inicio y secuencia de transacciones (Facturas, Notas Crédito, Cotizaciones).',
+                concept: 'Permite definir en qué número inician las secuencias de transacciones (Factura, Nota Crédito, Cotización, etc.), asignando un prefijo predeterminado y manteniendo un incremento atómico y veloz libre de colisiones.',
+                fields: [
+                    { name: 'Tipo de Transacción', type: 'Texto (Código)', description: 'Identificador del tipo de documento (ej. INVOICE, CREDIT_NOTE, QUOTATION).' },
+                    { name: 'Descripción', type: 'Texto', description: 'Nombre claro de la operación (ej. Facturación Electrónica de Venta).' },
+                    { name: 'Prefijo y Número Inicial', type: 'Texto / Numérico', description: 'Prefijo predeterminado y número de partida de la secuencia.' },
+                    { name: 'Consecutivo Actual', type: 'Numérico', description: 'Número de la siguiente transacción que será emitida por el sistema.' }
+                ],
+                businessRules: [
+                    'La asignación de consecutivos utiliza la función fnObtenerSiguienteConsecutivo con bloqueo a nivel de fila para garantizar rendimiento máximo sin duplicados.'
+                ],
+                steps: [
+                    { number: 1, title: 'Acceder a Consecutivos', description: 'En el menú Ajustes del sistema, seleccione la pestaña "Consecutivos".' },
+                    { number: 2, title: 'Configurar Tipo de Transacción', description: 'Haga clic en "+ Nuevo", ingrese el código de transacción, descripción, prefijo y consecutivo de inicio.' }
+                ]
             }
         ]
     }

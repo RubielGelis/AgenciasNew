@@ -293,7 +293,8 @@ BEGIN
             "farebasis" character varying,
             "Numflight" character varying,
             "Typeflight" character varying,
-            "amount" double precision
+            "amount" double precision,
+            "co2" double precision
         );
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'TicketType') THEN
@@ -336,6 +337,7 @@ BEGIN
             "id" integer DEFAULT nextval('"InvoicesProduct_id_seq"'::regclass) NOT NULL,
             "invoiceId" integer NOT NULL,
             "productId" integer NOT NULL,
+            "ticketCode" text,
             "quantity" integer NOT NULL,
             "price" double precision NOT NULL,
             "cost" double precision DEFAULT 0,
@@ -418,7 +420,10 @@ BEGIN
             "chargesAndTaxes" double precision NOT NULL,
             "totalAmount" double precision NOT NULL,
             "userId" integer,
-            "state" character varying DEFAULT 'NUEVO'::character varying
+            "state" character varying DEFAULT 'NUEVO'::character varying,
+            "fuente" character varying,
+            "serie" character varying,
+            "consecutivo" character varying
         );
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Master') THEN
@@ -1682,6 +1687,15 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'state') THEN
         ALTER TABLE public."Invoices" ADD COLUMN "state" character varying(25) DEFAULT 'NUEVO'::character varying;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'fuente') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "fuente" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'serie') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "serie" character varying(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Invoices' AND column_name = 'consecutivo') THEN
+        ALTER TABLE public."Invoices" ADD COLUMN "consecutivo" character varying(50);
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'id') THEN
         ALTER TABLE public."InvoicesProduct" ADD COLUMN "id" integer NOT NULL;
     END IF;
@@ -1690,6 +1704,9 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'productId') THEN
         ALTER TABLE public."InvoicesProduct" ADD COLUMN "productId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'ticketCode') THEN
+        ALTER TABLE public."InvoicesProduct" ADD COLUMN "ticketCode" text;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProduct' AND column_name = 'quantity') THEN
         ALTER TABLE public."InvoicesProduct" ADD COLUMN "quantity" integer NOT NULL;
@@ -1813,6 +1830,9 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'amount') THEN
         ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "amount" double precision;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary' AND column_name = 'co2') THEN
+        ALTER TABLE public."InvoicesProductItinerary" ADD COLUMN "co2" double precision;
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger' AND column_name = 'id') THEN
         ALTER TABLE public."InvoicesProductPasenger" ADD COLUMN "id" integer NOT NULL;
@@ -2581,6 +2601,66 @@ BEGIN
         ALTER TABLE public."InterfaceExtractParam" 
         ADD CONSTRAINT "InterfaceExtractParam_interfaceId_prefix_key" 
         UNIQUE ("interfaceId", "prefix");
+    END IF;
+
+    -- Tabla DocumentResolution (Maestro de Resoluciones de Documentos)
+    CREATE SEQUENCE IF NOT EXISTS public."DocumentResolution_id_seq";
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'DocumentResolution') THEN
+        CREATE TABLE public."DocumentResolution" (
+            "id" integer DEFAULT nextval('public."DocumentResolution_id_seq"'::regclass) NOT NULL PRIMARY KEY,
+            "branchId" integer NOT NULL,
+            "implantId" integer,
+            "resolutionNumber" character varying(100) NOT NULL,
+            "initialNumber" integer NOT NULL,
+            "finalNumber" integer NOT NULL,
+            "currentNumber" integer NOT NULL,
+            "resolutionDate" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            "prefix" character varying(20),
+            "expirationDate" timestamp without time zone NOT NULL,
+            "isActive" boolean DEFAULT true NOT NULL,
+            "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'DocumentResolution_branchId_fkey') THEN
+        ALTER TABLE public."DocumentResolution" 
+        ADD CONSTRAINT "DocumentResolution_branchId_fkey" 
+        FOREIGN KEY ("branchId") REFERENCES public."Branch"("id") ON DELETE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'DocumentResolution_implantId_fkey') THEN
+        ALTER TABLE public."DocumentResolution" 
+        ADD CONSTRAINT "DocumentResolution_implantId_fkey" 
+        FOREIGN KEY ("implantId") REFERENCES public."Implant"("id") ON DELETE SET NULL;
+    END IF;
+
+    -- Tabla TransactionConsecutive (Maestro de Consecutivos de Transacciones)
+    CREATE SEQUENCE IF NOT EXISTS public."TransactionConsecutive_id_seq";
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'TransactionConsecutive') THEN
+        CREATE TABLE public."TransactionConsecutive" (
+            "id" integer DEFAULT nextval('public."TransactionConsecutive_id_seq"'::regclass) NOT NULL PRIMARY KEY,
+            "transactionType" character varying(50) NOT NULL,
+            "description" character varying(150) NOT NULL,
+            "prefix" character varying(20),
+            "initialNumber" integer NOT NULL,
+            "currentNumber" integer NOT NULL,
+            "branchId" integer,
+            "implantId" integer,
+            "isActive" boolean DEFAULT true NOT NULL,
+            "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'TransactionConsecutive_branchId_fkey') THEN
+        ALTER TABLE public."TransactionConsecutive" 
+        ADD CONSTRAINT "TransactionConsecutive_branchId_fkey" 
+        FOREIGN KEY ("branchId") REFERENCES public."Branch"("id") ON DELETE SET NULL;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'TransactionConsecutive_implantId_fkey') THEN
+        ALTER TABLE public."TransactionConsecutive" 
+        ADD CONSTRAINT "TransactionConsecutive_implantId_fkey" 
+        FOREIGN KEY ("implantId") REFERENCES public."Implant"("id") ON DELETE SET NULL;
     END IF;
 
 END $$;

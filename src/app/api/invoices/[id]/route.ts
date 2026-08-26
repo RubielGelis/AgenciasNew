@@ -36,7 +36,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
             
             products.push({
                 ...p,
-                ticketCode: productDetails?.code || null,
+                ticketCode: (p as any).ticketCode || null,
                 appliedTaxes,
                 passengers,
                 variables,
@@ -113,42 +113,9 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ id:
     }
 }
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-    try {
-        const { id: paramId } = await context.params
-        const id = parseInt(paramId)
-        if (isNaN(id)) {
-            return NextResponse.json({ message: 'ID de factura inválido' }, { status: 400 })
-        }
-
-        const userIdHeader = req.headers.get('X-User-Id')
-        const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
-
-        const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spInvoicesEliminar($1::INT, $2::INT, $3::TEXT)`,
-            id,
-            actingUserId,
-            '' // p_mensaje_resultado
-        )
-
-        const message = results[0]?.p_mensaje_resultado || ''
-        if (message.startsWith('ERROR')) {
-            throw new Error(message)
-        }
-
-        import('@/lib/logger').then(({ logSystemEvent }) => {
-            logSystemEvent({
-                userId: actingUserId,
-                action: 'DELETE',
-                module: 'INVOICE',
-                description: `Factura ${id} eliminada (SP). ${message}`,
-                metadata: { id }
-            });
-        });
-
-        return NextResponse.json({ message: message || 'Factura eliminada con éxito' })
-    } catch (error: any) {
-        console.error('Error deleting invoice:', error)
-        return NextResponse.json({ message: 'Error al eliminar la factura: ' + (error.message || 'Error desconocido') }, { status: 500 })
-    }
+export async function DELETE() {
+    return NextResponse.json(
+        { message: 'Las facturas no se pueden eliminar del sistema. Solo pueden ser anuladas.' },
+        { status: 400 }
+    )
 }

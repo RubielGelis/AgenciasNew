@@ -15,6 +15,9 @@ Este Skill define el protocolo de control de calidad y validación automatizada 
 Cualquier tabla creada o referenciada en SPs (ejemplo: `QuotationManualService`, `QuotationFormat`, `QuotationPrintCustomization`, `QuotationCombo`) **debe contar con un bloque `CREATE TABLE IF NOT EXISTS`** dentro de [`SQL/Table/Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql).
 - *Razón*: Si la tabla no existe en el servidor remoto del cliente, una sentencia `ALTER TABLE` fallará rompiendo la ejecución del script actualizador.
 
+### A.1. Verificación de Columnas Referenciadas en SPs (Prevención de Error 42703)
+Toda columna de tabla referenciada en un SP o vista (ejemplo: `InvoicesProduct.ticketCode`) **debe contar obligatoriamente con su bloque `ALTER TABLE public."Tabla" ADD COLUMN IF NOT EXISTS "columna" tipo;`** en [`SQL/Table/Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql) y estar declarada en `prisma/schema.prisma`.
+
 ### B. Obligatoriedad de `LEFT JOIN` en Consultas
 Todas las funciones de listado e historial (`fnCotizacionListar`, `fnCotizacionHistorial`, `fnCotizacion`, `spExportQuotation`) deben relacionar las tablas maestras (`Client`, `User`, `Branch`, `Provider`, `Prestadora`) mediante **`LEFT JOIN`**.
 - *Razón*: El uso de `INNER JOIN` o `JOIN` oculta registros cuando las cotizaciones tienen clientes o usuarios nulos o no coincidentes en bases externas.

@@ -18,13 +18,13 @@ Este documento contiene las directrices, estándares y reglas del proyecto para 
 - **Tratamiento de XML**: 
   - Al generar el XML de exportación en `spExportQuotation`, los nombres de las etiquetas deben ser coherentes (minúsculas).
   - Al agregar tablas secundarias como detalles, verificar la FK correcta usando el ID de referencia del producto/servicio (`orig_id_ref`) y no el ID de la cotización.
-- **Regla General de Integridad Relacional y Consultas API (Foreign Keys & Prisma)**:
-  - **Fórmula de Prevención General**: Para evitar de forma generalizada errores de ORM (`Unknown field 'Model' for include statement`) y fallos de compilación TypeScript (`Type '{ Model: ... }' is not assignable to type 'never'`):
-    1. **FK Obligatoria en PostgreSQL**: Toda tabla con columnas de relación DEBE definir la restricción `CONSTRAINT "Tabla_columna_fkey" FOREIGN KEY ("columnaId") REFERENCES public."TablaRelacionada"("id")` en `SQL/Table/Alter_New_Columns.sql`.
-    2. **Relación Bidireccional en Prisma**: `prisma/schema.prisma` DEBE definir la relación `@relation` en el modelo hijo y el array/propiedad inversa en el modelo padre. Tras cualquier cambio, ejecutar siempre `npx prisma generate`.
-    3. **Patrón de Consulta Seguro en API Routes**: Las API Routes con datos relacionales DEBEN preferir `$queryRawUnsafe` con **`LEFT JOIN`** y `jsonb_build_object('id', r.id, 'code', r.code, 'name', r.name) as "Entidad"` sobre `include` dinámico, previniendo excepciones runtime de campos no encontrados.
+- **Regla General de Integridad Relacional, Columnas DDL y Prisma**:
+  - **Prevención de Error 42703 (no existe la columna)**: Antes de escribir cualquier SP o consulta SQL que referencie una columna de tabla (ejemplo: `ip."ticketCode"`), **SE DEBE VERIFICAR Y DECLARAR LA COLUMNA PRIMERO**:
+    1. En `SQL/Table/Alter_New_Columns.sql`: Tanto en `CREATE TABLE` como en el bloque de alteración `ALTER TABLE public."Tabla" ADD COLUMN IF NOT EXISTS "columna" tipo;`.
+    2. En `prisma/schema.prisma`: Declarar el campo en el modelo correspondiente.
+    3. Executar `node deploy/gen_schema_json.js`: Aplicar la alteración a PostgreSQL local y regenerar Prisma ORM (`npx prisma generate`) **ANTES** de compilar o invocar SPs o endpoints que consuman esa columna.
 - **Flujo Obligatorio al modificar Funciones SQL / SPs**:
-  1. Ejecutar validador y generador de esquema: `node deploy/gen_schema_json.js` (Ejecuta la validación de 4 capas de `updater-verification`).
+  1. **Compilación e Inyección Inmediata Local**: Ejecutar obligatoria e INMEDIATAMENTE en el mismo turno el validador y desplegador de base de datos: `node deploy/gen_schema_json.js`. NUNCA responder al usuario ni terminar el turno tras tocar un `.sql` sin haber ejecutado este comando.
   2. Consultar al usuario en español si desea generar el instalador y actualizador automáticamente o si prefiere realizarlo manualmente (Skill [`installer-decision`](file:///f:/Proyectos/AgenciasNew/.agents/skills/installer-decision/SKILL.md)).
   3. Si aprueba automático: Generar el empaquetado standalone (`powershell.exe -ExecutionPolicy Bypass -File deploy/Generar_Empaquetado.ps1`) y compilar con `GenerarSetup.bat` / `GenerarActualizador.bat`.
   4. Si prefiere manual: Entregar instrucciones y scripts para compilación manual por parte del usuario.
@@ -66,3 +66,11 @@ Este documento contiene las directrices, estándares y reglas del proyecto para 
 
 - **Actualización Obligatoria**: Cada vez que se agregue o modifique un desarrollo en la plataforma (nuevo SP, API route, modal o pantalla), se DEBE actualizar obligatoriamente el archivo [`src/data/manual/modules.ts`](file:///f:/Proyectos/AgenciasNew/src/data/manual/modules.ts) siguiendo la guía del Skill [`manual-updater`](file:///f:/Proyectos/AgenciasNew/.agents/skills/manual-updater/SKILL.md).
 - **Mantenimiento**: La documentación interactiva disponible en la ruta `/dashboard/manual` debe acumular y reflejar de manera continua e incremental todas las funcionalidades activas del sistema.
+
+---
+
+## 5. Regla de Registro Estricto en Creación de Maestros (`TAB_CONFIG`)
+
+- **Prohibición Absoluta de Fallbacks a "Implant"**: Todo nuevo maestro agregado a `/dashboard/settings` debe declararse obligatoriamente en el diccionario fuertemente tipado `TAB_CONFIG: Record<Tab, TabConfigItem>` en [`src/app/dashboard/settings/page.tsx`](file:///f:/Proyectos/AgenciasNew/src/app/dashboard/settings/page.tsx). Queda estrictamente prohibido usar cadenas de ternarios o fallbacks por defecto hacia `'Implant'` o `'/api/config/implants'`.
+- **Skill Obligatorio**: Al crear o modificar cualquier maestro, se deben seguir sin excepción las instrucciones del Skill [`master-creation`](file:///f:/Proyectos/AgenciasNew/.agents/skills/master-creation/SKILL.md).
+

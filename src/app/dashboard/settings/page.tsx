@@ -36,7 +36,48 @@ import { SearchSelect } from '@/components/SearchSelect'
 import { QuotationFormatsTab } from '@/components/QuotationFormatsTab'
 import RoleManagerTab from '@/components/RoleManagerTab'
 
-type Tab = 'parametros' | 'roles' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'tipos-proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'extraccion-interfaces' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion' | 'modulos-sitio';
+type Tab = 'parametros' | 'roles' | 'usuarios' | 'sucursales' | 'implants' | 'impuestos' | 'vendedores' | 'tiqueteadores' | 'prestadoras' | 'clientes' | 'proveedores' | 'tipos-proveedores' | 'productos' | 'variables' | 'combos' | 'logs' | 'monedas' | 'equivalencias' | 'extraccion-interfaces' | 'tarjetas-credito' | 'formas-pago' | 'paises' | 'ciudades' | 'aeropuertos' | 'tipos-tiquetes' | 'estados-cotizacion' | 'formatos-cotizacion' | 'modulos-sitio' | 'resoluciones-documentos' | 'consecutivos-transacciones';
+
+interface TabConfigItem {
+    endpoint: string;
+    singular: string;
+    plural: string;
+    article: 'un' | 'una';
+    newLabel: string;
+}
+
+const TAB_CONFIG: Record<Tab, TabConfigItem> = {
+    'usuarios': { endpoint: '/api/config/users', singular: 'Usuario', plural: 'Usuarios', article: 'un', newLabel: 'Nuevo Usuario' },
+    'sucursales': { endpoint: '/api/config/branches', singular: 'Sucursal', plural: 'Sucursales', article: 'una', newLabel: 'Nueva Sucursal' },
+    'implants': { endpoint: '/api/config/implants', singular: 'Implant', plural: 'Implants', article: 'un', newLabel: 'Nuevo Implant' },
+    'impuestos': { endpoint: '/api/config/taxes', singular: 'Cargo/Impuesto', plural: 'Cargos e Impuestos', article: 'un', newLabel: 'Nuevo Cargo/Impuesto' },
+    'vendedores': { endpoint: '/api/config/sellers', singular: 'Vendedor', plural: 'Vendedores', article: 'un', newLabel: 'Nuevo Vendedor' },
+    'tiqueteadores': { endpoint: '/api/config/ticket-printers', singular: 'Tiqueteador', plural: 'Tiqueteadores', article: 'un', newLabel: 'Nuevo Tiqueteador' },
+    'prestadoras': { endpoint: '/api/config/prestadoras', singular: 'Prestadora', plural: 'Prestadoras', article: 'una', newLabel: 'Nueva Prestadora' },
+    'clientes': { endpoint: '/api/clients', singular: 'Cliente', plural: 'Clientes', article: 'un', newLabel: 'Nuevo Cliente' },
+    'proveedores': { endpoint: '/api/providers', singular: 'Proveedor', plural: 'Proveedores', article: 'un', newLabel: 'Nuevo Proveedor' },
+    'tipos-proveedores': { endpoint: '/api/provider-types', singular: 'Tipo de Proveedor', plural: 'Tipos de Proveedor', article: 'un', newLabel: 'Nuevo Tipo de Proveedor' },
+    'productos': { endpoint: '/api/products', singular: 'Producto', plural: 'Productos', article: 'un', newLabel: 'Nuevo Producto' },
+    'variables': { endpoint: '/api/config/variables', singular: 'Variable', plural: 'Variables', article: 'una', newLabel: 'Nueva Variable' },
+    'parametros': { endpoint: '/api/config/parameters', singular: 'Parámetro', plural: 'Parámetros', article: 'un', newLabel: 'Nuevo Parámetro' },
+    'monedas': { endpoint: '/api/config/currencies', singular: 'Moneda', plural: 'Monedas', article: 'una', newLabel: 'Nueva Moneda' },
+    'combos': { endpoint: '/api/combos', singular: 'Combo', plural: 'Combos', article: 'un', newLabel: 'Nuevo Combo' },
+    'equivalencias': { endpoint: '/api/config/equivalences', singular: 'Equivalencia', plural: 'Equivalencias', article: 'una', newLabel: 'Nueva Equivalencia' },
+    'extraccion-interfaces': { endpoint: '/api/config/interface-extract-params', singular: 'Parámetro de Extracción', plural: 'Extracción Interfaces', article: 'un', newLabel: 'Nuevo Parámetro' },
+    'resoluciones-documentos': { endpoint: '/api/config/document-resolutions', singular: 'Resolución', plural: 'Resoluciones', article: 'una', newLabel: 'Nueva Resolución' },
+    'consecutivos-transacciones': { endpoint: '/api/config/transaction-consecutives', singular: 'Consecutivo', plural: 'Consecutivos', article: 'un', newLabel: 'Nuevo Consecutivo' },
+    'tarjetas-credito': { endpoint: '/api/config/credit-cards', singular: 'Tarjeta', plural: 'Tarjetas de Crédito', article: 'una', newLabel: 'Nueva Tarjeta' },
+    'formas-pago': { endpoint: '/api/config/payments', singular: 'Forma de Pago', plural: 'Formas de Pago', article: 'una', newLabel: 'Nueva Forma de Pago' },
+    'paises': { endpoint: '/api/config/countries', singular: 'País', plural: 'Países', article: 'un', newLabel: 'Nuevo País' },
+    'ciudades': { endpoint: '/api/config/cities', singular: 'Ciudad', plural: 'Ciudades', article: 'una', newLabel: 'Nueva Ciudad' },
+    'aeropuertos': { endpoint: '/api/config/airports', singular: 'Aeropuerto', plural: 'Aeropuertos', article: 'un', newLabel: 'Nuevo Aeropuerto' },
+    'tipos-tiquetes': { endpoint: '/api/config/ticket-types', singular: 'Tipo de Tiquete', plural: 'Tipos de Tiquete', article: 'un', newLabel: 'Nuevo Tipo de Tiquete' },
+    'estados-cotizacion': { endpoint: '/api/config/quotation-states', singular: 'Estado Cotización', plural: 'Estados de Cotización', article: 'un', newLabel: 'Nuevo Estado Cotización' },
+    'formatos-cotizacion': { endpoint: '/api/config/quotation-formats', singular: 'Formato Cotización', plural: 'Formatos de Cotización', article: 'un', newLabel: 'Nuevo Formato Cotización' },
+    'modulos-sitio': { endpoint: '', singular: 'Módulo del Sitio', plural: 'Módulos del Sitio', article: 'un', newLabel: 'Nuevo Módulo' },
+    'roles': { endpoint: '/api/config/roles', singular: 'Rol', plural: 'Roles', article: 'un', newLabel: 'Nuevo Rol' },
+    'logs': { endpoint: '/api/config/logs', singular: 'Log', plural: 'Logs del Sistema', article: 'un', newLabel: 'Logs' }
+};
 
 const AVAILABLE_MANDATORY_FIELDS = [
     { key: 'QuotationProduct.passengers', label: 'Pasajeros (Nombre obligatorio)', group: 'Por Producto' },
@@ -157,7 +198,9 @@ export default function SettingsPage() {
             'tipos-tiquetes': ['tickettype', 'tipos-tiquetes'],
             'tipos-proveedores': ['providertype', 'tipos-proveedores'],
             'estados-cotizacion': ['quotationstate', 'estados-cotizacion'],
-            'formatos-cotizacion': ['quotationformat', 'formatos-cotizacion']
+            'formatos-cotizacion': ['quotationformat', 'formatos-cotizacion'],
+            'resoluciones-documentos': ['documentresolution', 'resoluciones', 'resoluciones-documentos'],
+            'consecutivos-transacciones': ['transactionconsecutive', 'consecutivos', 'consecutivos-transacciones']
         };
 
         const keysToMatch = tabCodeMap[tabKey] || [tabKey.toLowerCase()];
@@ -203,6 +246,8 @@ export default function SettingsPage() {
     const [quotationStates, setQuotationStates] = useState<any[]>([])
     const [interfacesList, setInterfacesList] = useState<any[]>([])
     const [interfaceExtractRules, setInterfaceExtractRules] = useState<any[]>([])
+    const [documentResolutions, setDocumentResolutions] = useState<any[]>([])
+    const [transactionConsecutives, setTransactionConsecutives] = useState<any[]>([])
     const [masterList, setMasterList] = useState<any[]>([])
     const [dynamicMasterOptions, setDynamicMasterOptions] = useState<any[]>([])
 
@@ -644,11 +689,11 @@ export default function SettingsPage() {
             } else if (tab === 'productos') {
                 const res = await fetch('/api/config/ticket-types').then(res => res.json());
                 setTicketTypes(Array.isArray(res) ? res : []);
-            } else if (tab === 'usuarios') {
+            } else if (tab === 'usuarios' || tab === 'resoluciones-documentos' || tab === 'consecutivos-transacciones') {
                 const [b, i, tp] = await Promise.all([
                     fetch('/api/config/branches').then(res => res.json()),
                     fetch('/api/config/implants').then(res => res.json()),
-                    fetch('/api/config/ticket-printers').then(res => res.json()),
+                    fetch('/api/config/ticket-printers').then(res => res.json()).catch(() => []),
                 ]);
                 setBranches(Array.isArray(b) ? b : []);
                 setImplants(Array.isArray(i) ? i : []);
@@ -682,6 +727,8 @@ export default function SettingsPage() {
             case 'monedas': setCurrencies(data); break;
             case 'equivalencias': setEquivalences(data); break;
             case 'extraccion-interfaces': setInterfaceExtractRules(data); break;
+            case 'resoluciones-documentos': setDocumentResolutions(data); break;
+            case 'consecutivos-transacciones': setTransactionConsecutives(data); break;
             case 'tarjetas-credito': setCreditCards(data); break;
             case 'formas-pago': setPayments(data); break;
             case 'paises': setCountries(data); break;
@@ -698,35 +745,7 @@ export default function SettingsPage() {
     const fetchActiveTabData = async (tab: Tab, pageNum: number, limitNum: number, searchVal: string) => {
         setLoading(true)
         try {
-            let endpoint = '';
-            switch (tab) {
-                case 'usuarios': endpoint = '/api/config/users'; break;
-                case 'sucursales': endpoint = '/api/config/branches'; break;
-                case 'implants': endpoint = '/api/config/implants'; break;
-                case 'impuestos': endpoint = '/api/config/taxes'; break;
-                case 'vendedores': endpoint = '/api/config/sellers'; break;
-                case 'tiqueteadores': endpoint = '/api/config/ticket-printers'; break;
-                case 'prestadoras': endpoint = '/api/config/prestadoras'; break;
-                case 'proveedores': endpoint = '/api/providers'; break;
-                case 'tipos-proveedores': endpoint = '/api/provider-types'; break;
-                case 'clientes': endpoint = '/api/clients'; break;
-                case 'productos': endpoint = '/api/products'; break;
-                case 'variables': endpoint = '/api/config/variables'; break;
-                case 'parametros': endpoint = '/api/config/parameters'; break;
-                case 'monedas': endpoint = '/api/config/currencies'; break;
-                case 'equivalencias': endpoint = '/api/config/equivalences'; break;
-                case 'extraccion-interfaces': endpoint = '/api/config/interface-extract-params'; break;
-                case 'tarjetas-credito': endpoint = '/api/config/credit-cards'; break;
-                case 'formas-pago': endpoint = '/api/config/payments'; break;
-                case 'paises': endpoint = '/api/config/countries'; break;
-                case 'ciudades': endpoint = '/api/config/cities'; break;
-                case 'aeropuertos': endpoint = '/api/config/airports'; break;
-                case 'tipos-tiquetes': endpoint = '/api/config/ticket-types'; break;
-                case 'estados-cotizacion': endpoint = '/api/config/quotation-states'; break;
-                case 'combos': endpoint = '/api/combos'; break;
-                case 'logs': endpoint = '/api/config/logs'; break;
-            }
-
+            const endpoint = TAB_CONFIG[tab]?.endpoint || '';
             if (!endpoint) return;
 
             const queryParams = new URLSearchParams();
@@ -911,31 +930,10 @@ export default function SettingsPage() {
         e.preventDefault()
         setSubmitting(true)
 
-        const endpoint = 
-            activeTab === 'usuarios' ? '/api/config/users' :
-            activeTab === 'sucursales' ? '/api/config/branches' :
-            activeTab === 'impuestos' ? '/api/config/taxes' :
-            activeTab === 'vendedores' ? '/api/config/sellers' :
-            activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
-            activeTab === 'prestadoras' ? '/api/config/prestadoras' :
-            activeTab === 'clientes' ? '/api/clients' :
-            activeTab === 'proveedores' ? '/api/providers' :
-            activeTab === 'tipos-proveedores' ? '/api/provider-types' :
-            activeTab === 'productos' ? '/api/products' :
-            activeTab === 'variables' ? '/api/config/variables' :
-            activeTab === 'parametros' ? '/api/config/parameters' :
-            activeTab === 'monedas' ? '/api/config/currencies' :
-            activeTab === 'equivalencias' ? '/api/config/equivalences' :
-            activeTab === 'extraccion-interfaces' ? '/api/config/interface-extract-params' :
-            activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
-            activeTab === 'formas-pago' ? '/api/config/payments' :
-            activeTab === 'paises' ? '/api/config/countries' :
-            activeTab === 'ciudades' ? '/api/config/cities' :
-            activeTab === 'aeropuertos' ? '/api/config/airports' :
-            activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
-            activeTab === 'estados-cotizacion' ? '/api/config/quotation-states' :
-            activeTab === 'combos' ? (formData.id ? `/api/combos/${formData.id}` : '/api/combos') :
-            '/api/config/implants';
+        let endpoint = TAB_CONFIG[activeTab]?.endpoint || '';
+        if (activeTab === 'combos' && formData.id) {
+            endpoint = `/api/combos/${formData.id}`;
+        }
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -1016,31 +1014,10 @@ export default function SettingsPage() {
     const handleDelete = async (id: number) => {
         if (!confirm(`¿Estás seguro de que deseas eliminar este registro? Esta acción no se puede deshacer.`)) return
 
-        const endpoint = 
-            activeTab === 'usuarios' ? '/api/config/users' :
-            activeTab === 'sucursales' ? '/api/config/branches' :
-            activeTab === 'impuestos' ? '/api/config/taxes' :
-            activeTab === 'vendedores' ? '/api/config/sellers' :
-            activeTab === 'tiqueteadores' ? '/api/config/ticket-printers' :
-            activeTab === 'prestadoras' ? '/api/config/prestadoras' :
-            activeTab === 'clientes' ? '/api/clients' :
-            activeTab === 'proveedores' ? '/api/providers' :
-            activeTab === 'tipos-proveedores' ? '/api/provider-types' :
-            activeTab === 'productos' ? '/api/products' :
-            activeTab === 'variables' ? '/api/config/variables' :
-            activeTab === 'parametros' ? '/api/config/parameters' :
-            activeTab === 'monedas' ? '/api/config/currencies' :
-            activeTab === 'equivalencias' ? '/api/config/equivalences' :
-            activeTab === 'extraccion-interfaces' ? '/api/config/interface-extract-params' :
-            activeTab === 'tarjetas-credito' ? '/api/config/credit-cards' :
-            activeTab === 'formas-pago' ? '/api/config/payments' :
-            activeTab === 'paises' ? '/api/config/countries' :
-            activeTab === 'ciudades' ? '/api/config/cities' :
-            activeTab === 'aeropuertos' ? '/api/config/airports' :
-            activeTab === 'tipos-tiquetes' ? '/api/config/ticket-types' :
-            activeTab === 'estados-cotizacion' ? '/api/config/quotation-states' :
-            activeTab === 'combos' ? `/api/combos/${id}` :
-            '/api/config/implants';
+        let endpoint = TAB_CONFIG[activeTab]?.endpoint || '';
+        if (activeTab === 'combos') {
+            endpoint = `/api/combos/${id}`;
+        }
 
         const loggedUser = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -1141,7 +1118,7 @@ export default function SettingsPage() {
                                 className="px-6 h-14 bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-950 text-white rounded-2xl flex items-center gap-3 shadow-xl font-bold transition-all"
                             >
                                 <Plus className="w-5 h-5" />
-                                {activeTab === 'usuarios' ? 'Nuevo Usuario' : activeTab === 'sucursales' ? 'Nueva Sucursal' : activeTab === 'impuestos' ? 'Nuevo Cargo/Impuesto' : activeTab === 'vendedores' ? 'Nuevo Vendedor' : activeTab === 'tiqueteadores' ? 'Nuevo Tiqueteador' : activeTab === 'prestadoras' ? 'Nueva Prestadora' : activeTab === 'clientes' ? 'Nuevo Cliente' : activeTab === 'proveedores' ? 'Nuevo Proveedor' : activeTab === 'tipos-proveedores' ? 'Nuevo Tipo de Proveedor' : activeTab === 'productos' ? 'Nuevo Producto' : activeTab === 'variables' ? 'Nueva Variable' : activeTab === 'parametros' ? 'Nuevo Parámetro' : activeTab === 'monedas' ? 'Nueva Moneda' : activeTab === 'combos' ? 'Nuevo Combo' : activeTab === 'equivalencias' ? 'Nueva Equivalencia' : activeTab === 'extraccion-interfaces' ? 'Nuevo Parámetro' : activeTab === 'tarjetas-credito' ? 'Nueva Tarjeta' : activeTab === 'formas-pago' ? 'Nueva Forma de Pago' : activeTab === 'paises' ? 'Nuevo País' : activeTab === 'ciudades' ? 'Nueva Ciudad' : activeTab === 'aeropuertos' ? 'Nuevo Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Nuevo Tipo de Tiquete' : activeTab === 'estados-cotizacion' ? 'Nuevo Estado Cotización' : 'Nuevo Implant'}
+                                {TAB_CONFIG[activeTab]?.newLabel || 'Nuevo Registro'}
                             </motion.button>
                         </>
                     )}
@@ -1170,6 +1147,8 @@ export default function SettingsPage() {
                 {isMasterTabEnabled('monedas') && <TabButton active={activeTab === 'monedas'} onClick={() => setActiveTab('monedas')} icon={<DollarSign className="w-4 h-4" />} label="Monedas" />}
                 {isMasterTabEnabled('equivalencias') && <TabButton active={activeTab === 'equivalencias'} onClick={() => setActiveTab('equivalencias')} icon={<Tags className="w-4 h-4" />} label="Equivalencias" />}
                 {isMasterTabEnabled('extraccion-interfaces') && <TabButton active={activeTab === 'extraccion-interfaces'} onClick={() => setActiveTab('extraccion-interfaces')} icon={<TerminalSquare className="w-4 h-4" />} label="Extracción Interfaces" />}
+                {isMasterTabEnabled('resoluciones-documentos') && <TabButton active={activeTab === 'resoluciones-documentos'} onClick={() => setActiveTab('resoluciones-documentos')} icon={<FileText className="w-4 h-4" />} label="Resoluciones" />}
+                {isMasterTabEnabled('consecutivos-transacciones') && <TabButton active={activeTab === 'consecutivos-transacciones'} onClick={() => setActiveTab('consecutivos-transacciones')} icon={<Database className="w-4 h-4" />} label="Consecutivos" />}
                 <div className="w-px bg-zinc-200 dark:bg-zinc-800 mx-1 my-2"></div>
                 {isMasterTabEnabled('tarjetas-credito') && <TabButton active={activeTab === 'tarjetas-credito'} onClick={() => setActiveTab('tarjetas-credito')} icon={<Tags className="w-4 h-4" />} label="Tarjetas de Crédito" />}
                 {isMasterTabEnabled('formas-pago') && <TabButton active={activeTab === 'formas-pago'} onClick={() => setActiveTab('formas-pago')} icon={<Tags className="w-4 h-4" />} label="Formas de Pago" />}
@@ -1191,7 +1170,7 @@ export default function SettingsPage() {
                     <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-400" />
                     <input
                         type="text"
-                        placeholder={`Buscar en ${activeTab === 'usuarios' ? 'Usuarios' : activeTab === 'sucursales' ? 'Sucursales' : activeTab === 'impuestos' ? 'Cargos e Impuestos' : activeTab === 'vendedores' ? 'Vendedores' : activeTab === 'tiqueteadores' ? 'Tiqueteadores' : activeTab === 'prestadoras' ? 'Prestadoras' : activeTab === 'clientes' ? 'Clientes' : activeTab === 'proveedores' ? 'Proveedores' : activeTab === 'tipos-proveedores' ? 'Tipos de Proveedor' : activeTab === 'productos' ? 'Productos' : activeTab === 'variables' ? 'Variables' : activeTab === 'parametros' ? 'Parámetros' : activeTab === 'monedas' ? 'Monedas' : activeTab === 'combos' ? 'Combos' : activeTab === 'equivalencias' ? 'Equivalencias' : activeTab === 'extraccion-interfaces' ? 'Extracción Interfaces' : activeTab === 'logs' ? 'Logs' : activeTab === 'tarjetas-credito' ? 'Tarjetas' : activeTab === 'formas-pago' ? 'Formas de Pago' : activeTab === 'paises' ? 'Países' : activeTab === 'ciudades' ? 'Ciudades' : activeTab === 'aeropuertos' ? 'Aeropuertos' : activeTab === 'tipos-tiquetes' ? 'Tipos de Tiquete' : activeTab === 'estados-cotizacion' ? 'Estados de Cotización' : 'Implants'}...`}
+                        placeholder={`Buscar en ${TAB_CONFIG[activeTab]?.plural || activeTab}...`}
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full h-14 pl-14 pr-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-zinc-900 dark:text-white"
@@ -1347,6 +1326,29 @@ export default function SettingsPage() {
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Código del Campo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Prefijo / Constante en Archivo</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Delimitador</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'resoluciones-documentos' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Sucursal</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Implante</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Num. Resolución</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Prefijo</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Rango Numeración</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Consecutivo Actual</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Vencimiento</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Estado</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
+                                        </>
+                                    ) : activeTab === 'consecutivos-transacciones' ? (
+                                        <>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Transacción</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Descripción</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Prefijo</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Inicio</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Consecutivo Actual</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Sucursal</th>
+                                            <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest">Implante</th>
                                             <th className="px-8 py-5 text-xs font-bold text-zinc-400 uppercase tracking-widest text-right">Acciones</th>
                                         </>
                                     ) : activeTab === 'impuestos' ? (
@@ -1822,12 +1824,72 @@ export default function SettingsPage() {
                                     </tr>
                                 ))}
 
+                                {activeTab === 'resoluciones-documentos' && (documentResolutions || [])
+                                .filter((item: any) => 
+                                    item.resolutionNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.branchName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.implantName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.prefix?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map((item: any) => (
+                                    <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.branchName || 'Todas'}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-600 dark:text-zinc-300">{item.implantName || 'Todos'}</td>
+                                        <td className="px-8 py-6 font-mono font-bold text-blue-600 dark:text-blue-400">{item.resolutionNumber}</td>
+                                        <td className="px-8 py-6 font-mono text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                                            <span className="bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800/50">{item.prefix || '-'}</span>
+                                        </td>
+                                        <td className="px-8 py-6 font-mono text-xs text-zinc-600 dark:text-zinc-400">{item.initialNumber} - {item.finalNumber}</td>
+                                        <td className="px-8 py-6 font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">{item.currentNumber}</td>
+                                        <td className="px-8 py-6 text-xs text-zinc-500">{item.expirationDate ? new Date(item.expirationDate).toLocaleDateString() : '-'}</td>
+                                        <td className="px-8 py-6">
+                                            {item.isActive ? (
+                                                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">Activa</span>
+                                            ) : (
+                                                <span className="text-xs font-bold text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-lg">Inactiva</span>
+                                            )}
+                                        </td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+
+                                {activeTab === 'consecutivos-transacciones' && (transactionConsecutives || [])
+                                .filter((item: any) => 
+                                    item.transactionType?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                    item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.branchName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.implantName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    item.prefix?.toLowerCase().includes(searchTerm.toLowerCase())
+                                ).map((item: any) => (
+                                    <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
+                                        <td className="px-8 py-6 font-mono font-bold text-blue-600 dark:text-blue-400">{item.transactionType}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-800 dark:text-zinc-200">{item.description}</td>
+                                        <td className="px-8 py-6 font-mono text-xs font-bold text-zinc-700 dark:text-zinc-300">
+                                            <span className="bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800/50">{item.prefix || '-'}</span>
+                                        </td>
+                                        <td className="px-8 py-6 font-mono text-xs text-zinc-500">{item.initialNumber}</td>
+                                        <td className="px-8 py-6 font-mono text-sm font-black text-emerald-600 dark:text-emerald-400">{item.currentNumber}</td>
+                                        <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.branchName || 'Todas'}</td>
+                                        <td className="px-8 py-6 text-xs text-zinc-500">{item.implantName || 'Todos'}</td>
+                                        <td className="px-8 py-6 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>
+                                                <button onClick={() => handleDelete(item.id)} className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"><Trash2 className="w-5 h-5" /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+
                                 {((activeTab === 'vendedores' ? sellers : activeTab === 'tiqueteadores' ? ticketPrinters : activeTab === 'sucursales' ? branches : activeTab === 'implants' ? implants : activeTab === 'variables' ? variables : activeTab === 'tarjetas-credito' ? creditCards : activeTab === 'formas-pago' ? payments : activeTab === 'paises' ? countries : activeTab === 'ciudades' ? cities : activeTab === 'aeropuertos' ? airports : activeTab === 'tipos-tiquetes' ? ticketTypes : activeTab === 'estados-cotizacion' ? quotationStates : activeTab === 'tipos-proveedores' ? providerTypes : []) || [])
                                 .filter((item: any) => 
                                     item.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                                     item.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                     item.email?.toLowerCase().includes(searchTerm.toLowerCase())
-                                ).map(item => (
+                                ).map((item: any) => (
                                     <tr key={item.id} className="group hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all text-sm">
                                         <td className="px-8 py-6 font-black text-blue-600 tracking-tighter text-base">{item.code || '-'}</td>
                                         <td className="px-8 py-6">
@@ -1978,7 +2040,7 @@ export default function SettingsPage() {
                                         {activeTab === 'usuarios' ? <Users className="w-6 h-6" /> : <Building2 className="w-6 h-6" />}
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : 'Nuevo'} {activeTab === 'usuarios' ? 'Usuario' : activeTab === 'sucursales' ? 'Sucursal' : activeTab === 'impuestos' ? 'Cargo/Impuesto' : activeTab === 'vendedores' ? 'Vendedor' : activeTab === 'tiqueteadores' ? 'Tiqueteador' : activeTab === 'prestadoras' ? 'Prestadora' : activeTab === 'clientes' ? 'Cliente' : activeTab === 'proveedores' ? 'Proveedor' : activeTab === 'tipos-proveedores' ? 'Tipo de Proveedor' : activeTab === 'productos' ? 'Producto' : activeTab === 'variables' ? 'Variable' : activeTab === 'parametros' ? 'Parámetro' : activeTab === 'monedas' ? 'Moneda' : activeTab === 'combos' ? 'Combo' : activeTab === 'equivalencias' ? 'Equivalencia' : activeTab === 'extraccion-interfaces' ? 'Parámetro de Extracción' : activeTab === 'tarjetas-credito' ? 'Tarjeta' : activeTab === 'formas-pago' ? 'Forma de Pago' : activeTab === 'paises' ? 'País' : activeTab === 'ciudades' ? 'Ciudad' : activeTab === 'aeropuertos' ? 'Aeropuerto' : activeTab === 'tipos-tiquetes' ? 'Tipo de Tiquete' : activeTab === 'estados-cotizacion' ? 'Estado de Cotización' : 'Implant'}</h3>
+                                        <h3 className="text-2xl font-black dark:text-white">{formData.id ? 'Editar' : (TAB_CONFIG[activeTab]?.article === 'una' ? 'Nueva' : 'Nuevo')} {TAB_CONFIG[activeTab]?.singular || ''}</h3>
                                         <p className="text-zinc-500 text-sm font-medium">Asigna los parámetros correspondientes</p>
                                     </div>
                                 </div>
@@ -3309,6 +3371,96 @@ export default function SettingsPage() {
                                             <Input label="Nombre Descriptivo del Campo" value={formData.fieldName || ''} onChange={(v: string) => setFormData({ ...formData, fieldName: v })} required placeholder="Ej: Cliente, Vendedor, Tiqueteador, Sucursal, Implante, centro de costo..." />
                                             <Input label="Prefijo / Constante en Archivo (PNR Remark)" value={formData.prefix || ''} onChange={(v: string) => setFormData({ ...formData, prefix: v })} required placeholder="Ej: RM*NC-, RM*VE-, RM*TK-, RM*SUC-, RM*IMP-, RM*CC-..." />
                                             <Input label="Delimitador / Separador Final (Opcional)" value={formData.delimiter || ''} onChange={(v: string) => setFormData({ ...formData, delimiter: v })} placeholder="Ej: - o / (por defecto -)" />
+                                        </>
+                                    ) : activeTab === 'resoluciones-documentos' ? (
+                                        <>
+                                            <div className="space-y-2 group">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Sucursal</label>
+                                                <SearchSelect 
+                                                    options={branches} 
+                                                    value={formData.branchId} 
+                                                    onChange={(val) => setFormData({ ...formData, branchId: val })}
+                                                    labelKey="name"
+                                                    placeholder="Seleccionar Sucursal"
+                                                />
+                                            </div>
+                                            <div className="space-y-2 group">
+                                                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Implante (Opcional)</label>
+                                                <SearchSelect 
+                                                    options={implants} 
+                                                    value={formData.implantId} 
+                                                    onChange={(val) => setFormData({ ...formData, implantId: val })}
+                                                    labelKey="name"
+                                                    placeholder="Todas / Sin Implante Específico"
+                                                />
+                                            </div>
+                                            <Input label="Número de Resolución DIAN / ERP" value={formData.resolutionNumber || ''} onChange={(v: string) => setFormData({ ...formData, resolutionNumber: v })} required placeholder="Ej. 187600000001" />
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <Input label="Num. Inicial" value={formData.initialNumber || ''} onChange={(v: string) => setFormData({ ...formData, initialNumber: v })} type="number" required placeholder="Ej. 1" />
+                                                <Input label="Num. Final" value={formData.finalNumber || ''} onChange={(v: string) => setFormData({ ...formData, finalNumber: v })} type="number" required placeholder="Ej. 5000" />
+                                                <Input label="Consecutivo Actual" value={formData.currentNumber || ''} onChange={(v: string) => setFormData({ ...formData, currentNumber: v })} type="number" placeholder="Ej. 1" />
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <Input label="Prefijo (Opcional)" value={formData.prefix || ''} onChange={(v: string) => setFormData({ ...formData, prefix: v })} placeholder="Ej. FE, FAC, SET" />
+                                                <Input label="Fecha Resolución" value={formData.resolutionDate ? String(formData.resolutionDate).substring(0, 10) : ''} onChange={(v: string) => setFormData({ ...formData, resolutionDate: v })} type="date" required />
+                                                <Input label="Fecha Vencimiento" value={formData.expirationDate ? String(formData.expirationDate).substring(0, 10) : ''} onChange={(v: string) => setFormData({ ...formData, expirationDate: v })} type="date" required />
+                                            </div>
+                                            <div className="flex items-center gap-3 pt-2">
+                                                <input 
+                                                    type="checkbox" 
+                                                    id="isActiveRes" 
+                                                    checked={formData.isActive !== false} 
+                                                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                                                    className="w-5 h-5 accent-blue-600 rounded"
+                                                />
+                                                <label htmlFor="isActiveRes" className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                                                    Resolución Activa (Desactivará automáticamente otras resoluciones activas de la misma sucursal/implante)
+                                                </label>
+                                            </div>
+                                        </>
+                                    ) : activeTab === 'consecutivos-transacciones' ? (
+                                        <>
+                                            <Input label="Tipo de Transacción (Código)" value={formData.transactionType || ''} onChange={(v: string) => setFormData({ ...formData, transactionType: v })} required placeholder="Ej. INVOICE, CREDIT_NOTE, QUOTATION" />
+                                            <Input label="Descripción de la Transacción" value={formData.description || ''} onChange={(v: string) => setFormData({ ...formData, description: v })} required placeholder="Ej. Facturación Electrónica de Venta" />
+                                            <div className="grid grid-cols-3 gap-4">
+                                                <Input label="Prefijo" value={formData.prefix || ''} onChange={(v: string) => setFormData({ ...formData, prefix: v })} placeholder="Ej. INV, NC, COT" />
+                                                <Input label="Número Inicial" value={formData.initialNumber || ''} onChange={(v: string) => setFormData({ ...formData, initialNumber: v })} type="number" required placeholder="Ej. 1001" />
+                                                <Input label="Consecutivo Actual / Próximo" value={formData.currentNumber || ''} onChange={(v: string) => setFormData({ ...formData, currentNumber: v })} type="number" placeholder="Ej. 1001" />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2 group">
+                                                    <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Sucursal (Opcional)</label>
+                                                    <SearchSelect 
+                                                        options={branches} 
+                                                        value={formData.branchId} 
+                                                        onChange={(val) => setFormData({ ...formData, branchId: val })}
+                                                        labelKey="name"
+                                                        placeholder="Todas las Sucursales"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2 group">
+                                                    <label className="text-xs font-black text-zinc-400 uppercase tracking-widest pl-1">Implante (Opcional)</label>
+                                                    <SearchSelect 
+                                                        options={implants} 
+                                                        value={formData.implantId} 
+                                                        onChange={(val) => setFormData({ ...formData, implantId: val })}
+                                                        labelKey="name"
+                                                        placeholder="Todos los Implantes"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3 pt-2">
+                                                <input 
+                                                    type="checkbox" 
+                                                    id="isActiveConsec" 
+                                                    checked={formData.isActive !== false} 
+                                                    onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                                                    className="w-5 h-5 accent-blue-600 rounded"
+                                                />
+                                                <label htmlFor="isActiveConsec" className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+                                                    Consecutivo Activo
+                                                </label>
+                                            </div>
                                         </>
                                     ) : activeTab === 'tarjetas-credito' ? (
                                         <>

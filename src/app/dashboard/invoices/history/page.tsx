@@ -10,6 +10,7 @@ import {
     Loader2,
     Download,
     Edit,
+    Eye,
     Trash2,
     Printer
 } from 'lucide-react'
@@ -105,27 +106,6 @@ export default function InvoicesHistoryPage() {
         }
     }
 
-    const handleDelete = async (id: number) => {
-        if (!confirm('¿Estás seguro de que deseas eliminar esta factura? Esta acción no se puede deshacer.')) return;
-        try {
-            const res = await fetch(`/api/invoices/${id}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-User-Id': JSON.parse(localStorage.getItem('user') || '{}').id?.toString() || ''
-                }
-            });
-            if (res.ok) {
-                setInvoices(invoices.filter(q => q.id !== id));
-            } else {
-                const error = await res.json();
-                alert(`Error: ${error.message}`);
-            }
-        } catch (error) {
-            console.error('Error deleting invoice:', error);
-            alert('Ocurrió un error al eliminar la factura.');
-        }
-    }
-
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-8 md:p-12">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
@@ -211,28 +191,33 @@ export default function InvoicesHistoryPage() {
                                             />
                                         </td>
                                         <td className="px-8 py-6">
-                                            <div className="font-bold text-zinc-900 dark:text-white flex items-center gap-2">
-                                                #{q.id}
+                                            <div className="font-mono font-black text-blue-600 dark:text-blue-400 text-base flex items-center gap-2">
+                                                {q.invoiceNumber || q.internalNumber || `#${q.id}`}
                                             </div>
+                                            {(q.fuente || q.serie || q.consecutivo) && (
+                                                <div className="text-[11px] text-zinc-400 font-mono mt-0.5">
+                                                    {q.fuente ? `Fuente: ${q.fuente}` : ''} {q.serie ? `| Serie: ${q.serie}` : ''} {q.consecutivo ? `| Cons: ${q.consecutivo}` : ''}
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400 text-sm font-medium">
                                                 <Calendar className="w-4 h-4 opacity-50" />
-                                                {format(new Date(q.createdAt || new Date()), 'dd/MM/yyyy')}
+                                                {q.date ? format(new Date(q.date), 'dd/MM/yyyy') : format(new Date(q.createdAt || new Date()), 'dd/MM/yyyy')}
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="font-semibold text-zinc-800 dark:text-zinc-200">{q.clientName}</div>
-                                            <div className="text-xs text-zinc-500">{q.nights} Noches - {q.providerName}</div>
+                                            <div className="text-xs text-zinc-500">{q.branchName ? `Sucursal: ${q.branchName}` : ''}</div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                                                {q.userName}
+                                                {q.userName || q.sellerName || 'Sistema'}
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
-                                                ${parseFloat(q.totalAmount).toLocaleString()} <span className="text-xs opacity-70">{q.currency}</span>
+                                                ${parseFloat(q.amount ?? q.totalAmount ?? 0).toLocaleString()} <span className="text-xs opacity-70">{q.currency || 'COP'}</span>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
@@ -256,18 +241,11 @@ export default function InvoicesHistoryPage() {
                                                 </Link>
                                                 <Link
                                                     href={`/dashboard/invoices/${q.id}/edit`}
-                                                    className="p-2 text-zinc-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl transition-all"
-                                                    title="Editar Factura"
+                                                    className="p-2 text-zinc-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"
+                                                    title="Ver Detalle de Factura"
                                                 >
-                                                    <Edit className="w-5 h-5" />
+                                                    <Eye className="w-5 h-5" />
                                                 </Link>
-                                                <button
-                                                    onClick={() => handleDelete(q.id)}
-                                                    className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all"
-                                                    title="Eliminar Factura"
-                                                >
-                                                    <Trash2 className="w-5 h-5" />
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>

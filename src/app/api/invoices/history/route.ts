@@ -27,16 +27,22 @@ export async function GET() {
 
             return {
                 id: inv.id,
-                invoiceNumber: inv.internalNumber,
+                internalNumber: inv.internalNumber,
+                invoiceNumber: inv.internalNumber || (inv.serie ? `${inv.serie}-${inv.consecutivo}` : inv.consecutivo) || `#${inv.id}`,
+                fuente: inv.fuente,
+                serie: inv.serie,
+                consecutivo: inv.consecutivo,
                 date: inv.date,
                 clientName: client?.name || 'Consumidor Final',
                 document: client?.document || '',
                 amount: inv.totalAmount || 0,
-                currency: inv.currency,
+                totalAmount: inv.totalAmount || 0,
+                currency: inv.currency || 'COP',
                 state: inv.state || 'NUEVO',
+                userName: seller?.name || 'Sistema',
                 sellerName: seller?.name || '',
                 branchName: branch?.name || '',
-                itemsCount: 0 // Cannot easily count without relations, set to 0 for now
+                itemsCount: 0
             };
         });
 

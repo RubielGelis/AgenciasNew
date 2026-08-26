@@ -9,12 +9,13 @@ Este Skill provee las instrucciones necesarias para desplegar cambios de base de
 
 ## Flujo de Trabajo
 
-### Paso 1: Desplegar Procedimientos Almacenados y Funciones
-Cada vez que se modifique o cree una función o procedimiento almacenado SQL (en la carpeta `SQL/Function` o `SQL/SP`), se debe ejecutar el actualizador correspondiente en la base de datos de pruebas local.
-- **Script actualizador**: Ejecuta el siguiente comando para compilar e inyectar las funciones y procedimientos almacenados en la base de datos PostgreSQL activa:
+### Paso 1: Desplegar y Compilar Procedimientos Almacenados y Funciones en BD Local
+Cada vez que se modifique o cree una función o procedimiento almacenado SQL (en la carpeta `SQL/Function`, `SQL/SP` o `SQL/Table`), se DEBE ejecutar INMEDIATAMENTE en el mismo turno el validador y compilador de base de datos local:
+- **Comando Obligatorio**:
   ```powershell
-  node scratch/deploy_both_sps.js
+  node deploy/gen_schema_json.js
   ```
+  Este script despliega y recompila en tiempo real las funciones y SPs en PostgreSQL local (`Korex_colaereo`), asegurando que la base de datos ejecute la última versión sin desfasamiento.
 
 ### Paso 2: Sincronizar Prisma ORM (Si hay cambios en tablas/columnas)
 Si el desarrollo implicó modificaciones en la estructura de tablas o columnas de la base de datos de Postgres:

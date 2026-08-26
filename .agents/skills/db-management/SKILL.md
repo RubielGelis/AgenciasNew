@@ -40,19 +40,28 @@ Esta guía detalla las reglas obligatorias y el flujo de trabajo paso a paso par
 
 ---
 
-## 2. Actualización y Sincronización Automática de Actualizadores
+## 2. Actualización, Compilación Local y Sincronización Automática
 
-Cualquier cambio realizado en Funciones o SPs **debe ser validado y sincronizado automáticamente** ejecutando:
+> [!CRITICAL]
+> **REGLA MANDATORIA DE AUTO-DESPLIEGUE LOCAL**:
+> Cada vez que se modifique o cree cualquier archivo SQL (en `SQL/SP/`, `SQL/Function/`, `SQL/Table/`), **SE DEBE EJECUTAR INMEDIATAMENTE EN EL MISMO TURNO EL COMANDO**:
+> ```bash
+> node deploy/gen_schema_json.js
+> ```
+> NUNCA dar por finalizada una modificación SQL ni responder al usuario sin haber corrido previamente este comando para compilar en la BD PostgreSQL local (`Korex_colaereo`).
 
-```bash
-node deploy/gen_schema_json.js
-```
-
-Este script ejecuta la validación pre-compilación de 4 capas:
-1. Compila todos los `.sql` en PostgreSQL local.
+Este script ejecuta la validación de 4 capas y el despliegue automático:
+1. Compila y despliega los `.sql` en tiempo real en la BD PostgreSQL local.
 2. Inyecta `CREATE TABLE IF NOT EXISTS` para tablas referenciadas en [`Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql).
 3. Verifica la regla obligatoria de `LEFT JOIN` en funciones de consulta.
 4. Sincroniza automáticamente los scripts de producción [`SQL/Actualizador/Actualizador.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Actualizador/Actualizador.sql) y [`ActualizadorSERVER.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Actualizador/ActualizadorSERVER.sql).
+
+> [!CRITICAL]
+> **REGLA DE SINCRONIZACIÓN PREVIA DE COLUMNAS (PREVENCIÓN DE ERROR 42703)**:
+> Antes de agregar o modificar cualquier Procedimiento Almacenado (SP), Función SQL o API Route que referencie una columna de tabla (ejemplo: `ip."ticketCode"`):
+> 1. **Verificar DDL en `SQL/Table/Alter_New_Columns.sql`**: La columna DEBE estar declarada tanto en el `CREATE TABLE` inicial como en un bloque `ALTER TABLE public."Tabla" ADD COLUMN IF NOT EXISTS "columna" tipo;`.
+> 2. **Verificar Modelo en `prisma/schema.prisma`**: La columna DEBE estar agregada al modelo Prisma.
+> 3. **Ejecutar Auto-Despliegue (`node deploy/gen_schema_json.js`)**: Inyectar la nueva columna en la BD local de PostgreSQL (`Korex_colaereo`) y regenerar Prisma ORM (`npx prisma generate`) ANTES de invocar el SP o API Route.
 
 ---
 
