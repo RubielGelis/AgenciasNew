@@ -43,6 +43,8 @@ Esta guía previene errores recurrentes (como botones que muestran "Nuevo Implan
 
 7. **Renderizado de Tabla Independiente**: Definir un bloque `<tr>` independiente en la tabla con la coincidencia exacta de columnas (`<th>` / `<td>`). NUNCA incluirlo dentro del bucle genérico de maestros simples (`code` / `name`), previniendo que los datos se desplacen hacia la derecha.
 
+8. **Inclusión Obligatoria en Tabla `"Master"` (Módulos del Sitio)**: Registrar el código del maestro en `public."Master"` tanto en [`SQL/Table/Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql) como en `SQL/Inicial.sql` con `INSERT INTO public."Master" (code, name, "inactivo") VALUES ('CodigoMaestro', 'clave-pestaña', false) ON CONFLICT (code) DO NOTHING;`. Esto garantiza que la tarjeta con el interruptor ON/OFF para habilitar o deshabilitar la pestaña aparezca inmediatamente en la vista `Módulos del Sitio -> Tablas Maestras y Pestañas de Configuración`.
+
 ---
 
 ## 2. Capa de Base de Datos y Backend (PostgreSQL & Prisma)

@@ -216,6 +216,44 @@ async function validateAndPrepareSchema() {
     }
   }
   console.log("  [OK] Regla de preservación de parámetros verificada (ON CONFLICT DO NOTHING).");
+
+  // 2.10 Verificación y Sembrado de todas las Tablas Maestras (public."Master")
+  console.log("\n[PASO 2.10/5] Verificando semillas de Tablas Maestras ('Master')...");
+  await client.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "Master_code_key" ON public."Master" ("code");
+    INSERT INTO public."Master" (code, name, "inactivo")
+    VALUES
+        ('SystemParameter', 'parametros', false),
+        ('User', 'usuarios', false),
+        ('Branch', 'sucursales', false),
+        ('Implant', 'implantes', false),
+        ('ChargeAndTax', 'impuestos', false),
+        ('Seller', 'vendedores', false),
+        ('TicketPrinter', 'tiqueteadores', false),
+        ('Prestadora', 'prestadoras', false),
+        ('Client', 'clientes', false),
+        ('Provider', 'proveedores', false),
+        ('ProviderType', 'tipos-proveedores', false),
+        ('Product', 'productos', false),
+        ('MasterVariable', 'variables', false),
+        ('Combo', 'combos', false),
+        ('SystemLog', 'logs', false),
+        ('Currency', 'monedas', false),
+        ('Equivalences', 'equivalencias', false),
+        ('InterfaceExtractParam', 'extraccion-interfaces', false),
+        ('DocumentResolution', 'resoluciones-documentos', false),
+        ('TransactionConsecutive', 'consecutivos-transacciones', false),
+        ('CreditCard', 'tarjetas-credito', false),
+        ('Payment', 'formas-pago', false),
+        ('Countries', 'paises', false),
+        ('Cities', 'ciudades', false),
+        ('Airports', 'aeropuertos', false),
+        ('TicketType', 'tipos-tiquetes', false),
+        ('QuotationState', 'estados-cotizacion', false),
+        ('QuotationFormat', 'formatos-cotizacion', false)
+    ON CONFLICT (code) DO NOTHING;
+  `);
+  console.log("  [OK] Todas las 28 tablas maestras sembradas y verificadas en public.\"Master\".");
   console.log("\n[PASO 3/4] Verificando regla obligatoria de LEFT JOIN en funciones de consulta...");
   const funcFolder = path.join(rootDir, 'SQL/Function');
   const listingFiles = ['fnCotizacionListar.sql', 'fnCotizacionHistorial.sql', 'fnCotizacion.sql'];
