@@ -571,11 +571,18 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     inferredPrice = mainTaxEntry.explicitAmount / (p.quantity || 1);
                                 }
 
+                                // Inferir costo unitario si p.cost fue guardado previamente como costo total de la línea
+                                let inferredCost = p.cost || 0;
+                                const pQty = p.quantity || 1;
+                                if (pQty > 1 && qData.costoTotal && Math.abs((p.cost * pQty) - qData.costoTotal) < 1) {
+                                    inferredCost = p.cost / pQty;
+                                }
+
                                 return {
                                     productId: p.productId?.toString() || '',
                                     quantity: p.quantity,
                                     price: inferredPrice,
-                                    cost: p.cost || 0,
+                                    cost: inferredCost,
                                     providerId: p.providerId?.toString() || '',
                                     prestadoraId: p.prestadoraId?.toString() || '',
                                     checkIn: p.checkInDate ? new Date(p.checkInDate).toISOString().split('T')[0] : '',
@@ -1356,7 +1363,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                             </div>
                                             <div className="flex gap-2">
                                                 <select
-                                                    className="flex-1 h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500"
+                                                    className="w-1/2 min-w-[120px] shrink-0 h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500 shadow-sm"
                                                     value={item.mainTaxId || ''}
                                                     onChange={(e) => {
                                                         const val = e.target.value ? parseInt(e.target.value) : undefined;
@@ -1391,7 +1398,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     {(data.taxes || []).map((t: any) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
                                                 </select>
 
-                                                <div className="relative w-40">
+                                                <div className="relative w-1/2 min-w-[160px] shrink-0">
                                                     <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
                                                     <input
                                                         type="text"
@@ -1581,13 +1588,14 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     <input
                                                         type="text"
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-orange-200 dark:border-orange-800 outline-none text-xs font-bold text-orange-600 dark:text-orange-400 focus:ring-1 focus:ring-orange-400"
-                                                        value={focusedField?.itemIdx === index && focusedField?.field === 'cost' ? (focusedField.rawValue ?? item.cost ?? '') : (item.cost ?? '')}
-                                                        onFocus={() => setFocusedField({ itemIdx: index, field: 'cost', rawValue: item.cost?.toString() || '' })}
+                                                        value={focusedField?.itemIdx === index && focusedField?.field === 'cost' ? (focusedField.rawValue ?? '') : (((item.cost || 0) * (item.quantity || 1)) ? ((item.cost || 0) * (item.quantity || 1)).toString() : '')}
+                                                        onFocus={() => setFocusedField({ itemIdx: index, field: 'cost', rawValue: ((item.cost || 0) * (item.quantity || 1)) ? ((item.cost || 0) * (item.quantity || 1)).toString() : '' })}
                                                         onBlur={() => setFocusedField(null)}
                                                         onChange={(e) => {
                                                             const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
                                                             setFocusedField(prev => prev ? { ...prev, rawValue: cleanVal } : { itemIdx: index, field: 'cost', rawValue: cleanVal });
-                                                            updateItem(index, 'cost', parseFloat(cleanVal) || 0);
+                                                            const lineTotalCost = parseFloat(cleanVal) || 0;
+                                                            updateItem(index, 'cost', lineTotalCost / (item.quantity || 1));
                                                         }}
                                                     />
                                                 </div>

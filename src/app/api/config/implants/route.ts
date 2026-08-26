@@ -160,9 +160,9 @@ export async function PUT(req: NextRequest) {
             });
             finalTemplateBuffer = null;
         } else if (!finalTemplateBuffer || !finalLogoBuffer || !finalInvoiceTemplateBuffer) {
-            const current = await prisma.implant.findUnique({
+            const current: any = await prisma.implant.findUnique({
                 where: { id: dbId },
-                select: { template: true, logo: true, invoiceTemplate: true }
+                select: { template: true, logo: true, invoiceTemplate: true } as any
             });
             if (!finalTemplateBuffer && current?.template) {
                 finalTemplateBuffer = Buffer.from(current.template);

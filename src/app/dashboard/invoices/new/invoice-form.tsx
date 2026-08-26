@@ -1525,7 +1525,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                             <div className="flex gap-2">
                                                 <select
                                                     disabled={isReadOnly}
-                                                    className="flex-1 h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+                                                    className="w-1/2 min-w-[120px] shrink-0 h-11 bg-white dark:bg-zinc-900 rounded-lg px-3 border border-zinc-200 dark:border-zinc-800 outline-none text-xs font-bold text-blue-600 dark:text-blue-400 focus:ring-2 focus:ring-blue-500 disabled:opacity-60 shadow-sm"
                                                     value={item.mainTaxId || ''}
                                                     onChange={(e) => {
                                                         const val = e.target.value ? parseInt(e.target.value) : undefined;
@@ -1560,7 +1560,7 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                     {(data.taxes || []).map((t: any) => <option key={t.id} value={String(t.id)}>{t.name}</option>)}
                                                 </select>
 
-                                                <div className="relative w-40">
+                                                <div className="relative w-1/2 min-w-[160px] shrink-0">
                                                     <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-400" />
                                                     <input
                                                         type="number"

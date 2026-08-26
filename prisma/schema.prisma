@@ -99,6 +99,7 @@ model Branch {
   preQuotations           PreQuotation[]
   quotations              Quotation[]
   QuotationFormat         QuotationFormat[]
+  SysConsecutivo          SysConsecutivo[]
   transactionConsecutives TransactionConsecutive[]
   users                   User[]
 }
@@ -118,6 +119,7 @@ model Implant {
   branch                  Branch?                  @relation(fields: [branchId], references: [id])
   quotations              Quotation[]
   QuotationFormat         QuotationFormat[]
+  SysConsecutivo          SysConsecutivo[]
   transactionConsecutives TransactionConsecutive[]
   users                   User[]
 }
@@ -1120,4 +1122,39 @@ model TransactionConsecutive {
   createdAt       DateTime @default(now()) @db.Timestamp(6)
   branch          Branch?  @relation(fields: [branchId], references: [id], onUpdate: NoAction)
   implant         Implant? @relation(fields: [implantId], references: [id], onUpdate: NoAction)
+}
+
+model Resolution {
+  id       Int       @id @default(autoincrement())
+  code     String    @unique @db.VarChar(255)
+  name     String    @db.VarChar(255)
+  date     DateTime? @db.Timestamptz(6)
+  expira   DateTime? @db.Timestamptz(6)
+  inicial  BigInt?
+  end      BigInt?
+  autoriza String?   @db.VarChar(255)
+  prefijo  String?   @db.VarChar(50)
+  alerta   Int?
+  day      Int?
+  permitir Boolean?  @default(false)
+  activo   Boolean?  @default(true)
+}
+
+model SysConsecutivo {
+  id          Int      @id @default(autoincrement())
+  codigo      String   @db.VarChar(50)
+  nombre      String   @db.VarChar(255)
+  branchId    Int?
+  implantId   Int?
+  fuente      String?  @db.VarChar(50)
+  serie       String?  @db.VarChar(50)
+  consecutivo BigInt   @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @db.Timestamp(6)
+  Branch      Branch?  @relation(fields: [branchId], references: [id], onUpdate: NoAction)
+  Implant     Implant? @relation(fields: [implantId], references: [id], onUpdate: NoAction)
+
+  @@index([branchId], map: "idx_sysconsecutivo_branch")
+  @@index([codigo], map: "idx_sysconsecutivo_codigo")
+  @@index([implantId], map: "idx_sysconsecutivo_implant")
 }

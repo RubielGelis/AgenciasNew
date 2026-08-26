@@ -120,8 +120,8 @@ export async function GET(req: Request) {
 
         const [clients, branches, implants, sellers] = await Promise.all([
             prisma.client.findMany({ where: { id: { in: clientIds } } }),
-            prisma.branch.findMany({ where: { id: { in: branchIds } }, include: { resolution: true } }),
-            prisma.implant.findMany({ where: { id: { in: implantIds } }, include: { resolution: true } }),
+            prisma.branch.findMany({ where: { id: { in: branchIds } }, include: { resolution: true } as any }),
+            prisma.implant.findMany({ where: { id: { in: implantIds } }, include: { resolution: true } as any }),
             prisma.seller.findMany({ where: { id: { in: sellerIds } } })
         ]);
 
@@ -135,8 +135,8 @@ export async function GET(req: Request) {
 
             for (const inv of invoices) {
                 const invProducts = productsByInvoice.get(inv.id) || [];
-                const branch = inv.branchId ? branchMap.get(inv.branchId) : null;
-                const implant = inv.implantId ? implantMap.get(inv.implantId) : null;
+                const branch: any = inv.branchId ? branchMap.get(inv.branchId) : null;
+                const implant: any = inv.implantId ? implantMap.get(inv.implantId) : null;
                 const client = inv.clientId ? clientMap.get(inv.clientId) : null;
                 const seller = inv.sellerId ? sellerMap.get(inv.sellerId) : null;
                 const resolution = implant?.resolution || branch?.resolution || null;
@@ -267,8 +267,8 @@ export async function GET(req: Request) {
         const outWorkbook = new ExcelJS.Workbook();
         for (const inv of invoices) {
             const invProducts = productsByInvoice.get(inv.id) || [];
-            const branch = inv.branchId ? branchMap.get(inv.branchId) : null;
-            const implant = inv.implantId ? implantMap.get(inv.implantId) : null;
+            const branch: any = inv.branchId ? branchMap.get(inv.branchId) : null;
+            const implant: any = inv.implantId ? implantMap.get(inv.implantId) : null;
             const client = inv.clientId ? clientMap.get(inv.clientId) : null;
             const seller = inv.sellerId ? sellerMap.get(inv.sellerId) : null;
             const resolution = implant?.resolution || branch?.resolution || null;
