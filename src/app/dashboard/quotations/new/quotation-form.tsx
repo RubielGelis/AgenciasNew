@@ -402,7 +402,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
     const total = Object.values(taxSummary).reduce((sum, val) => sum + val, 0);
 
     const showTotals = data?.showTotals ?? true;
-    const costoTotal = formData.items.reduce((sum, item) => sum + (item.cost || 0) * (item.quantity || 1), 0);
+    const costoTotal = formData.items.reduce((sum, item) => sum + (item.cost || 0), 0);
     const valorBase = formData.items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
     const utilidad = valorBase - costoTotal;
     const porcentajeComisionUtilidad = valorBase > 0 ? parseFloat(((utilidad / valorBase) * 100).toFixed(2)) : 0;
@@ -571,12 +571,8 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     inferredPrice = mainTaxEntry.explicitAmount / (p.quantity || 1);
                                 }
 
-                                // Inferir costo unitario si p.cost fue guardado previamente como costo total de la línea
-                                let inferredCost = p.cost || 0;
-                                const pQty = p.quantity || 1;
-                                if (pQty > 1 && qData.costoTotal && Math.abs((p.cost * pQty) - qData.costoTotal) < 1) {
-                                    inferredCost = p.cost / pQty;
-                                }
+                                // Usar el costo exacto guardado sin realizar divisiones ni calculos
+                                const inferredCost = p.cost || 0;
 
                                 return {
                                     productId: p.productId?.toString() || '',
@@ -1588,14 +1584,14 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                     <input
                                                         type="text"
                                                         className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-orange-200 dark:border-orange-800 outline-none text-xs font-bold text-orange-600 dark:text-orange-400 focus:ring-1 focus:ring-orange-400"
-                                                        value={focusedField?.itemIdx === index && focusedField?.field === 'cost' ? (focusedField.rawValue ?? '') : (((item.cost || 0) * (item.quantity || 1)) ? ((item.cost || 0) * (item.quantity || 1)).toString() : '')}
-                                                        onFocus={() => setFocusedField({ itemIdx: index, field: 'cost', rawValue: ((item.cost || 0) * (item.quantity || 1)) ? ((item.cost || 0) * (item.quantity || 1)).toString() : '' })}
+                                                        value={focusedField?.itemIdx === index && focusedField?.field === 'cost' ? (focusedField.rawValue ?? '') : ((item.cost || 0) ? (item.cost || 0).toString() : '')}
+                                                        onFocus={() => setFocusedField({ itemIdx: index, field: 'cost', rawValue: (item.cost || 0) ? (item.cost || 0).toString() : '' })}
                                                         onBlur={() => setFocusedField(null)}
                                                         onChange={(e) => {
                                                             const cleanVal = e.target.value.replace(/[^0-9.,]/g, '').replace(/,/g, '.');
                                                             setFocusedField(prev => prev ? { ...prev, rawValue: cleanVal } : { itemIdx: index, field: 'cost', rawValue: cleanVal });
                                                             const lineTotalCost = parseFloat(cleanVal) || 0;
-                                                            updateItem(index, 'cost', lineTotalCost / (item.quantity || 1));
+                                                            updateItem(index, 'cost', lineTotalCost);
                                                         }}
                                                     />
                                                 </div>

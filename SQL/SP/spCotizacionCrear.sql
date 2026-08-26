@@ -335,7 +335,7 @@ BEGIN
     END LOOP;
 
     -- Calcular y actualizar el totalAmount y los nuevos campos financieros
-    SELECT COALESCE(SUM(qp.cost * qp.quantity), 0.0), COALESCE(SUM(qp.price * qp.quantity), 0.0)
+    SELECT COALESCE(SUM(qp.cost), 0.0), COALESCE(SUM(qp.price * qp.quantity), 0.0)
     INTO v_costo_total, v_valor_base
     FROM public."QuotationProduct" qp
     WHERE qp."quotationId" = v_quotation_id;
