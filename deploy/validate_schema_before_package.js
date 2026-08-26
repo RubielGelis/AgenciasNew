@@ -254,6 +254,25 @@ async function validateAndPrepareSchema() {
     ON CONFLICT (code) DO NOTHING;
   `);
   console.log("  [OK] Todas las 28 tablas maestras sembradas y verificadas en public.\"Master\".");
+
+  // 2.11 Verificación y Sembrado de Parámetros del Sistema (public."SystemParameter")
+  console.log("\n[PASO 2.11/5] Verificando semillas de Parámetros del Sistema ('SystemParameter')...");
+  await client.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "SystemParameter_code_key" ON public."SystemParameter" ("code");
+    INSERT INTO public."SystemParameter" (code, name, value)
+    VALUES
+        ('ServidorSQLServer', 'Host de SQL Server', 'Rubiel/RUBIEL'),
+        ('UsuarioSQLServer', 'Usuario SQL Server', 'sa'),
+        ('ClaveSQLServer', 'Contraseña SQL Server', '111985*'),
+        ('BaseSQLServer', 'Base de Datos SQL Server', 'Agencias'),
+        ('PuertoSQLServer', 'Puerto SQL Server', ''),
+        ('EnviarCotizacionesAutoSQLserver', 'Envío automático de cotizaciones a SQL Server (1: Sí, 0: No)', '1'),
+        ('EnviarFacturacionAutoSQLserver', 'Envío automático a Facturacion SQL Server (1: Sí, 0: No)', '1'),
+        ('Pais', 'Pais', 'Colombia'),
+        ('MOSTRAR_TOTALIZACION_COTIZACION', 'Mostrar totalización financiera en cotización', 'true')
+    ON CONFLICT (code) DO NOTHING;
+  `);
+  console.log("  [OK] Todos los Parámetros del Sistema sembrados y verificados con ON CONFLICT DO NOTHING.");
   console.log("\n[PASO 3/4] Verificando regla obligatoria de LEFT JOIN en funciones de consulta...");
   const funcFolder = path.join(rootDir, 'SQL/Function');
   const listingFiles = ['fnCotizacionListar.sql', 'fnCotizacionHistorial.sql', 'fnCotizacion.sql'];
