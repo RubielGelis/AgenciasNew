@@ -63,6 +63,14 @@ export async function GET(req: NextRequest) {
             data = [{ code: 'CMB-001', name: 'Combo Básico', cupos: 10, currencyCode: 'USD' }]
             filename = 'plantilla_combos'
             break
+        case 'resoluciones':
+            data = [{ code: 'RES-001', name: 'Resolución Facturación Principal', autoriza: '187600000000', prefijo: 'FE', inicial: 1, end: 5000, alerta: 50, day: 15, permitir: 0 }]
+            filename = 'plantilla_resoluciones'
+            break
+        case 'sysconsecutivos':
+            data = [{ code: 'FAC', name: 'Consecutivo Facturas', fuente: 'FAC', serie: '001', consecutivo: 1, branchName: 'Sede Norte', implantName: '' }]
+            filename = 'plantilla_sysconsecutivos'
+            break
         default:
             return NextResponse.json({ message: 'Tipo no válido' }, { status: 400 })
     }

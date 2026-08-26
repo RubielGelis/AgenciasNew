@@ -6,9 +6,9 @@ export const dynamic = 'force-dynamic'
 
 async function ensureDefaultStates() {
     try {
-        const count = await prisma.quotationState.count();
+        const count = await (prisma as any).quotationState.count();
         if (count === 0) {
-            await prisma.quotationState.createMany({
+            await (prisma as any).quotationState.createMany({
                 data: [
                     { code: 'NUEVO', name: 'Nuevo', color: 'blue' },
                     { code: 'ENVIADO', name: 'ENVIADO', color: 'emerald' }
@@ -23,7 +23,7 @@ async function ensureDefaultStates() {
 export async function GET(req: NextRequest) {
     try {
         await ensureDefaultStates();
-        const results = await prisma.quotationState.findMany({
+        const results = await (prisma as any).quotationState.findMany({
             orderBy: { id: 'asc' }
         });
         return NextResponse.json(paginateArray(req, results, (q: any) => [q.name, q.code]))
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ message: 'El nombre es obligatorio' }, { status: 400 })
         }
 
-        const state = await prisma.quotationState.create({
+        const state = await (prisma as any).quotationState.create({
             data: {
                 code: code.trim().toUpperCase(),
                 name: name.trim(),
@@ -85,7 +85,7 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ message: 'El nombre es obligatorio' }, { status: 400 })
         }
 
-        const state = await prisma.quotationState.update({
+        const state = await (prisma as any).quotationState.update({
             where: { id: parseInt(id) },
             data: {
                 code: code.trim().toUpperCase(),
@@ -118,7 +118,7 @@ export async function DELETE(req: NextRequest) {
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
 
-        const deletedState = await prisma.quotationState.delete({
+        const deletedState = await (prisma as any).quotationState.delete({
             where: { id: parseInt(id) }
         });
 

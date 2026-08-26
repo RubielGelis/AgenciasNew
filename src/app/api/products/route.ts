@@ -35,9 +35,8 @@ export async function POST(req: NextRequest) {
                 classItinerary: classItinerary || null,
                 airlineItinerary: airlineItinerary || null,
                 ticketTypeId: ticketTypeId ? parseInt(ticketTypeId) : null,
-                mandatoryFields: mandatoryFields || null,
                 taxIds: taxIds ? (Array.isArray(taxIds) ? taxIds : JSON.parse(taxIds)) : [],
-            }
+            } as any
         });
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
@@ -72,9 +71,8 @@ export async function PUT(req: NextRequest) {
                 classItinerary: classItinerary || null,
                 airlineItinerary: airlineItinerary || null,
                 ticketTypeId: ticketTypeId ? parseInt(ticketTypeId) : null,
-                mandatoryFields: mandatoryFields || null,
                 taxIds: taxIds ? (Array.isArray(taxIds) ? taxIds : JSON.parse(taxIds)) : [],
-            }
+            } as any
         });
 
         import('@/lib/logger').then(({ logSystemEvent }) => {

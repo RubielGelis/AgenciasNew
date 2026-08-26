@@ -21,13 +21,22 @@ DECLARE
     v_existing_invoice_number TEXT;
     v_temp_msg TEXT;
     v_decimals INT;
+    v_fuente TEXT;
+    v_serie TEXT;
+    v_consecutivo TEXT;
+    v_consec_id INT;
+    v_next_num BIGINT;
+    v_billing_code TEXT;
     v_branch_id INT;
     v_implant_id INT;
+    v_resolution_id INT;
+    v_res RECORD;
+    v_res_rec RECORD;
     v_consec_json JSONB;
     v_fuente_val TEXT;
     v_serie_val TEXT;
     v_consec_val TEXT;
-    v_res_rec RECORD;
+    v_consec_num BIGINT;
 BEGIN
     -- ----------------------------------------------------
     -- FASE 1: PRE-VALIDACIONES OBLIGATORIAS (Síncrona sin modificar BD)
@@ -47,6 +56,145 @@ BEGIN
 
     -- Obtener decimales de la moneda
     v_decimals := public.fn_obtener_decimales_moneda(p_data->>'currency');
+
+    v_resolution_id := NULLIF(p_data->>'resolutionId', '')::INT;
+
+    v_internal_number := 'INV-' || to_char(CURRENT_DATE, 'YYYYMMDD') || '-' || floor(random() * 1000)::text;
+
+    v_fuente := NULLIF(p_data->>'fuente', '');
+    v_serie := NULLIF(p_data->>'serie', '');
+    v_consecutivo := NULLIF(p_data->>'consecutivo', '');
+
+    -- Lógica de asignación de consecutivo automático desde SysConsecutivo si consecutivo es nulo o vacío
+    IF v_consecutivo IS NULL THEN
+        v_billing_code := COALESCE(
+            NULLIF(p_data->>'codigo', ''), 
+            NULLIF(p_data->>'codigoFacturacion', ''), 
+            NULLIF(p_data->>'billingCode', ''), 
+            v_fuente, 
+            'FACT'
+        );
+
+        SELECT id, NULLIF(fuente, ''), NULLIF(serie, '') 
+        INTO v_consec_id, v_fuente, v_serie
+        FROM public."SysConsecutivo"
+        WHERE LOWER(codigo) = LOWER(v_billing_code)
+           OR (v_branch_id IS NOT NULL AND "branchId" = v_branch_id AND ("implantId" IS NULL OR "implantId" = v_implant_id))
+        ORDER BY 
+            (CASE WHEN LOWER(codigo) = LOWER(v_billing_code) THEN 1 ELSE 2 END),
+            (CASE WHEN "implantId" IS NOT NULL THEN 1 WHEN "branchId" IS NOT NULL THEN 2 ELSE 3 END),
+            id DESC
+        LIMIT 1;
+
+        IF v_consec_id IS NOT NULL THEN
+            UPDATE public."SysConsecutivo"
+            SET consecutivo = consecutivo + 1,
+                "updatedAt" = CURRENT_TIMESTAMP
+            WHERE id = v_consec_id
+            RETURNING consecutivo INTO v_next_num;
+
+            v_consecutivo := LPAD(v_next_num::TEXT, 8, '0');
+        ELSE
+            SELECT COALESCE(MAX(consecutivo::BIGINT), 0) + 1 INTO v_next_num 
+            FROM public."Invoices" 
+            WHERE consecutivo ~ '^[0-9]+$';
+
+            v_consecutivo := LPAD(v_next_num::TEXT, 8, '0');
+        END IF;
+    END IF;
+
+    -- Resolución y Validación de Rango de Numeración
+    IF v_resolution_id IS NULL AND v_implant_id IS NOT NULL THEN
+        SELECT "resolutionId" INTO v_resolution_id FROM public."Implant" WHERE id = v_implant_id;
+    END IF;
+
+    IF v_resolution_id IS NULL AND v_branch_id IS NOT NULL THEN
+        SELECT "resolutionId" INTO v_resolution_id FROM public."Branch" WHERE id = v_branch_id;
+    END IF;
+
+    IF v_resolution_id IS NULL AND v_serie IS NOT NULL THEN
+        SELECT id INTO v_resolution_id FROM public."Resolution" WHERE activo = TRUE AND prefijo ILIKE v_serie ORDER BY id DESC LIMIT 1;
+    END IF;
+
+    IF v_resolution_id IS NULL THEN
+        SELECT id INTO v_resolution_id FROM public."Resolution" WHERE activo = TRUE ORDER BY id DESC LIMIT 1;
+    END IF;
+
+    IF v_resolution_id IS NOT NULL THEN
+        SELECT * INTO v_res FROM public."Resolution" WHERE id = v_resolution_id;
+    END IF;
+
+    IF v_res.id IS NOT NULL THEN
+        -- 1. Validar estado de la resolución
+        IF v_res.activo IS FALSE THEN
+            p_mensaje_resultado := 'ERROR: La resolución de facturación "' || v_res.name || '" (' || v_res.code || ') se encuentra inactiva.';
+            RETURN;
+        END IF;
+
+        -- 2. Validar vigencia / expiración de la resolución
+        IF v_res.expira IS NOT NULL AND v_res.expira::DATE < CURRENT_DATE THEN
+            IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
+                p_mensaje_resultado := 'ERROR: La resolución de facturación "' || v_res.name || '" (' || v_res.code || ') se encuentra vencida desde el ' || to_char(v_res.expira, 'YYYY-MM-DD') || '.';
+                RETURN;
+            END IF;
+        END IF;
+
+        -- 3. Validar rango numérico autorizado del consecutivo
+        IF v_consecutivo IS NOT NULL AND v_consecutivo ~ '^[0-9]+$' THEN
+            v_consec_num := v_consecutivo::BIGINT;
+
+            IF v_res.inicial IS NOT NULL AND v_consec_num < v_res.inicial THEN
+                IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
+                    p_mensaje_resultado := 'ERROR: El consecutivo generado (' || v_consec_num || ') es menor al rango inicial autorizado (' || v_res.inicial || ') para la resolución "' || v_res.name || '".';
+                    RETURN;
+                END IF;
+            END IF;
+
+            IF v_res."end" IS NOT NULL AND v_consec_num > v_res."end" THEN
+                IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
+                    p_mensaje_resultado := 'ERROR: El consecutivo generado (' || v_consec_num || ') supera el rango final autorizado (' || v_res."end" || ') para la resolución "' || v_res.name || '".';
+                    RETURN;
+                END IF;
+            END IF;
+        END IF;
+
+        -- 4. Asignar prefijo de resolución a la serie si no fue provisto
+        IF v_serie IS NULL AND NULLIF(v_res.prefijo, '') IS NOT NULL THEN
+            v_serie := v_res.prefijo;
+        END IF;
+    END IF;
+
+    -- 5. Validar unicidad del consecutivo (evitar duplicidad)
+    IF v_consecutivo IS NOT NULL THEN
+        IF EXISTS (
+            SELECT 1 FROM public."Invoices"
+            WHERE consecutivo = v_consecutivo
+              AND COALESCE(serie, '') = COALESCE(v_serie, '')
+              AND COALESCE(fuente, '') = COALESCE(v_fuente, '')
+        ) THEN
+            p_mensaje_resultado := 'ERROR: Ya existe una factura emitida con la numeración ' || COALESCE(v_fuente || '-', '') || COALESCE(v_serie || '-', '') || v_consecutivo || '.';
+            RETURN;
+        END IF;
+    END IF;
+
+    INSERT INTO public."Invoices" (
+        "internalNumber", "date", "clientId", "currency", "exchangeRate", 
+        "branchId", "implantId", "sellerId", "ticketPrinterId", 
+        "baseCommissionable", "commissionPercentage", "chargesAndTaxes", 
+        "totalAmount", "userId", "state", "fuente", "serie", "consecutivo"
+    ) VALUES (
+        v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, COALESCE(NULLIF(p_data->>'currency', ''), 'COP'), COALESCE(NULLIF(p_data->>'exchangeRate', '')::FLOAT, 1.0),
+        COALESCE(v_branch_id, 1), v_implant_id, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
+        0, COALESCE(NULLIF(p_data->>'commissionPercentage', '')::FLOAT, 0), COALESCE(NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT, 0),
+        COALESCE(NULLIF(p_data->>'totalAmount', '')::FLOAT, 0), p_acting_user_id, 'NUEVO',
+        v_fuente, v_serie, v_consecutivo
+    ) RETURNING id INTO v_invoice_id;
+
+    FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
+    LOOP
+        INSERT INTO public."InvoicesProductCombo" ("invoiceId", "comboId")
+        VALUES (v_invoice_id, COALESCE(v_combo."comboId", v_combo.id));
+    END LOOP;
 
     -- Pre-validar items (Productos, tiquetes duplicados, productos al vuelo)
     FOR v_item IN SELECT * FROM jsonb_to_recordset(p_data->'items') AS x(

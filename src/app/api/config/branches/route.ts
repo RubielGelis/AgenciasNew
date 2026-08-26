@@ -11,19 +11,22 @@ export async function GET(req: NextRequest) {
     try {
         const branches = await prisma.$queryRawUnsafe<any[]>(`SELECT * FROM public.fnBranchListar()`)
         
-        // Convert Buffer/Uint8Array to base64 string for the frontend
-        const branchesWithLogo = await Promise.all(branches.map(async b => {
+        const branchesWithData = await Promise.all(branches.map(async b => {
             const physicalConfig = await getCellCustomizationConfig(b.id, null)
             return {
                 ...b,
                 logo: b.logo ? `data:image/png;base64,${Buffer.from(b.logo).toString('base64')}` : null,
-                template: undefined, // remove template binary from list to save payload size
+                template: undefined,
                 hasTemplate: !!b.template,
-                templateConfig: physicalConfig || b.templateConfig
+                templateConfig: physicalConfig || b.templateConfig,
+                invoiceTemplate: undefined,
+                hasInvoiceTemplate: !!b.invoiceTemplate,
+                invoiceTemplateConfig: b.invoiceTemplateConfig,
+                resolutionId: b.resolutionId
             }
         }))
         
-        return NextResponse.json(paginateArray(req, branchesWithLogo, b => [b.code, b.name]))
+        return NextResponse.json(paginateArray(req, branchesWithData, b => [b.code, b.name]))
     } catch (error) {
         return NextResponse.json({ message: 'Error fetching branches' }, { status: 500 })
     }
@@ -47,28 +50,47 @@ export async function POST(req: NextRequest) {
             templateBuffer = Buffer.from(cleanBase64, 'base64');
         }
 
-        // Generate the HTML template *before* calling the stored procedure
+        let invoiceTemplateBuffer = null;
+        if (body.invoiceTemplate) {
+            const cleanBase64 = body.invoiceTemplate.split(';base64,').pop() || body.invoiceTemplate;
+            invoiceTemplateBuffer = Buffer.from(cleanBase64, 'base64');
+        }
+
         let htmlTemplate = null;
         if (templateBuffer) {
             try {
                 htmlTemplate = await generateHtmlTemplate(templateBuffer, body.templateConfig, logoBuffer);
             } catch (htmlErr: any) {
                 console.error("Error generating HTML template during branch creation:", htmlErr);
-                throw new Error("Error generating HTML template: " + (htmlErr.message || String(htmlErr)));
             }
         }
 
+        let invoiceHtmlTemplate = null;
+        if (invoiceTemplateBuffer) {
+            try {
+                invoiceHtmlTemplate = await generateHtmlTemplate(invoiceTemplateBuffer, body.invoiceTemplateConfig, logoBuffer);
+            } catch (htmlErr: any) {
+                console.error("Error generating invoice HTML template during branch creation:", htmlErr);
+            }
+        }
+
+        const resolutionId = body.resolutionId ? parseInt(body.resolutionId) : null;
+
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spBranchCrear($1::TEXT, $2::TEXT, $3::BYTEA, $4::BYTEA, $5::JSONB, $6::TEXT, $7::INT, $8::INT, $9::TEXT)`,
+            `CALL public.spBranchCrear($1::TEXT, $2::TEXT, $3::BYTEA, $4::BYTEA, $5::JSONB, $6::TEXT, $7::INT, $8::BYTEA, $9::JSONB, $10::TEXT, $11::INT, $12::INT, $13::TEXT)`,
             body.code,
             body.name,
             logoBuffer,
             templateBuffer,
             body.templateConfig ? body.templateConfig : null,
             htmlTemplate,
+            resolutionId,
+            invoiceTemplateBuffer,
+            body.invoiceTemplateConfig ? body.invoiceTemplateConfig : null,
+            invoiceHtmlTemplate,
             actingUserId,
-            0, // p_branch_id
-            '' // p_mensaje_resultado
+            0,
+            ''
         );
 
         const dbId = results[0]?.p_branch_id;
@@ -111,10 +133,16 @@ export async function PUT(req: NextRequest) {
             templateBuffer = Buffer.from(cleanBase64, 'base64');
         }
 
-        // Generate/update HTML template *before* calling the stored procedure
+        let invoiceTemplateBuffer = null;
+        if (body.invoiceTemplate) {
+            const cleanBase64 = body.invoiceTemplate.split(';base64,').pop() || body.invoiceTemplate;
+            invoiceTemplateBuffer = Buffer.from(cleanBase64, 'base64');
+        }
+
         const dbId = parseInt(body.id);
         let finalLogoBuffer = logoBuffer;
         let finalTemplateBuffer = templateBuffer;
+        let finalInvoiceTemplateBuffer = invoiceTemplateBuffer;
         
         if (body.clearTemplate) {
             await prisma.branch.update({
@@ -122,16 +150,19 @@ export async function PUT(req: NextRequest) {
                 data: { template: null, htmlTemplate: null }
             });
             finalTemplateBuffer = null;
-        } else if (!finalTemplateBuffer || !finalLogoBuffer) {
+        } else if (!finalTemplateBuffer || !finalLogoBuffer || !finalInvoiceTemplateBuffer) {
             const current = await prisma.branch.findUnique({
                 where: { id: dbId },
-                select: { template: true, logo: true }
+                select: { template: true, logo: true, invoiceTemplate: true }
             });
             if (!finalTemplateBuffer && current?.template) {
                 finalTemplateBuffer = Buffer.from(current.template);
             }
             if (!finalLogoBuffer && current?.logo) {
                 finalLogoBuffer = Buffer.from(current.logo);
+            }
+            if (!finalInvoiceTemplateBuffer && current?.invoiceTemplate) {
+                finalInvoiceTemplateBuffer = Buffer.from(current.invoiceTemplate);
             }
         }
 
@@ -141,12 +172,22 @@ export async function PUT(req: NextRequest) {
                 htmlTemplate = await generateHtmlTemplate(finalTemplateBuffer, body.templateConfig, finalLogoBuffer);
             } catch (htmlErr: any) {
                 console.error("Error generating/updating HTML template during branch update:", htmlErr);
-                throw new Error("Error generating HTML template: " + (htmlErr.message || String(htmlErr)));
             }
         }
 
+        let invoiceHtmlTemplate = null;
+        if (finalInvoiceTemplateBuffer) {
+            try {
+                invoiceHtmlTemplate = await generateHtmlTemplate(finalInvoiceTemplateBuffer, body.invoiceTemplateConfig, finalLogoBuffer);
+            } catch (htmlErr: any) {
+                console.error("Error generating/updating invoice HTML template during branch update:", htmlErr);
+            }
+        }
+
+        const resolutionId = body.resolutionId ? parseInt(body.resolutionId) : null;
+
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spBranchActualizar($1::INT, $2::TEXT, $3::TEXT, $4::BYTEA, $5::BYTEA, $6::JSONB, $7::TEXT, $8::INT, $9::TEXT)`,
+            `CALL public.spBranchActualizar($1::INT, $2::TEXT, $3::TEXT, $4::BYTEA, $5::BYTEA, $6::JSONB, $7::TEXT, $8::INT, $9::BYTEA, $10::JSONB, $11::TEXT, $12::INT, $13::TEXT)`,
             dbId,
             body.code,
             body.name,
@@ -154,8 +195,12 @@ export async function PUT(req: NextRequest) {
             templateBuffer,
             body.templateConfig ? body.templateConfig : null,
             htmlTemplate,
+            resolutionId,
+            invoiceTemplateBuffer,
+            body.invoiceTemplateConfig ? body.invoiceTemplateConfig : null,
+            invoiceHtmlTemplate,
             actingUserId,
-            '' // p_mensaje_resultado
+            ''
         );
 
         const message = results[0]?.p_mensaje_resultado || '';
@@ -190,7 +235,7 @@ export async function DELETE(req: NextRequest) {
             `CALL public.spBranchEliminar($1::INT, $2::INT, $3::TEXT)`,
             parseInt(id),
             actingUserId,
-            '' // p_mensaje_resultado
+            ''
         );
 
         const message = results[0]?.p_mensaje_resultado || '';
