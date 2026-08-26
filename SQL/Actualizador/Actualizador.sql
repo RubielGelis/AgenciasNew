@@ -10774,6 +10774,11 @@ DECLARE
     v_consec_id INT;
     v_next_num BIGINT;
     v_billing_code TEXT;
+    v_branch_id INT;
+    v_implant_id INT;
+    v_resolution_id INT;
+    v_res RECORD;
+    v_consec_num BIGINT;
 BEGIN
     -- Validaciones
     IF NULLIF(p_data->>'clientId', '') IS NULL THEN
@@ -10785,6 +10790,10 @@ BEGIN
         p_mensaje_resultado := 'ERROR: La factura debe tener al menos un producto.';
         RETURN;
     END IF;
+
+    v_branch_id := NULLIF(p_data->>'branchId', '')::INT;
+    v_implant_id := NULLIF(p_data->>'implantId', '')::INT;
+    v_resolution_id := NULLIF(p_data->>'resolutionId', '')::INT;
 
     v_internal_number := 'INV-' || to_char(CURRENT_DATE, 'YYYYMMDD') || '-' || floor(random() * 1000)::text;
 
@@ -10806,7 +10815,7 @@ BEGIN
         INTO v_consec_id, v_fuente, v_serie
         FROM public."SysConsecutivo"
         WHERE LOWER(codigo) = LOWER(v_billing_code)
-           OR ("branchId" = NULLIF(p_data->>'branchId', '')::INT AND ("implantId" IS NULL OR "implantId" = NULLIF(p_data->>'implantId', '')::INT))
+           OR (v_branch_id IS NOT NULL AND "branchId" = v_branch_id AND ("implantId" IS NULL OR "implantId" = v_implant_id))
         ORDER BY 
             (CASE WHEN LOWER(codigo) = LOWER(v_billing_code) THEN 1 ELSE 2 END),
             (CASE WHEN "implantId" IS NOT NULL THEN 1 WHEN "branchId" IS NOT NULL THEN 2 ELSE 3 END),
@@ -10830,16 +10839,90 @@ BEGIN
         END IF;
     END IF;
 
+    -- Resolución y Validación de Rango de Numeración
+    IF v_resolution_id IS NULL AND v_implant_id IS NOT NULL THEN
+        SELECT "resolutionId" INTO v_resolution_id FROM public."Implant" WHERE id = v_implant_id;
+    END IF;
+
+    IF v_resolution_id IS NULL AND v_branch_id IS NOT NULL THEN
+        SELECT "resolutionId" INTO v_resolution_id FROM public."Branch" WHERE id = v_branch_id;
+    END IF;
+
+    IF v_resolution_id IS NULL AND v_serie IS NOT NULL THEN
+        SELECT id INTO v_resolution_id FROM public."Resolution" WHERE activo = TRUE AND prefijo ILIKE v_serie ORDER BY id DESC LIMIT 1;
+    END IF;
+
+    IF v_resolution_id IS NULL THEN
+        SELECT id INTO v_resolution_id FROM public."Resolution" WHERE activo = TRUE ORDER BY id DESC LIMIT 1;
+    END IF;
+
+    IF v_resolution_id IS NOT NULL THEN
+        SELECT * INTO v_res FROM public."Resolution" WHERE id = v_resolution_id;
+    END IF;
+
+    IF v_res.id IS NOT NULL THEN
+        -- 1. Validar estado de la resolución
+        IF v_res.activo IS FALSE THEN
+            p_mensaje_resultado := 'ERROR: La resolución de facturación "' || v_res.name || '" (' || v_res.code || ') se encuentra inactiva.';
+            RETURN;
+        END IF;
+
+        -- 2. Validar vigencia / expiración de la resolución
+        IF v_res.expira IS NOT NULL AND v_res.expira::DATE < CURRENT_DATE THEN
+            IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
+                p_mensaje_resultado := 'ERROR: La resolución de facturación "' || v_res.name || '" (' || v_res.code || ') se encuentra vencida desde el ' || to_char(v_res.expira, 'YYYY-MM-DD') || '.';
+                RETURN;
+            END IF;
+        END IF;
+
+        -- 3. Validar rango numérico autorizado del consecutivo
+        IF v_consecutivo IS NOT NULL AND v_consecutivo ~ '^[0-9]+$' THEN
+            v_consec_num := v_consecutivo::BIGINT;
+
+            IF v_res.inicial IS NOT NULL AND v_consec_num < v_res.inicial THEN
+                IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
+                    p_mensaje_resultado := 'ERROR: El consecutivo generado (' || v_consec_num || ') es menor al rango inicial autorizado (' || v_res.inicial || ') para la resolución "' || v_res.name || '".';
+                    RETURN;
+                END IF;
+            END IF;
+
+            IF v_res."end" IS NOT NULL AND v_consec_num > v_res."end" THEN
+                IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
+                    p_mensaje_resultado := 'ERROR: El consecutivo generado (' || v_consec_num || ') supera el rango final autorizado (' || v_res."end" || ') para la resolución "' || v_res.name || '".';
+                    RETURN;
+                END IF;
+            END IF;
+        END IF;
+
+        -- 4. Asignar prefijo de resolución a la serie si no fue provisto
+        IF v_serie IS NULL AND NULLIF(v_res.prefijo, '') IS NOT NULL THEN
+            v_serie := v_res.prefijo;
+        END IF;
+    END IF;
+
+    -- 5. Validar unicidad del consecutivo (evitar duplicidad)
+    IF v_consecutivo IS NOT NULL THEN
+        IF EXISTS (
+            SELECT 1 FROM public."Invoices"
+            WHERE consecutivo = v_consecutivo
+              AND COALESCE(serie, '') = COALESCE(v_serie, '')
+              AND COALESCE(fuente, '') = COALESCE(v_fuente, '')
+        ) THEN
+            p_mensaje_resultado := 'ERROR: Ya existe una factura emitida con la numeración ' || COALESCE(v_fuente || '-', '') || COALESCE(v_serie || '-', '') || v_consecutivo || '.';
+            RETURN;
+        END IF;
+    END IF;
+
     INSERT INTO public."Invoices" (
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
         "branchId", "implantId", "sellerId", "ticketPrinterId", 
         "baseCommissionable", "commissionPercentage", "chargesAndTaxes", 
         "totalAmount", "userId", "state", "fuente", "serie", "consecutivo"
     ) VALUES (
-        v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
-        NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
-        0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
-        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO',
+        v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, COALESCE(NULLIF(p_data->>'currency', ''), 'COP'), COALESCE(NULLIF(p_data->>'exchangeRate', '')::FLOAT, 1.0),
+        COALESCE(v_branch_id, 1), v_implant_id, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
+        0, COALESCE(NULLIF(p_data->>'commissionPercentage', '')::FLOAT, 0), COALESCE(NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT, 0),
+        COALESCE(NULLIF(p_data->>'totalAmount', '')::FLOAT, 0), p_acting_user_id, 'NUEVO',
         v_fuente, v_serie, v_consecutivo
     ) RETURNING id INTO v_invoice_id;
 
