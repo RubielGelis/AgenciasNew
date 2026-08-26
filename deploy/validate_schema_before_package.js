@@ -181,7 +181,41 @@ async function validateAndPrepareSchema() {
     }
   }
 
-  // 3. Verificación de regla de LEFT JOIN en funciones de listado/historial
+  // 2.8 Verificación y Sembrado de Módulos del Menú de Navegación (public."Menu")
+  console.log("\n[PASO 2.8/5] Verificando semillas de Módulos de Navegación ('Menu')...");
+  await client.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS "Menu_code_key" ON public."Menu" ("code");
+    INSERT INTO public."Menu" (code, name, parent, action, activo)
+    VALUES 
+        ('DASHBOARD', 'Dashboard', NULL, '/dashboard', true),
+        ('PRECOTIZACIONES', 'Pre-Cotizaciones', NULL, '/dashboard/prequotations', true),
+        ('COTIZACIONES', 'Cotizaciones', NULL, '/dashboard/quotations/history', true),
+        ('FACTURACION', 'Facturación', NULL, '/dashboard/invoices/history', true),
+        ('MAESTROS', 'Maestros', NULL, '/dashboard/settings', true),
+        ('REPORTES', 'Reportes', NULL, '/dashboard/reports', true),
+        ('EJECUCIONES', 'Ejecuciones', NULL, '/dashboard/executions', true),
+        ('MANUAL', 'Manual Operativo', NULL, '/dashboard/manual', true)
+    ON CONFLICT (code) DO UPDATE SET 
+        name = EXCLUDED.name,
+        action = EXCLUDED.action;
+  `);
+  console.log("  [OK] Todos los módulos de navegación del Menú Principal sembrados y verificados.");
+
+  // 2.9 Verificación de Preservación de Parámetros de Sistema (SystemParameter ON CONFLICT DO NOTHING)
+  console.log("\n[PASO 2.9/5] Verificando preservación de parámetros de configuración en Inicial.sql...");
+  const inicialSqlPath = path.join(rootDir, 'SQL', 'Inicial.sql');
+  if (fs.existsSync(inicialSqlPath)) {
+    let inicialSqlContent = fs.readFileSync(inicialSqlPath, 'utf8');
+    if (/INSERT INTO public\."SystemParameter"[\s\S]*?ON CONFLICT \(code\) DO UPDATE/i.test(inicialSqlContent)) {
+      console.log("  [AUTO-FIX] Cambiando SystemParameter ON CONFLICT a DO NOTHING en Inicial.sql para preservar configuración del cliente...");
+      inicialSqlContent = inicialSqlContent.replace(
+        /(INSERT INTO public\."SystemParameter"[\s\S]*?)ON CONFLICT \(code\) DO UPDATE[\s\S]*?value = EXCLUDED\.value;/gi,
+        '$1ON CONFLICT (code) DO NOTHING;'
+      );
+      fs.writeFileSync(inicialSqlPath, inicialSqlContent, 'utf8');
+    }
+  }
+  console.log("  [OK] Regla de preservación de parámetros verificada (ON CONFLICT DO NOTHING).");
   console.log("\n[PASO 3/4] Verificando regla obligatoria de LEFT JOIN en funciones de consulta...");
   const funcFolder = path.join(rootDir, 'SQL/Function');
   const listingFiles = ['fnCotizacionListar.sql', 'fnCotizacionHistorial.sql', 'fnCotizacion.sql'];

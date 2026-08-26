@@ -36,9 +36,13 @@ El procedimiento almacenado de duplicación debe copiar tanto la cabecera como *
 Toda columna `id` de tipo entero en cualquier tabla debe contar con una secuencia asignada como valor por defecto (`DEFAULT nextval('public."<Tabla>_id_seq"'::regclass)`).
 - *Razón*: Si la columna `id` se crea o migra como `integer NOT NULL` sin secuencia por defecto, cualquier operación de `INSERT` que omita el parámetro `id` fallará con el error `null value in column "id" violates not-null constraint`.
 
-### E. Restricciones UNIQUE Obligatorias para Operaciones de Upsert
-Todas las columnas utilizadas en sentencias `UPSERT` o `ON CONFLICT ("columna")` (ejemplo: `QuotationPrintCustomization.quotationId`, `QuotationFormat.name`) **deben contar con una restricción `UNIQUE` explícita** en PostgreSQL.
-- *Razón*: PostgreSQL y Prisma requieren un índice o restricción de unicidad activa para resolver el conflicto atómicamente. Si falta la restricción `UNIQUE`, la consulta falla lanzando un error 500 al guardar.
+### F. Siembra Obligatoria de Módulos de Navegación (`public."Menu"`)
+Todo nuevo módulo de navegación agregado a la barra lateral o al menú del sitio (`PRECOTIZACIONES`, `EJECUCIONES`, `MANUAL`, etc.) **DEBE ser sembrado e inyectado con `CREATE UNIQUE INDEX IF NOT EXISTS "Menu_code_key"` y `INSERT ... ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;`** dentro de [`SQL/Table/Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql) y [`SQL/Data/Menu.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Data/Menu.sql).
+- *Razón*: Si la inyección no se incluye en `Alter_New_Columns.sql`, las bases de datos de clientes existentes no recibirán los nuevos módulos en su menú de navegación tras ejecutar el actualizador.
+
+### G. Preservación Estricta de Parámetros del Sistema (`SystemParameter`)
+En sentencias de siembra de datos de parámetros del sistema (`SystemParameter`), se debe usar **SIEMPRE `ON CONFLICT (code) DO NOTHING;`**. Queda estrictamente prohibido usar `ON CONFLICT (code) DO UPDATE SET value = EXCLUDED.value;`.
+- *Razón*: Si se utiliza `DO UPDATE SET value`, cada actualización ejecutada en el cliente reemplazará las credenciales y servidores configurados por la agencia (SQL Server host, usuario, clave, puerto) restableciéndolos a los valores por defecto del entorno de desarrollo.
 
 ---
 
@@ -64,7 +68,8 @@ En el componente de formulario (`quotation-form.tsx`), la carga de datos por ID 
 ### C. Verificación de Relaciones en Prisma Schema (`prisma/schema.prisma`)
 Cualquier modelo o tabla agregada o modificada en `prisma/schema.prisma` que contenga una relación `@relation(fields: [foreignKey], references: [id])` **DEBE contar con su campo relacional correspondiente en el modelo destino** (ej. `Interfaces` debe incluir `InterfaceExtractParam InterfaceExtractParam[]`).
 - *Razón*: Si la relación inversa falta en la entidad principal, las consultas con `include: { TargetModel: true }` en las API Routes fallan en tiempo de compilación TypeScript con el error: `Type '{ TargetModel: ... }' is not assignable to type 'never'`.
-- *Verificación Obligatoria*: Tras cualquier cambio en `schema.prisma`, se DEBE ejecutar obligatoriamente `npx prisma generate` y validar la compilación (`npm run build`).
+### D. Visibilidad del Componente de Licenciamiento (`<LicenseStatusCard />`)
+La vista principal de Configuración del Sistema (`src/app/dashboard/settings/page.tsx`) debe incluir de forma fija e inamovible el componente `<LicenseStatusCard />` para garantizar que los administradores tengan visibilidad inmediata del estado de vigencia de la licencia, NIT de la empresa, días restantes y el panel para renovar/activar claves cifradas (`KOR1`).
 
 ---
 
