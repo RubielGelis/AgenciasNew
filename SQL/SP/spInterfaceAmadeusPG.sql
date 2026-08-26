@@ -557,7 +557,9 @@ BEGIN
     -- ==============================================================
     SELECT code INTO v_provider_matched
     FROM public."Provider"
-    WHERE UPPER(sigla) = UPPER(v_aerolinea_vende) OR UPPER(code) = UPPER(v_aerolinea_vende)
+    WHERE UPPER(sigla) = UPPER(v_aerolinea_vende) 
+       OR UPPER(code) = UPPER(v_aerolinea_vende)
+       OR UPPER("airlineCode") = UPPER(v_aerolinea_vende)
     LIMIT 1;
 
     -- ==============================================================

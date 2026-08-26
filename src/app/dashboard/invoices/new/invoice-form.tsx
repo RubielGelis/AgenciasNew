@@ -251,25 +251,25 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
 
         // 6. Mapear Productos
         const importedItems = (booking.items || []).map((bkItem: any) => {
-            // Asignación de Proveedor según Sigla / Aerolínea
-            // Asignación de Proveedor según Sigla / Aerolínea
+            // Asignación de Proveedor STRICTAMENTE por Código de Aerolínea / Sigla / Código de Proveedor (NUNCA por nombre)
             let matchedProviderId = '';
             const siglaKey = (bkItem.prestadoracode || '').trim().toUpperCase();
             const providerCodeKey = (bkItem.provider || '').trim().toUpperCase();
             const allProviders = data?.providers || [];
 
-            // 1. Búsqueda prioritaria por Sigla o Código de Aerolínea ('AV', '134')
+            // 1. Búsqueda por Sigla, Código IATA de Aerolínea ('AV', '134', 'TK') o Código de Proveedor
             if (siglaKey) {
                 const provBySigla = allProviders.find((pv: any) => 
                     pv.sigla?.trim().toUpperCase() === siglaKey ||
-                    pv.airlineCode?.trim().toUpperCase() === siglaKey
+                    pv.airlineCode?.trim().toUpperCase() === siglaKey ||
+                    pv.code?.trim().toUpperCase() === siglaKey
                 );
                 if (provBySigla) {
                     matchedProviderId = provBySigla.id.toString();
                 }
             }
 
-            // 2. Búsqueda por Código de Proveedor ('890100577')
+            // 2. Búsqueda por Código de Proveedor ('890100577', '134')
             if (!matchedProviderId && providerCodeKey) {
                 const provByCode = allProviders.find((pv: any) => 
                     pv.code?.trim().toUpperCase() === providerCodeKey ||
@@ -281,22 +281,14 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                 }
             }
 
-            // 3. Búsqueda por coincidencia en Nombre
-            if (!matchedProviderId && siglaKey) {
-                const provByName = allProviders.find((pv: any) => 
-                    pv.name?.trim().toUpperCase().includes(siglaKey)
-                );
-                if (provByName) {
-                    matchedProviderId = provByName.id.toString();
-                }
-            }
+            // REGLA: Si no encuentra el código de la aerolínea en el maestro, matchedProviderId queda vacío ('')
+            // para que la interfaz muestre despejado ("Sel. Proveedor") e indique al usuario que falta por configurar.
 
             let matchedPrestadoraId = '';
             if (bkItem.prestadoracode) {
-                const searchKey = bkItem.prestadoracode.toLowerCase();
+                const searchKey = bkItem.prestadoracode.trim().toUpperCase();
                 const foundPrest = data?.prestadoras?.find((pr: any) => 
-                    pr.code?.toLowerCase() === searchKey ||
-                    pr.name?.toLowerCase()?.includes(searchKey)
+                    pr.code?.trim().toUpperCase() === searchKey
                 );
                 if (foundPrest) matchedPrestadoraId = foundPrest.id.toString();
             }
