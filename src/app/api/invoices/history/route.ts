@@ -28,7 +28,7 @@ export async function GET() {
             return {
                 id: inv.id,
                 internalNumber: inv.internalNumber,
-                invoiceNumber: inv.internalNumber || (inv.serie ? `${inv.serie}-${inv.consecutivo}` : inv.consecutivo) || `#${inv.id}`,
+                invoiceNumber: (inv.serie ? `${inv.serie}-${inv.consecutivo}` : inv.consecutivo) || inv.internalNumber || `#${inv.id}`,
                 fuente: inv.fuente,
                 serie: inv.serie,
                 consecutivo: inv.consecutivo,

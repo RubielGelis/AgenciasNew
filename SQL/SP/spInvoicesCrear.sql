@@ -177,25 +177,6 @@ BEGIN
         END IF;
     END IF;
 
-    INSERT INTO public."Invoices" (
-        "internalNumber", "date", "clientId", "currency", "exchangeRate", 
-        "branchId", "implantId", "sellerId", "ticketPrinterId", 
-        "baseCommissionable", "commissionPercentage", "chargesAndTaxes", 
-        "totalAmount", "userId", "state", "fuente", "serie", "consecutivo"
-    ) VALUES (
-        v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, COALESCE(NULLIF(p_data->>'currency', ''), 'COP'), COALESCE(NULLIF(p_data->>'exchangeRate', '')::FLOAT, 1.0),
-        COALESCE(v_branch_id, 1), v_implant_id, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
-        0, COALESCE(NULLIF(p_data->>'commissionPercentage', '')::FLOAT, 0), COALESCE(NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT, 0),
-        COALESCE(NULLIF(p_data->>'totalAmount', '')::FLOAT, 0), p_acting_user_id, 'NUEVO',
-        v_fuente, v_serie, v_consecutivo
-    ) RETURNING id INTO v_invoice_id;
-
-    FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
-    LOOP
-        INSERT INTO public."InvoicesProductCombo" ("invoiceId", "comboId")
-        VALUES (v_invoice_id, COALESCE(v_combo."comboId", v_combo.id));
-    END LOOP;
-
     -- Pre-validar items (Productos, tiquetes duplicados, productos al vuelo)
     FOR v_item IN SELECT * FROM jsonb_to_recordset(p_data->'items') AS x(
                       "productId" INT, "ticketCode" TEXT, "type" TEXT, "description" TEXT,
