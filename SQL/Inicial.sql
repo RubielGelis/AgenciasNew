@@ -131,6 +131,22 @@ VALUES
 ON CONFLICT (code) DO NOTHING;
 
 
+-- 10.5 Módulos de Menú Principal
+CREATE UNIQUE INDEX IF NOT EXISTS "Menu_code_key" ON public."Menu" ("code");
+INSERT INTO public."Menu" (code, name, parent, action, activo)
+VALUES 
+    ('DASHBOARD', 'Dashboard', NULL, '/dashboard', true),
+    ('PRECOTIZACIONES', 'Pre-Cotizaciones', NULL, '/dashboard/prequotations', true),
+    ('COTIZACIONES', 'Cotizaciones', NULL, '/dashboard/quotations/history', true),
+    ('FACTURACION', 'Facturación', NULL, '/dashboard/invoices/history', true),
+    ('MAESTROS', 'Maestros', NULL, '/dashboard/settings', true),
+    ('REPORTES', 'Reportes', NULL, '/dashboard/reports', true),
+    ('EJECUCIONES', 'Ejecuciones', NULL, '/dashboard/executions', true),
+    ('MANUAL', 'Manual Operativo', NULL, '/dashboard/manual', true)
+ON CONFLICT (code) DO UPDATE SET 
+    name = EXCLUDED.name,
+    action = EXCLUDED.action;
+
 -- 11. Maestros
 INSERT INTO public."Master" (code, name, "inactivo")
 VALUES
@@ -1356,4 +1372,13 @@ INSERT INTO public."QuotationState" (code, name, color)
 VALUES
     ('NUEVO', 'Nuevo', 'blue'),
     ('ENVIADO', 'ENVIADO', 'emerald')
-ON CONFLICT (code) DO NOTHING;
+ON CONFLICT (code) DO NOTHING;
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('LICENSE_KEY', 'Clave de Licencia del Sistema', 'KOR1.eyJjIjoiS09SRVggQUdFTkNJQSBQUlVFQkEiLCJuIjoiNzk4OTg0NTYiLCJlIjoiMjAyNi0wOS0xOCIsImkiOiIyMDI2LTA4LTE4In0.c33014ec4605e0dfe9fa66a7bfaeb738875c88e030934e9212f75e72686a99b7') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('LICENSE_EXPIRATION_DATE', 'Fecha de Expiración de Licencia', '2026-09-18') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('PRODUCTO_RESERVA_GDS', 'Producto por Defecto para Reservas GDS', 'TAN') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('AGENCY_NAME', 'Nombre o Razón Social de la Agencia', 'KOREX AGENCIA PRUEBA') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('AGENCY_NIT', 'NIT de la Agencia', '79898456') ON CONFLICT (code) DO NOTHING;

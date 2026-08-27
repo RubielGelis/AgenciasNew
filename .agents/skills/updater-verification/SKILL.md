@@ -37,12 +37,24 @@ Toda columna `id` de tipo entero en cualquier tabla debe contar con una secuenci
 - *Razón*: Si la columna `id` se crea o migra como `integer NOT NULL` sin secuencia por defecto, cualquier operación de `INSERT` que omita el parámetro `id` fallará con el error `null value in column "id" violates not-null constraint`.
 
 ### F. Siembra Obligatoria de Módulos de Navegación (`public."Menu"`)
-Todo nuevo módulo de navegación agregado a la barra lateral o al menú del sitio (`PRECOTIZACIONES`, `EJECUCIONES`, `MANUAL`, etc.) **DEBE ser sembrado e inyectado con `CREATE UNIQUE INDEX IF NOT EXISTS "Menu_code_key"` y `INSERT ... ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;`** dentro de [`SQL/Table/Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql) y [`SQL/Data/Menu.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Data/Menu.sql).
+Todo nuevo módulo de navegación agregado a la barra lateral o al menú del sitio (`PRECOTIZACIONES`, `EJECUCIONES`, `MANUAL`, etc.) **DEBE ser sembrado e inyectado con `CREATE UNIQUE INDEX IF NOT EXISTS "Menu_code_key"` y `INSERT ... ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;`** directamente dentro de [`SQL/Table/Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql) y [`SQL/Data/Menu.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Data/Menu.sql).
 - *Razón*: Si la inyección no se incluye en `Alter_New_Columns.sql`, las bases de datos de clientes existentes no recibirán los nuevos módulos en su menú de navegación tras ejecutar el actualizador.
 
-### G. Preservación Estricta de Parámetros del Sistema (`SystemParameter`)
-En sentencias de siembra de datos de parámetros del sistema (`SystemParameter`), se debe usar **SIEMPRE `ON CONFLICT (code) DO NOTHING;`**. Queda estrictamente prohibido usar `ON CONFLICT (code) DO UPDATE SET value = EXCLUDED.value;`.
-- *Razón*: Si se utiliza `DO UPDATE SET value`, cada actualización ejecutada en el cliente reemplazará las credenciales y servidores configurados por la agencia (SQL Server host, usuario, clave, puerto) restableciéndolos a los valores por defecto del entorno de desarrollo.
+### G. Siembra Obligatoria de las 28 Tablas Maestras (`public."Master"`)
+Toda tabla maestra parametrizable (`SystemParameter`, `User`, `Branch`, `Implant`, `ChargeAndTax`, `Seller`, `TicketPrinter`, `Prestadora`, `Client`, `Provider`, `ProviderType`, `Product`, `MasterVariable`, `Combo`, `SystemLog`, `Currency`, `Equivalences`, `InterfaceExtractParam`, `DocumentResolution`, `TransactionConsecutive`, `CreditCard`, `Payment`, `Countries`, `Cities`, `Airports`, `TicketType`, `QuotationState`, `QuotationFormat`) **DEBE ser sembrada con `CREATE UNIQUE INDEX IF NOT EXISTS "Master_code_key"` y `INSERT ... ON CONFLICT (code) DO NOTHING;`** directamente dentro de [`SQL/Table/Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql).
+- *Razón*: Si alguna de las 28 tablas maestras falta en `public."Master"`, la tarjeta "Módulos del Sitio" en `/dashboard/settings` no mostrará los interruptores de activación para esa funcionalidad en las bases de datos de clientes actualizados.
+
+### H. Preservación y Siembra de Parámetros del Sistema (`SystemParameter`)
+En sentencias de siembra de datos de parámetros del sistema (`SystemParameter`), se debe usar **SIEMPRE `ON CONFLICT (code) DO NOTHING;`** dentro de [`SQL/Table/Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql). Queda strictly prohibido usar `ON CONFLICT (code) DO UPDATE SET value = EXCLUDED.value;`.
+- *Razón*: Garantiza que se creen los parámetros iniciales del sistema (como `LICENSE_KEY`, `AGENCY_NAME`, `AGENCY_NIT`, `LICENSE_EXPIRATION_DATE`) sin sobreescribir ni borrar las credenciales y claves de licencia que el cliente ya haya configurado en su servidor.
+
+### I. Detección Dinámica del Directorio de Instalación en Servidores Remotos
+El script de instalación actualizador ([`deploy/Korex_Update.iss`](file:///f:/Proyectos/AgenciasNew/deploy/Korex_Update.iss)) **DEBE ejecutar una consulta PowerShell automatizada en la inicialización (`DetectInstalledDirectory`)** para ubicar dinámicamente:
+1. El atributo `physicalPath` del sitio web activo en IIS (búsqueda por nombre `*Korex*`).
+2. La ruta del ejecutable del Servicio de Windows registrado (`Korex_NextJS`).
+
+La ruta detectada automáticamente pre-llena el campo de directorio en el asistente del instalador (`WizardForm.DirEdit.Text`).
+- *Razón*: Evita que el actualizador instale los archivos en una carpeta por defecto o secundaria si el cliente ubicó el sitio en otra letra de unidad o subdirectorio (ej. `F:\Korex\Cotizaciones` vs `F:\Korex_Sistema`), salvaguardando que siempre se actualice el código ejecutable en la ruta física real.
 
 ---
 

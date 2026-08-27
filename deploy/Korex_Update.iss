@@ -2,7 +2,7 @@
 AppName=Korex NextJS (Actualizacion)
 AppVersion=1.0
 AppPublisher=Korex Corporation
-DefaultDirName=F:\Korex_Sistema
+DefaultDirName=F:\Korex\Cotizaciones
 DefaultGroupName=Korex
 OutputDir=F:\Proyectos\AgenciasNew\Instalador
 OutputBaseFilename=Korex_Update_Setup
@@ -75,8 +75,49 @@ begin
   Result := '';
 end;
 
-procedure InitializeWizard;
+function DetectInstalledDirectory(): String;
+var
+  ResultCode: Integer;
+  TmpFile: String;
+  DetectedPath: String;
+  Lines: TArrayOfString;
+  Cmd: String;
 begin
+  DetectedPath := '';
+  TmpFile := ExpandConstant('{tmp}\detected_path.txt');
+  
+  Cmd := '-ExecutionPolicy Bypass -Command "' +
+         '$dir = ''''; ' +
+         'try { Import-Module WebAdministration -ErrorAction SilentlyContinue; $site = Get-Website | Where-Object { $_.Name -like ''*Korex*'' } | Select-Object -First 1; if ($site) { $dir = $site.physicalPath } } catch {}; ' +
+         'if (-not $dir) { try { $svc = Get-WmiObject win32_service -Filter ""name=''Korex_NextJS''"" -ErrorAction SilentlyContinue; if ($svc) { $p = $svc.PathName -replace ''"'',''''; $dir = [System.IO.Path]::GetDirectoryName($p.Split('' '')[0]) } } catch {} }; ' +
+         'if ($dir) { [System.IO.File]::WriteAllText(''' + TmpFile + ''', $dir) }' +
+         '"';
+
+  Exec('powershell.exe', Cmd, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+  if FileExists(TmpFile) then
+  begin
+    if LoadStringsFromFile(TmpFile, Lines) then
+    begin
+      if GetArrayLength(Lines) > 0 then
+        DetectedPath := Trim(Lines[0]);
+    end;
+    DeleteFile(TmpFile);
+  end;
+
+  Result := DetectedPath;
+end;
+
+procedure InitializeWizard;
+var
+  AutoPath: String;
+begin
+  AutoPath := DetectInstalledDirectory();
+  if (AutoPath <> '') and DirExists(AutoPath) then
+  begin
+    WizardForm.DirEdit.Text := AutoPath;
+  end;
+
   DbPage := CreateInputQueryPage(wpSelectDir,
     'Configuración de Base de Datos', 'Especificación de conexión para PostgreSQL',
     'Por favor verifique y corrija los datos de conexión para el portal Korex.');

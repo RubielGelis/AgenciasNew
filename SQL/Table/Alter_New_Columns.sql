@@ -2725,3 +2725,47 @@ END $$;
         CREATE INDEX "idx_sysconsecutivo_implant" ON public."SysConsecutivo"("implantId");
     END IF;
 END $$;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('DASHBOARD', 'Dashboard', '/dashboard', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('PRECOTIZACIONES', 'Pre-Cotizaciones', '/dashboard/prequotations', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('COTIZACIONES', 'Cotizaciones', '/dashboard/quotations/history', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('FACTURACION', 'Facturación', '/dashboard/invoices/history', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('MAESTROS', 'Maestros', '/dashboard/settings', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('REPORTES', 'Reportes', '/dashboard/reports', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('EJECUCIONES', 'Ejecuciones', '/dashboard/executions', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('MANUAL', 'Manual Operativo', '/dashboard/manual', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Master" (code, name, "inactivo") VALUES ('Equivalences', 'equivalencias', false) ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('LICENSE_KEY', 'Clave de Licencia del Sistema', 'KOR1.eyJjIjoiS09SRVggQUdFTkNJQSBQUlVFQkEiLCJuIjoiNzk4OTg0NTYiLCJlIjoiMjAyNi0wOS0xOCIsImkiOiIyMDI2LTA4LTE4In0.c33014ec4605e0dfe9fa66a7bfaeb738875c88e030934e9212f75e72686a99b7') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('LICENSE_EXPIRATION_DATE', 'Fecha de Expiración de Licencia', '2026-09-18') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('PuertoSQLServer', 'Puerto SQL Server', '') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('EnviarCotizacionesAutoSQLserver', 'Envío automático de cotizaciones a SQL Server (1: Sí, 0: No)', '1') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('EnviarFacturacionAutoSQLserver', 'Envío automático a Facturacion SQL Server (1: Sí, 0: No)', '1') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('Pais', 'Pais', 'Colombia') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('MOSTRAR_TOTALIZACION_COTIZACION', 'Mostrar totalización financiera en cotización', 'true') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('ServidorSQLServer', 'Host de SQL Server', 'ZEUSAGENCIAS10') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('UsuarioSQLServer', 'Usuario SQL Server', 'zeusagencias') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('ClaveSQLServer', 'Contraseña SQL Server', 'zzeusagencias') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('BaseSQLServer', 'Base de Datos SQL Server', 'Zeusagencias_23') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('AGENCY_NAME', 'Nombre o Razón Social de la Agencia', 'KOREX AGENCIA PRUEBA') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('AGENCY_NIT', 'NIT de la Agencia', '79898456') ON CONFLICT (code) DO NOTHING;

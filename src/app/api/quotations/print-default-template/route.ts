@@ -92,6 +92,11 @@ export async function POST(req: NextRequest) {
                         [formatCurrency(q.baseCommissionable), '{{baseComisionable}}'],
                         [formatCurrency(q.comisionAsesor), '{{comisionAsesor}}'],
                         [formatCurrency(q.baseCommissionable - q.comisionAsesor), '{{baseComisionTop}}'],
+                        [formatCurrency(q.comisionFreelanceValue), '{{comisionFreelanceValue}}'],
+                        [formatCurrency(q.comisionPropiaValue), '{{comisionPropiaValue}}'],
+                        [String(q.comisionFreelancePercentage), '{{comisionFreelancePercentage}}'],
+                        [String(q.comisionPropiaPercentage), '{{comisionPropiaPercentage}}'],
+                        [String(q.comisionUtilidadPercentage), '{{comisionUtilidadPercentage}}'],
                         [String(q.totalAdultos), '{{totalAdultos}}'],
                         [String(q.totalNinos), '{{totalNinos}}'],
                         [String(q.tCambio || 1), '{{tCambio}}'],
@@ -100,7 +105,12 @@ export async function POST(req: NextRequest) {
 
                     for (const [val, placeholder] of replacements) {
                         if (val && typeof val === 'string' && val.trim().length > 0 && val !== placeholder) {
-                            templateHtml = templateHtml.split(val).join(placeholder)
+                            // Don't replace plain single digits '0' or '1' everywhere as they ruin CSS styles/widths
+                            if (val.trim() === '0' || val.trim() === '1') {
+                                templateHtml = templateHtml.split(`>${val}<`).join(`>${placeholder}<`)
+                            } else {
+                                templateHtml = templateHtml.split(val).join(placeholder)
+                            }
                         }
                     }
                 }

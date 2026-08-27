@@ -120,12 +120,46 @@ BEGIN
         COALESCE(q."costoTotal", 0)::double precision AS "costoTotal",
         COALESCE(q."valorBase", 0)::double precision AS "valorBase",
         COALESCE(q."utilidad", 0)::double precision AS "utilidad",
-        COALESCE(q."comisionFreelanceValue", 0)::double precision AS "comisionFreelanceValue",
-        COALESCE(q."comisionPropiaValue", 0)::double precision AS "comisionPropiaValue",
-        COALESCE(q."comisionTotalPercentage", 0)::double precision AS "comisionTotalPercentage",
+        COALESCE(
+            q."comisionFreelanceValue", 
+            CASE WHEN COALESCE(q."valorBase", 0) > 0 AND COALESCE(q."comisionFreelancePercentage", 0) > 0 
+                 THEN ROUND(((COALESCE(q."comisionFreelancePercentage", 0) / 100.0) * q."valorBase")::numeric, 2) 
+                 ELSE 0 END
+        )::double precision AS "comisionFreelanceValue",
+        COALESCE(
+            q."comisionPropiaValue", 
+            COALESCE(q."utilidad", 0) - COALESCE(
+                q."comisionFreelanceValue", 
+                CASE WHEN COALESCE(q."valorBase", 0) > 0 AND COALESCE(q."comisionFreelancePercentage", 0) > 0 
+                     THEN ROUND(((COALESCE(q."comisionFreelancePercentage", 0) / 100.0) * q."valorBase")::numeric, 2) 
+                     ELSE 0 END
+            )
+        )::double precision AS "comisionPropiaValue",
+        COALESCE(
+            q."comisionTotalPercentage", 
+            COALESCE(
+                q."comisionUtilidadPercentage", 
+                CASE WHEN COALESCE(q."valorBase", 0) > 0 
+                     THEN ROUND(((COALESCE(q."utilidad", 0) / q."valorBase") * 100.0)::numeric, 2) 
+                     ELSE 0 END
+            )
+        )::double precision AS "comisionTotalPercentage",
         COALESCE(q."comisionFreelancePercentage", 0)::double precision AS "comisionFreelancePercentage",
-        COALESCE(q."comisionPropiaPercentage", 0)::double precision AS "comisionPropiaPercentage",
-        COALESCE(q."comisionUtilidadPercentage", 0)::double precision AS "comisionUtilidadPercentage",
+        ROUND(COALESCE(
+            q."comisionPropiaPercentage", 
+            COALESCE(
+                q."comisionUtilidadPercentage", 
+                CASE WHEN COALESCE(q."valorBase", 0) > 0 
+                     THEN ROUND(((COALESCE(q."utilidad", 0) / q."valorBase") * 100.0)::numeric, 2) 
+                     ELSE 0 END
+            ) - COALESCE(q."comisionFreelancePercentage", 0)
+        )::numeric, 2)::double precision AS "comisionPropiaPercentage",
+        COALESCE(
+            q."comisionUtilidadPercentage", 
+            CASE WHEN COALESCE(q."valorBase", 0) > 0 
+                 THEN ROUND(((COALESCE(q."utilidad", 0) / q."valorBase") * 100.0)::numeric, 2) 
+                 ELSE 0 END
+        )::double precision AS "comisionUtilidadPercentage",
 
         -- Cliente
         COALESCE(c.name, '')::text AS "clienteNombre",
@@ -191,6 +225,7 @@ BEGIN
 
         -- Valores financieros del producto
         COALESCE(
+            NULLIF(qp.price, 0),
             (
                 SELECT SUM(qpt2."explicitAmount")
                 FROM "QuotationProductTax" qpt2
@@ -198,7 +233,9 @@ BEGIN
                 WHERE qpt2."quotationProductId" = qp.id
                   AND qpt2."isMain" = true
                   AND ct2.type = 'CHARGE'
-            ), 0
+            ),
+            qp.cost,
+            0
         )::double precision AS "tarifaNeta",
 
         COALESCE(
@@ -241,7 +278,7 @@ BEGIN
     LEFT JOIN "User" u ON q."userId" = u.id
     LEFT JOIN "Branch" b ON q."branchId" = b.id
     LEFT JOIN "Implant" i ON q."implantId" = i.id
-    JOIN "QuotationProduct" qp ON qp."quotationId" = q.id
+    LEFT JOIN "QuotationProduct" qp ON qp."quotationId" = q.id
     LEFT JOIN "Product" prod ON qp."productId" = prod.id
     LEFT JOIN "Provider" prov ON qp."providerId" = prov.id
     LEFT JOIN "Prestadora" pre ON qp."prestadoraId" = pre.id

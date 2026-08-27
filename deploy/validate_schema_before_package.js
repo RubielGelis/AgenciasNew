@@ -273,6 +273,64 @@ async function validateAndPrepareSchema() {
     ON CONFLICT (code) DO NOTHING;
   `);
   console.log("  [OK] Todos los Parámetros del Sistema sembrados y verificados con ON CONFLICT DO NOTHING.");
+
+  // 2.12 AUDITORÍA AUTOMÁTICA Y AUTO-CORRECCIÓN UNIVERSAL DE ARCHIVOS DE MIGRACIÓN (Inicial.sql y Alter_New_Columns.sql)
+  console.log("\n[PASO 2.12/5] Auditoría y Sincronización Automática Universal de Catálogos (Menu, Master, SystemParameter)...");
+  try {
+    const localMenuRes = await client.query('SELECT code, name, action, activo FROM public."Menu"');
+    const localMasterRes = await client.query('SELECT code, name, inactivo FROM public."Master"');
+    const localParamRes = await client.query('SELECT code, name, value FROM public."SystemParameter"');
+
+    const filesToAudit = [
+      path.join(rootDir, 'SQL', 'Table', 'Alter_New_Columns.sql'),
+      path.join(rootDir, 'SQL', 'Inicial.sql'),
+      path.join(rootDir, 'SQL', 'Data', 'Inicial.sql')
+    ];
+
+    for (const fPath of filesToAudit) {
+      if (!fs.existsSync(fPath)) continue;
+      let fileContent = fs.readFileSync(fPath, 'utf8');
+      let fileModified = false;
+
+      // Verificar y auto-inyectar cualquier módulo de Menú faltante
+      for (const m of localMenuRes.rows) {
+        if (m.code && !fileContent.includes(`'${m.code}'`)) {
+          console.log(`  [AUTO-SYNC] Inyectando módulo de Menú '${m.code}' en ${path.basename(fPath)}...`);
+          const insertMenuSql = `\nINSERT INTO public."Menu" (code, name, action, activo) VALUES ('${m.code}', '${m.name}', '${m.action || ''}', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;\n`;
+          fileContent += insertMenuSql;
+          fileModified = true;
+        }
+      }
+
+      // Verificar y auto-inyectar cualquier Tabla Maestra faltante
+      for (const mst of localMasterRes.rows) {
+        if (mst.code && !fileContent.includes(`'${mst.code}'`)) {
+          console.log(`  [AUTO-SYNC] Inyectando Tabla Maestra '${mst.code}' en ${path.basename(fPath)}...`);
+          const insertMasterSql = `\nINSERT INTO public."Master" (code, name, "inactivo") VALUES ('${mst.code}', '${mst.name}', false) ON CONFLICT (code) DO NOTHING;\n`;
+          fileContent += insertMasterSql;
+          fileModified = true;
+        }
+      }
+
+      // Verificar y auto-inyectar cualquier Parámetro del Sistema faltante
+      for (const p of localParamRes.rows) {
+        if (p.code && !fileContent.includes(`'${p.code}'`)) {
+          console.log(`  [AUTO-SYNC] Inyectando Parámetro del Sistema '${p.code}' en ${path.basename(fPath)}...`);
+          const insertParamSql = `\nINSERT INTO public."SystemParameter" (code, name, value) VALUES ('${p.code}', '${p.name || ''}', '${p.value || ''}') ON CONFLICT (code) DO NOTHING;\n`;
+          fileContent += insertParamSql;
+          fileModified = true;
+        }
+      }
+
+      if (fileModified) {
+        fs.writeFileSync(fPath, fileContent, 'utf8');
+        console.log(`  [OK] ${path.basename(fPath)} fue sincronizado y actualizado automáticamente.`);
+      }
+    }
+    console.log("  [OK] Auditoría universal de catálogos completada exitosamente.");
+  } catch (auditErr) {
+    console.warn(`  [WARN] Error en auditoría dinámica de catálogos: ${auditErr.message}`);
+  }
   console.log("\n[PASO 3/4] Verificando regla obligatoria de LEFT JOIN en funciones de consulta...");
   const funcFolder = path.join(rootDir, 'SQL/Function');
   const listingFiles = ['fnCotizacionListar.sql', 'fnCotizacionHistorial.sql', 'fnCotizacion.sql'];

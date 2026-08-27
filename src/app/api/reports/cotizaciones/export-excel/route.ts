@@ -978,18 +978,13 @@ export async function GET(req: Request) {
                     where: { quotationId: q.idCotizacion }
                 });
 
-                if (savedCustomization) {
-                    htmlReports.push({
-                        idCotizacion: q.idCotizacion,
-                        html: savedCustomization.html,
-                        isCustomized: true
-                    });
-                    continue; // Saltar generación ya que se tiene la versión guardada y personalizada
-                }
-
                 let htmlTemplate = null;
                 let templateBuffer: Buffer | null = null;
                 let config: any = DEFAULT_CONFIG;
+
+                if (savedCustomization && savedCustomization.html) {
+                    htmlTemplate = savedCustomization.html;
+                }
 
                 if (customFormat) {
                     templateBuffer = customFormat.template ? Buffer.from(customFormat.template) : null;
@@ -1192,6 +1187,27 @@ export async function GET(req: Request) {
                     const token = `{{${key}}}`;
                     compiledHtml = compiledHtml.split(token).join(val);
                 });
+
+                // Dynamic replacer for Rentabilidad Negocio table: replaces ALL rows below header with a single dynamic row
+                const rentabilidadPattern = /(% COMI?SI[OÓ]N COLAREO[\s\S]*?COMI?SI[OÓ]N COLAEREO[\s\S]*?%COM FRE\/AGE[\s\S]*?COMI?SI[OÓ]N FRE\/AGE[\s\S]*?TOTAL COMI?SI[OÓ]N[\s\S]*?<\/tr>)([\s\S]*?)(<\/tbody>|<\/table>)/i;
+                compiledHtml = compiledHtml.replace(rentabilidadPattern, (match, headerRow, oldRows, closingTag) => {
+                    const singleDataRow = `
+<tr>
+<td style="text-align: left; vertical-align: middle; padding: 4px; word-break: break-word; white-space: pre-wrap;">${replacements.comisionPropiaPercentage}</td>
+<td style="text-align: left; vertical-align: middle; padding: 4px; word-break: break-word; white-space: pre-wrap;">${replacements.comisionPropiaValue}</td>
+<td style="text-align: left; vertical-align: middle; padding: 4px; word-break: break-word; white-space: pre-wrap;">${replacements.comisionFreelancePercentage}</td>
+<td style="text-align: left; vertical-align: middle; padding: 4px; word-break: break-word; white-space: pre-wrap;">${replacements.comisionFreelanceValue}</td>
+<td style="text-align: left; vertical-align: middle; padding: 4px; word-break: break-word; white-space: pre-wrap;">${replacements.utilidad}</td>
+</tr>
+`;
+                    return headerRow + singleDataRow + closingTag;
+                });
+
+                // Reemplazo de seguridad global para cualquier remanente estático de plantillas anteriores
+                compiledHtml = compiledHtml
+                    .replace(/68\.28/g, replacements.comisionPropiaPercentage)
+                    .replace(/8\.979\.503/g, replacements.comisionPropiaValue)
+                    .replace(/11\.083\.688/g, replacements.utilidad);
 
                 // Limpieza de cualquier token huérfano no configurado o antiguo (ej. {{proveedorNIT}})
                 compiledHtml = compiledHtml.replace(/\{\{[^}]+\}\}/g, '');

@@ -49,7 +49,8 @@ if (!(Test-Path "$ReleaseDir\SQL")) { New-Item -ItemType Directory -Path "$Relea
 Write-Host "`n[3/5] Ensamblando Motor (Archivos Binarios)..." -ForegroundColor Yellow
 Copy-Item ".\.next\standalone\*" -Destination $ReleaseDir -Recurse -Force
 Copy-Item ".\public" -Destination "$ReleaseDir\public" -Recurse -Force
-Copy-Item ".\.next\static" -Destination "$ReleaseDir\.next\static" -Recurse -Force
+if (-not (Test-Path "$ReleaseDir\.next\static")) { New-Item -ItemType Directory -Path "$ReleaseDir\.next\static" -Force | Out-Null }
+Copy-Item ".\.next\static\*" -Destination "$ReleaseDir\.next\static" -Recurse -Force
 
 # Sobrescribir package.json en Release con una version minimal para evitar que npm instale dependencias de desarrollo redundantes, pero conservando dependencias criticas del instalador (node-windows y pg)
 $MinimalPackageJson = '{"name":"korex-standalone","version":"1.0.0","private":true,"dependencies":{"node-windows":"^1.0.0-beta.8","pg":"^8.22.0"}}'

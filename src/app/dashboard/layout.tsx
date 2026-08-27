@@ -21,15 +21,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [menuList, setMenuList] = useState<MenuItemData[]>([])
     const [loadingMenu, setLoadingMenu] = useState(true)
 
-    useEffect(() => {
-        let isMounted = true
+    const loadMenuData = () => {
         fetch('/api/menu')
             .then((res) => {
                 if (!res.ok) throw new Error('Failed to load menu')
                 return res.json()
             })
             .then((data: MenuItemData[]) => {
-                if (isMounted && Array.isArray(data) && data.length > 0) {
+                if (Array.isArray(data)) {
                     setMenuList(data)
                 }
             })
@@ -37,11 +36,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 console.error('Error loading menu from DB:', err)
             })
             .finally(() => {
-                if (isMounted) setLoadingMenu(false)
+                setLoadingMenu(false)
             })
+    }
 
+    useEffect(() => {
+        loadMenuData()
+        window.addEventListener('menuUpdated', loadMenuData)
         return () => {
-            isMounted = false
+            window.removeEventListener('menuUpdated', loadMenuData)
         }
     }, [])
 
@@ -60,21 +63,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { id: 7, code: 'MANUAL', name: 'Manual Operativo', parent: null, action: '/dashboard/manual', activo: true }
     ]
 
-    const baseItems = menuList.length > 0 ? menuList : defaultMenuItems
-    const hasMaestros = baseItems.some(item => (item.code || '').toUpperCase().includes('MAESTRO') || (item.action || '').includes('settings'))
-    const hasManual = baseItems.some(item => (item.code || '').toUpperCase().includes('MANUAL') || (item.action || '').includes('manual'))
-    const hasPreQuotations = baseItems.some(item => (item.code || '').toUpperCase().includes('PRECOTIZACION') || (item.action || '').includes('prequotations'))
-    
-    let itemsToRender = baseItems;
-    if (!hasPreQuotations) {
-        itemsToRender = [{ id: 997, code: 'PRECOTIZACIONES', name: 'Pre-Cotizaciones', parent: null, action: '/dashboard/prequotations', activo: true }, ...itemsToRender]
-    }
-    if (!hasMaestros) {
-        itemsToRender = [...itemsToRender, { id: 999, code: 'MAESTROS', name: 'Maestros', parent: null, action: '/dashboard/settings', activo: true }]
-    }
-    if (!hasManual) {
-        itemsToRender = [...itemsToRender, { id: 998, code: 'MANUAL', name: 'Manual Operativo', parent: null, action: '/dashboard/manual', activo: true }]
-    }
+    const itemsToRender = menuList.length > 0 ? menuList : defaultMenuItems.filter(i => i.activo)
 
 
     const getMenuIcon = (code: string, action: string) => {

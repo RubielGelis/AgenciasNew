@@ -148,6 +148,9 @@ export default function SettingsPage() {
             })
             if (res.ok) {
                 fetchSiteModulesAndMasters()
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('menuUpdated'))
+                }
             }
         } catch (err) {
             console.error('Error toggling site item:', err)
@@ -163,6 +166,9 @@ export default function SettingsPage() {
             })
             if (res.ok) {
                 fetchSiteModulesAndMasters()
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('menuUpdated'))
+                }
             }
         } catch (err) {
             console.error('Error resetting all site items:', err)

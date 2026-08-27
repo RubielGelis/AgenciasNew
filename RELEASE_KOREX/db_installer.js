@@ -260,23 +260,103 @@ async function run() {
         console.log(`\n${colors.yellow}[!] No se detectó 'schema_reference.json'. El comparador avanzado de campos y tipos fue omitido.${colors.reset}`);
     }
 
-    // 5. Insertar Semilla Inicial (Inicial.sql)
+    // 5. Insertar Semilla Inicial (Inicial.sql) - Ejecución sentencia por sentencia para evitar abortar el lote por llaves duplicadas
     const dataFile = resolvePath('SQL', 'Inicial.sql');
     if (fs.existsSync(dataFile)) {
-        console.log(`\n${colors.bright}[4/4] Sembrando catálogos y datos iniciales requeridos (Inicial.sql)...${colors.reset}`);
-        try {
-            const sqlInit = fs.readFileSync(dataFile, 'utf8');
-            // Ejecutar la semilla inicial. Si ya existen registros (Duplicate Key) el Catch del cliente lo ignorará
-            await dbClient.query(sqlInit);
-            console.log(`  ${colors.green}[OK] Semilla de datos procesada con éxito.${colors.reset}`);
-        } catch (e) {
-            // Ignorar errores típicos de "ya existe la clave" (duplicate key) ya que es un actualizador
-            if (e.code === '23505') {
-                console.log(`  ${colors.gray}[INFO] Los catálogos ya contienen los datos semilla (Claves duplicadas omitidas).${colors.reset}`);
-            } else {
-                console.warn(`  ${colors.yellow}[!] Aviso poblando datos iniciales: ${e.message}${colors.reset}`);
+        console.log(`\n${colors.bright}[4/5] Sembrando catálogos y datos iniciales requeridos (Inicial.sql)...${colors.reset}`);
+        const sqlInit = fs.readFileSync(dataFile, 'utf8');
+        const statements = sqlInit.split(/;\s*[\r\n]+/);
+        let executedCount = 0;
+        let skippedCount = 0;
+
+        for (const stmt of statements) {
+            const trimmed = stmt.trim();
+            if (!trimmed || trimmed.startsWith('--')) continue;
+            try {
+                await dbClient.query(trimmed + ';');
+                executedCount++;
+            } catch (e) {
+                if (e.code === '23505') {
+                    skippedCount++;
+                } else {
+                    console.warn(`  ${colors.yellow}[!] Aviso ejecución instrucción inicial: ${e.message}${colors.reset}`);
+                }
             }
         }
+        console.log(`  ${colors.green}[OK] Semilla procesada: ${executedCount} sentencias ejecutadas, ${skippedCount} omitidas por existencia previa.${colors.reset}`);
+    }
+
+    // 6. Sincronización Forzada de Catálogos (Menu, Master, SystemParameter)
+    console.log(`\n${colors.bright}[5/5] Garantizando siembra completa de Menús (8), Tablas Maestras (28) y Parámetros...${colors.reset}`);
+    try {
+        await dbClient.query(`
+            CREATE UNIQUE INDEX IF NOT EXISTS "Menu_code_key" ON public."Menu" ("code");
+            INSERT INTO public."Menu" (code, name, parent, action, activo)
+            VALUES 
+                ('DASHBOARD', 'Dashboard', NULL, '/dashboard', true),
+                ('PRECOTIZACIONES', 'Pre-Cotizaciones', NULL, '/dashboard/prequotations', true),
+                ('COTIZACIONES', 'Cotizaciones', NULL, '/dashboard/quotations/history', true),
+                ('FACTURACION', 'Facturación', NULL, '/dashboard/invoices/history', true),
+                ('MAESTROS', 'Maestros', NULL, '/dashboard/settings', true),
+                ('REPORTES', 'Reportes', NULL, '/dashboard/reports', true),
+                ('EJECUCIONES', 'Ejecuciones', NULL, '/dashboard/executions', true),
+                ('MANUAL', 'Manual Operativo', NULL, '/dashboard/manual', true)
+            ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+            CREATE UNIQUE INDEX IF NOT EXISTS "Master_code_key" ON public."Master" ("code");
+            INSERT INTO public."Master" (code, name, "inactivo")
+            VALUES
+                ('SystemParameter', 'parametros', false),
+                ('User', 'usuarios', false),
+                ('Branch', 'sucursales', false),
+                ('Implant', 'implantes', false),
+                ('ChargeAndTax', 'impuestos', false),
+                ('Seller', 'vendedores', false),
+                ('TicketPrinter', 'tiqueteadores', false),
+                ('Prestadora', 'prestadoras', false),
+                ('Client', 'clientes', false),
+                ('Provider', 'proveedores', false),
+                ('ProviderType', 'tipos-proveedores', false),
+                ('Product', 'productos', false),
+                ('MasterVariable', 'variables', false),
+                ('Combo', 'combos', false),
+                ('SystemLog', 'logs', false),
+                ('Currency', 'monedas', false),
+                ('Equivalences', 'equivalencias', false),
+                ('InterfaceExtractParam', 'extraccion-interfaces', false),
+                ('DocumentResolution', 'resoluciones-documentos', false),
+                ('TransactionConsecutive', 'consecutivos-transacciones', false),
+                ('CreditCard', 'tarjetas-credito', false),
+                ('Payment', 'formas-pago', false),
+                ('Countries', 'paises', false),
+                ('Cities', 'ciudades', false),
+                ('Airports', 'aeropuertos', false),
+                ('TicketType', 'tipos-tiquetes', false),
+                ('QuotationState', 'estados-cotizacion', false),
+                ('QuotationFormat', 'formatos-cotizacion', false)
+            ON CONFLICT (code) DO NOTHING;
+
+            CREATE UNIQUE INDEX IF NOT EXISTS "SystemParameter_code_key" ON public."SystemParameter" ("code");
+            INSERT INTO public."SystemParameter" (code, name, value)
+            VALUES
+                ('ServidorSQLServer', 'Host de SQL Server', 'Rubiel/RUBIEL'),
+                ('UsuarioSQLServer', 'Usuario SQL Server', 'sa'),
+                ('ClaveSQLServer', 'Contraseña SQL Server', '111985*'),
+                ('BaseSQLServer', 'Base de Datos SQL Server', 'Agencias'),
+                ('PuertoSQLServer', 'Puerto SQL Server', ''),
+                ('EnviarCotizacionesAutoSQLserver', 'Envío automático de cotizaciones a SQL Server (1: Sí, 0: No)', '1'),
+                ('EnviarFacturacionAutoSQLserver', 'Envío automático a Facturacion SQL Server (1: Sí, 0: No)', '1'),
+                ('Pais', 'Pais', 'Colombia'),
+                ('MOSTRAR_TOTALIZACION_COTIZACION', 'Mostrar totalización financiera en cotización', 'true'),
+                ('LICENSE_KEY', 'Clave de Licencia del Sistema', ''),
+                ('AGENCY_NAME', 'Nombre o Razón Social de la Agencia', ''),
+                ('AGENCY_NIT', 'NIT de la Agencia', ''),
+                ('LICENSE_EXPIRATION_DATE', 'Fecha de Expiración de Licencia', '')
+            ON CONFLICT (code) DO NOTHING;
+        `);
+        console.log(`  ${colors.green}[OK] Menús (8), Tablas Maestras (28) y Parámetros garantizados al 100%.${colors.reset}`);
+    } catch (catErr) {
+        console.warn(`  ${colors.yellow}[!] Aviso sincronizando catálogos: ${catErr.message}${colors.reset}`);
     }
 
     await dbClient.end();
