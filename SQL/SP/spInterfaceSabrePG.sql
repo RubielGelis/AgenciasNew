@@ -27,12 +27,15 @@ DECLARE
     v_pax_nombres TEXT[] := ARRAY[]::TEXT[];
     v_pax_apellidos TEXT[] := ARRAY[]::TEXT[];
     
-    -- M2 Totales e Impuestos Generales
+    -- M2 Totales e Impuestos Generales y Pago M2
     v_m2_currency VARCHAR(10) := 'COP';
     v_m2_tarifa DOUBLE PRECISION := 0.0;
     v_m2_total DOUBLE PRECISION := 0.0;
     v_m2_tax_codes TEXT[] := ARRAY[]::TEXT[];
     v_m2_tax_amounts DOUBLE PRECISION[] := ARRAY[]::DOUBLE PRECISION[];
+    v_m2_pay_type TEXT := NULL;
+    v_m2_pay_card TEXT := '';
+    v_m2_pay_number TEXT := '';
     
     -- Tiquetes y M50
     v_tkt_codes TEXT[] := ARRAY[]::TEXT[];
@@ -115,6 +118,9 @@ BEGIN
                 v_r RECORD;
                 v_after_cop2 TEXT;
                 v_tot_match TEXT[];
+                v_cc_pos INT;
+                v_cand_card TEXT;
+                v_num_match TEXT[];
             BEGIN
                 v_cop1_pos := POSITION('COP' IN v_line);
                 IF v_cop1_pos = 0 THEN
@@ -149,6 +155,24 @@ BEGIN
                         IF array_length(v_tot_match, 1) >= 1 THEN
                             v_m2_total := (v_tot_match[1])::DOUBLE PRECISION;
                         END IF;
+                    END IF;
+                END IF;
+
+                -- Extracción de Tarjeta de Crédito en M2 si contiene CC
+                v_cc_pos := POSITION('CC' IN v_line);
+                IF v_cc_pos > 0 THEN
+                    v_m2_pay_type := 'TC';
+                    v_cand_card := SUBSTRING(v_line FROM v_cc_pos + 2 FOR 2);
+                    IF v_cand_card IN ('VI', 'MC', 'AX', 'DC', 'TP') THEN
+                        v_m2_pay_card := v_cand_card;
+                        v_num_match := regexp_matches(SUBSTRING(v_line FROM v_cc_pos + 4), '^([0-9]{4,16})');
+                    ELSE
+                        v_m2_pay_card := '';
+                        v_num_match := regexp_matches(SUBSTRING(v_line FROM v_cc_pos + 2), '^([0-9]{4,16})');
+                    END IF;
+
+                    IF array_length(v_num_match, 1) >= 1 THEN
+                        v_m2_pay_number := v_num_match[1];
                     END IF;
                 END IF;
             END;
@@ -231,10 +255,12 @@ BEGIN
                 v_raw_tax TEXT;
                 v_val_tarifa DOUBLE PRECISION := 0.0;
                 v_val_tax DOUBLE PRECISION := 0.0;
+                v_pay_type TEXT := 'TC';
                 v_card_type TEXT := '';
                 v_card_num TEXT := '';
                 v_cc_pos INT;
-                v_match_num TEXT[];
+                v_cand_card TEXT;
+                v_num_match TEXT[];
             BEGIN
                 -- 1. Numero de Tiquete y Prestadora Code
                 v_hash_pos := POSITION('#' IN v_line);
@@ -248,9 +274,9 @@ BEGIN
                     IF array_length(v_parts, 1) >= 1 THEN
                         v_tkt_num := NULLIF(regexp_replace(v_parts[1], '^.*?#', ''), '');
                         IF v_tkt_num IS NOT NULL THEN
-                            v_match_num := regexp_matches(v_tkt_num, '[0-9]{10,13}');
-                            IF array_length(v_match_num, 1) >= 1 THEN
-                                v_tkt_num := v_match_num[1];
+                            v_num_match := regexp_matches(v_tkt_num, '[0-9]{10,13}');
+                            IF array_length(v_num_match, 1) >= 1 THEN
+                                v_tkt_num := v_num_match[1];
                             END IF;
                         END IF;
                     END IF;
@@ -274,11 +300,23 @@ BEGIN
                     -- 4. Forma de Pago y Tarjeta (Extraer franquicia VI/MC/AX/DC y numero despues de CC)
                     v_cc_pos := POSITION('CC' IN v_line);
                     IF v_cc_pos > 0 THEN
-                        v_card_type := SUBSTRING(v_line FROM v_cc_pos + 2 FOR 2);
-                        v_match_num := regexp_matches(SUBSTRING(v_line FROM v_cc_pos + 4), '^([0-9]{10,16})');
-                        IF array_length(v_match_num, 1) >= 1 THEN
-                            v_card_num := v_match_num[1];
+                        v_pay_type := 'TC';
+                        v_cand_card := SUBSTRING(v_line FROM v_cc_pos + 2 FOR 2);
+                        IF v_cand_card IN ('VI', 'MC', 'AX', 'DC', 'TP') THEN
+                            v_card_type := v_cand_card;
+                            v_num_match := regexp_matches(SUBSTRING(v_line FROM v_cc_pos + 4), '^([0-9]{4,16})');
+                        ELSE
+                            v_card_type := '';
+                            v_num_match := regexp_matches(SUBSTRING(v_line FROM v_cc_pos + 2), '^([0-9]{4,16})');
                         END IF;
+
+                        IF array_length(v_num_match, 1) >= 1 THEN
+                            v_card_num := v_num_match[1];
+                        END IF;
+                    ELSIF POSITION('/CA ' IN v_line) > 0 OR POSITION('/CK ' IN v_line) > 0 THEN
+                        v_pay_type := 'CA';
+                        v_card_type := '';
+                        v_card_num := '';
                     END IF;
 
                     IF v_tkt_num IS NOT NULL THEN
@@ -286,7 +324,7 @@ BEGIN
                         v_tkt_prestadoras := array_append(v_tkt_prestadoras, COALESCE(v_prestadora, 'AA'));
                         v_tkt_tarifas := array_append(v_tkt_tarifas, v_val_tarifa);
                         v_tkt_impuestos := array_append(v_tkt_impuestos, v_val_tax);
-                        v_tkt_pay_types := array_append(v_tkt_pay_types, 'TC');
+                        v_tkt_pay_types := array_append(v_tkt_pay_types, v_pay_type);
                         v_tkt_pay_cards := array_append(v_tkt_pay_cards, v_card_type);
                         v_tkt_pay_numbers := array_append(v_tkt_pay_numbers, v_card_num);
                     END IF;
@@ -349,6 +387,9 @@ BEGIN
         v_prod_tarifa DOUBLE PRECISION;
         v_prod_tax DOUBLE PRECISION;
         v_total_prod_price DOUBLE PRECISION;
+        v_final_pay_type TEXT;
+        v_final_pay_card TEXT;
+        v_final_pay_number TEXT;
     BEGIN
         v_num_tkts := COALESCE(array_length(v_tkt_codes, 1), 0);
         IF v_num_tkts = 0 THEN
@@ -357,9 +398,9 @@ BEGIN
             v_tkt_prestadoras := ARRAY[v_aerolinea_vende];
             v_tkt_tarifas := ARRAY[COALESCE(v_m2_tarifa, 0.0)];
             v_tkt_impuestos := ARRAY[0.0];
-            v_tkt_pay_types := ARRAY['TC'];
-            v_tkt_pay_cards := ARRAY[''];
-            v_tkt_pay_numbers := ARRAY[''];
+            v_tkt_pay_types := ARRAY[COALESCE(v_m2_pay_type, 'TC')];
+            v_tkt_pay_cards := ARRAY[COALESCE(v_m2_pay_card, '')];
+            v_tkt_pay_numbers := ARRAY[COALESCE(v_m2_pay_number, '')];
         END IF;
 
         FOR v_tkt_i IN 1 .. v_num_tkts LOOP
@@ -378,6 +419,11 @@ BEGIN
                 v_prod_tax := COALESCE(v_tkt_impuestos[v_tkt_i], 0.0);
                 v_total_prod_price := v_prod_tarifa + v_prod_tax;
             END IF;
+
+            -- Forma de pago final priorizando datos extraídos
+            v_final_pay_type := COALESCE(v_tkt_pay_types[v_tkt_i], v_m2_pay_type, 'TC');
+            v_final_pay_card := COALESCE(NULLIF(v_tkt_pay_cards[v_tkt_i], ''), v_m2_pay_card, '');
+            v_final_pay_number := COALESCE(NULLIF(v_tkt_pay_numbers[v_tkt_i], ''), v_m2_pay_number, '');
 
             -- Buscar proveedor por prestadora code
             SELECT code INTO v_provider_matched
@@ -405,7 +451,7 @@ BEGIN
                 );
             END IF;
 
-            -- 2. Impuestos detallados con Homologación (EquivalencesInterfaces para ChargeAndTax)
+            -- 2. Impuestos detallados con Homologación
             IF array_length(v_m2_tax_codes, 1) > 0 THEN
                 FOR v_i IN 1 .. array_length(v_m2_tax_codes, 1) LOOP
                     DECLARE
@@ -417,7 +463,6 @@ BEGIN
                         v_tax_code_gds := v_m2_tax_codes[v_i];
                         v_tax_amt := v_m2_tax_amounts[v_i];
 
-                        -- Buscar en EquivalencesInterfaces
                         SELECT eq.cd_codigo, cat.name
                         INTO v_homolog_code, v_homolog_name
                         FROM public."EquivalencesInterfaces" eq
@@ -455,12 +500,12 @@ BEGIN
             END IF;
 
             -- 3. Forma de Pago Única para ESTE tiquete
-            IF v_tkt_pay_types[v_tkt_i] IS NOT NULL AND v_tkt_pay_types[v_tkt_i] <> '' THEN
+            IF v_final_pay_type IS NOT NULL AND v_final_pay_type <> '' THEN
                 INSERT INTO public."BookingProductPaymentGDS" (
                     "bookingProductId", "code", "name", "type", "typecreditcard", "numbercreditcard", "amount"
                 ) VALUES (
-                    v_booking_product_gds_id, v_tkt_pay_types[v_tkt_i], v_tkt_pay_types[v_tkt_i], v_tkt_pay_types[v_tkt_i],
-                    v_tkt_pay_cards[v_tkt_i], COALESCE(v_tkt_pay_numbers[v_tkt_i], ''), v_total_prod_price
+                    v_booking_product_gds_id, v_final_pay_type, v_final_pay_type, v_final_pay_type,
+                    v_final_pay_card, COALESCE(v_final_pay_number, ''), v_total_prod_price
                 );
             END IF;
 
