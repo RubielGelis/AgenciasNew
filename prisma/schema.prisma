@@ -92,6 +92,10 @@ model Branch {
   template                Bytes?
   templateConfig          Json?
   htmlTemplate            String?
+  resolutionId            Int?
+  invoiceTemplate         Bytes?
+  invoiceTemplateConfig   Json?
+  invoiceHtmlTemplate     String?
   BranchGDSInvoiceAuto    BranchGDSInvoiceAuto[]
   cellCustomizations      CellCustomization[]
   documentResolutions     DocumentResolution[]
@@ -114,6 +118,10 @@ model Implant {
   templateConfig          Json?
   htmlTemplate            String?
   Logo                    Bytes?
+  resolutionId            Int?
+  invoiceTemplate         Bytes?
+  invoiceTemplateConfig   Json?
+  invoiceHtmlTemplate     String?
   cellCustomizations      CellCustomization[]
   documentResolutions     DocumentResolution[]
   branch                  Branch?                  @relation(fields: [branchId], references: [id])
