@@ -122,45 +122,45 @@ BEGIN
 
     IF v_resolution_id IS NOT NULL THEN
         SELECT * INTO v_res FROM public."Resolution" WHERE id = v_resolution_id;
-    END IF;
 
-    IF v_res.id IS NOT NULL THEN
-        -- 1. Validar estado de la resolución
-        IF v_res.activo IS FALSE THEN
-            p_mensaje_resultado := 'ERROR: La resolución de facturación "' || v_res.name || '" (' || v_res.code || ') se encuentra inactiva.';
-            RETURN;
-        END IF;
-
-        -- 2. Validar vigencia / expiración de la resolución
-        IF v_res.expira IS NOT NULL AND v_res.expira::DATE < CURRENT_DATE THEN
-            IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
-                p_mensaje_resultado := 'ERROR: La resolución de facturación "' || v_res.name || '" (' || v_res.code || ') se encuentra vencida desde el ' || to_char(v_res.expira, 'YYYY-MM-DD') || '.';
+        IF v_res.id IS NOT NULL THEN
+            -- 1. Validar estado de la resolución
+            IF v_res.activo IS FALSE THEN
+                p_mensaje_resultado := 'ERROR: La resolución de facturación "' || v_res.name || '" (' || v_res.code || ') se encuentra inactiva.';
                 RETURN;
             END IF;
-        END IF;
 
-        -- 3. Validar rango numérico autorizado del consecutivo
-        IF v_consecutivo IS NOT NULL AND v_consecutivo ~ '^[0-9]+$' THEN
-            v_consec_num := v_consecutivo::BIGINT;
-
-            IF v_res.inicial IS NOT NULL AND v_consec_num < v_res.inicial THEN
+            -- 2. Validar vigencia / expiración de la resolución
+            IF v_res.expira IS NOT NULL AND v_res.expira::DATE < CURRENT_DATE THEN
                 IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
-                    p_mensaje_resultado := 'ERROR: El consecutivo generado (' || v_consec_num || ') es menor al rango inicial autorizado (' || v_res.inicial || ') para la resolución "' || v_res.name || '".';
+                    p_mensaje_resultado := 'ERROR: La resolución de facturación "' || v_res.name || '" (' || v_res.code || ') se encuentra vencida desde el ' || to_char(v_res.expira, 'YYYY-MM-DD') || '.';
                     RETURN;
                 END IF;
             END IF;
 
-            IF v_res."end" IS NOT NULL AND v_consec_num > v_res."end" THEN
-                IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
-                    p_mensaje_resultado := 'ERROR: El consecutivo generado (' || v_consec_num || ') supera el rango final autorizado (' || v_res."end" || ') para la resolución "' || v_res.name || '".';
-                    RETURN;
+            -- 3. Validar rango numérico autorizado del consecutivo
+            IF v_consecutivo IS NOT NULL AND v_consecutivo ~ '^[0-9]+$' THEN
+                v_consec_num := v_consecutivo::BIGINT;
+
+                IF v_res.inicial IS NOT NULL AND v_consec_num < v_res.inicial THEN
+                    IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
+                        p_mensaje_resultado := 'ERROR: El consecutivo generado (' || v_consec_num || ') es menor al rango inicial autorizado (' || v_res.inicial || ') para la resolución "' || v_res.name || '".';
+                        RETURN;
+                    END IF;
+                END IF;
+
+                IF v_res."end" IS NOT NULL AND v_consec_num > v_res."end" THEN
+                    IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
+                        p_mensaje_resultado := 'ERROR: El consecutivo generado (' || v_consec_num || ') supera el rango final autorizado (' || v_res."end" || ') para la resolución "' || v_res.name || '".';
+                        RETURN;
+                    END IF;
                 END IF;
             END IF;
-        END IF;
 
-        -- 4. Asignar prefijo de resolución a la serie si no fue provisto
-        IF v_serie IS NULL AND NULLIF(v_res.prefijo, '') IS NOT NULL THEN
-            v_serie := v_res.prefijo;
+            -- 4. Asignar prefijo de resolución a la serie si no fue provisto
+            IF v_serie IS NULL AND NULLIF(v_res.prefijo, '') IS NOT NULL THEN
+                v_serie := v_res.prefijo;
+            END IF;
         END IF;
     END IF;
 
