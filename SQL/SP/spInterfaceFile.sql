@@ -1,4 +1,15 @@
-CREATE OR REPLACE PROCEDURE public."spInterfaceFile"(
+-- Drop de sobrecargas previas para prevenir error 42883
+DO $$ 
+BEGIN
+    EXECUTE 'DROP PROCEDURE IF EXISTS public.spinterfacefile(text, text, text) CASCADE';
+    EXECUTE 'DROP PROCEDURE IF EXISTS public."spInterfaceFile"(text, text, text) CASCADE';
+    EXECUTE 'DROP PROCEDURE IF EXISTS public.spinterfacefile CASCADE';
+    EXECUTE 'DROP PROCEDURE IF EXISTS public."spInterfaceFile" CASCADE';
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+-- Procedimiento Principal Case-Insensitive (para Npgsql / C#)
+CREATE OR REPLACE PROCEDURE public.spinterfacefile(
     op TEXT,
     booking TEXT,
     file TEXT
@@ -8,15 +19,25 @@ AS $BODY$
 DECLARE
     file_extension TEXT;
 BEGIN
-    -- Extraer la extensión del archivo (ejemplo: .fil para Sabre)
     file_extension := lower(substring(file from '\.[^\.]*$'));
 
     IF file_extension = '.fil' THEN
-        -- Llamar al procedimiento de Sabre pasando los parámetros correspondientes
-        CALL public."spInterfaceSabre"(op, booking, file);
+        CALL public.spinterfacesabre(op, booking, file);
     ELSE
-        -- Llamar al procedimiento de Amadeus
-        CALL public."spInterfaceAmadeus"(op, booking, file);
+        CALL public.spinterfaceamadeus(op, booking, file);
     END IF;
+END;
+$BODY$;
+
+-- Alias con comillas para retrocompatibilidad
+CREATE OR REPLACE PROCEDURE public."spInterfaceFile"(
+    op TEXT,
+    booking TEXT,
+    file TEXT
+)
+LANGUAGE 'plpgsql'
+AS $BODY$
+BEGIN
+    CALL public.spinterfacefile(op, booking, file);
 END;
 $BODY$;

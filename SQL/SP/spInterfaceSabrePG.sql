@@ -1,3 +1,13 @@
+-- Drop de sobrecargas previas para prevenir error 42883
+DO $$ 
+BEGIN
+    EXECUTE 'DROP PROCEDURE IF EXISTS public.spinterfacesabre(text, text, text) CASCADE';
+    EXECUTE 'DROP PROCEDURE IF EXISTS public."spInterfaceSabre"(text, text, text) CASCADE';
+    EXECUTE 'DROP PROCEDURE IF EXISTS public.spinterfacesabre CASCADE';
+    EXECUTE 'DROP PROCEDURE IF EXISTS public."spInterfaceSabre" CASCADE';
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
 CREATE OR REPLACE PROCEDURE public."spInterfaceSabre"(
     p_op TEXT,
     p_Booking TEXT,
@@ -536,5 +546,18 @@ BEGIN
     END;
 
     RAISE NOTICE 'Reserva Sabre PNR % procesada exitosamente.', v_code;
+END;
+$BODY$;
+
+-- Alias case-insensitive para Npgsql / C#
+CREATE OR REPLACE PROCEDURE public.spinterfacesabre(
+    p_op TEXT,
+    p_booking TEXT,
+    p_file TEXT
+)
+LANGUAGE 'plpgsql'
+AS $BODY$
+BEGIN
+    CALL public."spInterfaceSabre"(p_op, p_booking, p_file);
 END;
 $BODY$;
