@@ -348,16 +348,16 @@ BEGIN
             END;
         END IF;
 
-        -- Extracción de Parámetros y Variables M8 / RM
-        IF v_line LIKE 'M8%' OR v_line LIKE 'RM%' THEN
+        -- Extracción de Parámetros y Variables M8 / M9 / RM
+        IF v_line LIKE 'M8%' OR v_line LIKE 'M9%' OR v_line LIKE 'RM%' THEN
             DECLARE
                 v_param RECORD;
                 v_pref TEXT;
                 v_pos INT;
                 v_val TEXT;
             BEGIN
-                -- M828AGENT*
-                IF v_line LIKE 'M828AGENT*%' THEN
+                -- M828AGENT* / M928AGENT*
+                IF v_line LIKE 'M828AGENT*%' OR v_line LIKE 'M928AGENT*%' THEN
                     v_tiqueteador := TRIM(SUBSTRING(v_line FROM 9 FOR 10));
                     v_seller := COALESCE(NULLIF(v_seller, ''), v_tiqueteador);
                 END IF;
