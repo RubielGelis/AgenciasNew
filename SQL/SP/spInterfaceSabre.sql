@@ -271,11 +271,11 @@ BEGIN
                         END IF;
                     END IF;
 
-                    -- 4. Forma de Pago y Tarjeta (Remover CC)
+                    -- 4. Forma de Pago y Tarjeta (Extraer franquicia VI/MC/AX/DC y numero despues de CC)
                     v_cc_pos := POSITION('CC' IN v_line);
                     IF v_cc_pos > 0 THEN
                         v_card_type := SUBSTRING(v_line FROM v_cc_pos + 2 FOR 2);
-                        v_match_num := regexp_matches(SUBSTRING(v_line FROM v_cc_pos), '[0-9]{10,16}');
+                        v_match_num := regexp_matches(SUBSTRING(v_line FROM v_cc_pos + 4), '^([0-9]{10,16})');
                         IF array_length(v_match_num, 1) >= 1 THEN
                             v_card_num := v_match_num[1];
                         END IF;

@@ -27,6 +27,13 @@ DECLARE
     v_pax_nombres TEXT[] := ARRAY[]::TEXT[];
     v_pax_apellidos TEXT[] := ARRAY[]::TEXT[];
     
+    -- M2 Totales e Impuestos Generales
+    v_m2_currency VARCHAR(10) := 'COP';
+    v_m2_tarifa DOUBLE PRECISION := 0.0;
+    v_m2_total DOUBLE PRECISION := 0.0;
+    v_m2_tax_codes TEXT[] := ARRAY[]::TEXT[];
+    v_m2_tax_amounts DOUBLE PRECISION[] := ARRAY[]::DOUBLE PRECISION[];
+    
     -- Tiquetes y M50
     v_tkt_codes TEXT[] := ARRAY[]::TEXT[];
     v_tkt_prestadoras TEXT[] := ARRAY[]::TEXT[];
@@ -92,6 +99,57 @@ BEGIN
                 IF v_ape <> '' THEN
                     v_pax_apellidos := array_append(v_pax_apellidos, v_ape);
                     v_pax_nombres := array_append(v_pax_nombres, v_nom);
+                END IF;
+            END;
+        END IF;
+
+        -- Totales e Impuestos de linea M2 (M201ADT...)
+        IF v_line LIKE 'M2%' THEN
+            DECLARE
+                v_cop1_pos INT;
+                v_cop2_pos INT;
+                v_curr_code TEXT := 'COP';
+                v_between TEXT;
+                v_base_match TEXT[];
+                v_tax_part TEXT;
+                v_r RECORD;
+                v_after_cop2 TEXT;
+                v_tot_match TEXT[];
+            BEGIN
+                v_cop1_pos := POSITION('COP' IN v_line);
+                IF v_cop1_pos = 0 THEN
+                    v_cop1_pos := POSITION('USD' IN v_line);
+                    v_curr_code := 'USD';
+                END IF;
+
+                IF v_cop1_pos > 0 THEN
+                    v_m2_currency := v_curr_code;
+                    v_currency := v_curr_code;
+
+                    v_cop2_pos := POSITION(v_curr_code IN SUBSTRING(v_line FROM v_cop1_pos + 3));
+                    IF v_cop2_pos > 0 THEN
+                        v_cop2_pos := v_cop1_pos + 3 + v_cop2_pos - 1;
+                        v_between := TRIM(SUBSTRING(v_line FROM v_cop1_pos + 3 FOR v_cop2_pos - (v_cop1_pos + 3)));
+                        
+                        v_base_match := regexp_matches(v_between, '^([0-9.]+)');
+                        IF array_length(v_base_match, 1) >= 1 THEN
+                            v_m2_tarifa := (v_base_match[1])::DOUBLE PRECISION;
+                            v_tax_part := TRIM(SUBSTRING(v_between FROM length(v_base_match[1]) + 1));
+                            
+                            FOR v_r IN SELECT (m[1])::DOUBLE PRECISION AS amt, m[2] AS code
+                                       FROM regexp_matches(v_tax_part, '([0-9.]+)\s*([A-Z0-9]{2})', 'g') AS m
+                            LOOP
+                                v_m2_tax_amounts := array_append(v_m2_tax_amounts, v_r.amt);
+                                v_m2_tax_codes := array_append(v_m2_tax_codes, v_r.code);
+                            END LOOP;
+                        END IF;
+
+                        v_after_cop2 := TRIM(SUBSTRING(v_line FROM v_cop2_pos + 3));
+                        v_tot_match := regexp_matches(v_after_cop2, '^([0-9.]+)');
+                        IF array_length(v_tot_match, 1) >= 1 THEN
+                            v_m2_total := (v_tot_match[1])::DOUBLE PRECISION;
+                        END IF;
+                    END IF;
                 END IF;
             END;
         END IF;
@@ -213,11 +271,11 @@ BEGIN
                         END IF;
                     END IF;
 
-                    -- 4. Forma de Pago y Tarjeta (Remover CC)
+                    -- 4. Forma de Pago y Tarjeta (Extraer franquicia VI/MC/AX/DC y numero despues de CC)
                     v_cc_pos := POSITION('CC' IN v_line);
                     IF v_cc_pos > 0 THEN
                         v_card_type := SUBSTRING(v_line FROM v_cc_pos + 2 FOR 2);
-                        v_match_num := regexp_matches(SUBSTRING(v_line FROM v_cc_pos), '[0-9]{10,16}');
+                        v_match_num := regexp_matches(SUBSTRING(v_line FROM v_cc_pos + 4), '^([0-9]{10,16})');
                         IF array_length(v_match_num, 1) >= 1 THEN
                             v_card_num := v_match_num[1];
                         END IF;
@@ -282,7 +340,7 @@ BEGIN
         ) RETURNING id INTO v_booking_gds_id;
     END IF;
 
-    -- Creación de productos y detalles por tiquete / M50
+    -- Creación de productos y detalles por tiquete / M50 o M2
     DECLARE
         v_num_tkts INT;
         v_tkt_i INT;
@@ -297,7 +355,7 @@ BEGIN
             v_num_tkts := 1;
             v_tkt_codes := ARRAY['VUE'];
             v_tkt_prestadoras := ARRAY[v_aerolinea_vende];
-            v_tkt_tarifas := ARRAY[0.0];
+            v_tkt_tarifas := ARRAY[COALESCE(v_m2_tarifa, 0.0)];
             v_tkt_impuestos := ARRAY[0.0];
             v_tkt_pay_types := ARRAY['TC'];
             v_tkt_pay_cards := ARRAY[''];
@@ -307,9 +365,19 @@ BEGIN
         FOR v_tkt_i IN 1 .. v_num_tkts LOOP
             v_prod_code := v_tkt_codes[v_tkt_i];
             v_prod_prestadora := COALESCE(v_tkt_prestadoras[v_tkt_i], v_aerolinea_vende);
-            v_prod_tarifa := COALESCE(v_tkt_tarifas[v_tkt_i], 0.0);
-            v_prod_tax := COALESCE(v_tkt_impuestos[v_tkt_i], 0.0);
-            v_total_prod_price := v_prod_tarifa + v_prod_tax;
+            
+            IF v_m2_tarifa > 0 THEN
+                v_prod_tarifa := v_m2_tarifa;
+            ELSE
+                v_prod_tarifa := COALESCE(v_tkt_tarifas[v_tkt_i], 0.0);
+            END IF;
+
+            IF v_m2_total > 0 THEN
+                v_total_prod_price := v_m2_total;
+            ELSE
+                v_prod_tax := COALESCE(v_tkt_impuestos[v_tkt_i], 0.0);
+                v_total_prod_price := v_prod_tarifa + v_prod_tax;
+            END IF;
 
             -- Buscar proveedor por prestadora code
             SELECT code INTO v_provider_matched
@@ -337,8 +405,16 @@ BEGIN
                 );
             END IF;
 
-            -- 2. Impuesto Otros Impuestos (OTR)
-            IF v_prod_tax > 0 THEN
+            -- 2. Impuestos detallados desde M2 (o M50/OTR de respaldo)
+            IF array_length(v_m2_tax_codes, 1) > 0 THEN
+                FOR v_i IN 1 .. array_length(v_m2_tax_codes, 1) LOOP
+                    INSERT INTO public."BookingProductTaxGDS" (
+                        "bookingProductId", "code", "name", "type", "ismain", "percentage", "amount"
+                    ) VALUES (
+                        v_booking_product_gds_id, v_m2_tax_codes[v_i], v_m2_tax_codes[v_i], 'tax', false, 0, v_m2_tax_amounts[v_i]
+                    );
+                END LOOP;
+            ELSIF v_prod_tax > 0 THEN
                 INSERT INTO public."BookingProductTaxGDS" (
                     "bookingProductId", "code", "name", "type", "ismain", "percentage", "amount"
                 ) VALUES (
