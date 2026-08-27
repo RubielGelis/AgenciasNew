@@ -1,3 +1,16 @@
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN 
+        SELECT oid::regprocedure AS proc_name 
+        FROM pg_proc 
+        WHERE proname ILIKE 'spClienteCrear'
+    LOOP
+        EXECUTE 'DROP PROCEDURE ' || r.proc_name;
+    END LOOP;
+END $$;
+
 CREATE OR REPLACE PROCEDURE public.spClienteCrear(
     p_name TEXT,
     p_document TEXT,
@@ -9,8 +22,7 @@ CREATE OR REPLACE PROCEDURE public.spClienteCrear(
     INOUT p_client_id INT DEFAULT 0,
     INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
-LANGUAGE plpgsql
-AS $$
+AS $BODY$
 BEGIN
     IF EXISTS (SELECT 1 FROM public."Client" WHERE document = p_document) THEN
         p_mensaje_resultado := 'ERROR: El documento ya está registrado';
@@ -26,4 +38,5 @@ EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
-$$;
+$BODY$
+LANGUAGE plpgsql;

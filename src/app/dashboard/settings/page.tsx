@@ -652,6 +652,7 @@ export default function SettingsPage() {
     // Load active tab data whenever pagination/search dependencies change
     useEffect(() => {
         fetchActiveTabData(activeTab, currentPage, pageSize, debouncedSearchTerm)
+        fetchLookupData(activeTab)
     }, [activeTab, currentPage, pageSize, debouncedSearchTerm])
 
     const fetchMetadata = async () => {
@@ -705,7 +706,14 @@ export default function SettingsPage() {
                 setBranches(Array.isArray(b) ? b : []);
                 setImplants(Array.isArray(i) ? i : []);
                 setTicketPrinters(Array.isArray(tp) ? tp : []);
-            } else if (tab === 'clientes' || tab === 'sucursales' || tab === 'implants' || tab === 'extraccion-interfaces') {
+            } else if (tab === 'clientes') {
+                const [vRes, sRes] = await Promise.all([
+                    fetch('/api/config/variables').then(res => res.json()).catch(() => []),
+                    fetch('/api/config/sellers').then(res => res.json()).catch(() => [])
+                ]);
+                setVariables(Array.isArray(vRes) ? vRes : []);
+                setSellers(Array.isArray(sRes) ? sRes : []);
+            } else if (tab === 'sucursales' || tab === 'implants' || tab === 'extraccion-interfaces') {
                 const res = await fetch('/api/config/variables').then(res => res.json());
                 setVariables(Array.isArray(res) ? res : []);
             } else if (tab === 'parametros') {

@@ -56,6 +56,10 @@ El script de instalación actualizador ([`deploy/Korex_Update.iss`](file:///f:/P
 La ruta detectada automáticamente pre-llena el campo de directorio en el asistente del instalador (`WizardForm.DirEdit.Text`).
 - *Razón*: Evita que el actualizador instale los archivos en una carpeta por defecto o secundaria si el cliente ubicó el sitio en otra letra de unidad o subdirectorio (ej. `F:\Korex\Cotizaciones` vs `F:\Korex_Sistema`), salvaguardando que siempre se actualice el código ejecutable en la ruta física real.
 
+### J. Garantía de Despliegue en Masa Limpio (Limpieza Dinámica de Sobrecargas y Secuencias)
+1. **Limpieza Dinámica de Sobrecargas (`DO $$ ... DROP PROCEDURE/FUNCTION ... $$;`)**: Todo procedimiento o función inyectado en `Actualizador.sql` y en scripts `.sql` incluye un bloque dinámico `DO $$` que consulta `pg_proc` y elimina previamente cualquier firma o versión sobrecargada anterior. De esta manera, al actualizar clientes remotos con bases de datos antiguas que poseían firmas con diferente número o tipo de parámetros, no ocurrirá el error 42883 (`procedure does not exist`).
+2. **Siembra Automatizada de Secuencias**: `deploy/validate_schema_before_package.js` escanea cualquier llamada a `nextval(...)` en los SPs e inyecta de forma transparente `CREATE SEQUENCE IF NOT EXISTS public.<secuencia> START WITH 1;` en [`SQL/Table/Alter_New_Columns.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Table/Alter_New_Columns.sql).
+
 ---
 
 ## 2. Reglas de API y Frontend (Next.js)

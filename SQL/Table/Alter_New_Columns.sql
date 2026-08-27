@@ -1,6 +1,8 @@
 DO $$
 BEGIN
 
+    CREATE SEQUENCE IF NOT EXISTS public.seq_quotation_consecutivo START WITH 1;
+
     IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Resolution') THEN
         CREATE TABLE public."Resolution" (
             "id" integer DEFAULT nextval('"Resolution_id_seq"'::regclass) NOT NULL,

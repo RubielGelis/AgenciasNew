@@ -1,11 +1,10 @@
-CREATE OR REPLACE PROCEDURE public.spCotizacionCrear(
+CREATE OR REPLACE PROCEDURE public."spCotizacionCrear"(
     p_data JSONB,
     p_acting_user_id INT,
     INOUT p_quotation_id INT,
     INOUT p_mensaje_resultado TEXT
 )
-LANGUAGE plpgsql
-AS $$
+AS $BODY$
 DECLARE
     v_internal_number TEXT;
     v_quotation_id INT;
@@ -179,11 +178,7 @@ BEGIN
     -- Obtener decimales de la moneda
     v_decimals := public.fn_obtener_decimales_moneda(p_data->>'currency');
 
-    IF NULLIF(p_data->>'consecutivo', '') IS NOT NULL THEN
-        v_internal_number := p_data->>'consecutivo';
-    ELSE
-        v_internal_number := nextval('public.seq_quotation_consecutivo')::text;
-    END IF;
+    v_internal_number := NULLIF(p_data->>'consecutivo', '');
 
     INSERT INTO public."Quotation" (
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
@@ -193,7 +188,7 @@ BEGIN
         "destination", "startDate", "endDate", "passenger", "paxAdults", "paxChildren",
         "reservationCode", "copyFieldsToProducts", "manualDescription"
     ) VALUES (
-        v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
+        COALESCE(v_internal_number, 'TEMP_' || gen_random_uuid()::text), CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
         NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
         0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, ROUND(NULLIF(p_data->>'chargesAndTaxes', '')::numeric, v_decimals)::double precision,
         ROUND(NULLIF(p_data->>'totalAmount', '')::numeric, v_decimals)::double precision, p_acting_user_id, 'NUEVO', 'Creación de cotización', CURRENT_TIMESTAMP,
@@ -207,6 +202,13 @@ BEGIN
         COALESCE(NULLIF(p_data->>'copyFieldsToProducts', '')::BOOLEAN, TRUE),
         p_data->>'manualDescription'
     ) RETURNING id INTO v_quotation_id;
+
+    IF v_internal_number IS NULL OR v_internal_number = '' THEN
+        v_internal_number := v_quotation_id::text;
+        UPDATE public."Quotation"
+        SET "internalNumber" = v_internal_number
+        WHERE id = v_quotation_id;
+    END IF;
 
     -- Insertar historial de estado inicial
     INSERT INTO public."QuotationStateHistory" ("quotationId", "state", "description", "createdAt", "userId")
@@ -396,4 +398,5 @@ EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
-$$;
+$BODY$
+LANGUAGE plpgsql;

@@ -19,6 +19,9 @@ Este documento contiene las directrices, estándares y reglas del proyecto para 
 - **Tratamiento de XML**: 
   - Al generar el XML de exportación en `spExportQuotation`, los nombres de las etiquetas deben ser coherentes (minúsculas).
   - Al agregar tablas secundarias como detalles, verificar la FK correcta usando el ID de referencia del producto/servicio (`orig_id_ref`) y no el ID de la cotización.
+- **Garantía de Despliegues en Masa (0 Errores en Bases de Datos Actualizadas)**:
+  - **Limpieza Dinámica Universal de Sobrecargas de SPs/Funciones**: Todo procedimiento almacenado o función en `Actualizador.sql` y en scripts `.sql` DEBE incluir un bloque `DO $$` que consulte `pg_proc` y elimine previamente cualquier firma/sobrecarga anterior del procedimiento o función (`DROP PROCEDURE/FUNCTION IF EXISTS ... CASCADE`). Esto evita de forma estricta que bases de datos de clientes actualizadas fallen con el error 42883 (`procedure does not exist`) al haber tenido firmas con distinto número o tipo de parámetros.
+  - **Siembra Autodetectada de Secuencias (`CREATE SEQUENCE IF NOT EXISTS`)**: Ningún procedimiento almacenado puede depender de secuencias no declaradas. `deploy/gen_schema_json.js` auto-escaneará todas las llamadas a `nextval(...)` en la carpeta `SQL/SP` e inyectará automáticamente `CREATE SEQUENCE IF NOT EXISTS public.nombre_secuencia START WITH 1;` en `Alter_New_Columns.sql` de manera transparente.
 - **Regla General de Integridad Relacional, Columnas DDL y Prisma**:
   - **Prevención de Error 42703 (no existe la columna)**: Antes de escribir cualquier SP o consulta SQL que referencie una columna de tabla (ejemplo: `ip."ticketCode"`), **SE DEBE VERIFICAR Y DECLARAR LA COLUMNA PRIMERO**:
     1. En `SQL/Table/Alter_New_Columns.sql`: Tanto en `CREATE TABLE` como en el bloque de alteración `ALTER TABLE public."Tabla" ADD COLUMN IF NOT EXISTS "columna" tipo;`.

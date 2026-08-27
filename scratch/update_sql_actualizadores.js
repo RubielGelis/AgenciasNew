@@ -11,7 +11,8 @@ function syncAllSqlToActualizadores() {
   const targetFiles = [
     'SQL/Actualizador.SQL',
     'SQL/Actualizador/Actualizador.sql',
-    'actualizado.sql'
+    'actualizado.sql',
+    'RELEASE_KOREX/SQL/Actualizador.SQL'
   ];
 
   // Collect all DDLs from SQL/Function, SQL/SP, SQL/Procedure, SQL/Table
@@ -46,15 +47,25 @@ function syncAllSqlToActualizadores() {
       if (!nameMatch) continue;
 
       const objectName = nameMatch[1];
-      // Regex pattern to replace existing CREATE OR REPLACE ... objectName in Actualizador.sql
-      const objRegex = new RegExp(`CREATE\\s+(?:OR\\s+REPLACE\\s+)?(?:FUNCTION|PROCEDURE)\\s+(?:public\\.)?${objectName}\\s*\\([\\s\\S]*?\\);`, 'gi');
+      const isProc = /CREATE\s+(?:OR\s+REPLACE\s+)?PROCEDURE/i.test(item.sql);
+
+      // Dynamic cleanup block to remove any older overloaded signatures from existing client databases
+      const dropBlock = `DO $$\nDECLARE r RECORD;\nBEGIN\n    FOR r IN SELECT oid::regprocedure AS proc_name FROM pg_proc WHERE proname ILIKE '${objectName}' LOOP\n        BEGIN\n            EXECUTE 'DROP ${isProc ? 'PROCEDURE' : 'FUNCTION'} IF EXISTS ' || r.proc_name || ' CASCADE';\n        EXCEPTION WHEN OTHERS THEN NULL;\n        END;\n    END LOOP;\nEND $$;\n\n`;
+
+      let fullBlock = item.sql.trim();
+      if (!fullBlock.toLowerCase().includes(`proname ilike '${objectName.toLowerCase()}'`)) {
+        fullBlock = dropBlock + fullBlock;
+      }
+
+      // Regex pattern to replace existing block in Actualizador.sql
+      const objRegex = new RegExp(`(?:DO\\s*\\$\\$[\\s\\S]*?END\\s*\\$\\$;\\s*)?CREATE\\s+(?:OR\\s+REPLACE\\s+)?(?:FUNCTION|PROCEDURE)\\s+(?:public\\.)?${objectName}\\s*\\([\\s\\S]*?\\);`, 'gi');
 
       if (content.match(objRegex)) {
-        content = content.replace(objRegex, () => item.sql + ';');
+        content = content.replace(objRegex, () => fullBlock + ';');
         replacedCount++;
       } else {
         // If not found in Actualizador.sql, append it at the end
-        content += `\n\n-- Inyectado automáticamente: ${item.file}\n` + item.sql + `;`;
+        content += `\n\n-- Inyectado automáticamente: ${item.file}\n` + fullBlock + `;`;
         appendedCount++;
       }
     }

@@ -139,6 +139,43 @@ async function validateAndPrepareSchema() {
     console.log("  [OK] Todas las tablas cuentan con secuencias autoincrementales ('nextval') en sus llaves primarias.");
   }
 
+  // 2.5.5 Verificación y Siembra Automática de Secuencias Personalizadas (nextval en SPs)
+  console.log("\n[PASO 2.5.5/5] Auditando secuencias personalizadas referenciadas en Stored Procedures...");
+  const alterColumnsPath = path.join(__dirname, '..', 'SQL', 'Table', 'Alter_New_Columns.sql');
+  let alterSqlContent = fs.readFileSync(alterColumnsPath, 'utf8');
+  let customSeqInjected = 0;
+
+  // Scan all SP files for nextval('public.seq_name') or nextval('seq_name')
+  const spDir = path.join(__dirname, '..', 'SQL', 'SP');
+  if (fs.existsSync(spDir)) {
+    const spFiles = fs.readdirSync(spDir).filter(f => f.endsWith('.sql'));
+    for (const f of spFiles) {
+      const content = fs.readFileSync(path.join(spDir, f), 'utf8');
+      const seqMatches = content.matchAll(/nextval\(['"](?:public\.)?([A-Za-z0-9_]+)['"]\)/gi);
+      for (const match of seqMatches) {
+        const seqName = match[1];
+        // Ensure sequence exists in database
+        try {
+          await client.query(`CREATE SEQUENCE IF NOT EXISTS public."${seqName}" START WITH 1;`);
+          await client.query(`CREATE SEQUENCE IF NOT EXISTS public.${seqName} START WITH 1;`);
+        } catch (e) {}
+
+        if (!alterSqlContent.includes(seqName)) {
+          console.log(`  [AUTO-FIX] Inyectando CREATE SEQUENCE IF NOT EXISTS public.${seqName} en Alter_New_Columns.sql...`);
+          alterSqlContent = `CREATE SEQUENCE IF NOT EXISTS public.${seqName} START WITH 1;\n` + alterSqlContent;
+          customSeqInjected++;
+        }
+      }
+    }
+  }
+
+  if (customSeqInjected > 0) {
+    fs.writeFileSync(alterColumnsPath, alterSqlContent, 'utf8');
+    console.log(`  [OK] Se inyectaron ${customSeqInjected} secuencia(s) en Alter_New_Columns.sql.`);
+  } else {
+    console.log("  [OK] Todas las secuencias personalizadas de Stored Procedures sembradas y verificadas.");
+  }
+
   // 2.6 Verificación de Restricciones UNIQUE para operaciones de Upsert
   console.log("\n[PASO 2.6/5] Verificando restricciones UNIQUE para operaciones de Upsert...");
   const uniqueAudits = [

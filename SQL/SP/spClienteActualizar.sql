@@ -1,3 +1,16 @@
+DO $$
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN 
+        SELECT oid::regprocedure AS proc_name 
+        FROM pg_proc 
+        WHERE proname ILIKE 'spClienteActualizar'
+    LOOP
+        EXECUTE 'DROP PROCEDURE ' || r.proc_name;
+    END LOOP;
+END $$;
+
 CREATE OR REPLACE PROCEDURE public.spClienteActualizar(
     p_id INT,
     p_name TEXT,
@@ -9,8 +22,7 @@ CREATE OR REPLACE PROCEDURE public.spClienteActualizar(
     p_seller_id INT DEFAULT NULL,
     INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
-LANGUAGE plpgsql
-AS $$
+AS $BODY$
 BEGIN
     IF EXISTS (SELECT 1 FROM public."Client" WHERE document = p_document AND id <> p_id) THEN
         p_mensaje_resultado := 'ERROR: El documento ya está registrado por otro cliente.';
@@ -31,4 +43,5 @@ EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
-$$;
+$BODY$
+LANGUAGE plpgsql;
