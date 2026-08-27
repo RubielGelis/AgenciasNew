@@ -22,11 +22,17 @@ DECLARE
     v_implant VARCHAR(25) := '';
     v_date TIMESTAMP := CURRENT_TIMESTAMP;
     v_seller VARCHAR(25) := '';
+    v_client VARCHAR(50) := '';
     v_currency VARCHAR(10) := 'COP';
     v_exchangeRate DOUBLE PRECISION := 1.0;
     v_aerolinea_vende VARCHAR(10) := 'AA';
     v_provider_matched VARCHAR(50) := NULL;
     v_tiqueteador VARCHAR(20) := '';
+    
+    -- Variables de Sistema Adicionales Extraídas
+    v_var_codes TEXT[] := ARRAY[]::TEXT[];
+    v_var_names TEXT[] := ARRAY[]::TEXT[];
+    v_var_values TEXT[] := ARRAY[]::TEXT[];
     
     -- Lineas
     v_lines TEXT[];
@@ -342,10 +348,83 @@ BEGIN
             END;
         END IF;
 
-        -- Agente M828
-        IF v_line LIKE 'M828AGENT*%' THEN
-            v_tiqueteador := TRIM(SUBSTRING(v_line FROM 9 FOR 10));
-            v_seller := v_tiqueteador;
+        -- Extracción de Parámetros y Variables M8 / RM
+        IF v_line LIKE 'M8%' OR v_line LIKE 'RM%' THEN
+            DECLARE
+                v_param RECORD;
+                v_pref TEXT;
+                v_pos INT;
+                v_val TEXT;
+            BEGIN
+                -- M828AGENT*
+                IF v_line LIKE 'M828AGENT*%' THEN
+                    v_tiqueteador := TRIM(SUBSTRING(v_line FROM 9 FOR 10));
+                    v_seller := COALESCE(NULLIF(v_seller, ''), v_tiqueteador);
+                END IF;
+
+                -- Extracción por registros de InterfaceExtractParam
+                FOR v_param IN 
+                    SELECT p."fieldCode", p."fieldName", p.prefix, p.delimiter 
+                    FROM public."InterfaceExtractParam" p
+                    WHERE p."isActive" = true
+                LOOP
+                    v_pref := TRIM(COALESCE(v_param.prefix, ''));
+                    IF v_pref <> '' AND POSITION(UPPER(v_pref) IN UPPER(v_line)) > 0 THEN
+                        v_pos := POSITION(UPPER(v_pref) IN UPPER(v_line)) + length(v_pref);
+                        v_val := TRIM(SUBSTRING(v_line FROM v_pos));
+
+                        IF v_param."fieldCode" IN ('Client', 'CLI', 'Cliente') THEN
+                            v_client := v_val;
+                        ELSIF v_param."fieldCode" IN ('Branch', 'SUC', 'Sucursal') THEN
+                            v_blanch := v_val;
+                        ELSIF v_param."fieldCode" IN ('Implant', 'IMP', 'Implante') THEN
+                            v_implant := v_val;
+                        ELSIF v_param."fieldCode" IN ('TicketPrinter', 'ASE', 'Tiqueteador') THEN
+                            v_tiqueteador := v_val;
+                        ELSIF v_param."fieldCode" IN ('Seller', 'VEN', 'Vendedor') THEN
+                            v_seller := v_val;
+                        ELSE
+                            -- Guardar Variable de Sistema Adicional (ej. 001, 002)
+                            IF NOT (v_param."fieldCode" = ANY(v_var_codes)) THEN
+                                v_var_codes := array_append(v_var_codes, v_param."fieldCode");
+                                v_var_names := array_append(v_var_names, v_param."fieldName");
+                                v_var_values := array_append(v_var_values, v_val);
+                            END IF;
+                        END IF;
+                    END IF;
+                END LOOP;
+
+                -- Fallbacks estándar si no hay coincidencia en InterfaceExtractParam
+                IF (v_client IS NULL OR v_client = '') AND POSITION('CLI-' IN v_line) > 0 THEN
+                    v_client := TRIM(SUBSTRING(v_line FROM POSITION('CLI-' IN v_line) + 4));
+                END IF;
+                IF (v_blanch IS NULL OR v_blanch = '001') AND POSITION('SUC-' IN v_line) > 0 THEN
+                    v_blanch := TRIM(SUBSTRING(v_line FROM POSITION('SUC-' IN v_line) + 4));
+                END IF;
+                IF (v_implant IS NULL OR v_implant = '') AND POSITION('IMP-' IN v_line) > 0 THEN
+                    v_implant := TRIM(SUBSTRING(v_line FROM POSITION('IMP-' IN v_line) + 4));
+                END IF;
+                IF (v_tiqueteador IS NULL OR v_tiqueteador = '') AND POSITION('ASE-' IN v_line) > 0 THEN
+                    v_tiqueteador := TRIM(SUBSTRING(v_line FROM POSITION('ASE-' IN v_line) + 4));
+                END IF;
+                IF (v_seller IS NULL OR v_seller = '') AND POSITION('VEN-' IN v_line) > 0 THEN
+                    v_seller := TRIM(SUBSTRING(v_line FROM POSITION('VEN-' IN v_line) + 4));
+                END IF;
+
+                -- Fallback para CC- (001) y FF- (002)
+                IF POSITION('CC-' IN v_line) > 0 AND NOT ('001' = ANY(v_var_codes)) THEN
+                    v_val := TRIM(SUBSTRING(v_line FROM POSITION('CC-' IN v_line) + 3));
+                    v_var_codes := array_append(v_var_codes, '001');
+                    v_var_names := array_append(v_var_names, 'centro de costo');
+                    v_var_values := array_append(v_var_values, v_val);
+                END IF;
+                IF POSITION('FF-' IN v_line) > 0 AND NOT ('002' = ANY(v_var_codes)) THEN
+                    v_val := TRIM(SUBSTRING(v_line FROM POSITION('FF-' IN v_line) + 3));
+                    v_var_codes := array_append(v_var_codes, '002');
+                    v_var_names := array_append(v_var_names, 'Fecha de Facturacion');
+                    v_var_values := array_append(v_var_values, v_val);
+                END IF;
+            END;
         END IF;
 
     END LOOP;
@@ -361,16 +440,20 @@ BEGIN
     IF v_booking_gds_id IS NOT NULL THEN
         UPDATE public."BookingGDS" SET
             "type" = 'RES',
-            "blanch" = v_blanch,
+            "blanch" = COALESCE(v_blanch, '001'),
+            "implant" = COALESCE(v_implant, ''),
+            "client" = COALESCE(v_client, ''),
+            "seller" = COALESCE(v_seller, ''),
+            "tiquetPrinter" = COALESCE(v_tiqueteador, ''),
             "gds" = 1, -- 1 = SABRE
             "date" = CURRENT_TIMESTAMP,
             "currency" = v_currency,
             "exchangeRate" = v_exchangeRate,
-            "seller" = COALESCE(v_seller, ''),
             "booking" = p_Booking,
             "state" = 'NUEVO'
         WHERE id = v_booking_gds_id;
 
+        DELETE FROM public."BookingProductVariableGDS" WHERE "bookingProductId" IN (SELECT id FROM public."BookingProductGDS" WHERE "bookingId" = v_booking_gds_id);
         DELETE FROM public."BookingProductPaymentGDS" WHERE "bookingProductId" IN (SELECT id FROM public."BookingProductGDS" WHERE "bookingId" = v_booking_gds_id);
         DELETE FROM public."BookingProductTaxGDS" WHERE "bookingProductId" IN (SELECT id FROM public."BookingProductGDS" WHERE "bookingId" = v_booking_gds_id);
         DELETE FROM public."BookingProductPassangerGDS" WHERE "bookingProductId" IN (SELECT id FROM public."BookingProductGDS" WHERE "bookingId" = v_booking_gds_id);
@@ -382,8 +465,8 @@ BEGIN
             "currency", "exchangeRate", "tiquetPrinter", "seller", "client", 
             "booking", "typetransaction", "iata", "description", "observation", "state"
         ) VALUES (
-            v_code, 'RES', v_blanch, '', false, 1, CURRENT_TIMESTAMP, -- 1 = SABRE
-            v_currency, v_exchangeRate, '', COALESCE(v_seller, ''), '', 
+            v_code, 'RES', COALESCE(v_blanch, '001'), COALESCE(v_implant, ''), false, 1, CURRENT_TIMESTAMP, -- 1 = SABRE
+            v_currency, v_exchangeRate, COALESCE(v_tiqueteador, ''), COALESCE(v_seller, ''), COALESCE(v_client, ''), 
             p_Booking, '1', '', 'Sabre Interface', '', 'NUEVO'
         ) RETURNING id INTO v_booking_gds_id;
     END IF;
@@ -540,6 +623,17 @@ BEGIN
                 ) VALUES (
                     v_booking_product_gds_id, v_tkt_i::TEXT, v_pax_nombres[v_tkt_i], v_pax_apellidos[v_tkt_i], '', COALESCE(v_tkt_codes[v_tkt_i], ''), '', ''
                 );
+            END IF;
+
+            -- 6. Variables de Sistema Adicionales Extraídas
+            IF array_length(v_var_codes, 1) > 0 THEN
+                FOR v_i IN 1 .. array_length(v_var_codes, 1) LOOP
+                    INSERT INTO public."BookingProductVariableGDS" (
+                        "bookingProductId", "code", "name", "value"
+                    ) VALUES (
+                        v_booking_product_gds_id, v_var_codes[v_i], v_var_names[v_i], v_var_values[v_i]
+                    );
+                END LOOP;
             END IF;
 
         END LOOP;
