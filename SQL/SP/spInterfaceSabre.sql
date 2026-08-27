@@ -405,14 +405,46 @@ BEGIN
                 );
             END IF;
 
-            -- 2. Impuestos detallados desde M2 (o M50/OTR de respaldo)
+            -- 2. Impuestos detallados con Homologación (EquivalencesInterfaces para ChargeAndTax)
             IF array_length(v_m2_tax_codes, 1) > 0 THEN
                 FOR v_i IN 1 .. array_length(v_m2_tax_codes, 1) LOOP
-                    INSERT INTO public."BookingProductTaxGDS" (
-                        "bookingProductId", "code", "name", "type", "ismain", "percentage", "amount"
-                    ) VALUES (
-                        v_booking_product_gds_id, v_m2_tax_codes[v_i], v_m2_tax_codes[v_i], 'tax', false, 0, v_m2_tax_amounts[v_i]
-                    );
+                    DECLARE
+                        v_tax_code_gds TEXT;
+                        v_tax_amt DOUBLE PRECISION;
+                        v_homolog_code TEXT := NULL;
+                        v_homolog_name TEXT := NULL;
+                    BEGIN
+                        v_tax_code_gds := v_m2_tax_codes[v_i];
+                        v_tax_amt := v_m2_tax_amounts[v_i];
+
+                        -- Buscar en EquivalencesInterfaces
+                        SELECT eq.cd_codigo, cat.name
+                        INTO v_homolog_code, v_homolog_name
+                        FROM public."EquivalencesInterfaces" eq
+                        LEFT JOIN public."ChargeAndTax" cat ON cat.code = eq.cd_codigo
+                        WHERE eq.cd_maestro = 'ChargeAndTax'
+                          AND UPPER(TRIM(eq.cd_codigointe)) = UPPER(TRIM(v_tax_code_gds))
+                        LIMIT 1;
+
+                        IF v_homolog_code IS NULL THEN
+                            SELECT code, name
+                            INTO v_homolog_code, v_homolog_name
+                            FROM public."ChargeAndTax"
+                            WHERE UPPER(code) = UPPER(v_tax_code_gds)
+                            LIMIT 1;
+                        END IF;
+
+                        IF v_homolog_code IS NULL THEN
+                            v_homolog_code := v_tax_code_gds;
+                            v_homolog_name := v_tax_code_gds;
+                        END IF;
+
+                        INSERT INTO public."BookingProductTaxGDS" (
+                            "bookingProductId", "code", "name", "type", "ismain", "percentage", "amount"
+                        ) VALUES (
+                            v_booking_product_gds_id, v_homolog_code, COALESCE(v_homolog_name, v_homolog_code), 'tax', false, 0, v_tax_amt
+                        );
+                    END;
                 END LOOP;
             ELSIF v_prod_tax > 0 THEN
                 INSERT INTO public."BookingProductTaxGDS" (
