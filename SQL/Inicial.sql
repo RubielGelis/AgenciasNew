@@ -218,12 +218,12 @@ VALUES
 ON CONFLICT (code) DO NOTHING;
 
 -- 14.6 Tarjetas de Crédito Iniciales
-INSERT INTO public."CreditCard" (code, name, "isActive")
+INSERT INTO public."CreditCard" (code, name, type, "isActive")
 VALUES
-    ('VISA',   'Visa',             true),
-    ('MC',     'MasterCard',       true),
-    ('AMEX',   'American Express', true),
-    ('DINERS', 'Diners Club',      true)
+    ('VISA',   'Visa',             'CREDIT', true),
+    ('MC',     'MasterCard',       'CREDIT', true),
+    ('AMEX',   'American Express', 'CREDIT', true),
+    ('DINERS', 'Diners Club',      'CREDIT', true)
 ON CONFLICT (code) DO NOTHING;
 
 -- DATOS EXTRAIDOS DE SQL SERVER

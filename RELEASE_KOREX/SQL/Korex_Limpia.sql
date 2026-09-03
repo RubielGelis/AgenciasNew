@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict fmXhg5DqTyfn5WsN9J3G4fVc9yO55C0CkYdsjLOAxJoCY0V4KfMtzpTzAjlluAw
+\restrict YGlLHtNYC1HzGZnZleAHuRyulH5uFLMfiKQWtVALxQCPhR3sGVEw94W6MnRnA3k
 
 -- Dumped from database version 18.2
 -- Dumped by pg_dump version 18.2
@@ -16233,439 +16233,6 @@ ALTER TABLE ONLY public."User" ALTER COLUMN id SET DEFAULT nextval('public."User
 -- Data for Name: Airports; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Airports" VALUES (1, 'BOG', 'Aeropuerto Internacional El Dorado', 1, true);
-INSERT INTO public."Airports" VALUES (2, 'MDE', 'Aeropuerto Internacional Jose Maria Cordova', 2, true);
-INSERT INTO public."Airports" VALUES (3, 'MIA', 'Miami International Airport', 3, true);
-INSERT INTO public."Airports" VALUES (4, 'MAD', 'Adolfo Suarez Madrid-Barajas', 4, true);
-INSERT INTO public."Airports" VALUES (5, 'AAP', 'Andrau Airpark', 5, true);
-INSERT INTO public."Airports" VALUES (6, 'ABJ', 'Felix Houphouet Boigny Arpt', 53, true);
-INSERT INTO public."Airports" VALUES (7, 'ACC', 'Kotoka Airport', 79, true);
-INSERT INTO public."Airports" VALUES (8, 'ADD', 'Bole Airport', 98, true);
-INSERT INTO public."Airports" VALUES (9, 'ADE', 'Yemen Intl Arpt', 99, true);
-INSERT INTO public."Airports" VALUES (10, 'AEP', 'Jorge Newbery', 107, true);
-INSERT INTO public."Airports" VALUES (11, 'AGB', 'Mehlhausen', 118, true);
-INSERT INTO public."Airports" VALUES (12, 'AGP', 'Malaga Arpt', 81, true);
-INSERT INTO public."Airports" VALUES (13, 'AJU', 'Santa Maria Arpt', 144, true);
-INSERT INTO public."Airports" VALUES (14, 'AKL', 'Auckland Intl Arpt', 153, true);
-INSERT INTO public."Airports" VALUES (15, 'ALC', 'Alicante Arpt', 80, true);
-INSERT INTO public."Airports" VALUES (16, 'ALP', 'Nejrab Arpt', 159, true);
-INSERT INTO public."Airports" VALUES (17, 'AMM', 'Queen Alia Intl Arpt', 161, true);
-INSERT INTO public."Airports" VALUES (18, 'AMS', 'Schiphol Arpt', 162, true);
-INSERT INTO public."Airports" VALUES (19, 'ANC', 'Anchorage Intl Arpt', 6, true);
-INSERT INTO public."Airports" VALUES (20, 'ANF', 'Cerro Moreno Arpt', 163, true);
-INSERT INTO public."Airports" VALUES (21, 'ANK', 'Etimesgut Arpt', 97, true);
-INSERT INTO public."Airports" VALUES (22, 'ANR', 'Deurne Airport', 170, true);
-INSERT INTO public."Airports" VALUES (23, 'AOH', 'Allen County Arpt', 7, true);
-INSERT INTO public."Airports" VALUES (24, 'APA', 'Centennial Airport', 8, true);
-INSERT INTO public."Airports" VALUES (25, 'APW', 'Apia Airport', 174, true);
-INSERT INTO public."Airports" VALUES (26, 'AQP', 'Rodriguez Ballon Arpt', 175, true);
-INSERT INTO public."Airports" VALUES (27, 'ARI', 'Chacalluta Arpt', 164, true);
-INSERT INTO public."Airports" VALUES (28, 'ASM', 'Asmara Intl Arpt', 180, true);
-INSERT INTO public."Airports" VALUES (29, 'ASU', 'Salvio Pettirosse Arpt', 181, true);
-INSERT INTO public."Airports" VALUES (30, 'ATL', 'Hartsfield Intl Arpt', 9, true);
-INSERT INTO public."Airports" VALUES (31, 'AUA', 'Reina Beatrix Arpt', 184, true);
-INSERT INTO public."Airports" VALUES (32, 'AUH', 'Dhabi Intl Arpt', 185, true);
-INSERT INTO public."Airports" VALUES (33, 'AUO', 'Auburn Opelika', 10, true);
-INSERT INTO public."Airports" VALUES (34, 'AVI', 'Maximo Gomez Arpt', 192, true);
-INSERT INTO public."Airports" VALUES (35, 'AYT', 'Antalya Airport', 96, true);
-INSERT INTO public."Airports" VALUES (36, 'BAH', 'Muharraq Arpt', 194, true);
-INSERT INTO public."Airports" VALUES (37, 'BCN', 'Barcelona Arpt', 82, true);
-INSERT INTO public."Airports" VALUES (38, 'BDA', 'Bermuda International', 197, true);
-INSERT INTO public."Airports" VALUES (39, 'BDL', 'Bradley Intl Arpt', 11, true);
-INSERT INTO public."Airports" VALUES (40, 'BEL', 'Val De Cans Arpt', 143, true);
-INSERT INTO public."Airports" VALUES (41, 'BER', 'Berlin Airports', 73, true);
-INSERT INTO public."Airports" VALUES (42, 'BEY', 'Beirut Intl Arpt', 198, true);
-INSERT INTO public."Airports" VALUES (43, 'BFI', 'Seattle Boeing Field', 12, true);
-INSERT INTO public."Airports" VALUES (44, 'BFS', 'Belfast Intl Arpt', 65, true);
-INSERT INTO public."Airports" VALUES (45, 'BGF', 'Bangui Airport', 201, true);
-INSERT INTO public."Airports" VALUES (46, 'BGI', 'Grantley Adams Intl Arpt', 202, true);
-INSERT INTO public."Airports" VALUES (47, 'BGO', 'Flesland Airport', 111, true);
-INSERT INTO public."Airports" VALUES (48, 'BGW', 'Al Muthana Arpt', 203, true);
-INSERT INTO public."Airports" VALUES (49, 'BHD', 'Belfast City Arpt', 65, true);
-INSERT INTO public."Airports" VALUES (50, 'BHI', 'Commandante Airport', 106, true);
-INSERT INTO public."Airports" VALUES (51, 'BIO', 'Sondica Arpt', 83, true);
-INSERT INTO public."Airports" VALUES (52, 'BJL', 'Yundum Intl Arpt', 209, true);
-INSERT INTO public."Airports" VALUES (53, 'BJM', 'Bujumbura Intl Arpt', 210, true);
-INSERT INTO public."Airports" VALUES (54, 'BJS', 'Beijing', 206, true);
-INSERT INTO public."Airports" VALUES (55, 'BKK', 'Bangkok Intl Arpt', 211, true);
-INSERT INTO public."Airports" VALUES (56, 'BKL', 'Burke Lakefront Arpt', 13, true);
-INSERT INTO public."Airports" VALUES (57, 'BKO', 'Senou Airport', 213, true);
-INSERT INTO public."Airports" VALUES (58, 'BLA', 'Gen J A Anzoategui Arpt', 82, true);
-INSERT INTO public."Airports" VALUES (59, 'BLZ', 'Chileka Airport', 218, true);
-INSERT INTO public."Airports" VALUES (60, 'BNA', 'Nashville Metro Arpt', 14, true);
-INSERT INTO public."Airports" VALUES (61, 'BOD', 'Merignac Arpt', 123, true);
-INSERT INTO public."Airports" VALUES (62, 'BON', 'Flamingo Field', 219, true);
-INSERT INTO public."Airports" VALUES (63, 'BOS', 'Logan Intl Arpt', 15, true);
-INSERT INTO public."Airports" VALUES (64, 'BRI', 'Bari Airport', 132, true);
-INSERT INTO public."Airports" VALUES (65, 'BSB', 'Brasilia Intl Arpt', 141, true);
-INSERT INTO public."Airports" VALUES (66, 'BSR', 'Basra Intl Arpt', 204, true);
-INSERT INTO public."Airports" VALUES (67, 'BTS', 'Ivanka Arpt', 223, true);
-INSERT INTO public."Airports" VALUES (68, 'BUD', 'Ferihegy Arpt', 224, true);
-INSERT INTO public."Airports" VALUES (69, 'BUE', 'Buenos Aires Airports', 107, true);
-INSERT INTO public."Airports" VALUES (70, 'BUF', 'Greater Buffalo Intl Arpt', 16, true);
-INSERT INTO public."Airports" VALUES (71, 'BUQ', 'Bulawayo Arpt', 225, true);
-INSERT INTO public."Airports" VALUES (72, 'BWI', 'Baltimore Washington Intl Arpt', 17, true);
-INSERT INTO public."Airports" VALUES (73, 'BZC', 'Buzios Arpt', 142, true);
-INSERT INTO public."Airports" VALUES (74, 'BZV', 'Maya Maya Arpt', 227, true);
-INSERT INTO public."Airports" VALUES (75, 'CAI', 'Cairo Intl Arpt', 160, true);
-INSERT INTO public."Airports" VALUES (76, 'CAN', 'Baiyun Airport', 205, true);
-INSERT INTO public."Airports" VALUES (77, 'CAS', 'Anfa Airport', 113, true);
-INSERT INTO public."Airports" VALUES (78, 'CAY', 'Rochambeau Airport', 230, true);
-INSERT INTO public."Airports" VALUES (79, 'CBB', 'J Wilsterman Arpt', 228, true);
-INSERT INTO public."Airports" VALUES (80, 'CCS', 'Simon Bolivar Arpt', 214, true);
-INSERT INTO public."Airports" VALUES (81, 'CDG', 'Charles De Gaulle Intl Arpt', 122, true);
-INSERT INTO public."Airports" VALUES (82, 'CGB', 'Marechal Rondon Arpt', 147, true);
-INSERT INTO public."Airports" VALUES (83, 'CGF', 'Cuyahoga County Airport', 13, true);
-INSERT INTO public."Airports" VALUES (84, 'CGK', 'Soekarno Hatta Intl', 131, true);
-INSERT INTO public."Airports" VALUES (85, 'CGX', 'Meigs Field', 18, true);
-INSERT INTO public."Airports" VALUES (86, 'CHC', 'Christchurch Intl Arpt', 152, true);
-INSERT INTO public."Airports" VALUES (87, 'CHI', 'Chicago Airports', 18, true);
-INSERT INTO public."Airports" VALUES (88, 'CHS', 'Charleston Intl Arpt', 19, true);
-INSERT INTO public."Airports" VALUES (89, 'CKY', 'Conakry Airport', 234, true);
-INSERT INTO public."Airports" VALUES (90, 'CLE', 'Hopkins Intl Arpt', 13, true);
-INSERT INTO public."Airports" VALUES (91, 'CLU', 'Columbus Municipal Arpt', 10, true);
-INSERT INTO public."Airports" VALUES (92, 'CMB', 'Katunayake Arpt', 235, true);
-INSERT INTO public."Airports" VALUES (93, 'CMH', 'Port Columbus Intl Arpt', 10, true);
-INSERT INTO public."Airports" VALUES (94, 'CMN', 'Mohamed V Arpt', 113, true);
-INSERT INTO public."Airports" VALUES (95, 'CNF', 'Tancredo Neves Intl Arpt.', 145, true);
-INSERT INTO public."Airports" VALUES (96, 'CNS', 'Cairns Airport', 63, true);
-INSERT INTO public."Airports" VALUES (97, 'COO', 'Cotonou Airport', 236, true);
-INSERT INTO public."Airports" VALUES (98, 'CPT', 'Cape Town International', 158, true);
-INSERT INTO public."Airports" VALUES (99, 'CRW', 'Yeager Arpt', 19, true);
-INSERT INTO public."Airports" VALUES (100, 'CSG', 'Columbus Metro Ft Benning Arpt', 10, true);
-INSERT INTO public."Airports" VALUES (101, 'CUN', 'Cancun Aeropuerto Internacional', 77, true);
-INSERT INTO public."Airports" VALUES (102, 'CUS', 'Columbus Municipal', 10, true);
-INSERT INTO public."Airports" VALUES (103, 'CWB', 'Afonso Pena Arpt', 146, true);
-INSERT INTO public."Airports" VALUES (104, 'CXH', 'Coal Harbor Sea Plane Arpt', 246, true);
-INSERT INTO public."Airports" VALUES (105, 'CYR', 'Colonia Arpt', 247, true);
-INSERT INTO public."Airports" VALUES (106, 'CZM', 'Aeropuerto Intl De Cozumel', 78, true);
-INSERT INTO public."Airports" VALUES (107, 'DAC', 'Zia Intl Airport', 233, true);
-INSERT INTO public."Airports" VALUES (108, 'DAL', 'Love Field', 20, true);
-INSERT INTO public."Airports" VALUES (109, 'DAR', 'Es Salaam Intl', 250, true);
-INSERT INTO public."Airports" VALUES (110, 'DAY', 'Dayton International Airport', 21, true);
-INSERT INTO public."Airports" VALUES (111, 'DBN', 'Dublin Municipal Arpt', 22, true);
-INSERT INTO public."Airports" VALUES (112, 'DEL', 'Delhi Indira Gandhi Intl', 128, true);
-INSERT INTO public."Airports" VALUES (113, 'DEN', 'Denver Intl Arpt', 8, true);
-INSERT INTO public."Airports" VALUES (114, 'DET', 'Detroit City Apt', 23, true);
-INSERT INTO public."Airports" VALUES (115, 'DFW', 'Dallas Ft Worth Intl', 20, true);
-INSERT INTO public."Airports" VALUES (116, 'DHA', 'Dhahran Intl', 54, true);
-INSERT INTO public."Airports" VALUES (117, 'DKR', 'Yoff Airport', 252, true);
-INSERT INTO public."Airports" VALUES (118, 'DLA', 'Douala Arpt', 253, true);
-INSERT INTO public."Airports" VALUES (119, 'DLC', 'Dalian Airport', 207, true);
-INSERT INTO public."Airports" VALUES (120, 'DOH', 'Doha Airport', 255, true);
-INSERT INTO public."Airports" VALUES (121, 'DPS', 'Ngurah Rai Arpt', 130, true);
-INSERT INTO public."Airports" VALUES (122, 'DTW', 'Detroit Metro Arpt', 23, true);
-INSERT INTO public."Airports" VALUES (123, 'DUB', 'Dublin Arpt', 22, true);
-INSERT INTO public."Airports" VALUES (124, 'DUR', 'Durban International', 157, true);
-INSERT INTO public."Airports" VALUES (125, 'DUS', 'Dusseldorf Arpt', 120, true);
-INSERT INTO public."Airports" VALUES (126, 'DWH', 'David Wayne Hooks Arpt', 5, true);
-INSERT INTO public."Airports" VALUES (127, 'DXB', 'Dubai Intl Arpt', 186, true);
-INSERT INTO public."Airports" VALUES (128, 'EAP', 'Mulhouse/Basel Airports', 220, true);
-INSERT INTO public."Airports" VALUES (129, 'EFD', 'Ellington Field', 5, true);
-INSERT INTO public."Airports" VALUES (130, 'ERS', 'Eros Arpt', 258, true);
-INSERT INTO public."Airports" VALUES (131, 'ESB', 'Esenboga Arpt', 97, true);
-INSERT INTO public."Airports" VALUES (132, 'EWR', 'Newark Intl Arpt', 24, true);
-INSERT INTO public."Airports" VALUES (133, 'EZE', 'Ministro Pistarini', 107, true);
-INSERT INTO public."Airports" VALUES (134, 'FAO', 'Faro Airport', 231, true);
-INSERT INTO public."Airports" VALUES (135, 'FBM', 'Luano', 261, true);
-INSERT INTO public."Airports" VALUES (136, 'FBU', 'Fornebu Arpt', 112, true);
-INSERT INTO public."Airports" VALUES (137, 'FIH', 'Kinshasa Arpt', 262, true);
-INSERT INTO public."Airports" VALUES (138, 'FNA', 'Lungi Intl Arpt', 263, true);
-INSERT INTO public."Airports" VALUES (139, 'FOR', 'Pinto Martines Arpt', 150, true);
-INSERT INTO public."Airports" VALUES (140, 'FPO', 'Freeport Intl Arpt', 182, true);
-INSERT INTO public."Airports" VALUES (141, 'FRA', 'Frankfurt Intl', 121, true);
-INSERT INTO public."Airports" VALUES (142, 'FTY', 'Fulton Cty Arpt', 9, true);
-INSERT INTO public."Airports" VALUES (143, 'FUK', 'Itazuke Arpt', 177, true);
-INSERT INTO public."Airports" VALUES (144, 'GBE', 'Gaborone Arpt', 195, true);
-INSERT INTO public."Airports" VALUES (145, 'GDL', 'Miguel Hidalgo Arpt', 76, true);
-INSERT INTO public."Airports" VALUES (146, 'GED', 'Sussex County Arpt', 25, true);
-INSERT INTO public."Airports" VALUES (147, 'GEN', 'Gardermoen Arpt', 112, true);
-INSERT INTO public."Airports" VALUES (148, 'GEO', 'Timehri Airport', 25, true);
-INSERT INTO public."Airports" VALUES (149, 'GGW', 'International Glasgow', 26, true);
-INSERT INTO public."Airports" VALUES (150, 'GIB', 'North Front Arpt', 264, true);
-INSERT INTO public."Airports" VALUES (151, 'GIG', 'Rio Internacional', 151, true);
-INSERT INTO public."Airports" VALUES (152, 'GLA', 'Glasgow Arpt', 26, true);
-INSERT INTO public."Airports" VALUES (153, 'GRX', 'Granada Arpt', 84, true);
-INSERT INTO public."Airports" VALUES (154, 'GRZ', 'Thalerhof Arpt', 265, true);
-INSERT INTO public."Airports" VALUES (155, 'GTR', 'Golden Arpt', 10, true);
-INSERT INTO public."Airports" VALUES (156, 'GYE', 'Simon Bolivar Airport', 237, true);
-INSERT INTO public."Airports" VALUES (157, 'GYM', 'Gen Jose M Yanez Arpt', 75, true);
-INSERT INTO public."Airports" VALUES (158, 'GYN', 'Santa Genoveva', 149, true);
-INSERT INTO public."Airports" VALUES (159, 'HBA', 'Hobart Arpt', 64, true);
-INSERT INTO public."Airports" VALUES (160, 'HEL', 'Helsinki Arpt', 273, true);
-INSERT INTO public."Airports" VALUES (161, 'HFD', 'Brainard Arpt', 11, true);
-INSERT INTO public."Airports" VALUES (162, 'HKG', 'Hong Kong Intl', 274, true);
-INSERT INTO public."Airports" VALUES (163, 'HKT', 'Phuket Intl Airport', 212, true);
-INSERT INTO public."Airports" VALUES (164, 'HMA', 'Malmo City Hvc Arpt', 127, true);
-INSERT INTO public."Airports" VALUES (165, 'HNL', 'Honolulu Intl', 27, true);
-INSERT INTO public."Airports" VALUES (166, 'HOG', 'Frank Pias Arpt', 191, true);
-INSERT INTO public."Airports" VALUES (167, 'HOU', 'Houston Hobby Arpt', 5, true);
-INSERT INTO public."Airports" VALUES (168, 'HRE', 'Harare Arpt', 226, true);
-INSERT INTO public."Airports" VALUES (169, 'IAH', 'Houston Intl', 5, true);
-INSERT INTO public."Airports" VALUES (170, 'IBZ', 'Ibiza Airport', 85, true);
-INSERT INTO public."Airports" VALUES (171, 'IEV', 'Zhulhany Arpt', 275, true);
-INSERT INTO public."Airports" VALUES (172, 'IOS', 'Eduardo Gomes Airport', 148, true);
-INSERT INTO public."Airports" VALUES (173, 'IQQ', 'Cavancha Chucumata Arpt', 165, true);
-INSERT INTO public."Airports" VALUES (174, 'ISB', 'Islamabad Intl', 272, true);
-INSERT INTO public."Airports" VALUES (175, 'ITM', 'Itami Arpt', 176, true);
-INSERT INTO public."Airports" VALUES (176, 'IWS', 'West Houston', 5, true);
-INSERT INTO public."Airports" VALUES (177, 'JAJ', 'Perimeter Hlpt', 9, true);
-INSERT INTO public."Airports" VALUES (178, 'JAO', 'Beaver Ruin Helpt', 9, true);
-INSERT INTO public."Airports" VALUES (179, 'JBP', 'Commerce Business Plaza Heliport', 28, true);
-INSERT INTO public."Airports" VALUES (180, 'JCC', 'China Basin Hlpt', 29, true);
-INSERT INTO public."Airports" VALUES (181, 'JDP', 'Issy Les Moulineaux Arpt', 122, true);
-INSERT INTO public."Airports" VALUES (182, 'JED', 'Jeddah Intl', 56, true);
-INSERT INTO public."Airports" VALUES (183, 'JFK', 'John F Kennedy Intl', 30, true);
-INSERT INTO public."Airports" VALUES (184, 'JKT', 'Kemayoran Arpt', 131, true);
-INSERT INTO public."Airports" VALUES (185, 'JPA', 'Castro Pinto Arpt', 138, true);
-INSERT INTO public."Airports" VALUES (186, 'JRE', 'East 60th St Hlpt', 30, true);
-INSERT INTO public."Airports" VALUES (187, 'JRS', 'Atarot Airport', 260, true);
-INSERT INTO public."Airports" VALUES (188, 'JTO', 'Thousand Oaks Hlpt', 28, true);
-INSERT INTO public."Airports" VALUES (189, 'KAN', 'Aminu Kano Intl Arpt', 57, true);
-INSERT INTO public."Airports" VALUES (190, 'KBP', 'Borispol Arpt', 275, true);
-INSERT INTO public."Airports" VALUES (191, 'KGL', 'Kayibanda Arpt', 276, true);
-INSERT INTO public."Airports" VALUES (192, 'KHH', 'Kaohsiung Intl', 269, true);
-INSERT INTO public."Airports" VALUES (193, 'KHI', 'Karachi Arpt', 271, true);
-INSERT INTO public."Airports" VALUES (194, 'KIN', 'Norman Manly Arpt', 277, true);
-INSERT INTO public."Airports" VALUES (195, 'KIX', 'Kansai International Arpt', 176, true);
-INSERT INTO public."Airports" VALUES (196, 'KLU', 'Klagenfurt Arpt', 266, true);
-INSERT INTO public."Airports" VALUES (197, 'KRS', 'Kjevik Airport', 109, true);
-INSERT INTO public."Airports" VALUES (198, 'KRT', 'Civil Arpt', 279, true);
-INSERT INTO public."Airports" VALUES (199, 'KTP', 'Tinson Arpt', 277, true);
-INSERT INTO public."Airports" VALUES (200, 'KUL', 'Subang Kuala Lumpur Intl', 171, true);
-INSERT INTO public."Airports" VALUES (201, 'KWI', 'Kuwait Intl', 280, true);
-INSERT INTO public."Airports" VALUES (202, 'LAD', 'Four De Fevereiro Arpt', 281, true);
-INSERT INTO public."Airports" VALUES (203, 'LAP', 'Aeropuerto Gen Marquez De Leon', 68, true);
-INSERT INTO public."Airports" VALUES (204, 'LAS', 'McCarran Intl', 31, true);
-INSERT INTO public."Airports" VALUES (205, 'LAX', 'Los Angeles Intl', 28, true);
-INSERT INTO public."Airports" VALUES (206, 'LBA', 'Leeds Bradford Arpt', 67, true);
-INSERT INTO public."Airports" VALUES (207, 'LBG', 'Le Bourget Arpt', 122, true);
-INSERT INTO public."Airports" VALUES (208, 'LBH', 'Palm Beach Arpt', 59, true);
-INSERT INTO public."Airports" VALUES (209, 'LBV', 'Libreville Arpt', 282, true);
-INSERT INTO public."Airports" VALUES (210, 'LCA', 'Larnaca Intl', 256, true);
-INSERT INTO public."Airports" VALUES (211, 'LEH', 'Octeville Arpt', 125, true);
-INSERT INTO public."Airports" VALUES (212, 'LEJ', 'Schkeuditz Arpt', 117, true);
-INSERT INTO public."Airports" VALUES (213, 'LFW', 'Lome Airport', 283, true);
-INSERT INTO public."Airports" VALUES (214, 'LGA', 'La Guardia', 30, true);
-INSERT INTO public."Airports" VALUES (215, 'LGB', 'Long Beach Municipal', 32, true);
-INSERT INTO public."Airports" VALUES (216, 'LIL', 'Lesquin Arpt', 126, true);
-INSERT INTO public."Airports" VALUES (217, 'LIM', 'Nlima Intl Jorge Chavez', 7, true);
-INSERT INTO public."Airports" VALUES (218, 'LIN', 'Linate Arpt', 133, true);
-INSERT INTO public."Airports" VALUES (219, 'LJU', 'Brnik Airport', 285, true);
-INSERT INTO public."Airports" VALUES (220, 'LKE', 'Lake Union Seaplane Base', 12, true);
-INSERT INTO public."Airports" VALUES (221, 'LLW', 'Lilongwe Intl Arpt', 217, true);
-INSERT INTO public."Airports" VALUES (222, 'LNZ', 'Hoersching Arpt', 267, true);
-INSERT INTO public."Airports" VALUES (223, 'LOS', 'Murtala Muhammed Arpt', 58, true);
-INSERT INTO public."Airports" VALUES (224, 'LPB', 'El Alto Arpt', 68, true);
-INSERT INTO public."Airports" VALUES (225, 'LSC', 'La Florida', 169, true);
-INSERT INTO public."Airports" VALUES (226, 'LUN', 'Lusaka Airport', 286, true);
-INSERT INTO public."Airports" VALUES (227, 'LUQ', 'San Luis Cty Arpt', 108, true);
-INSERT INTO public."Airports" VALUES (228, 'LVS', 'Las Vegas Arpt', 31, true);
-INSERT INTO public."Airports" VALUES (229, 'LYS', 'Satolas Airport', 124, true);
-INSERT INTO public."Airports" VALUES (230, 'MAA', 'Meenambarkkam Arpt', 129, true);
-INSERT INTO public."Airports" VALUES (232, 'MAH', 'Aerop De Menorca', 95, true);
-INSERT INTO public."Airports" VALUES (233, 'MAR', 'La Chinita Arpt', 216, true);
-INSERT INTO public."Airports" VALUES (234, 'MBJ', 'Sangster Arpt', 278, true);
-INSERT INTO public."Airports" VALUES (235, 'MCO', 'Orlando Intl Arpt', 33, true);
-INSERT INTO public."Airports" VALUES (236, 'MCT', 'Seeb Intl', 288, true);
-INSERT INTO public."Airports" VALUES (237, 'MCZ', 'Palmeres Airport', 139, true);
-INSERT INTO public."Airports" VALUES (238, 'MDW', 'Midway', 18, true);
-INSERT INTO public."Airports" VALUES (239, 'MEB', 'Essendon Arpt', 60, true);
-INSERT INTO public."Airports" VALUES (241, 'MEL', 'Tullamarine Arpt', 60, true);
-INSERT INTO public."Airports" VALUES (242, 'MEM', 'Memphis Intl', 34, true);
-INSERT INTO public."Airports" VALUES (243, 'MGA', 'Augusto C Sandino', 289, true);
-INSERT INTO public."Airports" VALUES (245, 'MID', 'Merida Intl', 69, true);
-INSERT INTO public."Airports" VALUES (246, 'MIL', 'Milan Airports', 133, true);
-INSERT INTO public."Airports" VALUES (247, 'MJV', 'San Javier Airport', 93, true);
-INSERT INTO public."Airports" VALUES (248, 'MKE', 'General Mitchell Fld', 36, true);
-INSERT INTO public."Airports" VALUES (249, 'MLA', 'Luqa Airport', 268, true);
-INSERT INTO public."Airports" VALUES (250, 'MLB', 'Melbourne Regional', 60, true);
-INSERT INTO public."Airports" VALUES (251, 'MLH', 'Euroairport French', 220, true);
-INSERT INTO public."Airports" VALUES (252, 'MLW', 'Sprigg Payne Arpt', 290, true);
-INSERT INTO public."Airports" VALUES (253, 'MMA', 'Malmo Airports', 127, true);
-INSERT INTO public."Airports" VALUES (254, 'MME', 'Teesside Arpt', 66, true);
-INSERT INTO public."Airports" VALUES (255, 'MMX', 'Sturup Arpt', 127, true);
-INSERT INTO public."Airports" VALUES (256, 'MNL', 'Ninoy Aquino Intl', 193, true);
-INSERT INTO public."Airports" VALUES (257, 'MPM', 'Maputo Intl', 173, true);
-INSERT INTO public."Airports" VALUES (258, 'MRD', 'Alberto Carnevalli Arpt', 69, true);
-INSERT INTO public."Airports" VALUES (259, 'MSP', 'Minneapolis St Paul Intl', 37, true);
-INSERT INTO public."Airports" VALUES (260, 'MSY', 'Moisant Intl', 38, true);
-INSERT INTO public."Airports" VALUES (261, 'MTC', 'Selfridge Air Natl Guard', 23, true);
-INSERT INTO public."Airports" VALUES (262, 'MTY', 'Escobedo Arpt', 71, true);
-INSERT INTO public."Airports" VALUES (263, 'MUC', 'Franz Josef Strauss Arpt', 118, true);
-INSERT INTO public."Airports" VALUES (264, 'MVD', 'Carrasco Arpt', 249, true);
-INSERT INTO public."Airports" VALUES (265, 'MXP', 'Malpensa Arpt', 133, true);
-INSERT INTO public."Airports" VALUES (266, 'MYF', 'Montogomery Fld', 39, true);
-INSERT INTO public."Airports" VALUES (267, 'MZO', 'Sierra Maestra Arpt', 190, true);
-INSERT INTO public."Airports" VALUES (268, 'MZT', 'Buelina Arpt', 70, true);
-INSERT INTO public."Airports" VALUES (269, 'NAN', 'Nadi Intl', 199, true);
-INSERT INTO public."Airports" VALUES (270, 'NAS', 'Nassau Intl', 183, true);
-INSERT INTO public."Airports" VALUES (271, 'NAT', 'Augusto Severo Intl Arpt', 140, true);
-INSERT INTO public."Airports" VALUES (272, 'NBO', 'Jomo Kenyatta Intl', 287, true);
-INSERT INTO public."Airports" VALUES (273, 'NEW', 'New Lakefront Arpt', 38, true);
-INSERT INTO public."Airports" VALUES (274, 'NGO', 'Komaki Arpt', 178, true);
-INSERT INTO public."Airports" VALUES (275, 'NIM', 'Niamey Airport', 292, true);
-INSERT INTO public."Airports" VALUES (276, 'NKC', 'Nouakchott Arpt', 291, true);
-INSERT INTO public."Airports" VALUES (277, 'NQA', 'Memphis Naval Air Station', 34, true);
-INSERT INTO public."Airports" VALUES (278, 'NSI', 'Nsimalen Arpt', 254, true);
-INSERT INTO public."Airports" VALUES (279, 'NYC', 'New York City Area Airports', 30, true);
-INSERT INTO public."Airports" VALUES (280, 'OFK', 'Karl Stefan Fld', 40, true);
-INSERT INTO public."Airports" VALUES (281, 'OKA', 'Naha Field', 179, true);
-INSERT INTO public."Airports" VALUES (282, 'OLU', 'Columbus Arpt', 10, true);
-INSERT INTO public."Airports" VALUES (283, 'OPF', 'Opa Locka Arpt', 3, true);
-INSERT INTO public."Airports" VALUES (284, 'ORD', 'OHare Intl Arpt', 18, true);
-INSERT INTO public."Airports" VALUES (285, 'ORL', 'Herndon Arpt', 33, true);
-INSERT INTO public."Airports" VALUES (286, 'ORY', 'Orly Arpt', 122, true);
-INSERT INTO public."Airports" VALUES (287, 'OSA', 'Osaka', 176, true);
-INSERT INTO public."Airports" VALUES (288, 'OSL', 'Oslo Airports', 112, true);
-INSERT INTO public."Airports" VALUES (289, 'OSU', 'Ohio State Univ Arpt', 10, true);
-INSERT INTO public."Airports" VALUES (290, 'PAP', 'Mais Gate Arpt', 229, true);
-INSERT INTO public."Airports" VALUES (291, 'PAR', 'Paris Airports', 122, true);
-INSERT INTO public."Airports" VALUES (292, 'PBM', 'Zanderij Intl Arpt', 293, true);
-INSERT INTO public."Airports" VALUES (293, 'PDK', 'Dekalb Peachtree', 9, true);
-INSERT INTO public."Airports" VALUES (294, 'PDP', 'Cap Curbelo Arpt', 248, true);
-INSERT INTO public."Airports" VALUES (295, 'PDX', 'Portland Intl Arpt', 41, true);
-INSERT INTO public."Airports" VALUES (296, 'PEK', 'Beijing Capital Arpt', 206, true);
-INSERT INTO public."Airports" VALUES (297, 'PEN', 'Penang Intl Arpt', 172, true);
-INSERT INTO public."Airports" VALUES (298, 'PER', 'Perth Arpt', 62, true);
-INSERT INTO public."Airports" VALUES (299, 'PFO', 'Paphos Intl Airport', 257, true);
-INSERT INTO public."Airports" VALUES (300, 'PHT', 'Henry County Arpt', 122, true);
-INSERT INTO public."Airports" VALUES (301, 'PHX', 'Sky Harbor Intl Arpt', 42, true);
-INSERT INTO public."Airports" VALUES (302, 'PID', 'Paradise Island Arpt', 183, true);
-INSERT INTO public."Airports" VALUES (303, 'PIK', 'Prestwick Arpt', 26, true);
-INSERT INTO public."Airports" VALUES (304, 'PLZ', 'Port Elizabeth Airport', 156, true);
-INSERT INTO public."Airports" VALUES (305, 'PMC', 'Tepual Airport', 166, true);
-INSERT INTO public."Airports" VALUES (306, 'PMO', 'Punta Raisi Arpt', 134, true);
-INSERT INTO public."Airports" VALUES (307, 'PMV', 'Delcaribe Gen S Marino Arpt', 215, true);
-INSERT INTO public."Airports" VALUES (308, 'PNA', 'Pamplona Noain Arpt', 92, true);
-INSERT INTO public."Airports" VALUES (309, 'POA', 'Porto Alegre Airport', 135, true);
-INSERT INTO public."Airports" VALUES (310, 'PPT', 'Intl Tahiti Faaa', 188, true);
-INSERT INTO public."Airports" VALUES (311, 'PRX', 'Paris Cox Field Arpt', 122, true);
-INSERT INTO public."Airports" VALUES (312, 'PRY', 'Wonderboom Arpt', 155, true);
-INSERT INTO public."Airports" VALUES (313, 'PSK', 'New River Valley Arpt', 22, true);
-INSERT INTO public."Airports" VALUES (314, 'PTJ', 'Portland Arpt', 41, true);
-INSERT INTO public."Airports" VALUES (315, 'PUQ', 'Presidente Ibanez Arpt', 167, true);
-INSERT INTO public."Airports" VALUES (316, 'PVR', 'Ordaz Arpt', 72, true);
-INSERT INTO public."Airports" VALUES (317, 'PWK', 'Pal Waukee Arpt', 18, true);
-INSERT INTO public."Airports" VALUES (318, 'PWM', 'Portland Intl Jetport', 41, true);
-INSERT INTO public."Airports" VALUES (319, 'QBA', 'San Francisco Bay Area Airpts', 29, true);
-INSERT INTO public."Airports" VALUES (320, 'QDF', 'Dallas Area Airports', 20, true);
-INSERT INTO public."Airports" VALUES (321, 'QGV', 'Neu Isenburg Arpt', 121, true);
-INSERT INTO public."Airports" VALUES (322, 'QHO', 'Houston Airports', 5, true);
-INSERT INTO public."Airports" VALUES (323, 'QKN', 'Kingston Airports', 277, true);
-INSERT INTO public."Airports" VALUES (324, 'QLA', 'Los Angeles Area Airports', 28, true);
-INSERT INTO public."Airports" VALUES (325, 'QMI', 'Miami Area Airports', 3, true);
-INSERT INTO public."Airports" VALUES (326, 'QRV', 'Arras Arpt', 126, true);
-INSERT INTO public."Airports" VALUES (327, 'QSE', 'Seattle Area Airports', 12, true);
-INSERT INTO public."Airports" VALUES (328, 'RAC', 'Horlick Arpt', 36, true);
-INSERT INTO public."Airports" VALUES (329, 'RAK', 'Menara Airport', 114, true);
-INSERT INTO public."Airports" VALUES (330, 'RBA', 'Sale Airport', 115, true);
-INSERT INTO public."Airports" VALUES (331, 'RDU', 'Raleigh Durham Intl Arpt', 43, true);
-INSERT INTO public."Airports" VALUES (332, 'REC', 'Recife Airport', 136, true);
-INSERT INTO public."Airports" VALUES (333, 'RIC', 'Byrd Intl', 44, true);
-INSERT INTO public."Airports" VALUES (334, 'RIO', 'Rio De Janeiro Airports', 151, true);
-INSERT INTO public."Airports" VALUES (335, 'RMA', 'Roma Arpt', 61, true);
-INSERT INTO public."Airports" VALUES (336, 'ROB', 'Roberts Intl', 290, true);
-INSERT INTO public."Airports" VALUES (337, 'ROC', 'Monroe Cty Arpt New York', 45, true);
-INSERT INTO public."Airports" VALUES (338, 'RSE', 'Au Rose Bay Arpt', 59, true);
-INSERT INTO public."Airports" VALUES (339, 'RST', 'Rochester Municipal', 45, true);
-INSERT INTO public."Airports" VALUES (340, 'RUH', 'King Khaled Intl', 55, true);
-INSERT INTO public."Airports" VALUES (341, 'SAL', 'El Salvador Intl Arpt', 296, true);
-INSERT INTO public."Airports" VALUES (342, 'SAN', 'Lindbergh Intl Arpt', 39, true);
-INSERT INTO public."Airports" VALUES (343, 'SAP', 'La Mesa Airport', 294, true);
-INSERT INTO public."Airports" VALUES (344, 'SAT', 'San Antonio Intl', 46, true);
-INSERT INTO public."Airports" VALUES (345, 'SAV', 'Travis Field', 47, true);
-INSERT INTO public."Airports" VALUES (346, 'SDA', 'Saddam Intl', 203, true);
-INSERT INTO public."Airports" VALUES (347, 'SDM', 'Brown Fld Municipal', 39, true);
-INSERT INTO public."Airports" VALUES (348, 'SDQ', 'Las Americas Arpt', 222, true);
-INSERT INTO public."Airports" VALUES (349, 'SDR', 'Santander Airport', 91, true);
-INSERT INTO public."Airports" VALUES (350, 'SDU', 'Santos Dumont Arpt', 151, true);
-INSERT INTO public."Airports" VALUES (351, 'SDV', 'Dov Airport', 259, true);
-INSERT INTO public."Airports" VALUES (352, 'SEA', 'Seattle Tacoma Intl Arpt', 12, true);
-INSERT INTO public."Airports" VALUES (353, 'SEZ', 'Seychelles Intl Arpt', 297, true);
-INSERT INTO public."Airports" VALUES (354, 'SFO', 'San Francisco Intl Arpt', 29, true);
-INSERT INTO public."Airports" VALUES (355, 'SHA', 'Shanghai Intl Hongqiao', 208, true);
-INSERT INTO public."Airports" VALUES (356, 'SHJ', 'Sharjah Airport', 187, true);
-INSERT INTO public."Airports" VALUES (357, 'SJJ', 'Butmir Arpt', 298, true);
-INSERT INTO public."Airports" VALUES (358, 'SLC', 'Salt Lake City Intl Arpt', 48, true);
-INSERT INTO public."Airports" VALUES (359, 'SMO', 'Santa Monica Municipal Arpt', 28, true);
-INSERT INTO public."Airports" VALUES (360, 'SNN', 'Shannon Arpt', 232, true);
-INSERT INTO public."Airports" VALUES (361, 'SOF', 'Sofia Intl', 299, true);
-INSERT INTO public."Airports" VALUES (362, 'SSA', 'Dois De Julho Arpt', 137, true);
-INSERT INTO public."Airports" VALUES (363, 'STD', 'Mayor Humberto Vivas Guerrero Arpt', 222, true);
-INSERT INTO public."Airports" VALUES (364, 'STR', 'Eghterdingen Arpt', 116, true);
-INSERT INTO public."Airports" VALUES (365, 'SUV', 'Nausori Airport', 200, true);
-INSERT INTO public."Airports" VALUES (366, 'SVG', 'Sola Airport', 110, true);
-INSERT INTO public."Airports" VALUES (367, 'SVQ', 'San Pablo Arpt', 86, true);
-INSERT INTO public."Airports" VALUES (368, 'SVZ', 'San Antonio Arpt', 46, true);
-INSERT INTO public."Airports" VALUES (369, 'SXF', 'Schoenefeld Arpt', 73, true);
-INSERT INTO public."Airports" VALUES (370, 'SYD', 'Sydney Kingsford Smith Arpt', 59, true);
-INSERT INTO public."Airports" VALUES (371, 'TAM', 'General F Javier Mina', 74, true);
-INSERT INTO public."Airports" VALUES (372, 'TGU', 'Toncontin Arpt', 295, true);
-INSERT INTO public."Airports" VALUES (373, 'THF', 'Tempelhof Arpt', 73, true);
-INSERT INTO public."Airports" VALUES (374, 'THR', 'Mehrabad Arpt', 300, true);
-INSERT INTO public."Airports" VALUES (375, 'TIA', 'Rinas Arpt', 301, true);
-INSERT INTO public."Airports" VALUES (376, 'TLV', 'Ben Gurion Intl Arpt', 259, true);
-INSERT INTO public."Airports" VALUES (377, 'TMB', 'Tamiami Airport', 3, true);
-INSERT INTO public."Airports" VALUES (378, 'TPA', 'Tampa Intl', 49, true);
-INSERT INTO public."Airports" VALUES (379, 'TPE', 'Chiang Kai Shek Arpt', 270, true);
-INSERT INTO public."Airports" VALUES (380, 'TPF', 'Peter O Knight Arpt', 49, true);
-INSERT INTO public."Airports" VALUES (381, 'TSR', 'Timisoara Arpt', 196, true);
-INSERT INTO public."Airports" VALUES (382, 'TSS', 'East 34th St Hlpt', 30, true);
-INSERT INTO public."Airports" VALUES (383, 'TUS', 'Tucson Intl Arpt', 50, true);
-INSERT INTO public."Airports" VALUES (384, 'TXL', 'Tegel Airport', 73, true);
-INSERT INTO public."Airports" VALUES (385, 'UBS', 'Lowndes Cty Arpt', 10, true);
-INSERT INTO public."Airports" VALUES (386, 'UIO', 'Mariscal Arpt', 238, true);
-INSERT INTO public."Airports" VALUES (387, 'UIZ', 'Berz Macomb Arpt', 23, true);
-INSERT INTO public."Airports" VALUES (388, 'VCT', 'Victoria Regional Arpt', 51, true);
-INSERT INTO public."Airports" VALUES (389, 'VER', 'Las Bajadas General Heriberto Jara', 73, true);
-INSERT INTO public."Airports" VALUES (390, 'VGO', 'Vigo Airport', 87, true);
-INSERT INTO public."Airports" VALUES (391, 'VGT', 'Las Vegas North Air Terminal', 31, true);
-INSERT INTO public."Airports" VALUES (392, 'VIT', 'Vitoria Arpt', 88, true);
-INSERT INTO public."Airports" VALUES (393, 'VIX', 'Eurico Sales Arpt', 88, true);
-INSERT INTO public."Airports" VALUES (394, 'VLC', 'Valencia Arpt', 89, true);
-INSERT INTO public."Airports" VALUES (395, 'VNY', 'Los Angeles Van Nuys Arpt', 28, true);
-INSERT INTO public."Airports" VALUES (396, 'VPZ', 'Porter County', 52, true);
-INSERT INTO public."Airports" VALUES (397, 'VRA', 'Juan Gualberto Gomez Arpt', 189, true);
-INSERT INTO public."Airports" VALUES (398, 'WDH', 'Windhoek Intl Arpt', 258, true);
-INSERT INTO public."Airports" VALUES (399, 'WIL', 'Wilson Airport', 287, true);
-INSERT INTO public."Airports" VALUES (400, 'WLG', 'Wellington Intl', 154, true);
-INSERT INTO public."Airports" VALUES (401, 'WZY', 'Seaplane Base Arpt', 183, true);
-INSERT INTO public."Airports" VALUES (402, 'YAO', 'Yaounde Airport', 254, true);
-INSERT INTO public."Airports" VALUES (403, 'YBZ', 'Downtown Hlpt Toronto', 239, true);
-INSERT INTO public."Airports" VALUES (404, 'YEA', 'Edmonton Airports', 240, true);
-INSERT INTO public."Airports" VALUES (405, 'YED', 'Namao Field', 240, true);
-INSERT INTO public."Airports" VALUES (406, 'YEG', 'Edmonton Intl Arpt', 240, true);
-INSERT INTO public."Airports" VALUES (407, 'YGK', 'Norman Rodgers Arpt', 277, true);
-INSERT INTO public."Airports" VALUES (408, 'YHU', 'St Hubert Arpt', 241, true);
-INSERT INTO public."Airports" VALUES (409, 'YIP', 'Willow Run Arpt', 23, true);
-INSERT INTO public."Airports" VALUES (410, 'YKZ', 'Buttonville Arpt', 239, true);
-INSERT INTO public."Airports" VALUES (411, 'YMQ', 'Montreal Airports', 241, true);
-INSERT INTO public."Airports" VALUES (412, 'YMX', 'Mirabel Intl Arpt', 241, true);
-INSERT INTO public."Airports" VALUES (413, 'YMY', 'Victoria Stol', 241, true);
-INSERT INTO public."Airports" VALUES (414, 'YOW', 'Ottawa Intl Arpt', 242, true);
-INSERT INTO public."Airports" VALUES (415, 'YQF', 'Red Deer Arpt', 243, true);
-INSERT INTO public."Airports" VALUES (416, 'YQG', 'Windsor Intl Arpt', 244, true);
-INSERT INTO public."Airports" VALUES (417, 'YQY', 'Sydney Airport', 59, true);
-INSERT INTO public."Airports" VALUES (418, 'YTO', 'Toronto Area Airports', 239, true);
-INSERT INTO public."Airports" VALUES (419, 'YTZ', 'Toronto City Centre Airport', 239, true);
-INSERT INTO public."Airports" VALUES (420, 'YUL', 'Dorval Intl', 241, true);
-INSERT INTO public."Airports" VALUES (421, 'YVR', 'Vancouver Intl Arpt', 246, true);
-INSERT INTO public."Airports" VALUES (422, 'YWG', 'Winnipeg Intl Arpt', 245, true);
-INSERT INTO public."Airports" VALUES (423, 'YWH', 'Inner Harbor Sea Plane Arpt', 51, true);
-INSERT INTO public."Airports" VALUES (424, 'YXD', 'Edmonton Municipal Arpt', 240, true);
-INSERT INTO public."Airports" VALUES (425, 'YYC', 'Calgary Intl Arpt', 243, true);
-INSERT INTO public."Airports" VALUES (426, 'YYJ', 'Victoria Intl Arpt', 51, true);
-INSERT INTO public."Airports" VALUES (427, 'YYZ', 'Lester B Pearson Intl', 239, true);
-INSERT INTO public."Airports" VALUES (428, 'ZAG', 'Zagreb Arpt', 251, true);
-INSERT INTO public."Airports" VALUES (429, 'ZAZ', 'Zaragoza Airport', 90, true);
-INSERT INTO public."Airports" VALUES (430, 'ZCO', 'Manquehue Arpt', 168, true);
-INSERT INTO public."Airports" VALUES (431, 'ZLO', 'Aeropuerto Intl', 190, true);
-INSERT INTO public."Airports" VALUES (432, 'ZRH', 'Zurich Airport', 221, true);
-INSERT INTO public."Airports" VALUES (433, 'CTG', 'Aeropuerto Internacional Rafael Nunez', 103, true);
-INSERT INTO public."Airports" VALUES (435, 'CLO', 'Alfonso Bonilla Arag¢n', 104, true);
-INSERT INTO public."Airports" VALUES (436, 'DIM', 'Aeropuerto Olaya Herrera', 2, true);
-INSERT INTO public."Airports" VALUES (437, 'BAQ', 'AEROPUERTO ERNESTO CORTIZO', 100, true);
 
 
 --
@@ -16744,409 +16311,36 @@ INSERT INTO public."Airports" VALUES (437, 'BAQ', 'AEROPUERTO ERNESTO CORTIZO', 
 -- Data for Name: Branch; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Branch" VALUES (1, 'BOG', 'BOG', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, true);
 
 
 --
 -- Data for Name: BranchGDSInvoiceAuto; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."BranchGDSInvoiceAuto" VALUES (1, 1, 1, false);
-INSERT INTO public."BranchGDSInvoiceAuto" VALUES (2, 1, 2, false);
-INSERT INTO public."BranchGDSInvoiceAuto" VALUES (3, 1, 3, false);
-INSERT INTO public."BranchGDSInvoiceAuto" VALUES (4, 1, 4, false);
-INSERT INTO public."BranchGDSInvoiceAuto" VALUES (5, 1, 5, false);
-INSERT INTO public."BranchGDSInvoiceAuto" VALUES (6, 1, 6, false);
-INSERT INTO public."BranchGDSInvoiceAuto" VALUES (7, 1, 7, false);
-INSERT INTO public."BranchGDSInvoiceAuto" VALUES (8, 1, 8, false);
-INSERT INTO public."BranchGDSInvoiceAuto" VALUES (9, 1, 9, false);
 
 
 --
 -- Data for Name: CellCustomization; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."CellCustomization" VALUES (1, 'idCotizacion', 'ID Cotización', 'B2', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (2, 'asesor', 'Asesor', 'B4', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (3, 'fecha', 'Fecha', 'G4', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (4, 'clienteNombre', 'Cliente Nombre', 'B7', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (5, 'clienteIdentificacion', 'Cliente ID', 'G7', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (6, 'clienteDireccion', 'Dirección', 'B8', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (7, 'clienteTelefono', 'Teléfono', 'G8', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (8, 'centroCosto', 'C. Costo', 'B9', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (9, 'solicita', 'Solicita', 'G9', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (10, 'tCambio', 'T. Cambio', 'I11', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (11, 'descripcionPlan', 'Desc Plan', 'B12', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (12, 'fechasViaje', 'Fechas Viaje', 'G12', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (13, 'hotelesServicios', 'Servicios', 'A13', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (14, 'pasajeros', 'Pasajeros', 'B14', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (15, 'totalAdultos', 'Total Adultos', 'C15', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (16, 'totalNinos', 'Total Niños', 'G15', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (17, 'logo', 'Celda Logo', 'A1', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (18, 'proveedor1Nombre', 'Prov 1: Nombre', 'B18', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (19, 'proveedor1NIT', 'Prov 1: NIT', 'E18', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (20, 'proveedor1Contacto', 'Prov 1: Contacto', 'H18', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (21, 'prov1TarifaNeta', 'Prov 1: Neta', 'B23', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (22, 'prov1TarifaNetaPago', 'Prov 1: Neta Pago', 'D23', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (23, 'prov1Impuestos', 'Prov 1: Impuestos', 'B24', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (24, 'prov1ImpuestosPago', 'Prov 1: Impuestos Pago', 'D24', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (25, 'prov1Adicionales', 'Prov 1: Adicionales', 'B25', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (26, 'prov1AdicionalesPago', 'Prov 1: Adicionales Pago', 'D25', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (27, 'prov1Comision', 'Prov 1: Comisión', 'B26', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (28, 'prov1Descuento', 'Prov 1: Descuento', 'B27', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (29, 'prov1Sobrecomision', 'Prov 1: Sobrecomisión', 'B28', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (30, 'prov1Fee', 'Prov 1: Fee', 'B29', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (31, 'prov1Total', 'Prov 1: Total', 'B30', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (32, 'prov1TotalPago', 'Prov 1: Total Pago', 'D30', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (33, 'proveedor2Nombre', 'Prov 2: Nombre', 'B19', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (34, 'proveedor2NIT', 'Prov 2: NIT', 'E19', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (35, 'proveedor2Contacto', 'Prov 2: Contacto', 'H29', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (36, 'prov2TarifaNeta', 'Prov 2: Neta', 'G23', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (37, 'prov2TarifaNetaPago', 'Prov 2: Neta Pago', 'I23', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (38, 'prov2Impuestos', 'Prov 2: Impuestos', 'G24', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (39, 'prov2ImpuestosPago', 'Prov 2: Impuestos Pago', 'I24', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (40, 'prov2Adicionales', 'Prov 2: Adicionales', 'G25', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (41, 'prov2AdicionalesPago', 'Prov 2: Adicionales Pago', 'I25', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (42, 'prov2Comision', 'Prov 2: Comisión', 'G26', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (43, 'prov2Descuento', 'Prov 2: Descuento', 'G27', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (44, 'prov2Sobrecomision', 'Prov 2: Sobrecomisión', 'G28', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (45, 'prov2Fee', 'Prov 2: Fee', 'G29', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (46, 'prov2Total', 'Prov 2: Total', 'G30', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (47, 'prov2TotalPago', 'Prov 2: Total Pago', 'I30', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (48, 'tarifaNeta', 'Total: Tarifa Neta', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (49, 'tarifaNetaPago', 'Total: Neta Pago', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (50, 'impuestos', 'Total: Impuestos', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (51, 'impuestosPago', 'Total: Impuestos Pago', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (52, 'adicionalesServ', 'Total: Adicionales', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (53, 'adicionalesServPago', 'Total: Adicionales Pago', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (54, 'comision', 'Total: Comisión', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (55, 'descuento', 'Total: Descuento', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (56, 'sobrecomision', 'Total: Sobrecomisión', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (57, 'fee', 'Total: Fee', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (58, 'total', 'Total: Total', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (59, 'totalPago', 'Total: Total Pago', '', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (60, 'baseComisionable', 'Base Comisión', 'B35', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (61, 'comisionAsesor', 'Comisión Asesor', 'B36', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (62, 'baseComisionTop', 'Comisión Top', 'B37', 1, NULL);
-INSERT INTO public."CellCustomization" VALUES (63, 'observaciones', 'Observaciones', 'B42', 1, NULL);
 
 
 --
 -- Data for Name: ChargeAndTax; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."ChargeAndTax" VALUES (1, 'TAR', 'CHARGE', 'FIXED', 0, true, 'TAR', 0, '[]', NULL, true);
-INSERT INTO public."ChargeAndTax" VALUES (2, 'IVA', 'TAX', 'PERCENTAGE', 19, true, 'IVA', 0, '[]', NULL, true);
-INSERT INTO public."ChargeAndTax" VALUES (3, 'OTROS', 'CHARGE', 'FIXED', 0, true, 'OTROS', 0, '[]', NULL, true);
 
 
 --
 -- Data for Name: Cities; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Cities" VALUES (1, 'BOG', 'Bogotá', 1, 'CUN', 'BOG', true);
-INSERT INTO public."Cities" VALUES (2, 'MDE', 'Medellín', 1, 'ANT', 'MDE', true);
-INSERT INTO public."Cities" VALUES (3, 'MIA', 'Miami', 2, 'FL', 'MIA', true);
-INSERT INTO public."Cities" VALUES (4, 'MAD', 'Madrid', 3, 'MAD', 'MAD', true);
-INSERT INTO public."Cities" VALUES (5, 'HOU', 'Houston', 2, '', 'HOU', true);
-INSERT INTO public."Cities" VALUES (6, 'ANC', 'Anchorage', 2, '', 'ANC', true);
-INSERT INTO public."Cities" VALUES (7, 'LIM', 'Lima', 2, '', 'LIM', true);
-INSERT INTO public."Cities" VALUES (8, 'DEN', 'Denver', 2, '', 'DEN', true);
-INSERT INTO public."Cities" VALUES (9, 'ATL', 'Atlanta', 2, '', 'ATL', true);
-INSERT INTO public."Cities" VALUES (10, 'CMH', 'Columbus', 2, '', 'CMH', true);
-INSERT INTO public."Cities" VALUES (11, 'BOL', 'Hartford', 2, '', 'BOL', true);
-INSERT INTO public."Cities" VALUES (12, 'SEA', 'Seattle', 2, '', 'SEA', true);
-INSERT INTO public."Cities" VALUES (13, 'CLE', 'Cleveland', 2, '', 'CLE', true);
-INSERT INTO public."Cities" VALUES (14, 'BNA', 'Nashville', 2, '', 'BNA', true);
-INSERT INTO public."Cities" VALUES (15, 'BOS', 'Boston', 2, '', 'BOS', true);
-INSERT INTO public."Cities" VALUES (16, 'BUF', 'Buffalo', 2, '', 'BUF', true);
-INSERT INTO public."Cities" VALUES (17, 'BWI', 'Baltimore', 2, '', 'BWI', true);
-INSERT INTO public."Cities" VALUES (18, 'CHI', 'Chicago', 2, '', 'CHI', true);
-INSERT INTO public."Cities" VALUES (19, 'CHS', 'Charleston', 2, '', 'CHS', true);
-INSERT INTO public."Cities" VALUES (20, 'DFW', 'Dallas', 2, '', 'DFW', true);
-INSERT INTO public."Cities" VALUES (21, 'DAY', 'Dayton', 2, '', 'DAY', true);
-INSERT INTO public."Cities" VALUES (22, 'DUB', 'Dublin', 2, '', 'DUB', true);
-INSERT INTO public."Cities" VALUES (23, 'DTT', 'Detroit', 2, '', 'DTT', true);
-INSERT INTO public."Cities" VALUES (24, 'EWR', 'Newark', 2, '', 'EWR', true);
-INSERT INTO public."Cities" VALUES (25, 'GEO', 'Georgetown', 2, '', 'GEO', true);
-INSERT INTO public."Cities" VALUES (26, 'GLA', 'Glasgow', 2, '', 'GLA', true);
-INSERT INTO public."Cities" VALUES (27, 'HNL', 'Honolulu', 2, '', 'HNL', true);
-INSERT INTO public."Cities" VALUES (28, 'LAX', 'Los Angeles', 2, '', 'LAX', true);
-INSERT INTO public."Cities" VALUES (29, 'SFO', 'San Francisco', 2, '', 'SFO', true);
-INSERT INTO public."Cities" VALUES (30, 'NYC', 'New York', 2, '', 'NYC', true);
-INSERT INTO public."Cities" VALUES (31, 'LAS', 'Las Vegas', 2, '', 'LAS', true);
-INSERT INTO public."Cities" VALUES (32, 'LGB', 'Long Beach', 2, '', 'LGB', true);
-INSERT INTO public."Cities" VALUES (33, 'ORL', 'Orlando', 2, '', 'ORL', true);
-INSERT INTO public."Cities" VALUES (34, 'MEM', 'Memphis', 2, '', 'MEM', true);
-INSERT INTO public."Cities" VALUES (36, 'MKE', 'Milwaukee', 2, '', 'MKE', true);
-INSERT INTO public."Cities" VALUES (37, 'MSP', 'Minneapolis', 2, '', 'MSP', true);
-INSERT INTO public."Cities" VALUES (38, 'MSY', 'New Orleans', 2, '', 'MSY', true);
-INSERT INTO public."Cities" VALUES (39, 'SAN', 'San Diego', 2, '', 'SAN', true);
-INSERT INTO public."Cities" VALUES (40, 'NOR', 'Norfolk', 2, '', 'NOR', true);
-INSERT INTO public."Cities" VALUES (41, 'PDX', 'Portland', 2, '', 'PDX', true);
-INSERT INTO public."Cities" VALUES (42, 'PHX', 'Phoenix', 2, '', 'PHX', true);
-INSERT INTO public."Cities" VALUES (43, 'RDU', 'Raleigh', 2, '', 'RDU', true);
-INSERT INTO public."Cities" VALUES (44, 'RIC', 'Richmond', 2, '', 'RIC', true);
-INSERT INTO public."Cities" VALUES (45, 'ROC', 'Rochester', 2, '', 'ROC', true);
-INSERT INTO public."Cities" VALUES (46, 'SAI', 'San Antonio', 2, '', 'SAI', true);
-INSERT INTO public."Cities" VALUES (47, 'SAV', 'Savannah', 2, '', 'SAV', true);
-INSERT INTO public."Cities" VALUES (48, 'SLC', 'Salt Lake City', 2, '', 'SLC', true);
-INSERT INTO public."Cities" VALUES (49, 'TPA', 'Tampa', 2, '', 'TPA', true);
-INSERT INTO public."Cities" VALUES (50, 'TUS', 'Tucson', 2, '', 'TUS', true);
-INSERT INTO public."Cities" VALUES (51, 'YYJ', 'Victoria', 2, '', 'YYJ', true);
-INSERT INTO public."Cities" VALUES (52, 'VAP', 'Valparaiso', 2, '', 'VAP', true);
-INSERT INTO public."Cities" VALUES (53, 'ABJ', 'Abidjan', 7, '', 'ABJ', true);
-INSERT INTO public."Cities" VALUES (54, 'DHA', 'Dhahran', 8, '', 'DHA', true);
-INSERT INTO public."Cities" VALUES (55, 'RUH', 'Riyadh', 8, '', 'RUH', true);
-INSERT INTO public."Cities" VALUES (56, 'JED', 'Jeddah', 8, '', 'JED', true);
-INSERT INTO public."Cities" VALUES (57, 'KAN', 'Kano', 9, '', 'KAN', true);
-INSERT INTO public."Cities" VALUES (58, 'LOS', 'Lagos', 9, '', 'LOS', true);
-INSERT INTO public."Cities" VALUES (59, 'SYD', 'Sydney', 10, '', 'SYD', true);
-INSERT INTO public."Cities" VALUES (60, 'MEL', 'Melbourne', 10, '', 'MEL', true);
-INSERT INTO public."Cities" VALUES (61, 'ROM', 'Roma', 10, '', 'ROM', true);
-INSERT INTO public."Cities" VALUES (62, 'PER', 'Perth', 10, '', 'PER', true);
-INSERT INTO public."Cities" VALUES (63, 'CNS', 'Cairns', 10, '', 'CNS', true);
-INSERT INTO public."Cities" VALUES (64, 'HBA', 'Hobart', 10, '', 'HBA', true);
-INSERT INTO public."Cities" VALUES (65, 'BHD', 'Belfast', 11, '', 'BHD', true);
-INSERT INTO public."Cities" VALUES (66, 'MME', 'Teesside', 11, '', 'MME', true);
-INSERT INTO public."Cities" VALUES (67, 'LBA', 'Leeds', 11, '', 'LBA', true);
-INSERT INTO public."Cities" VALUES (68, 'LPB', 'La Paz', 12, '', 'LPB', true);
-INSERT INTO public."Cities" VALUES (69, 'MID', 'Merida', 12, '', 'MID', true);
-INSERT INTO public."Cities" VALUES (70, 'MZT', 'Mazatlan', 12, '', 'MZT', true);
-INSERT INTO public."Cities" VALUES (71, 'MTY', 'Monterrey', 12, '', 'MTY', true);
-INSERT INTO public."Cities" VALUES (72, 'PVR', 'Puerto Vallarta', 12, '', 'PVR', true);
-INSERT INTO public."Cities" VALUES (73, 'VER', 'Veracruz', 12, '', 'VER', true);
-INSERT INTO public."Cities" VALUES (74, 'TAM', 'Tampico', 12, '', 'TAM', true);
-INSERT INTO public."Cities" VALUES (75, 'GYM', 'Guaymas', 12, '', 'GYM', true);
-INSERT INTO public."Cities" VALUES (76, 'GDL', 'Guadalajara', 12, '', 'GDL', true);
-INSERT INTO public."Cities" VALUES (77, 'CUN', 'Cancun', 12, '', 'CUN', true);
-INSERT INTO public."Cities" VALUES (78, 'CZM', 'Cozumel', 12, '', 'CZM', true);
-INSERT INTO public."Cities" VALUES (79, 'ACC', 'Accra', 13, '', 'ACC', true);
-INSERT INTO public."Cities" VALUES (80, 'ALC', 'Alicante', 3, '', 'ALC', true);
-INSERT INTO public."Cities" VALUES (81, 'AGP', 'Malaga', 3, '', 'AGP', true);
-INSERT INTO public."Cities" VALUES (82, 'BCN', 'Barcelona', 3, '', 'BCN', true);
-INSERT INTO public."Cities" VALUES (83, 'BIO', 'Bilbao', 3, '', 'BIO', true);
-INSERT INTO public."Cities" VALUES (84, 'GND', 'Granada', 3, '', 'GND', true);
-INSERT INTO public."Cities" VALUES (85, 'IBZ', 'Ibiza', 3, '', 'IBZ', true);
-INSERT INTO public."Cities" VALUES (86, 'SVQ', 'Sevilla', 3, '', 'SVQ', true);
-INSERT INTO public."Cities" VALUES (87, 'VGO', 'Vigo', 3, '', 'VGO', true);
-INSERT INTO public."Cities" VALUES (88, 'VIX', 'Vitoria', 3, '', 'VIX', true);
-INSERT INTO public."Cities" VALUES (89, 'VLC', 'Valencia', 3, '', 'VLC', true);
-INSERT INTO public."Cities" VALUES (90, 'ZAZ', 'Zaragoza', 3, '', 'ZAZ', true);
-INSERT INTO public."Cities" VALUES (91, 'SDR', 'Santander', 3, '', 'SDR', true);
-INSERT INTO public."Cities" VALUES (92, 'PNA', 'Pamplona', 3, '', 'PNA', true);
-INSERT INTO public."Cities" VALUES (93, 'MJV', 'Murcia', 3, '', 'MJV', true);
-INSERT INTO public."Cities" VALUES (95, 'MAH', 'Menorca', 3, '', 'MAH', true);
-INSERT INTO public."Cities" VALUES (96, 'AYT', 'Antalya', 15, '', 'AYT', true);
-INSERT INTO public."Cities" VALUES (97, 'ANK', 'Ankara', 15, '', 'ANK', true);
-INSERT INTO public."Cities" VALUES (98, 'ADD', 'Addis Ababa', 16, '', 'ADD', true);
-INSERT INTO public."Cities" VALUES (99, 'ADE', 'Aden', 17, '', 'ADE', true);
-INSERT INTO public."Cities" VALUES (100, 'BAQ', 'Barranquilla', 1, 'ATL', 'BAQ', true);
-INSERT INTO public."Cities" VALUES (103, 'CTG', 'Cartagena', 1, 'BOL', 'CTG', true);
-INSERT INTO public."Cities" VALUES (104, 'CLO', 'Cali', 1, 'VAL', 'CLO', true);
-INSERT INTO public."Cities" VALUES (105, '000001', 'chigorodo', 1, '', '000001', true);
-INSERT INTO public."Cities" VALUES (106, 'BHI', 'Bahia Blanca', 19, '', 'BHI', true);
-INSERT INTO public."Cities" VALUES (107, 'BUE', 'Buenos Aires', 19, '', 'BUE', true);
-INSERT INTO public."Cities" VALUES (108, 'SLZ', 'San Luis', 19, '', 'SLZ', true);
-INSERT INTO public."Cities" VALUES (109, 'KRS', 'Kristiansand', 21, '', 'KRS', true);
-INSERT INTO public."Cities" VALUES (110, 'SVG', 'Stavanger', 21, '', 'SVG', true);
-INSERT INTO public."Cities" VALUES (111, 'BGO', 'Bergen', 21, '', 'BGO', true);
-INSERT INTO public."Cities" VALUES (112, 'OSL', 'Oslo', 21, '', 'OSL', true);
-INSERT INTO public."Cities" VALUES (113, 'CAS', 'Casablanca', 23, '', 'CAS', true);
-INSERT INTO public."Cities" VALUES (114, 'RAK', 'Marrakech', 23, '', 'RAK', true);
-INSERT INTO public."Cities" VALUES (115, 'RBA', 'Rabat', 23, '', 'RBA', true);
-INSERT INTO public."Cities" VALUES (116, 'STR', 'Stuttgart', 24, '', 'STR', true);
-INSERT INTO public."Cities" VALUES (117, 'LEJ', 'Leipzig', 24, '', 'LEJ', true);
-INSERT INTO public."Cities" VALUES (118, 'MUC', 'Munich', 24, '', 'MUC', true);
-INSERT INTO public."Cities" VALUES (120, 'DUS', 'Dusseldorf', 24, '', 'DUS', true);
-INSERT INTO public."Cities" VALUES (121, 'FRA', 'Frankfurt', 24, '', 'FRA', true);
-INSERT INTO public."Cities" VALUES (122, 'PAR', 'Paris', 25, '', 'PAR', true);
-INSERT INTO public."Cities" VALUES (123, 'BOD', 'Bordeaux', 25, '', 'BOD', true);
-INSERT INTO public."Cities" VALUES (124, 'LYS', 'Lyon', 25, '', 'LYS', true);
-INSERT INTO public."Cities" VALUES (125, 'LHV', 'Le Havre', 25, '', 'LHV', true);
-INSERT INTO public."Cities" VALUES (126, 'LIL', 'Lille', 25, '', 'LIL', true);
-INSERT INTO public."Cities" VALUES (127, 'MMA', 'Malmo', 26, '', 'MMA', true);
-INSERT INTO public."Cities" VALUES (128, 'DEL', 'Delhi', 27, '', 'DEL', true);
-INSERT INTO public."Cities" VALUES (129, 'MAA', 'Madras', 27, '', 'MAA', true);
-INSERT INTO public."Cities" VALUES (130, 'DPS', 'Denpasar', 28, '', 'DPS', true);
-INSERT INTO public."Cities" VALUES (131, 'JKT', 'Jakarta', 28, '', 'JKT', true);
-INSERT INTO public."Cities" VALUES (132, 'BRI', 'Bari', 29, '', 'BRI', true);
-INSERT INTO public."Cities" VALUES (133, 'MIL', 'Milan', 29, '', 'MIL', true);
-INSERT INTO public."Cities" VALUES (134, 'PMO', 'Palermo', 29, '', 'PMO', true);
-INSERT INTO public."Cities" VALUES (135, 'POA', 'Porto Alegre', 31, '', 'POA', true);
-INSERT INTO public."Cities" VALUES (136, 'REC', 'Recife', 31, '', 'REC', true);
-INSERT INTO public."Cities" VALUES (137, 'SSA', 'Salvador', 31, '', 'SSA', true);
-INSERT INTO public."Cities" VALUES (138, 'JPA', 'Joao Pessoa', 31, '', 'JPA', true);
-INSERT INTO public."Cities" VALUES (139, 'MCZ', 'Maceio', 31, '', 'MCZ', true);
-INSERT INTO public."Cities" VALUES (140, 'NAT', 'Natal', 31, '', 'NAT', true);
-INSERT INTO public."Cities" VALUES (141, 'BSB', 'Brasilia', 31, '', 'BSB', true);
-INSERT INTO public."Cities" VALUES (142, 'BZC', 'Buzios', 31, '', 'BZC', true);
-INSERT INTO public."Cities" VALUES (143, 'BEL', 'Belem', 31, '', 'BEL', true);
-INSERT INTO public."Cities" VALUES (144, 'AJU', 'Aracaju', 31, '', 'AJU', true);
-INSERT INTO public."Cities" VALUES (145, 'BHZ', 'Belo Horizonte', 31, '', 'BHZ', true);
-INSERT INTO public."Cities" VALUES (146, 'CWB', 'Curitiba', 31, '', 'CWB', true);
-INSERT INTO public."Cities" VALUES (147, 'CGB', 'Cuiaba', 31, '', 'CGB', true);
-INSERT INTO public."Cities" VALUES (148, 'IOS', 'Ilheus', 31, '', 'IOS', true);
-INSERT INTO public."Cities" VALUES (149, 'GYN', 'Goiania', 31, '', 'GYN', true);
-INSERT INTO public."Cities" VALUES (150, 'FOR', 'Fortaleza', 31, '', 'FOR', true);
-INSERT INTO public."Cities" VALUES (151, 'RIO', 'Rio De Janeiro', 31, '', 'RIO', true);
-INSERT INTO public."Cities" VALUES (152, 'CHC', 'Christchurch', 32, '', 'CHC', true);
-INSERT INTO public."Cities" VALUES (153, 'AKL', 'Auckland', 32, '', 'AKL', true);
-INSERT INTO public."Cities" VALUES (154, 'WLG', 'Wellington', 32, '', 'WLG', true);
-INSERT INTO public."Cities" VALUES (155, 'PRY', 'Pretoria', 34, '', 'PRY', true);
-INSERT INTO public."Cities" VALUES (156, 'PEZ', 'Port Elizabeth', 34, '', 'PEZ', true);
-INSERT INTO public."Cities" VALUES (157, 'DUR', 'Durban', 34, '', 'DUR', true);
-INSERT INTO public."Cities" VALUES (158, 'CTW', 'Cape Town', 34, '', 'CTW', true);
-INSERT INTO public."Cities" VALUES (159, 'ALP', 'Aleppo', 35, '', 'ALP', true);
-INSERT INTO public."Cities" VALUES (160, 'CAI', 'Cairo', 37, '', 'CAI', true);
-INSERT INTO public."Cities" VALUES (161, 'AMM', 'Amman', 38, '', 'AMM', true);
-INSERT INTO public."Cities" VALUES (162, 'AMS', 'Amsterdam', 39, '', 'AMS', true);
-INSERT INTO public."Cities" VALUES (163, 'ANF', 'Antofagasta', 40, '', 'ANF', true);
-INSERT INTO public."Cities" VALUES (164, 'ARI', 'Arica', 40, '', 'ARI', true);
-INSERT INTO public."Cities" VALUES (165, 'IQQ', 'Iquique', 40, '', 'IQQ', true);
-INSERT INTO public."Cities" VALUES (166, 'PMC', 'Puerto Montt', 40, '', 'PMC', true);
-INSERT INTO public."Cities" VALUES (167, 'PUQ', 'Punta Arenas', 40, '', 'PUQ', true);
-INSERT INTO public."Cities" VALUES (168, 'ZCO', 'Temuco', 40, '', 'ZCO', true);
-INSERT INTO public."Cities" VALUES (169, 'LSC', 'La Serena', 40, '', 'LSC', true);
-INSERT INTO public."Cities" VALUES (170, 'ANR', 'Antwerp', 41, '', 'ANR', true);
-INSERT INTO public."Cities" VALUES (171, 'KUL', 'Kuala Lumpur', 43, '', 'KUL', true);
-INSERT INTO public."Cities" VALUES (172, 'PEN', 'Penang', 43, '', 'PEN', true);
-INSERT INTO public."Cities" VALUES (173, 'MPM', 'Maputo', 44, '', 'MPM', true);
-INSERT INTO public."Cities" VALUES (174, 'APW', 'Apia', 45, '', 'APW', true);
-INSERT INTO public."Cities" VALUES (175, 'AQP', 'Arequipa', 46, '', 'AQP', true);
-INSERT INTO public."Cities" VALUES (176, 'OSA', 'Osaka', 47, '', 'OSA', true);
-INSERT INTO public."Cities" VALUES (177, 'FUK', 'Fukuoka', 47, '', 'FUK', true);
-INSERT INTO public."Cities" VALUES (178, 'NGO', 'Nagoya', 47, '', 'NGO', true);
-INSERT INTO public."Cities" VALUES (179, 'OKA', 'Okinawa', 47, '', 'OKA', true);
-INSERT INTO public."Cities" VALUES (180, 'ASM', 'Asmara', 48, '', 'ASM', true);
-INSERT INTO public."Cities" VALUES (181, 'ASU', 'Asuncion', 49, '', 'ASU', true);
-INSERT INTO public."Cities" VALUES (182, 'FPO', 'Freeport', 50, '', 'FPO', true);
-INSERT INTO public."Cities" VALUES (183, 'NAS', 'Nassau', 50, '', 'NAS', true);
-INSERT INTO public."Cities" VALUES (184, 'AUA', 'Aruba', 52, '', 'AUA', true);
-INSERT INTO public."Cities" VALUES (185, 'AUH', 'Abu Dhabi', 53, '', 'AUH', true);
-INSERT INTO public."Cities" VALUES (186, 'DXB', 'Dubai', 53, '', 'DXB', true);
-INSERT INTO public."Cities" VALUES (187, 'SHJ', 'Sharjah', 53, '', 'SHJ', true);
-INSERT INTO public."Cities" VALUES (188, 'PPT', 'Papeete', 54, '', 'PPT', true);
-INSERT INTO public."Cities" VALUES (189, 'VRA', 'Varadero', 55, '', 'VRA', true);
-INSERT INTO public."Cities" VALUES (190, 'ZLO', 'Manzanillo', 55, '', 'ZLO', true);
-INSERT INTO public."Cities" VALUES (191, 'HOG', 'Holguin', 55, '', 'HOG', true);
-INSERT INTO public."Cities" VALUES (192, 'AVI', 'Ciego De Avila', 55, '', 'AVI', true);
-INSERT INTO public."Cities" VALUES (193, 'MNL', 'Manila', 57, '', 'MNL', true);
-INSERT INTO public."Cities" VALUES (194, 'BAH', 'Bahrain', 58, '', 'BAH', true);
-INSERT INTO public."Cities" VALUES (195, 'GBE', 'Gaborone', 60, '', 'GBE', true);
-INSERT INTO public."Cities" VALUES (196, 'TSR', 'Timisoara', 61, '', 'TSR', true);
-INSERT INTO public."Cities" VALUES (197, 'BDA', 'Bermuda', 62, '', 'BDA', true);
-INSERT INTO public."Cities" VALUES (198, 'BEY', 'Beirut', 64, '', 'BEY', true);
-INSERT INTO public."Cities" VALUES (199, 'NAN', 'Nadi', 65, '', 'NAN', true);
-INSERT INTO public."Cities" VALUES (200, 'SUV', 'Suva', 65, '', 'SUV', true);
-INSERT INTO public."Cities" VALUES (201, 'BGF', 'Bangui', 66, '', 'BGF', true);
-INSERT INTO public."Cities" VALUES (202, 'BGI', 'Barbados', 67, '', 'BGI', true);
-INSERT INTO public."Cities" VALUES (203, 'BGW', 'Baghdad', 68, '', 'BGW', true);
-INSERT INTO public."Cities" VALUES (204, 'BSR', 'Basra', 68, '', 'BSR', true);
-INSERT INTO public."Cities" VALUES (205, 'CAN', 'Guangzhou', 69, '', 'CAN', true);
-INSERT INTO public."Cities" VALUES (206, 'BJS', 'Beijing', 69, '', 'BJS', true);
-INSERT INTO public."Cities" VALUES (207, 'DLC', 'Dalian', 69, '', 'DLC', true);
-INSERT INTO public."Cities" VALUES (208, 'SHA', 'Shanghai', 69, '', 'SHA', true);
-INSERT INTO public."Cities" VALUES (209, 'BJL', 'Banjul', 71, '', 'BJL', true);
-INSERT INTO public."Cities" VALUES (210, 'BJM', 'Bujumbura', 72, '', 'BJM', true);
-INSERT INTO public."Cities" VALUES (211, 'BKK', 'Bangkok', 73, '', 'BKK', true);
-INSERT INTO public."Cities" VALUES (212, 'HKT', 'Phuket', 73, '', 'HKT', true);
-INSERT INTO public."Cities" VALUES (213, 'BKO', 'Bamako', 74, '', 'BKO', true);
-INSERT INTO public."Cities" VALUES (214, 'CCS', 'Caracas', 75, '', 'CCS', true);
-INSERT INTO public."Cities" VALUES (215, 'PMV', 'Porlamar', 75, '', 'PMV', true);
-INSERT INTO public."Cities" VALUES (216, 'MAR', 'Maracaibo', 75, '', 'MAR', true);
-INSERT INTO public."Cities" VALUES (217, 'LLW', 'Lilongwe', 76, '', 'LLW', true);
-INSERT INTO public."Cities" VALUES (218, 'BLZ', 'Blantyre', 76, '', 'BLZ', true);
-INSERT INTO public."Cities" VALUES (219, 'BON', 'Bonaire', 77, '', 'BON', true);
-INSERT INTO public."Cities" VALUES (220, 'MLH', 'Mulhouse', 78, '', 'MLH', true);
-INSERT INTO public."Cities" VALUES (221, 'ZRH', 'Zurich', 78, '', 'ZRH', true);
-INSERT INTO public."Cities" VALUES (222, 'SDQ', 'Santo Domingo', 80, '', 'SDQ', true);
-INSERT INTO public."Cities" VALUES (223, 'BTS', 'Bratislava', 81, '', 'BTS', true);
-INSERT INTO public."Cities" VALUES (224, 'BUD', 'Budapest', 82, '', 'BUD', true);
-INSERT INTO public."Cities" VALUES (225, 'BUQ', 'Bulawayo', 83, '', 'BUQ', true);
-INSERT INTO public."Cities" VALUES (226, 'HRE', 'Harare', 83, '', 'HRE', true);
-INSERT INTO public."Cities" VALUES (227, 'BZV', 'Brazzaville', 87, '', 'BZV', true);
-INSERT INTO public."Cities" VALUES (228, 'CBB', 'Cochabamba', 88, '', 'CBB', true);
-INSERT INTO public."Cities" VALUES (229, 'PAP', 'Port Au Prince', 89, '', 'PAP', true);
-INSERT INTO public."Cities" VALUES (230, 'CAY', 'Cayenne', 90, '', 'CAY', true);
-INSERT INTO public."Cities" VALUES (231, 'FAO', 'Faro', 91, '', 'FAO', true);
-INSERT INTO public."Cities" VALUES (232, 'SNN', 'Shannon', 93, '', 'SNN', true);
-INSERT INTO public."Cities" VALUES (233, 'DAC', 'Dhaka', 94, '', 'DAC', true);
-INSERT INTO public."Cities" VALUES (234, 'CKY', 'Conakry', 97, '', 'CKY', true);
-INSERT INTO public."Cities" VALUES (235, 'CMB', 'Colombo', 98, '', 'CMB', true);
-INSERT INTO public."Cities" VALUES (236, 'COO', 'Cotonou', 99, '', 'COO', true);
-INSERT INTO public."Cities" VALUES (237, 'GYE', 'Guayaquil', 100, '', 'GYE', true);
-INSERT INTO public."Cities" VALUES (238, 'UIO', 'Quito', 100, '', 'UIO', true);
-INSERT INTO public."Cities" VALUES (239, 'YTO', 'Toronto', 101, '', 'YTO', true);
-INSERT INTO public."Cities" VALUES (240, 'YEG', 'Edmonton', 101, '', 'YEG', true);
-INSERT INTO public."Cities" VALUES (241, 'YUL', 'Montreal', 101, '', 'YUL', true);
-INSERT INTO public."Cities" VALUES (242, 'YOW', 'Ottawa', 101, '', 'YOW', true);
-INSERT INTO public."Cities" VALUES (243, 'YYC', 'Calgary', 101, '', 'YYC', true);
-INSERT INTO public."Cities" VALUES (244, 'YQG', 'Windsor', 101, '', 'YQG', true);
-INSERT INTO public."Cities" VALUES (245, 'YWG', 'Winnipeg', 101, '', 'YWG', true);
-INSERT INTO public."Cities" VALUES (246, 'VAN', 'Vancouver', 101, '', 'VAN', true);
-INSERT INTO public."Cities" VALUES (247, 'CYR', 'Colonia', 103, '', 'CYR', true);
-INSERT INTO public."Cities" VALUES (248, 'PDP', 'Punta Del Este', 103, '', 'PDP', true);
-INSERT INTO public."Cities" VALUES (249, 'MVD', 'Montevideo', 103, '', 'MVD', true);
-INSERT INTO public."Cities" VALUES (250, 'DAR', 'Dar Es Salaam', 104, '', 'DAR', true);
-INSERT INTO public."Cities" VALUES (251, 'ZAG', 'Zagreb', 105, '', 'ZAG', true);
-INSERT INTO public."Cities" VALUES (252, 'DKR', 'Dakar', 108, '', 'DKR', true);
-INSERT INTO public."Cities" VALUES (253, 'DLA', 'Douala', 109, '', 'DLA', true);
-INSERT INTO public."Cities" VALUES (254, 'YAO', 'Yaounde', 109, '', 'YAO', true);
-INSERT INTO public."Cities" VALUES (255, 'DOH', 'Doha', 111, '', 'DOH', true);
-INSERT INTO public."Cities" VALUES (256, 'LCA', 'Larnaca', 113, '', 'LCA', true);
-INSERT INTO public."Cities" VALUES (257, 'PFO', 'Paphos', 113, '', 'PFO', true);
-INSERT INTO public."Cities" VALUES (258, 'WDH', 'Windhoek', 115, '', 'WDH', true);
-INSERT INTO public."Cities" VALUES (259, 'TLV', 'Tel Aviv', 116, '', 'TLV', true);
-INSERT INTO public."Cities" VALUES (260, 'JRS', 'Jerusalem', 116, '', 'JRS', true);
-INSERT INTO public."Cities" VALUES (261, 'FBM', 'Lubumbashi', 117, '', 'FBM', true);
-INSERT INTO public."Cities" VALUES (262, 'FIH', 'Kinshasa', 117, '', 'FIH', true);
-INSERT INTO public."Cities" VALUES (263, 'FNA', 'Freetown', 119, '', 'FNA', true);
-INSERT INTO public."Cities" VALUES (264, 'GIB', 'Gibraltar', 124, '', 'GIB', true);
-INSERT INTO public."Cities" VALUES (265, 'GRZ', 'Graz', 127, '', 'GRZ', true);
-INSERT INTO public."Cities" VALUES (266, 'KLU', 'Klagenfurt', 127, '', 'KLU', true);
-INSERT INTO public."Cities" VALUES (267, 'LNZ', 'Linz', 127, '', 'LNZ', true);
-INSERT INTO public."Cities" VALUES (268, 'MLA', 'Malta', 129, '', 'MLA', true);
-INSERT INTO public."Cities" VALUES (269, 'KHH', 'Kaohsiung', 131, '', 'KHH', true);
-INSERT INTO public."Cities" VALUES (270, 'TPE', 'Taipei', 131, '', 'TPE', true);
-INSERT INTO public."Cities" VALUES (271, 'KHI', 'Karachi', 132, '', 'KHI', true);
-INSERT INTO public."Cities" VALUES (272, 'ISB', 'Islamabad', 132, '', 'ISB', true);
-INSERT INTO public."Cities" VALUES (273, 'HEL', 'Helsinki', 133, '', 'HEL', true);
-INSERT INTO public."Cities" VALUES (274, 'HKG', 'Hong Kong', 135, '', 'HKG', true);
-INSERT INTO public."Cities" VALUES (275, 'IEV', 'Kiev', 136, '', 'IEV', true);
-INSERT INTO public."Cities" VALUES (276, 'KGL', 'Kigali', 139, '', 'KGL', true);
-INSERT INTO public."Cities" VALUES (277, 'KIN', 'Kingston', 140, '', 'KIN', true);
-INSERT INTO public."Cities" VALUES (278, 'MBJ', 'Montego Bay', 140, '', 'MBJ', true);
-INSERT INTO public."Cities" VALUES (279, 'KRT', 'Khartoum', 141, '', 'KRT', true);
-INSERT INTO public."Cities" VALUES (280, 'KWI', 'Kuwait', 144, '', 'KWI', true);
-INSERT INTO public."Cities" VALUES (281, 'LAD', 'Luanda', 145, '', 'LAD', true);
-INSERT INTO public."Cities" VALUES (282, 'LBV', 'Libreville', 146, '', 'LBV', true);
-INSERT INTO public."Cities" VALUES (283, 'LFW', 'Lome', 147, '', 'LFW', true);
-INSERT INTO public."Cities" VALUES (284, 'CTF', 'CARTAGO', 148, '', 'CTF', true);
-INSERT INTO public."Cities" VALUES (285, 'LJU', 'Ljubljana', 149, '', 'LJU', true);
-INSERT INTO public."Cities" VALUES (286, 'LUN', 'Lusaka', 150, '', 'LUN', true);
-INSERT INTO public."Cities" VALUES (287, 'NBO', 'Nairobi', 152, '', 'NBO', true);
-INSERT INTO public."Cities" VALUES (288, 'MCT', 'Muscat', 154, '', 'MCT', true);
-INSERT INTO public."Cities" VALUES (289, 'MGA', 'Managua', 156, '', 'MGA', true);
-INSERT INTO public."Cities" VALUES (290, 'MLW', 'Monrovia', 158, '', 'MLW', true);
-INSERT INTO public."Cities" VALUES (291, 'NKC', 'Nouakchott', 164, '', 'NKC', true);
-INSERT INTO public."Cities" VALUES (292, 'NIM', 'Niamey', 167, '', 'NIM', true);
-INSERT INTO public."Cities" VALUES (293, 'PBM', 'Paramaribo', 170, '', 'PBM', true);
-INSERT INTO public."Cities" VALUES (294, 'SAP', 'San Pedro Sula', 178, '', 'SAP', true);
-INSERT INTO public."Cities" VALUES (295, 'TGU', 'Tegucigalpa', 178, '', 'TGU', true);
-INSERT INTO public."Cities" VALUES (296, 'SAL', 'San Salvador', 180, '', 'SAL', true);
-INSERT INTO public."Cities" VALUES (297, 'SEZ', 'Mahe Island', 181, '', 'SEZ', true);
-INSERT INTO public."Cities" VALUES (298, 'SJJ', 'Sarajevo', 183, '', 'SJJ', true);
-INSERT INTO public."Cities" VALUES (299, 'SOF', 'Sofia', 185, '', 'SOF', true);
-INSERT INTO public."Cities" VALUES (300, 'THR', 'Teheran', 189, '', 'THR', true);
-INSERT INTO public."Cities" VALUES (301, 'TIA', 'Tirana', 190, '', 'TIA', true);
 
 
 --
 -- Data for Name: Client; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Client" VALUES (1, 'Rubiel', '73009263', NULL, NULL, NULL, NULL, true);
 
 
 --
@@ -17171,200 +16365,6 @@ INSERT INTO public."Client" VALUES (1, 'Rubiel', '73009263', NULL, NULL, NULL, N
 -- Data for Name: Countries; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Countries" VALUES (1, 'CO', 'Colombia', '169', 'LA', '57', 1, true);
-INSERT INTO public."Countries" VALUES (2, 'US', 'Estados Unidos', '249', 'NA', '1', 2, true);
-INSERT INTO public."Countries" VALUES (3, 'ES', 'España', '245', 'EUR', '34', 3, true);
-INSERT INTO public."Countries" VALUES (4, 'DZ', 'Algeria', '059', 'AFR', '213', 4, true);
-INSERT INTO public."Countries" VALUES (5, 'DK', 'Denmark', '232', 'EUR', '45', 5, true);
-INSERT INTO public."Countries" VALUES (7, 'CI', 'Cote d Ivoire', '193', 'AFR', '225', 7, true);
-INSERT INTO public."Countries" VALUES (8, 'SA', 'Saudi Arabia', '053', 'MEA', '966', 8, true);
-INSERT INTO public."Countries" VALUES (9, 'NG', 'Nigeria', '528', 'AFR', '234', 9, true);
-INSERT INTO public."Countries" VALUES (10, 'AU', 'Australia', '069', 'PAC', '61', 10, true);
-INSERT INTO public."Countries" VALUES (11, 'GB', 'United Kingdom', '628', 'EUR', '44', 11, true);
-INSERT INTO public."Countries" VALUES (12, 'MX', 'Mexico', '493', 'LA', '52', 12, true);
-INSERT INTO public."Countries" VALUES (13, 'GH', 'Ghana', '289', 'AFR', '233', 13, true);
-INSERT INTO public."Countries" VALUES (15, 'TR', 'Turkey', '827', 'ASI', '90', 15, true);
-INSERT INTO public."Countries" VALUES (16, 'ET', 'Ethiopia', '253', 'AFR', '251', 16, true);
-INSERT INTO public."Countries" VALUES (17, 'YE', 'Yemen', '880', 'MEA', '967', 17, true);
-INSERT INTO public."Countries" VALUES (19, 'AR', 'Argentina', '063', 'LA', '54', 19, true);
-INSERT INTO public."Countries" VALUES (20, 'RU', 'Russian Federation', '670', 'EUR', '7', 20, true);
-INSERT INTO public."Countries" VALUES (21, 'NO', 'Norway', '538', 'EUR', '47', 21, true);
-INSERT INTO public."Countries" VALUES (22, 'IS', 'Iceland', '379', 'EUR', '354', 22, true);
-INSERT INTO public."Countries" VALUES (23, 'MA', 'Morocco', '474', 'AFR', '212', 23, true);
-INSERT INTO public."Countries" VALUES (24, 'DE', 'Germany', '023', 'EUR', '49', 3, true);
-INSERT INTO public."Countries" VALUES (25, 'FR', 'France', '275', 'EUR', '33', 3, true);
-INSERT INTO public."Countries" VALUES (26, 'SE', 'Sweden', '764', 'EUR', '46', 24, true);
-INSERT INTO public."Countries" VALUES (27, 'IN', 'India', '361', 'ASI', '91', 25, true);
-INSERT INTO public."Countries" VALUES (28, 'ID', 'Indonesia', '365', 'ASI', '62', 26, true);
-INSERT INTO public."Countries" VALUES (29, 'IT', 'Italy', '386', 'EUR', '39', 3, true);
-INSERT INTO public."Countries" VALUES (30, 'CK', 'Cook Islands', '183', 'PAC', '682', 27, true);
-INSERT INTO public."Countries" VALUES (31, 'BR', 'Brazil', '105', 'LA', '55', 28, true);
-INSERT INTO public."Countries" VALUES (32, 'NZ', 'New Zealand', '548', 'PAC', '64', 27, true);
-INSERT INTO public."Countries" VALUES (33, 'KZ', 'Kazakstan', '406', 'ASI', '7', 29, true);
-INSERT INTO public."Countries" VALUES (34, 'ZA', 'South Africa', '756', 'AFR', '27', 30, true);
-INSERT INTO public."Countries" VALUES (35, 'SY', 'Syrian Arab Republic', '744', 'MEA', '963', 31, true);
-INSERT INTO public."Countries" VALUES (36, 'AD', 'Andorra', '037', 'NULL', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (37, 'EG', 'Egypt', '240', 'MEA', '20', 32, true);
-INSERT INTO public."Countries" VALUES (38, 'JO', 'Jordan', '403', 'MEA', '962', 33, true);
-INSERT INTO public."Countries" VALUES (39, 'NL', 'Netherlands', '573', 'EUR', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (40, 'CL', 'Chile', '211', 'LA', '56', 34, true);
-INSERT INTO public."Countries" VALUES (41, 'BE', 'Belgium', '087', 'EUR', '32', 3, true);
-INSERT INTO public."Countries" VALUES (42, 'AG', 'Antigua and Barbuda', '043', 'CAR', '1268', 35, true);
-INSERT INTO public."Countries" VALUES (43, 'MY', 'Malaysia', '455', 'ASI', '60', 36, true);
-INSERT INTO public."Countries" VALUES (44, 'MZ', 'Mozambique', '505', 'AFR', '258', 37, true);
-INSERT INTO public."Countries" VALUES (45, 'WS', 'Samoa', '687', 'PAC', '685', 38, true);
-INSERT INTO public."Countries" VALUES (46, 'PE', 'Peru', '589', 'LA', '51', 39, true);
-INSERT INTO public."Countries" VALUES (47, 'JP', 'Japan', '399', 'ASI', '81', 40, true);
-INSERT INTO public."Countries" VALUES (48, 'ER', 'Eritrea', '243', 'NULL', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (49, 'PY', 'Paraguay', '586', 'LA', '595', 41, true);
-INSERT INTO public."Countries" VALUES (50, 'BS', 'Bahamas', '077', 'CAR', '1242', 42, true);
-INSERT INTO public."Countries" VALUES (51, 'GR', 'Greece', '301', 'EUR', '30', 3, true);
-INSERT INTO public."Countries" VALUES (52, 'AW', 'Aruba', '027', 'NULL', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (53, 'AE', 'United Arab Emirates', '244', 'MEA', '971', 43, true);
-INSERT INTO public."Countries" VALUES (54, 'PF', 'French Polynesia', '599', 'PAC', '689', 44, true);
-INSERT INTO public."Countries" VALUES (55, 'CU', 'Cuba', '199', 'CAR', '53', 45, true);
-INSERT INTO public."Countries" VALUES (56, 'AI', 'Anguilla', '041', 'CAR', '1264', 35, true);
-INSERT INTO public."Countries" VALUES (57, 'PH', 'Philippines', '267', 'ASI', '63', 46, true);
-INSERT INTO public."Countries" VALUES (58, 'BH', 'Bahrain', '080', 'ASI', '973', 47, true);
-INSERT INTO public."Countries" VALUES (59, 'AZ', 'Azerbaijan', '074', 'ASI', '994', 48, true);
-INSERT INTO public."Countries" VALUES (60, 'BW', 'Botswana', '101', 'AFR', '267', 49, true);
-INSERT INTO public."Countries" VALUES (61, 'RO', 'Romania', '670', 'EUR', '40', 50, true);
-INSERT INTO public."Countries" VALUES (62, 'BM', 'Bermuda', '090', 'CAR', '1441', 51, true);
-INSERT INTO public."Countries" VALUES (63, 'YU', 'Yugoslavia', '885', 'EUR', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (64, 'LB', 'Lebanon', '431', 'MEA', '961', 52, true);
-INSERT INTO public."Countries" VALUES (65, 'FJ', 'Fiji', '870', 'PAC', '679', 53, true);
-INSERT INTO public."Countries" VALUES (66, 'CF', 'Central African Republic', '640', 'AFR', '236', 54, true);
-INSERT INTO public."Countries" VALUES (67, 'BB', 'Barbados', '083', 'CAR', '1246', 55, true);
-INSERT INTO public."Countries" VALUES (68, 'IQ', 'Iraq', '369', 'MEA', '964', 56, true);
-INSERT INTO public."Countries" VALUES (69, 'CN', 'China', '215', 'ASI', '86', 57, true);
-INSERT INTO public."Countries" VALUES (70, 'MH', 'Marshall Islands', '472', 'NULL', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (71, 'GM', 'Gambia', '285', 'AFR', '220', 58, true);
-INSERT INTO public."Countries" VALUES (72, 'BI', 'Burundi', '115', 'AFR', '257', 59, true);
-INSERT INTO public."Countries" VALUES (73, 'TH', 'Thailand', '776', 'ASI', '66', 60, true);
-INSERT INTO public."Countries" VALUES (74, 'ML', 'Mali', '464', 'AFR', '223', 7, true);
-INSERT INTO public."Countries" VALUES (75, 'VE', 'Venezuela', '850', 'LA', '58', 61, true);
-INSERT INTO public."Countries" VALUES (76, 'MW', 'Malawi', '458', 'AFR', '265', 62, true);
-INSERT INTO public."Countries" VALUES (77, 'AN', 'Netherlands Antilles', '047', 'CAR', '31', 63, true);
-INSERT INTO public."Countries" VALUES (78, 'CH', 'Switzerland', '767', 'EUR', '41', 64, true);
-INSERT INTO public."Countries" VALUES (79, 'CZ', 'Czech Republic', '644', 'EUR', '420', 65, true);
-INSERT INTO public."Countries" VALUES (80, 'DO', 'Dominican Republic', '647', 'CAR', '1089', 66, true);
-INSERT INTO public."Countries" VALUES (81, 'SK', 'Slovakia', '246', 'EUR', '421', 3, true);
-INSERT INTO public."Countries" VALUES (82, 'HU', 'Hungary', '355', 'EUR', '36', 67, true);
-INSERT INTO public."Countries" VALUES (83, 'ZW', 'Zimbabwe', '665', 'AFR', '263', 68, true);
-INSERT INTO public."Countries" VALUES (84, 'CV', 'Cape Verde', '127', 'AFR', '238', 69, true);
-INSERT INTO public."Countries" VALUES (85, 'BN', 'Brunei Darussalam', '108', 'ASI', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (86, 'BZ', 'Belize', '088', 'LA', '501', 70, true);
-INSERT INTO public."Countries" VALUES (87, 'CG', 'Congo', '177', 'AFR', '242', 54, true);
-INSERT INTO public."Countries" VALUES (88, 'BO', 'Bolivia', '097', 'LA', '591', 71, true);
-INSERT INTO public."Countries" VALUES (89, 'HT', 'Haiti', '341', 'CAR', '509', 72, true);
-INSERT INTO public."Countries" VALUES (90, 'GF', 'French Guiana', '325', 'LA', '594', 3, true);
-INSERT INTO public."Countries" VALUES (91, 'PT', 'Portugal', '607', 'EUR', '351', 3, true);
-INSERT INTO public."Countries" VALUES (92, 'GP', 'Guadeloupe', '309', 'CAR', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (93, 'IE', 'Ireland', '375', 'EUR', '353', 3, true);
-INSERT INTO public."Countries" VALUES (94, 'BD', 'Bangladesh', '081', 'ASI', '880', 73, true);
-INSERT INTO public."Countries" VALUES (95, 'PA', 'Panama', '580', 'LA', '507', 2, true);
-INSERT INTO public."Countries" VALUES (96, 'KR', 'Korea, Republic Of', '190', 'ASI', '82', 74, true);
-INSERT INTO public."Countries" VALUES (97, 'GN', 'Guinea', '329', 'AFR', '224', 75, true);
-INSERT INTO public."Countries" VALUES (98, 'LK', 'Sri Lanka', '750', 'ASI', '94', 76, true);
-INSERT INTO public."Countries" VALUES (99, 'BJ', 'Benin', '229', 'AFR', '229', 7, true);
-INSERT INTO public."Countries" VALUES (100, 'EC', 'Ecuador', '239', 'LA', '593', 2, true);
-INSERT INTO public."Countries" VALUES (101, 'CA', 'Canada', '149', 'NA', '1', 77, true);
-INSERT INTO public."Countries" VALUES (102, 'KY', 'Cayman Islands', '137', 'CAR', '1345', 78, true);
-INSERT INTO public."Countries" VALUES (103, 'UY', 'Uruguay', '845', 'LA', '598', 79, true);
-INSERT INTO public."Countries" VALUES (104, 'TZ', 'Tanzania, United Republic Of', '780', 'AFR', '255', 80, true);
-INSERT INTO public."Countries" VALUES (105, 'HR', 'Croatia', '198', 'EUR', '385', 81, true);
-INSERT INTO public."Countries" VALUES (106, 'DM', 'Dominica', '235', 'CAR', '1767', 35, true);
-INSERT INTO public."Countries" VALUES (107, 'TN', 'Tunisia', '820', 'AFR', '216', 82, true);
-INSERT INTO public."Countries" VALUES (108, 'SN', 'Senegal', '728', 'AFR', '221', 7, true);
-INSERT INTO public."Countries" VALUES (109, 'CM', 'Cameroon', '145', 'AFR', '237', 54, true);
-INSERT INTO public."Countries" VALUES (110, 'VN', 'Vietnam', '855', 'ASI', '84', 83, true);
-INSERT INTO public."Countries" VALUES (111, 'QA', 'Qatar', '618', 'MEA', '974', 84, true);
-INSERT INTO public."Countries" VALUES (112, 'UG', 'Uganda', '833', 'AFR', '256', 85, true);
-INSERT INTO public."Countries" VALUES (113, 'CY', 'Cyprus', '221', 'EUR', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (114, 'VG', 'Virgin Islands, British', '863', 'CAR', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (115, 'NA', 'Namibia', '507', 'AFR', '264', 86, true);
-INSERT INTO public."Countries" VALUES (116, 'IL', 'Israel', '383', 'MEA', '972', 87, true);
-INSERT INTO public."Countries" VALUES (117, 'CD', 'Congo, The Democratic Republic Of', 'NULL', 'NULL', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (118, 'MQ', 'Martinique', '477', 'CAR', '33', 3, true);
-INSERT INTO public."Countries" VALUES (119, 'SL', 'Sierra Leone', '735', 'AFR', '232', 88, true);
-INSERT INTO public."Countries" VALUES (120, 'GT', 'Guatemala', '317', 'CAR', '502', 89, true);
-INSERT INTO public."Countries" VALUES (121, 'PL', 'Poland', '603', 'EUR', '48', 90, true);
-INSERT INTO public."Countries" VALUES (122, 'TC', 'Turks and Caicos Islands', '823', 'CAR', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (123, 'NC', 'New Caledonia', '542', 'PAC', '687', 44, true);
-INSERT INTO public."Countries" VALUES (124, 'GI', 'Gibraltar', '293', 'EUR', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (125, 'PG', 'Papua New Guinea', '545', 'PAC', '675', 91, true);
-INSERT INTO public."Countries" VALUES (126, 'GL', 'Greenland', '305', 'NA', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (127, 'AT', 'Austria', '072', 'EUR', '43', 3, true);
-INSERT INTO public."Countries" VALUES (128, 'GU', 'Guam', '313', 'PAC', '671', 2, true);
-INSERT INTO public."Countries" VALUES (129, 'MT', 'Malta', '467', 'EUR', '356', 3, true);
-INSERT INTO public."Countries" VALUES (130, 'KM', 'Comoros', '173', 'AFR', '269', 92, true);
-INSERT INTO public."Countries" VALUES (131, 'TW', 'Taiwan, Province of China', '218', 'ASI', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (132, 'PK', 'Pakistan', '576', 'ASI', '92', 93, true);
-INSERT INTO public."Countries" VALUES (133, 'FI', 'Finland', '271', 'EUR', '358', 3, true);
-INSERT INTO public."Countries" VALUES (134, 'SB', 'Solomon Islands', '677', 'PAC', '677', 94, true);
-INSERT INTO public."Countries" VALUES (135, 'HK', 'Hong Kong', '351', 'ASI', '852', 95, true);
-INSERT INTO public."Countries" VALUES (136, 'UA', 'Ukraine', '830', 'EUR', '380', 96, true);
-INSERT INTO public."Countries" VALUES (137, 'NU', 'Niue', '531', 'PAC', '683', 27, true);
-INSERT INTO public."Countries" VALUES (138, 'DJ', 'Djibouti', 'NULL', 'AFR', '253', 97, true);
-INSERT INTO public."Countries" VALUES (139, 'RW', 'Rwanda', '675', 'AFR', '250', 98, true);
-INSERT INTO public."Countries" VALUES (140, 'JM', 'Jamaica', '391', 'CAR', '1876', 99, true);
-INSERT INTO public."Countries" VALUES (141, 'SD', 'Sudan', '759', 'AFR', '249', 100, true);
-INSERT INTO public."Countries" VALUES (142, 'NP', 'Nepal', '517', 'ASI', '977', 101, true);
-INSERT INTO public."Countries" VALUES (143, 'LT', 'Lithuania', '443', 'EUR', '9876', 102, true);
-INSERT INTO public."Countries" VALUES (144, 'KW', 'Kuwait', '413', 'MEA', '965', 103, true);
-INSERT INTO public."Countries" VALUES (145, 'AO', 'Angola', '040', 'AFR', '244', 104, true);
-INSERT INTO public."Countries" VALUES (146, 'GA', 'Gabon', '281', 'AFR', '241', 54, true);
-INSERT INTO public."Countries" VALUES (147, 'TG', 'Togo', '800', 'AFR', '228', 7, true);
-INSERT INTO public."Countries" VALUES (148, 'CR', 'Costa Rica', '196', 'LA', '506', 105, true);
-INSERT INTO public."Countries" VALUES (149, 'SI', 'Slovenia', '247', 'NULL', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (150, 'ZM', 'Zambia', '890', 'AFR', '260', 106, true);
-INSERT INTO public."Countries" VALUES (151, 'LU', 'Luxembourg', '445', 'EUR', '352', 3, true);
-INSERT INTO public."Countries" VALUES (152, 'KE', 'Kenya', '410', 'AFR', '254', 107, true);
-INSERT INTO public."Countries" VALUES (153, 'MC', 'Monaco', '498', 'EUR', '377', 3, true);
-INSERT INTO public."Countries" VALUES (154, 'OM', 'Oman', '556', 'MEA', '968', 108, true);
-INSERT INTO public."Countries" VALUES (155, 'MO', 'Macau', '447', 'ASI', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (156, 'NI', 'Nicaragua', '521', 'LA', '505', 109, true);
-INSERT INTO public."Countries" VALUES (157, 'MV', 'Maldives', '461', 'ASI', '960', 110, true);
-INSERT INTO public."Countries" VALUES (158, 'LR', 'Liberia', '434', 'AFR', '231', 111, true);
-INSERT INTO public."Countries" VALUES (159, 'KI', 'Kiribati', '411', 'PAC', '686', 10, true);
-INSERT INTO public."Countries" VALUES (160, 'MU', 'Mauritius', '485', 'AFR', '230', 112, true);
-INSERT INTO public."Countries" VALUES (161, 'BY', 'Belarus', '091', 'EUR', '375', 3, true);
-INSERT INTO public."Countries" VALUES (162, 'LS', 'Lesotho', '426', 'AFR', '266', 113, true);
-INSERT INTO public."Countries" VALUES (163, 'SZ', 'Swaziland', '773', 'AFR', '268', 114, true);
-INSERT INTO public."Countries" VALUES (164, 'MR', 'Mauritania', '488', 'AFR', '222', 115, true);
-INSERT INTO public."Countries" VALUES (165, 'TD', 'Chad', '203', 'AFR', '235', 54, true);
-INSERT INTO public."Countries" VALUES (166, 'KN', 'Saint Kitts and Nevis', '695', 'CAR', '1869', 35, true);
-INSERT INTO public."Countries" VALUES (167, 'NE', 'Niger', '525', 'AFR', '227', 7, true);
-INSERT INTO public."Countries" VALUES (168, 'BF', 'Burkina Faso', '031', 'AFR', '226', 7, true);
-INSERT INTO public."Countries" VALUES (169, 'GW', 'Guinea-Bissau', '334', 'AFR', '245', 7, true);
-INSERT INTO public."Countries" VALUES (170, 'SR', 'Suriname', '770', 'LA', '597', 116, true);
-INSERT INTO public."Countries" VALUES (171, 'KH', 'Cambodia', '141', 'ASI', '855', 117, true);
-INSERT INTO public."Countries" VALUES (172, 'TT', 'Trinidad and Tobago', '815', 'CAR', '1868', 118, true);
-INSERT INTO public."Countries" VALUES (173, 'AS', 'American Samoa', '690', 'PAC', '1684', 2, true);
-INSERT INTO public."Countries" VALUES (174, 'MM', 'Myanmar', '093', 'ASI', '95', 119, true);
-INSERT INTO public."Countries" VALUES (175, 'LV', 'Latvia', '429', 'EUR', '371', 120, true);
-INSERT INTO public."Countries" VALUES (176, 'MP', 'Northern Mariana Islands', 'NULL', 'NULL', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (177, 'PW', 'Palau', '578', 'NULL', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (178, 'HN', 'Honduras', '345', 'LA', '504', 121, true);
-INSERT INTO public."Countries" VALUES (179, 'RE', 'Reunion', '660', 'AFR', '33', 3, true);
-INSERT INTO public."Countries" VALUES (180, 'SV', 'El Salvador', '242', 'LA', '503', 122, true);
-INSERT INTO public."Countries" VALUES (181, 'SC', 'Seychelles', '731', 'AFR', '248', 123, true);
-INSERT INTO public."Countries" VALUES (182, 'SG', 'Singapore', '741', 'ASI', '65', 124, true);
-INSERT INTO public."Countries" VALUES (183, 'BA', 'Bosnia and Herzegovina', '029', 'EUR', '387', 125, true);
-INSERT INTO public."Countries" VALUES (184, 'MK', 'Macedonia, The Former Yugoslav Republic of', '448', 'NULL', 'NULL', NULL, true);
-INSERT INTO public."Countries" VALUES (185, 'BG', 'Bulgaria', '111', 'EUR', '359', 126, true);
-INSERT INTO public."Countries" VALUES (186, 'UZ', 'Uzbekistan', '847', 'ASI', '998', 127, true);
-INSERT INTO public."Countries" VALUES (187, 'GE', 'Georgia', '287', 'ASI', '995', 128, true);
-INSERT INTO public."Countries" VALUES (188, 'TO', 'Tonga', '810', 'PAC', '676', 129, true);
-INSERT INTO public."Countries" VALUES (189, 'IR', 'Iran, Islamic Republic Of', '372', 'MEA', '98', 130, true);
-INSERT INTO public."Countries" VALUES (190, 'AL', 'Albania', '017', 'EUR', '355', 131, true);
-INSERT INTO public."Countries" VALUES (191, 'EE', 'Estonia', '251', 'EUR', '372', 3, true);
-INSERT INTO public."Countries" VALUES (192, 'MG', 'Madagascar', '450', 'AFR', '261', 132, true);
-INSERT INTO public."Countries" VALUES (193, 'LY', 'Libyan Arab Jamahiriya', '438', 'AFR', '218', 133, true);
-INSERT INTO public."Countries" VALUES (194, 'VC', 'Saint Vincent and The Grenadines', '705', 'CAR', '1784', 35, true);
-INSERT INTO public."Countries" VALUES (195, 'VU', 'Vanuatu', '551', 'PAC', '678', 134, true);
-INSERT INTO public."Countries" VALUES (196, 'LA', 'Lao People s Democratic Republic', '420', 'ASI', '856', 135, true);
-INSERT INTO public."Countries" VALUES (197, 'ST', 'STONIA', '251', 'AFR', '239', 136, true);
 
 
 --
@@ -17377,139 +16377,6 @@ INSERT INTO public."Countries" VALUES (197, 'ST', 'STONIA', '251', 'AFR', '239',
 -- Data for Name: Currency; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Currency" VALUES (1, 'COP', 'Peso Colombiano', 1, 2, true);
-INSERT INTO public."Currency" VALUES (2, 'USD', 'Dólar Estadounidense', 4200, 2, true);
-INSERT INTO public."Currency" VALUES (3, 'EUR', 'Euro', 4500, 2, true);
-INSERT INTO public."Currency" VALUES (4, 'DZD', 'Dinar algerino', 1, 2, false);
-INSERT INTO public."Currency" VALUES (5, 'DKK', 'Corona danesa', 1, 2, false);
-INSERT INTO public."Currency" VALUES (7, 'XOF', 'franco CFA', 1, 2, false);
-INSERT INTO public."Currency" VALUES (8, 'SAR', 'Riyal saudi', 1, 2, false);
-INSERT INTO public."Currency" VALUES (9, 'NGN', 'Naira nigeriana', 1, 2, false);
-INSERT INTO public."Currency" VALUES (10, 'AUD', 'Dolar Australiano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (11, 'GBP', 'Libra Estelina', 1, 2, false);
-INSERT INTO public."Currency" VALUES (12, 'MXN', 'Peso Mexicano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (13, 'GHS', 'Cedi ghanes', 1, 2, false);
-INSERT INTO public."Currency" VALUES (15, 'TRY', 'lira turca', 1, 2, false);
-INSERT INTO public."Currency" VALUES (16, 'ETB', 'Birr etiope', 1, 2, false);
-INSERT INTO public."Currency" VALUES (17, 'YER', 'Rial yemeni', 1, 2, false);
-INSERT INTO public."Currency" VALUES (19, 'ARS', 'Peso argentino', 1, 2, false);
-INSERT INTO public."Currency" VALUES (20, 'RUB', 'Rublo Ruso', 1, 2, false);
-INSERT INTO public."Currency" VALUES (21, 'NOK', 'Corona noruega', 1, 2, false);
-INSERT INTO public."Currency" VALUES (22, 'ISK', 'Krona islandesa', 1, 2, false);
-INSERT INTO public."Currency" VALUES (23, 'MAD', 'Dirham marroqui', 1, 2, false);
-INSERT INTO public."Currency" VALUES (24, 'SEK', 'Corona Sueca', 1, 2, false);
-INSERT INTO public."Currency" VALUES (25, 'INR', 'India Rupees', 1, 2, false);
-INSERT INTO public."Currency" VALUES (26, 'IDR', 'Rupiah indonesia', 1, 2, false);
-INSERT INTO public."Currency" VALUES (27, 'NZD', 'Dolar neozelandes', 1, 2, false);
-INSERT INTO public."Currency" VALUES (28, 'BRL', 'Real Brasilero', 1, 2, false);
-INSERT INTO public."Currency" VALUES (29, 'KZT', 'Tenge kazajo', 1, 2, false);
-INSERT INTO public."Currency" VALUES (30, 'ZAR', 'Rand Sudafricano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (31, 'SYP', 'Libra siria', 1, 2, false);
-INSERT INTO public."Currency" VALUES (32, 'EGP', 'Libra egipcia', 1, 2, false);
-INSERT INTO public."Currency" VALUES (33, 'JOD', 'Dinar', 1, 2, false);
-INSERT INTO public."Currency" VALUES (34, 'CLP', 'Peso chileno', 1, 2, false);
-INSERT INTO public."Currency" VALUES (35, 'XCD', 'Dolar del Caribe Oriental', 1, 2, false);
-INSERT INTO public."Currency" VALUES (36, 'MYR', 'Ringgit malayo', 1, 2, false);
-INSERT INTO public."Currency" VALUES (37, 'MZN', 'Metical mozambique¤o', 1, 2, false);
-INSERT INTO public."Currency" VALUES (38, 'WST', 'Tala samoano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (39, 'PEN', 'Nuevo Sol', 1, 2, false);
-INSERT INTO public."Currency" VALUES (40, 'JPY', 'Yen Japones', 1, 2, false);
-INSERT INTO public."Currency" VALUES (41, 'PYG', 'Guaran¡ paraguayo', 1, 2, false);
-INSERT INTO public."Currency" VALUES (42, 'BSD', 'Dolar bahameno', 1, 2, false);
-INSERT INTO public."Currency" VALUES (43, 'AED', 'Dirham de los Emiratos arabes', 1, 2, false);
-INSERT INTO public."Currency" VALUES (44, 'XPF', 'Franco CFP', 1, 2, false);
-INSERT INTO public."Currency" VALUES (45, 'CUP', 'Cuba Pesos', 1, 2, false);
-INSERT INTO public."Currency" VALUES (46, 'PHP', 'Filipinas Pesos', 1, 2, false);
-INSERT INTO public."Currency" VALUES (47, 'BHD', 'Dinar bahreini', 1, 2, false);
-INSERT INTO public."Currency" VALUES (48, 'AZN', 'Franco CFP', 1, 2, false);
-INSERT INTO public."Currency" VALUES (49, 'BWP', 'Pula de Botsuana', 1, 2, false);
-INSERT INTO public."Currency" VALUES (50, 'RON', 'Leu rumano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (51, 'BMD', 'Dolar de Bermuda', 1, 2, false);
-INSERT INTO public."Currency" VALUES (52, 'LBP', 'Libra libanesa', 1, 2, false);
-INSERT INTO public."Currency" VALUES (53, 'FJD', 'Dolar fijiano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (54, 'XAF', 'Franco CFA', 1, 2, false);
-INSERT INTO public."Currency" VALUES (55, 'BBD', 'Dolar de Barbados', 1, 2, false);
-INSERT INTO public."Currency" VALUES (56, 'IQD', 'Dinar iraqui', 1, 2, false);
-INSERT INTO public."Currency" VALUES (57, 'CNY', 'Yuan Renminbi Chino', 1, 2, false);
-INSERT INTO public."Currency" VALUES (58, 'GMD', 'Dalasi gambiano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (59, 'BIF', 'Franco burunds', 1, 2, false);
-INSERT INTO public."Currency" VALUES (60, 'THB', 'Baht Thailandes', 1, 2, false);
-INSERT INTO public."Currency" VALUES (61, 'VEF', 'Bolivar', 1, 2, false);
-INSERT INTO public."Currency" VALUES (62, 'MWK', 'Kwacha malauiano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (63, 'ANG', 'Florin antillano neerlandes', 1, 2, false);
-INSERT INTO public."Currency" VALUES (64, 'CHF', 'FRANCO FRANCES', 1, 2, false);
-INSERT INTO public."Currency" VALUES (65, 'CZK', 'Koruna', 1, 2, false);
-INSERT INTO public."Currency" VALUES (66, 'DOP', 'Peso dominicano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (67, 'HUF', 'Forint hungaro', 1, 2, false);
-INSERT INTO public."Currency" VALUES (68, 'ZWR', 'dolar zimbabuense', 1, 2, false);
-INSERT INTO public."Currency" VALUES (69, 'CVE', 'Escudo caboverdiano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (70, 'BZD', 'Dolar de Belice', 1, 2, false);
-INSERT INTO public."Currency" VALUES (71, 'BOB', 'Boliviano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (72, 'HTG', 'Gourde haitiano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (73, 'BDT', 'Taka de Bangladesh', 1, 2, false);
-INSERT INTO public."Currency" VALUES (74, 'KRW', 'Won Surcoreano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (75, 'GNF', 'Franco guineano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (76, 'LKR', 'Rupia de Sri Lanka', 1, 2, false);
-INSERT INTO public."Currency" VALUES (77, 'CAD', 'Dolar Canadiense', 1, 2, false);
-INSERT INTO public."Currency" VALUES (78, 'KYD', 'Dolar caimano de Islas Caiman', 1, 2, false);
-INSERT INTO public."Currency" VALUES (79, 'UYU', 'Peso Uruguayo', 1, 2, false);
-INSERT INTO public."Currency" VALUES (80, 'TZS', 'Chelin tanzano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (81, 'HRK', 'Kuna croata', 1, 2, false);
-INSERT INTO public."Currency" VALUES (82, 'TND', 'Dinar tunecino', 1, 2, false);
-INSERT INTO public."Currency" VALUES (83, 'VND', 'dong vietnamita', 1, 2, false);
-INSERT INTO public."Currency" VALUES (84, 'QAR', 'Rial qatari', 1, 2, false);
-INSERT INTO public."Currency" VALUES (85, 'UGX', 'chelín ugandes', 1, 2, false);
-INSERT INTO public."Currency" VALUES (86, 'NAD', 'Dolar namibio', 1, 2, false);
-INSERT INTO public."Currency" VALUES (87, 'ILS', 'Nuevo shequel israeli', 1, 2, false);
-INSERT INTO public."Currency" VALUES (88, 'SLL', 'Leone de Sierra Leona', 1, 2, false);
-INSERT INTO public."Currency" VALUES (89, 'GTQ', 'Quetzal guatemalteco', 1, 2, false);
-INSERT INTO public."Currency" VALUES (90, 'PLN', 'zloty polaco', 1, 2, false);
-INSERT INTO public."Currency" VALUES (91, 'PGK', 'Kina de Papua Nueva Guinea', 1, 2, false);
-INSERT INTO public."Currency" VALUES (92, 'KMF', 'Franco comoriano de Comoras', 1, 2, false);
-INSERT INTO public."Currency" VALUES (93, 'PKR', 'Rupia pakistani', 1, 2, false);
-INSERT INTO public."Currency" VALUES (94, 'SBD', 'Dolar de las Islas Salomon', 1, 2, false);
-INSERT INTO public."Currency" VALUES (95, 'HKD', 'Dolar Honkones', 1, 2, false);
-INSERT INTO public."Currency" VALUES (96, 'UAH', 'grivna ucraniana', 1, 2, false);
-INSERT INTO public."Currency" VALUES (97, 'DJF', 'Franco yibutiano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (98, 'RWF', 'Franco ruandes', 1, 2, false);
-INSERT INTO public."Currency" VALUES (99, 'JMD', 'Dolar Jamaicano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (100, 'SDG', 'Dinar sudanes', 1, 2, false);
-INSERT INTO public."Currency" VALUES (101, 'NPR', 'Rupia nepalesa', 1, 2, false);
-INSERT INTO public."Currency" VALUES (102, 'LTL', 'Litas lituano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (103, 'KWD', 'Dinar kuwaiti', 1, 2, false);
-INSERT INTO public."Currency" VALUES (104, 'AOA', 'Kwanza angoleno', 1, 2, false);
-INSERT INTO public."Currency" VALUES (105, 'CRC', 'Colon costarricense', 1, 2, false);
-INSERT INTO public."Currency" VALUES (106, 'ZMK', 'Kwacha zambiano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (107, 'KES', 'Chelin keniata', 1, 2, false);
-INSERT INTO public."Currency" VALUES (108, 'OMR', 'Rial omani', 1, 2, false);
-INSERT INTO public."Currency" VALUES (109, 'NIO', 'Cordoba nicaraguense', 1, 2, false);
-INSERT INTO public."Currency" VALUES (110, 'MVR', 'Rufiyaa maldiva', 1, 2, false);
-INSERT INTO public."Currency" VALUES (111, 'LRD', 'Dolar liberiano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (112, 'MUR', 'Rupia mauricia', 1, 2, false);
-INSERT INTO public."Currency" VALUES (113, 'LSL', 'Loti lesotense', 1, 2, false);
-INSERT INTO public."Currency" VALUES (114, 'SZL', 'Lilangeni suazi', 1, 2, false);
-INSERT INTO public."Currency" VALUES (115, 'MRO', 'Ouguiya mauritana', 1, 2, false);
-INSERT INTO public."Currency" VALUES (116, 'SRD', 'Dolar surinames', 1, 2, false);
-INSERT INTO public."Currency" VALUES (117, 'KHR', 'Riel camboyano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (118, 'TTD', 'dolar de Trinidad y Tobago', 1, 2, false);
-INSERT INTO public."Currency" VALUES (119, 'MMK', 'Kyat birmano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (120, 'LVL', 'Lat leton', 1, 2, false);
-INSERT INTO public."Currency" VALUES (121, 'HNL', 'Lempira hondureno', 1, 2, false);
-INSERT INTO public."Currency" VALUES (122, 'SVC', 'Colón salvadoreno', 1, 2, false);
-INSERT INTO public."Currency" VALUES (123, 'SCR', 'Rupia de Seychelles', 1, 2, false);
-INSERT INTO public."Currency" VALUES (124, 'SGD', 'Dolar Singapur', 1, 2, false);
-INSERT INTO public."Currency" VALUES (125, 'BAM', 'Marco convertible de BosniaHe', 1, 2, false);
-INSERT INTO public."Currency" VALUES (126, 'BGN', 'Lev belgaro', 1, 2, false);
-INSERT INTO public."Currency" VALUES (127, 'UZS', 'Som uzbeko', 1, 2, false);
-INSERT INTO public."Currency" VALUES (128, 'GEL', 'Lari georgiano', 1, 2, false);
-INSERT INTO public."Currency" VALUES (129, 'TOP', 'Dinar kuwaiti', 1, 2, false);
-INSERT INTO public."Currency" VALUES (130, 'IRR', 'Rial irani', 1, 2, false);
-INSERT INTO public."Currency" VALUES (131, 'ALL', 'Lek albanes', 1, 2, false);
-INSERT INTO public."Currency" VALUES (132, 'MGA', 'Ariary malgache', 1, 2, false);
-INSERT INTO public."Currency" VALUES (133, 'LYD', 'Dinar libio', 1, 2, false);
-INSERT INTO public."Currency" VALUES (134, 'VUV', 'Vatu de Vanuatu', 1, 2, false);
-INSERT INTO public."Currency" VALUES (135, 'LAK', 'Kip lao', 1, 2, false);
-INSERT INTO public."Currency" VALUES (136, 'STD', 'Dobra de Santo Tomas y Principe', 1, 2, false);
 
 
 --
@@ -17552,15 +16419,6 @@ INSERT INTO public."Currency" VALUES (136, 'STD', 'Dobra de Santo Tomas y Princi
 -- Data for Name: GDS; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."GDS" VALUES (1, 'SABRE');
-INSERT INTO public."GDS" VALUES (2, 'AMADEUS');
-INSERT INTO public."GDS" VALUES (3, 'AEROGAL');
-INSERT INTO public."GDS" VALUES (4, 'GALILEO');
-INSERT INTO public."GDS" VALUES (5, 'ZEUS ON LINE (ZOL)');
-INSERT INTO public."GDS" VALUES (6, 'WEB SERVICE');
-INSERT INTO public."GDS" VALUES (7, 'KIU');
-INSERT INTO public."GDS" VALUES (8, 'IdeasFractal');
-INSERT INTO public."GDS" VALUES (9, 'SparkCopa');
 
 
 --
@@ -17579,9 +16437,6 @@ INSERT INTO public."GDS" VALUES (9, 'SparkCopa');
 -- Data for Name: Interfaces; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Interfaces" VALUES (1, 'SABRE', 'SABRE', true, false, 'spInterfaceSabre', false, '', false, 1);
-INSERT INTO public."Interfaces" VALUES (2, 'AMADEUS', 'AMADEUS', true, false, 'spInterfaceAmadeus', false, '', false, 2);
-INSERT INTO public."Interfaces" VALUES (3, 'IdeasFractal', 'IdeasFractal', false, false, 'spInterfaceIdeasFractal', false, '', false, 8);
 
 
 --
@@ -17664,7 +16519,6 @@ INSERT INTO public."Master" VALUES (25, 'Airports', 'aeropuertos', false);
 INSERT INTO public."Master" VALUES (26, 'TicketType', 'tipos-tiquetes', false);
 INSERT INTO public."Master" VALUES (27, 'QuotationState', 'estados-cotizacion', false);
 INSERT INTO public."Master" VALUES (28, 'QuotationFormat', 'formatos-cotizacion', false);
-INSERT INTO public."Master" VALUES (57, 'Diagnostics', 'diagnostico', false);
 
 
 --
@@ -17677,14 +16531,14 @@ INSERT INTO public."Master" VALUES (57, 'Diagnostics', 'diagnostico', false);
 -- Data for Name: Menu; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Menu" VALUES (2, 'PRECOTIZACIONES', 'Pre-Cotizaciones', NULL, '/dashboard/prequotations', true);
-INSERT INTO public."Menu" VALUES (7, 'EJECUCIONES', 'Ejecuciones', NULL, '/dashboard/executions', true);
-INSERT INTO public."Menu" VALUES (8, 'MANUAL', 'Manual Operativo', NULL, '/dashboard/manual', true);
 INSERT INTO public."Menu" VALUES (1, 'DASHBOARD', 'Dashboard', NULL, '/dashboard', true);
+INSERT INTO public."Menu" VALUES (2, 'PRECOTIZACIONES', 'Pre-Cotizaciones', NULL, '/dashboard/prequotations', true);
 INSERT INTO public."Menu" VALUES (3, 'COTIZACIONES', 'Cotizaciones', NULL, '/dashboard/quotations/history', true);
 INSERT INTO public."Menu" VALUES (4, 'FACTURACION', 'Facturación', NULL, '/dashboard/invoices/history', true);
 INSERT INTO public."Menu" VALUES (5, 'MAESTROS', 'Maestros', NULL, '/dashboard/settings', true);
 INSERT INTO public."Menu" VALUES (6, 'REPORTES', 'Reportes', NULL, '/dashboard/reports', true);
+INSERT INTO public."Menu" VALUES (7, 'EJECUCIONES', 'Ejecuciones', NULL, '/dashboard/executions', true);
+INSERT INTO public."Menu" VALUES (8, 'MANUAL', 'Manual Operativo', NULL, '/dashboard/manual', true);
 
 
 --
@@ -17715,15 +16569,12 @@ INSERT INTO public."Menu" VALUES (6, 'REPORTES', 'Reportes', NULL, '/dashboard/r
 -- Data for Name: Product; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Product" VALUES (1, 'ALOJAMIENTO', 'Hotel', 0, 0, NULL, NULL, 'HTL', NULL, NULL, NULL, NULL, NULL, '[]', true);
-INSERT INTO public."Product" VALUES (2, 'ALQUILER', 'RestaAuto', 0, 0, NULL, NULL, 'RTA', NULL, NULL, NULL, NULL, NULL, '[]', true);
 
 
 --
 -- Data for Name: Provider; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Provider" VALUES (1, '73009263', 'Rubiel', NULL, NULL, NULL, NULL, NULL, true);
 
 
 --
@@ -17802,8 +16653,6 @@ INSERT INTO public."Provider" VALUES (1, '73009263', 'Rubiel', NULL, NULL, NULL,
 -- Data for Name: QuotationState; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."QuotationState" VALUES (1, 'NUEVO', 'Nuevo', 'blue', '2026-09-03 17:55:30.883781', true);
-INSERT INTO public."QuotationState" VALUES (2, 'ENVIADO', 'ENVIADO', 'emerald', '2026-09-03 17:55:30.883781', true);
 
 
 --
@@ -17852,15 +16701,12 @@ INSERT INTO public."QuotationState" VALUES (2, 'ENVIADO', 'ENVIADO', 'emerald', 
 -- Data for Name: Role; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Role" VALUES (1, 'Admin', NULL, NULL, true);
-INSERT INTO public."Role" VALUES (2, 'Superadministrador', NULL, NULL, true);
 
 
 --
 -- Data for Name: Seller; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."Seller" VALUES (1, '73009263', 'Rubiel', 'rubiel1985@msn.com', true);
 
 
 --
@@ -17888,23 +16734,12 @@ INSERT INTO public."SystemParameter" VALUES (6, 'EnviarCotizacionesAutoSQLserver
 INSERT INTO public."SystemParameter" VALUES (7, 'EnviarFacturacionAutoSQLserver', 'Envío automático a Facturacion SQL Server (1: Sí, 0: No)', '1');
 INSERT INTO public."SystemParameter" VALUES (8, 'Pais', 'Pais', 'Colombia');
 INSERT INTO public."SystemParameter" VALUES (9, 'MOSTRAR_TOTALIZACION_COTIZACION', 'Mostrar totalización financiera en cotización', 'true');
-INSERT INTO public."SystemParameter" VALUES (19, 'LICENSE_KEY', 'Clave de Licencia del Sistema', 'KOR1.eyJjIjoiS09SRVggQUdFTkNJQSBQUlVFQkEiLCJuIjoiNzk4OTg0NTYiLCJlIjoiMjAyNi0wOS0xOCIsImkiOiIyMDI2LTA4LTE4In0.c33014ec4605e0dfe9fa66a7bfaeb738875c88e030934e9212f75e72686a99b7');
-INSERT INTO public."SystemParameter" VALUES (20, 'LICENSE_EXPIRATION_DATE', 'Fecha de Expiración de Licencia', '2026-09-18');
-INSERT INTO public."SystemParameter" VALUES (21, 'PRODUCTO_RESERVA_GDS', 'Producto por Defecto para Reservas GDS', 'TAN');
-INSERT INTO public."SystemParameter" VALUES (22, 'AGENCY_NAME', 'Nombre o Razón Social de la Agencia', 'KOREX AGENCIA PRUEBA');
-INSERT INTO public."SystemParameter" VALUES (23, 'AGENCY_NIT', 'NIT de la Agencia', '79898456');
-INSERT INTO public."SystemParameter" VALUES (24, 'TASA_CAMBIO_IATA', 'Tasa de Cambio IATA', '4200.00');
-INSERT INTO public."SystemParameter" VALUES (25, 'TARIFA_ADMIN_OW', 'Tarifa Administrativa Nacional One Way', '29100');
-INSERT INTO public."SystemParameter" VALUES (26, 'TARIFA_ADMIN_RT', 'Tarifa Administrativa Nacional Roundtrip', '52800');
-INSERT INTO public."SystemParameter" VALUES (27, 'PRODUCTO_TARIFA_ADMINISTRATIVA', 'Producto por Defecto para Tarifa Administrativa', '77');
-INSERT INTO public."SystemParameter" VALUES (28, 'TARIFA_ADMIN_INT_RANGES', 'Rangos Tarifa Administrativa Internacional (JSON)', '[{"min":0,"max":354,"feeUsd":15,"label":"Menores o iguales a USD 354"},{"min":354.01,"max":590,"feeUsd":28,"label":"Mayores de USD 354 hasta USD 590"},{"min":590.01,"max":944,"feeUsd":46,"label":"Mayores de USD 590 hasta USD 944"},{"min":944.01,"max":999999,"feeUsd":95,"label":"Mayores de USD 944"}]');
 
 
 --
 -- Data for Name: TicketPrinter; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."TicketPrinter" VALUES (1, '73009263', 'Rubiel', 'rubiel1985@msn.com', true);
 
 
 --
@@ -17923,15 +16758,13 @@ INSERT INTO public."TicketPrinter" VALUES (1, '73009263', 'Rubiel', 'rubiel1985@
 -- Data for Name: User; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."User" VALUES (1, 'Rubiel', 'rubiel1985@msn.com', '$2b$10$IUxxw/yzr2bpC4wRMUcBYOsrIJrG4e0j.FI/p2baH2CGNfKNLbn.S', NULL, NULL, 1, 1, NULL, 1, false, true);
-INSERT INTO public."User" VALUES (2, 'Superadministrador', 'ebarrera@zagencias.com', '$2b$10$EvqWyDZ9b/rcMCNNuSdplOyS/NooFO.keByM/UsOgJ6Zy8tgqSYxS', NULL, NULL, 2, 1, NULL, NULL, false, true);
 
 
 --
 -- Name: Airports_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Airports_id_seq"', 437, true);
+SELECT pg_catalog.setval('public."Airports_id_seq"', 4, true);
 
 
 --
@@ -18036,7 +16869,7 @@ SELECT pg_catalog.setval('public."Branch_id_seq"', 1, true);
 -- Name: CellCustomization_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."CellCustomization_id_seq"', 63, true);
+SELECT pg_catalog.setval('public."CellCustomization_id_seq"', 1, false);
 
 
 --
@@ -18050,7 +16883,7 @@ SELECT pg_catalog.setval('public."ChargeAndTax_id_seq"', 3, true);
 -- Name: Cities_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Cities_id_seq"', 301, true);
+SELECT pg_catalog.setval('public."Cities_id_seq"', 4, true);
 
 
 --
@@ -18085,21 +16918,21 @@ SELECT pg_catalog.setval('public."Combo_id_seq"', 1, false);
 -- Name: Countries_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Countries_id_seq"', 197, true);
+SELECT pg_catalog.setval('public."Countries_id_seq"', 3, true);
 
 
 --
 -- Name: CreditCard_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."CreditCard_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."CreditCard_id_seq"', 1, true);
 
 
 --
 -- Name: Currency_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Currency_id_seq"', 136, true);
+SELECT pg_catalog.setval('public."Currency_id_seq"', 3, true);
 
 
 --
@@ -18239,21 +17072,21 @@ SELECT pg_catalog.setval('public."MasterVariable_id_seq"', 1, false);
 -- Name: Master_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Master_id_seq"', 57, true);
+SELECT pg_catalog.setval('public."Master_id_seq"', 56, true);
 
 
 --
 -- Name: Menu_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Menu_id_seq"', 21, true);
+SELECT pg_catalog.setval('public."Menu_id_seq"', 16, true);
 
 
 --
 -- Name: Payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."Payment_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Payment_id_seq"', 5, true);
 
 
 --
@@ -18379,7 +17212,7 @@ SELECT pg_catalog.setval('public."QuotationStateHistory_id_seq"', 1, false);
 -- Name: QuotationState_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."QuotationState_id_seq"', 2, true);
+SELECT pg_catalog.setval('public."QuotationState_id_seq"', 1, false);
 
 
 --
@@ -18463,7 +17296,7 @@ SELECT pg_catalog.setval('public."SystemLog_id_seq"', 1, false);
 -- Name: SystemParameter_id_seq; Type: SEQUENCE SET; Schema: public; Owner: -
 --
 
-SELECT pg_catalog.setval('public."SystemParameter_id_seq"', 28, true);
+SELECT pg_catalog.setval('public."SystemParameter_id_seq"', 18, true);
 
 
 --
@@ -20110,5 +18943,5 @@ ALTER TABLE ONLY public."User"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict fmXhg5DqTyfn5WsN9J3G4fVc9yO55C0CkYdsjLOAxJoCY0V4KfMtzpTzAjlluAw
+\unrestrict YGlLHtNYC1HzGZnZleAHuRyulH5uFLMfiKQWtVALxQCPhR3sGVEw94W6MnRnA3k
 
