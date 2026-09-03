@@ -23,7 +23,7 @@ export async function POST(req: Request) {
         const p_prefix = body.prefix !== undefined && body.prefix !== '' ? "'" + String(body.prefix).replace(/'/g, "''") + "'" : null;
         const p_curencyId = body.curencyId !== undefined && body.curencyId !== '' ? body.curencyId : null;
 
-        const query = `CALL public."spCountriesCrear"(${p_code}, ${p_name}, ${p_dane}, ${p_region}, ${p_prefix}, ${p_curencyId}, ${userId}, null, null)`;
+        const query = `CALL public."spCountryCrear"(${p_code}, ${p_name}, ${p_dane}, ${p_region}, ${p_prefix}, ${p_curencyId}, ${userId}, null, null)`;
         const result: any = await prisma.$queryRawUnsafe(query);
         const mensaje = result[0]?.p_mensaje_resultado || 'ERROR: No message';
         const newId = result[0]?.p_id;
@@ -51,7 +51,7 @@ export async function PUT(req: Request) {
         const p_prefix = body.prefix !== undefined && body.prefix !== '' ? "'" + String(body.prefix).replace(/'/g, "''") + "'" : null;
         const p_curencyId = body.curencyId !== undefined && body.curencyId !== '' ? body.curencyId : null;
 
-        const query = `CALL public."spCountriesActualizar"(${p_id}, ${p_code}, ${p_name}, ${p_dane}, ${p_region}, ${p_prefix}, ${p_curencyId}, ${userId}, null)`;
+        const query = `CALL public."spCountryActualizar"(${p_id}, ${p_code}, ${p_name}, ${p_dane}, ${p_region}, ${p_prefix}, ${p_curencyId}, ${userId}, null)`;
         const result: any = await prisma.$queryRawUnsafe(query);
         const mensaje = result[0]?.p_mensaje_resultado || 'ERROR: No message';
 
@@ -78,7 +78,7 @@ export async function DELETE(req: Request) {
 
         if (!id) return NextResponse.json({ error: 'ID is required' }, { status: 400 });
 
-        const query = `CALL public."spCountriesEliminar"(${id}, ${userId}, null)`;
+        const query = `CALL public."spCountryEliminar"(${id}, ${userId}, null)`;
         const result: any = await prisma.$queryRawUnsafe(query);
         const mensaje = result[0]?.p_mensaje_resultado || 'ERROR: No message';
 
