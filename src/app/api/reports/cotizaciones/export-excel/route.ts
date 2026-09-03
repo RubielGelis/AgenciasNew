@@ -1197,7 +1197,7 @@ export async function GET(req: Request) {
 
                 // Dynamic replacer for Rentabilidad Negocio table: replaces ALL rows below header with a single dynamic row
                 const rentabilidadPattern = /(% COMI?SI[OÓ]N COLAREO[\s\S]*?COMI?SI[OÓ]N COLAEREO[\s\S]*?%COM FRE\/AGE[\s\S]*?COMI?SI[OÓ]N FRE\/AGE[\s\S]*?TOTAL COMI?SI[OÓ]N[\s\S]*?<\/tr>)([\s\S]*?)(<\/tbody>|<\/table>)/i;
-                compiledHtml = compiledHtml.replace(rentabilidadPattern, (match, headerRow, oldRows, closingTag) => {
+                compiledHtml = compiledHtml.replace(rentabilidadPattern, (match: string, headerRow: string, oldRows: string, closingTag: string) => {
                     const singleDataRow = `
 <tr>
 <td style="text-align: left; vertical-align: middle; padding: 4px; word-break: break-word; white-space: pre-wrap;">${replacements.comisionPropiaPercentage}</td>
