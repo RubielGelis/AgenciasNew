@@ -7,6 +7,8 @@ CREATE OR REPLACE PROCEDURE public.spImpuestoCrear(
     p_is_editable BOOLEAN,
     p_orden INT DEFAULT 0,
     p_product_ids JSONB DEFAULT '[]'::jsonb,
+    p_target_tax_id INT DEFAULT NULL,
+    p_is_active BOOLEAN DEFAULT true,
     p_acting_user_id INT DEFAULT 1,
     INOUT p_tax_id INT DEFAULT 0,
     INOUT p_mensaje_resultado TEXT DEFAULT ''
@@ -14,8 +16,8 @@ CREATE OR REPLACE PROCEDURE public.spImpuestoCrear(
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO public."ChargeAndTax" ("code", "name", "type", "valueType", "value", "isEditable", "orden", "productIds")
-    VALUES (p_code, p_name, p_type, p_value_type, p_value, p_is_editable, COALESCE(p_orden, 0), COALESCE(p_product_ids, '[]'::jsonb))
+    INSERT INTO public."ChargeAndTax" ("code", "name", "type", "valueType", "value", "isEditable", "orden", "productIds", "targetTaxId", "isActive")
+    VALUES (p_code, p_name, p_type, p_value_type, p_value, p_is_editable, COALESCE(p_orden, 0), COALESCE(p_product_ids, '[]'::jsonb), p_target_tax_id, COALESCE(p_is_active, true))
     RETURNING id INTO p_tax_id;
 
     p_mensaje_resultado := 'SUCCESS: Cargo/Impuesto creado con ID ' || p_tax_id;

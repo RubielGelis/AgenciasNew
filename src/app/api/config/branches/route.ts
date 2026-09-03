@@ -75,9 +75,10 @@ export async function POST(req: NextRequest) {
         }
 
         const resolutionId = body.resolutionId ? parseInt(body.resolutionId) : null;
+        const isAct = body.isActive !== undefined ? body.isActive : (body.inactive !== undefined ? !body.inactive : true);
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spBranchCrear($1::TEXT, $2::TEXT, $3::BYTEA, $4::BYTEA, $5::JSONB, $6::TEXT, $7::INT, $8::BYTEA, $9::JSONB, $10::TEXT, $11::INT, $12::INT, $13::TEXT)`,
+            `CALL public.spBranchCrear($1::TEXT, $2::TEXT, $3::BYTEA, $4::BYTEA, $5::JSONB, $6::TEXT, $7::INT, $8::BYTEA, $9::JSONB, $10::TEXT, $11::BOOLEAN, $12::INT, $13::INT, $14::TEXT)`,
             body.code,
             body.name,
             logoBuffer,
@@ -88,6 +89,7 @@ export async function POST(req: NextRequest) {
             invoiceTemplateBuffer,
             body.invoiceTemplateConfig ? body.invoiceTemplateConfig : null,
             invoiceHtmlTemplate,
+            isAct,
             actingUserId,
             0,
             ''
@@ -185,9 +187,10 @@ export async function PUT(req: NextRequest) {
         }
 
         const resolutionId = body.resolutionId ? parseInt(body.resolutionId) : null;
+        const isAct = body.isActive !== undefined ? body.isActive : (body.inactive !== undefined ? !body.inactive : true);
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spBranchActualizar($1::INT, $2::TEXT, $3::TEXT, $4::BYTEA, $5::BYTEA, $6::JSONB, $7::TEXT, $8::INT, $9::BYTEA, $10::JSONB, $11::TEXT, $12::INT, $13::TEXT)`,
+            `CALL public.spBranchActualizar($1::INT, $2::TEXT, $3::TEXT, $4::BYTEA, $5::BYTEA, $6::JSONB, $7::TEXT, $8::INT, $9::BYTEA, $10::JSONB, $11::TEXT, $12::BOOLEAN, $13::INT, $14::TEXT)`,
             dbId,
             body.code,
             body.name,
@@ -199,6 +202,7 @@ export async function PUT(req: NextRequest) {
             invoiceTemplateBuffer,
             body.invoiceTemplateConfig ? body.invoiceTemplateConfig : null,
             invoiceHtmlTemplate,
+            isAct,
             actingUserId,
             ''
         );

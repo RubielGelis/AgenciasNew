@@ -18,9 +18,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId, mandatoryFields, taxIds } = body
+        const { code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId, mandatoryFields, taxIds, isActive } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+        const isAct = isActive !== undefined ? isActive : (body.inactive !== undefined ? !body.inactive : true);
 
         const product = await prisma.product.create({
             data: {
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
                 airlineItinerary: airlineItinerary || null,
                 ticketTypeId: ticketTypeId ? parseInt(ticketTypeId) : null,
                 taxIds: taxIds ? (Array.isArray(taxIds) ? taxIds : JSON.parse(taxIds)) : [],
+                isActive: isAct
             } as any
         });
 
@@ -53,9 +55,10 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json()
-        const { id, code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId, mandatoryFields, taxIds } = body
+        const { id, code, type, description, basePrice, cost, billingConcept, serviceType, flightItinerary, classItinerary, airlineItinerary, ticketTypeId, mandatoryFields, taxIds, isActive } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+        const isAct = isActive !== undefined ? isActive : (body.inactive !== undefined ? !body.inactive : true);
 
         const product = await prisma.product.update({
             where: { id: parseInt(id) },
@@ -72,6 +75,7 @@ export async function PUT(req: NextRequest) {
                 airlineItinerary: airlineItinerary || null,
                 ticketTypeId: ticketTypeId ? parseInt(ticketTypeId) : null,
                 taxIds: taxIds ? (Array.isArray(taxIds) ? taxIds : JSON.parse(taxIds)) : [],
+                isActive: isAct
             } as any
         });
 

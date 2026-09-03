@@ -669,7 +669,7 @@ BEGIN
     JOIN public."MasterVariable" mv ON v."masterVariableId" = mv."id"
     JOIN CotizacionServicios cs ON v."quotationProductId" = cs.orig_id_ref;
 
-    -- SEPARACIÓN CARGOS vs IMPUESTOS
+    -- SEPARACIÓN CARGOS vs IMPUESTOS (respetando targetTaxId si está configurado)
     INSERT INTO CotizacionCargos (
         cd_CotizacionServicios, cd_CotizacionCargos, cd_cargosdesc, ds_cargonm, bl_noshow, am_contado,
         am_credito, am_contado_ME, am_credito_ME, orig_id_ref, cd_Cotizacion
@@ -677,8 +677,8 @@ BEGIN
     SELECT 
         cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios,
 		t."id"::text as cd_CotizacionCargos,
-        COALESCE(ct.code, '') as cd_cargosdesc, 
-        COALESCE(ct.name, '') as ds_cargonm, 
+        COALESCE(target_ct.code, ct.code, '') as cd_cargosdesc, 
+        COALESCE(target_ct.name, ct.name, '') as ds_cargonm, 
         B'0' as bl_noshow, 
         t."explicitAmount" as am_contado, 
         0 as am_credito, 
@@ -688,8 +688,9 @@ BEGIN
 		cs.cd_Cotizacion as cd_Cotizacion 
     FROM public."QuotationProductTax" t
     JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
+    LEFT JOIN public."ChargeAndTax" target_ct ON ct."targetTaxId" = target_ct.id
     JOIN CotizacionServicios cs ON t."quotationProductId" = cs.orig_id_ref
-    WHERE ct.type <> 'TAX';
+    WHERE COALESCE(target_ct.type, ct.type) <> 'TAX';
 
     INSERT INTO CotizacionImpuestos (
         cd_CotizacionCargos, cd_CotizacionImpuestos, cd_ImpRet, ds_Impas, cd_impcta, am_porcentaje,
@@ -699,8 +700,8 @@ BEGIN
     SELECT 
         COALESCE(tp."id", 1)::text  as cd_CotizacionCargos,
 		t."id"::text as cd_CotizacionImpuestos,
-        COALESCE(ct."code", '') as cd_ImpRet, 
-        COALESCE(ct."name", '') as ds_Impas, 
+        COALESCE(target_ct.code, ct.code, '') as cd_ImpRet, 
+        COALESCE(target_ct.name, ct.name, '') as ds_Impas, 
         '' as cd_impcta, 
         COALESCE(t."valueSnapshot", 0) as am_porcentaje,
         B'0' as bl_contabilizar, 
@@ -708,14 +709,15 @@ BEGIN
         0 as am_credito, 
         0 as am_contado_ME, 
         0 as am_credito_ME,
-		cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios, 
-		c.cd_Consecutivo as cd_Cotizacion 
+		cs.cd_Consecutivo_VARiablesAdicionales as cd_CotizacionServicios,
+		cs.cd_Cotizacion as cd_Cotizacion
     FROM public."QuotationProductTax" t
     JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
+    LEFT JOIN public."ChargeAndTax" target_ct ON ct."targetTaxId" = target_ct.id
     JOIN CotizacionServicios cs ON t."quotationProductId" = cs.orig_id_ref
-	JOIN Cotizacion c ON c.orig_id_ref = cs.orig_id_quotationref
-	LEFT JOIN public."QuotationProductTax" tp ON tp."quotationProductId" = cs.orig_id_ref and tp."chargeAndTaxId" = cs.mainTaxId
-    WHERE ct.type = 'TAX';
+	LEFT JOIN public."QuotationProduct" qp ON qp.id = cs.orig_id_ref
+	LEFT JOIN public."QuotationProductTax" tp ON tp."quotationProductId" = cs.orig_id_ref and tp."chargeAndTaxId" = qp."mainTaxId"
+    WHERE COALESCE(target_ct.type, ct.type) = 'TAX';
 
 	INSERT INTO Fac_Servicios_TiposFacturacionHoteles(
 		cd_Cotizacion,

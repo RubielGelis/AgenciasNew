@@ -100,6 +100,11 @@ export async function PUT(req: NextRequest) {
             throw new Error(message)
         }
 
+        if (body.isActive !== undefined || body.inactive !== undefined) {
+            const isAct = body.isActive !== undefined ? Boolean(body.isActive) : !body.inactive;
+            await prisma.$executeRawUnsafe(`UPDATE public."Currency" SET "isActive" = $1 WHERE id = $2`, isAct, parseInt(id));
+        }
+
         const currency = { 
             id: parseInt(id), 
             code: code.toUpperCase(), 

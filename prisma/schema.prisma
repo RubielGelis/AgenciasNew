@@ -28,6 +28,7 @@ model User {
   implantId                                       Int?
   ticketPrinterId                                 Int?
   canEditReports                                  Boolean?                   @default(false)
+  isActive                                        Boolean                    @default(true)
   PreQuotation_PreQuotation_convertedUserIdToUser PreQuotation[]             @relation("PreQuotation_convertedUserIdToUser")
   preQuotations                                   PreQuotation[]             @relation("PreQuotationUser")
   preQuotationHistories                           PreQuotationStateHistory[]
@@ -48,6 +49,7 @@ model Client {
   address            String?
   mandatoryVariables Json?
   sellerId           Int?
+  isActive           Boolean        @default(true)
   Seller             Seller?        @relation(fields: [sellerId], references: [id], onUpdate: NoAction)
   preQuotations      PreQuotation[]
   quotations         Quotation[]
@@ -62,6 +64,7 @@ model Provider {
   providerTypeId    Int?
   airlineCode       String?            @db.VarChar(10)
   sigla             String?            @db.VarChar(10)
+  isActive          Boolean            @default(true)
   comboProducts     ComboProduct[]
   preQuotations     PreQuotation[]
   prestadoras       Prestadora[]
@@ -79,6 +82,7 @@ model Prestadora {
   type              String?
   initials          String?
   nogds             String?
+  isActive          Boolean            @default(true)
   comboProducts     ComboProduct[]
   provider          Provider?          @relation(fields: [providerId], references: [id], onDelete: Restrict)
   quotationProducts QuotationProduct[]
@@ -96,6 +100,7 @@ model Branch {
   invoiceTemplate         Bytes?
   invoiceTemplateConfig   Json?
   invoiceHtmlTemplate     String?
+  isActive                Boolean                  @default(true)
   BranchGDSInvoiceAuto    BranchGDSInvoiceAuto[]
   cellCustomizations      CellCustomization[]
   documentResolutions     DocumentResolution[]
@@ -137,6 +142,7 @@ model Seller {
   code          String?        @unique
   name          String
   email         String?
+  isActive      Boolean        @default(true)
   clients       Client[]
   preQuotations PreQuotation[]
   quotations    Quotation[]
@@ -167,6 +173,7 @@ model Product {
   ticketTypeId      Int?
   mandatoryFields   Json?
   taxIds            Json?              @default("[]")
+  isActive          Boolean            @default(true)
   comboProducts     ComboProduct[]
   ticketType        TicketType?        @relation(fields: [ticketTypeId], references: [id])
   quotationProducts QuotationProduct[]
@@ -302,17 +309,19 @@ model QuotationProductPassenger {
 }
 
 model ChargeAndTax {
-  id         Int                   @id @default(autoincrement())
-  name       String
-  type       String
-  valueType  String
-  value      Float
-  isEditable Boolean               @default(true)
-  code       String?               @unique
-  orden      Int?                  @default(0)
-  productIds Json?                 @default("[]")
-  comboTaxes ComboProductTax[]
-  appliedTo  QuotationProductTax[]
+  id          Int                   @id @default(autoincrement())
+  name        String
+  type        String
+  valueType   String
+  value       Float
+  isEditable  Boolean               @default(true)
+  code        String?               @unique
+  orden       Int?                  @default(0)
+  productIds  Json?                 @default("[]")
+  targetTaxId Int?
+  isActive    Boolean               @default(true)
+  comboTaxes  ComboProductTax[]
+  appliedTo   QuotationProductTax[]
 }
 
 model QuotationProductTax {
@@ -342,6 +351,7 @@ model MasterVariable {
   id               Int                        @id @default(autoincrement())
   code             String                     @unique
   name             String
+  isActive         Boolean                    @default(true)
   productVariables QuotationProductVariable[]
 }
 
@@ -369,6 +379,7 @@ model Combo {
   currencyId      Int?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime?        @default(now()) @updatedAt @db.Timestamp(6)
+  isActive        Boolean          @default(true)
   currency        Currency?        @relation(fields: [currencyId], references: [id])
   products        ComboProduct[]
   quotationCombos QuotationCombo[]
@@ -412,6 +423,7 @@ model Currency {
   name         String
   exchangeRate Float
   decimals     Int         @default(2)
+  isActive     Boolean     @default(true)
   combos       Combo[]
   Countries    Countries[]
 }
@@ -791,6 +803,7 @@ model CreditCard {
   name                   String
   type                   String
   inactive               Boolean                  @default(false)
+  isActive               Boolean                  @default(true)
   InvoicesProductPayment InvoicesProductPayment[]
 }
 
@@ -986,6 +999,7 @@ model QuotationState {
   name      String   @db.VarChar(50)
   color     String?  @db.VarChar(20)
   createdAt DateTime @default(now()) @db.Timestamp(6)
+  isActive  Boolean  @default(true)
 }
 
 model QuotationStateHistory {
@@ -1023,6 +1037,7 @@ model QuotationFormat {
   implantId               Int?
   createdAt               DateTime?                 @default(now()) @db.Timestamptz(6)
   updatedAt               DateTime?                 @default(now()) @db.Timestamptz(6)
+  isActive                Boolean                   @default(true)
   FormatCellCustomization FormatCellCustomization[]
   Branch                  Branch?                   @relation(fields: [branchId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   Implant                 Implant?                  @relation(fields: [implantId], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1097,6 +1112,7 @@ model ProviderType {
   active    Boolean    @default(true)
   createdAt DateTime?  @default(now()) @db.Timestamptz(6)
   updatedAt DateTime?  @default(now()) @db.Timestamptz(6)
+  isActive  Boolean    @default(true)
   Provider  Provider[]
 }
 

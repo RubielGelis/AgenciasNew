@@ -8,6 +8,8 @@ CREATE OR REPLACE PROCEDURE public.spImpuestoActualizar(
     p_is_editable BOOLEAN,
     p_orden INT DEFAULT 0,
     p_product_ids JSONB DEFAULT '[]'::jsonb,
+    p_target_tax_id INT DEFAULT NULL,
+    p_is_active BOOLEAN DEFAULT true,
     p_acting_user_id INT DEFAULT 1,
     INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
@@ -22,7 +24,9 @@ BEGIN
         "value" = p_value,
         "isEditable" = p_is_editable,
         "orden" = COALESCE(p_orden, 0),
-        "productIds" = COALESCE(p_product_ids, '[]'::jsonb)
+        "productIds" = COALESCE(p_product_ids, '[]'::jsonb),
+        "targetTaxId" = p_target_tax_id,
+        "isActive" = COALESCE(p_is_active, true)
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Cargo/Impuesto actualizado.';

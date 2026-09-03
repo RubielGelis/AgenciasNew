@@ -47,7 +47,7 @@ export async function PUT(req: Request) {
         const p_name = body.name !== undefined ? (typeof body.name === 'string' ? "'" + body.name.replace(/'/g, "''") + "'" : body.name) : null;
         const p_iscash = body.iscash === true;
         const p_iscredit = body.iscredit === true;
-        const p_inactive = body.inactive === true;
+        const p_inactive = body.isActive !== undefined ? !body.isActive : body.inactive === true;
 
         const query = `CALL public."spPaymentActualizar"(${p_id}, ${p_code}, ${p_name}, ${p_iscash}, ${p_iscredit}, ${p_inactive}, ${userId}, null)`;
         const result: any = await prisma.$queryRawUnsafe(query);
@@ -56,6 +56,8 @@ export async function PUT(req: Request) {
         if (!mensaje.startsWith('SUCCESS')) {
             return NextResponse.json({ error: mensaje }, { status: 400 });
         }
+
+        await prisma.$executeRawUnsafe(`UPDATE public."Payment" SET "isActive" = $1, "inactive" = $2 WHERE id = $3`, !p_inactive, p_inactive, parseInt(p_id));
 
         return NextResponse.json({ success: true });
     } catch (error: any) {

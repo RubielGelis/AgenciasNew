@@ -79,7 +79,7 @@ export async function PUT(req: NextRequest) {
             body.resolutionDate ? new Date(body.resolutionDate) : null,
             body.prefix || null,
             body.expirationDate ? new Date(body.expirationDate) : null,
-            body.isActive !== undefined ? Boolean(body.isActive) : true,
+            body.isActive !== undefined ? Boolean(body.isActive) : (body.inactive !== undefined ? !body.inactive : true),
             actingUserId,
             '' // p_mensaje_resultado
         );

@@ -68,6 +68,11 @@ export async function PUT(req: NextRequest) {
             throw new Error(message);
         }
 
+        if (body.isActive !== undefined || body.inactive !== undefined) {
+            const isAct = body.isActive !== undefined ? Boolean(body.isActive) : !body.inactive;
+            await prisma.$executeRawUnsafe(`UPDATE public."MasterVariable" SET "isActive" = $1 WHERE id = $2`, isAct, parseInt(body.id));
+        }
+
         const variable = { ...body };
 
         import('@/lib/logger').then(({ logSystemEvent }) => {

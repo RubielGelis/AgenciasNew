@@ -13,6 +13,7 @@ BEGIN
             'type', h.type,
             'location', h.location,
             'providerId', h."providerId",
+            'isActive', COALESCE(h."isActive", true),
             'provider', (
                 SELECT jsonb_build_object('id', p.id, 'name', p.name)
                 FROM public."Provider" p WHERE p.id = h."providerId"

@@ -57,11 +57,11 @@ Este script ejecuta la validación de 4 capas y el despliegue automático:
 4. Sincroniza automáticamente los scripts de producción [`SQL/Actualizador/Actualizador.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Actualizador/Actualizador.sql) y [`ActualizadorSERVER.sql`](file:///f:/Proyectos/AgenciasNew/SQL/Actualizador/ActualizadorSERVER.sql).
 
 > [!CRITICAL]
-> **REGLA DE SINCRONIZACIÓN PREVIA DE COLUMNAS (PREVENCIÓN DE ERROR 42703)**:
-> Antes de agregar o modificar cualquier Procedimiento Almacenado (SP), Función SQL o API Route que referencie una columna de tabla (ejemplo: `ip."ticketCode"`):
-> 1. **Verificar DDL en `SQL/Table/Alter_New_Columns.sql`**: La columna DEBE estar declarada tanto en el `CREATE TABLE` inicial como en un bloque `ALTER TABLE public."Tabla" ADD COLUMN IF NOT EXISTS "columna" tipo;`.
-> 2. **Verificar Modelo en `prisma/schema.prisma`**: La columna DEBE estar agregada al modelo Prisma.
-> 3. **Ejecutar Auto-Despliegue (`node deploy/gen_schema_json.js`)**: Inyectar la nueva columna en la BD local de PostgreSQL (`Korex_colaereo`) y regenerar Prisma ORM (`npx prisma generate`) ANTES de invocar el SP o API Route.
+> **REGLA DE SINCRONIZACIÓN OBLIGATORIA DE NUEVAS COLUMNAS (PREVENCIÓN DE ERROR 42703 `column does not exist`)**:
+> Toda nueva columna (por ejemplo: `targetTaxId`, `isActive`, `ticketCode`, etc.) que sea creada o referenciada en Funciones SQL, Stored Procedures (SPs) o API Routes **DEBE DECLARARSE Y SINCRONIZARSE OBLIGATORIAMENTE EN 3 PASOS ANTES DE PROBAR O COMPILAR**:
+> 1. **Declaración DDL en `SQL/Table/Alter_New_Columns.sql`**: Tanto en el `CREATE TABLE IF NOT EXISTS` original como en una cláusula explícita `ALTER TABLE public."Tabla" ADD COLUMN IF NOT EXISTS "columna" TIPO;`.
+> 2. **Declaración en `prisma/schema.prisma`**: Agregar el atributo correspondiente en el modelo de Prisma (ej: `targetTaxId Int?`).
+> 3. **Ejecución Obligatoria del Auto-Despliegue (`node deploy/gen_schema_json.js`)**: Ejecutar este script inmediatamente en la terminal para inyectar la columna en PostgreSQL local (`Korex_colaereo`) y ejecutar `npx prisma generate` **ANTES** de compilar Next.js o invocar el endpoint/SP.
 
 ---
 

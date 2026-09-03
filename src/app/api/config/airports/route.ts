@@ -53,6 +53,11 @@ export async function PUT(req: Request) {
             return NextResponse.json({ error: mensaje }, { status: 400 });
         }
 
+        if (body.isActive !== undefined || body.inactive !== undefined) {
+            const isAct = body.isActive !== undefined ? Boolean(body.isActive) : !body.inactive;
+            await prisma.$executeRawUnsafe(`UPDATE public."Airports" SET "isActive" = $1 WHERE id = $2`, isAct, parseInt(p_id));
+        }
+
         return NextResponse.json({ success: true });
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 });

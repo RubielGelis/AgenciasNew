@@ -22,15 +22,17 @@ export async function POST(req: NextRequest) {
         const body = await req.json()
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+        const isAct = body.isActive !== undefined ? body.isActive : (body.inactive !== undefined ? !body.inactive : true);
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spPrestadoraCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::INT, $6::TEXT, $7::INT, $8::INT, $9::TEXT)`,
+            `CALL public.spPrestadoraCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::TEXT, $5::INT, $6::TEXT, $7::BOOLEAN, $8::INT, $9::INT, $10::TEXT)`,
             body.code || null,
             body.name,
             body.category || null,
             body.location || null,
             parseInt(body.providerId),
             body.type || null,
+            isAct,
             actingUserId,
             0, // p_prestadora_id
             '' // p_mensaje_resultado
@@ -61,9 +63,10 @@ export async function PUT(req: NextRequest) {
         const body = await req.json()
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+        const isAct = body.isActive !== undefined ? body.isActive : (body.inactive !== undefined ? !body.inactive : true);
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spPrestadoraActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::TEXT, $6::INT, $7::TEXT, $8::INT, $9::TEXT)`,
+            `CALL public.spPrestadoraActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::TEXT, $6::INT, $7::TEXT, $8::BOOLEAN, $9::INT, $10::TEXT)`,
             parseInt(body.id),
             body.code || null,
             body.name,
@@ -71,6 +74,7 @@ export async function PUT(req: NextRequest) {
             body.location || null,
             parseInt(body.providerId),
             body.type || null,
+            isAct,
             actingUserId,
             '' // p_mensaje_resultado
         );

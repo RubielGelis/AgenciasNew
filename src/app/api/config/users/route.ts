@@ -60,6 +60,7 @@ export async function PUT(req: NextRequest) {
         const body = await req.json()
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : undefined
+        const isAct = body.isActive !== undefined ? Boolean(body.isActive) : (body.inactive !== undefined ? !body.inactive : undefined);
         const data: any = {
             name: body.name,
             email: body.email,
@@ -67,7 +68,8 @@ export async function PUT(req: NextRequest) {
             branchId: body.branchId ? parseInt(body.branchId) : null,
             implantId: body.implantId ? parseInt(body.implantId) : null,
             ticketPrinterId: body.ticketPrinterId ? parseInt(body.ticketPrinterId) : null,
-            canEditReports: body.canEditReports !== undefined ? Boolean(body.canEditReports) : undefined
+            canEditReports: body.canEditReports !== undefined ? Boolean(body.canEditReports) : undefined,
+            isActive: isAct
         }
 
         if (body.password) {

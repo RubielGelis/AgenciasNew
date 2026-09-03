@@ -110,7 +110,7 @@ export async function PUT(request: Request) {
                 delimiter: delimiter !== undefined ? (delimiter ? delimiter.trim() : '') : undefined,
                 startPosition: startPosition !== undefined ? Number(startPosition) : undefined,
                 length: length !== undefined ? Number(length) : undefined,
-                isActive: isActive !== undefined ? Boolean(isActive) : undefined
+                isActive: isActive !== undefined ? Boolean(isActive) : (body.inactive !== undefined ? !body.inactive : undefined)
             }
         });
 

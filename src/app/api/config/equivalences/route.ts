@@ -46,6 +46,10 @@ export async function PUT(req: Request) {
              WHERE id = $6`,
             Number(id_interfaces), Number(id_master), cd_maestro, cd_codigo, cd_codigoInte || '', Number(id)
         )
+        if (body.isActive !== undefined || body.inactive !== undefined) {
+            const isAct = body.isActive !== undefined ? Boolean(body.isActive) : !body.inactive;
+            await prisma.$executeRawUnsafe(`UPDATE public."EquivalencesInterfaces" SET "isActive" = $1 WHERE id = $2`, isAct, Number(id));
+        }
         return NextResponse.json({ success: true })
     } catch (error: any) {
         return NextResponse.json({ message: error.message }, { status: 500 })

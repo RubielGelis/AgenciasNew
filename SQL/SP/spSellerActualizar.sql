@@ -3,8 +3,9 @@ CREATE OR REPLACE PROCEDURE public.spSellerActualizar(
     p_code TEXT,
     p_name TEXT,
     p_email TEXT,
-    p_acting_user_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_is_active BOOLEAN DEFAULT true,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
@@ -17,7 +18,8 @@ BEGIN
     UPDATE public."Seller"
     SET "code" = p_code,
         "name" = p_name,
-        "email" = p_email
+        "email" = p_email,
+        "isActive" = COALESCE(p_is_active, true)
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Vendedor actualizado exitosamente.';

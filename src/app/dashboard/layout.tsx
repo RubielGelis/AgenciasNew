@@ -20,6 +20,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
     const [menuList, setMenuList] = useState<MenuItemData[]>([])
     const [loadingMenu, setLoadingMenu] = useState(true)
+    const [isLicenseValid, setIsLicenseValid] = useState<boolean | null>(null)
+
+    const checkLicenseStatus = () => {
+        fetch('/api/config/license')
+            .then((res) => res.json())
+            .then((data) => {
+                if (data.isExpired || !data.isLicensed || data.status === 'EXPIRED' || data.status === 'UNLICENSED') {
+                    setIsLicenseValid(false)
+                    router.replace('/licencia-expirada')
+                } else {
+                    setIsLicenseValid(true)
+                }
+            })
+            .catch(() => {
+                // Si falla la consulta, no bloquear si es un error de red temporal
+                setIsLicenseValid(true)
+            })
+    }
 
     const loadMenuData = () => {
         fetch('/api/menu')
@@ -41,6 +59,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     useEffect(() => {
+        checkLicenseStatus()
         loadMenuData()
         window.addEventListener('menuUpdated', loadMenuData)
         return () => {
@@ -121,6 +140,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return (
             <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
                 {children}
+            </div>
+        )
+    }
+
+    if (isLicenseValid === false) {
+        return (
+            <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400 text-sm">
+                Redirigiendo a la pantalla de renovación de licencia...
             </div>
         )
     }

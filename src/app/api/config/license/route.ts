@@ -8,8 +8,14 @@ export async function GET(req: NextRequest) {
         const status = await getStoredLicenseStatus();
         const response = NextResponse.json(status);
 
-        if (status.expirationDate) {
+        if (status.isLicensed && !status.isExpired && status.expirationDate) {
             response.cookies.set('korex_lic_exp', status.expirationDate, {
+                path: '/',
+                httpOnly: true,
+                sameSite: 'lax'
+            });
+        } else {
+            response.cookies.set('korex_lic_exp', 'EXPIRED', {
                 path: '/',
                 httpOnly: true,
                 sameSite: 'lax'

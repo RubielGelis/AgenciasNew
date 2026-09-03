@@ -11,6 +11,7 @@ CREATE OR REPLACE PROCEDURE public.spImplantActualizar(
     p_invoice_template BYTEA DEFAULT NULL,
     p_invoice_template_config JSONB DEFAULT NULL,
     p_invoice_html_template TEXT DEFAULT NULL,
+    p_is_active BOOLEAN DEFAULT true,
     p_acting_user_id INT DEFAULT 1,
     INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
@@ -33,7 +34,8 @@ BEGIN
         "resolutionId" = p_resolution_id,
         "invoiceTemplate" = COALESCE(p_invoice_template, "invoiceTemplate"),
         "invoiceTemplateConfig" = COALESCE(p_invoice_template_config, "invoiceTemplateConfig"),
-        "invoiceHtmlTemplate" = COALESCE(p_invoice_html_template, "invoiceHtmlTemplate")
+        "invoiceHtmlTemplate" = COALESCE(p_invoice_html_template, "invoiceHtmlTemplate"),
+        "isActive" = COALESCE(p_is_active, true)
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Implant actualizado exitosamente.';

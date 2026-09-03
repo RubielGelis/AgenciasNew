@@ -85,12 +85,14 @@ export async function PUT(req: NextRequest) {
             return NextResponse.json({ message: 'El nombre es obligatorio' }, { status: 400 })
         }
 
+        const isAct = body.isActive !== undefined ? Boolean(body.isActive) : (body.inactive !== undefined ? !body.inactive : undefined);
         const state = await (prisma as any).quotationState.update({
             where: { id: parseInt(id) },
             data: {
                 code: code.trim().toUpperCase(),
                 name: name.trim(),
-                color: color || 'blue'
+                color: color || 'blue',
+                isActive: isAct
             }
         });
 

@@ -45,7 +45,7 @@ export async function PUT(req: Request) {
         const p_code = body.code !== undefined ? (typeof body.code === 'string' ? "'" + body.code.replace(/'/g, "''") + "'" : body.code) : null;
         const p_name = body.name !== undefined ? (typeof body.name === 'string' ? "'" + body.name.replace(/'/g, "''") + "'" : body.name) : null;
         const p_description = body.description !== undefined && body.description !== '' ? "'" + String(body.description).replace(/'/g, "''") + "'" : 'null';
-        const p_isActive = body.isActive !== undefined ? body.isActive : true;
+        const p_isActive = body.isActive !== undefined ? body.isActive : (body.inactive !== undefined ? !body.inactive : true);
 
         const query = `CALL public."spTicketTypeActualizar"(${p_id}, ${p_code}, ${p_name}, ${p_description}, ${p_isActive}, ${userId}, null)`;
         const result: any = await prisma.$queryRawUnsafe(query);

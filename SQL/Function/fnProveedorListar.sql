@@ -16,6 +16,7 @@ BEGIN
             'isAirline', COALESCE(pt."isAirline", false),
             'airlineCode', p."airlineCode",
             'sigla', p."sigla",
+            'isActive', COALESCE(p."isActive", true),
             'prestadoras', COALESCE((
                 SELECT jsonb_agg(h)
                 FROM public."Prestadora" h

@@ -19,6 +19,7 @@ CREATE OR REPLACE PROCEDURE public.spClienteCrear(
     p_mandatory_variables JSONB,
     p_acting_user_id INT,
     p_seller_id INT DEFAULT NULL,
+    p_is_active BOOLEAN DEFAULT true,
     INOUT p_client_id INT DEFAULT 0,
     INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
@@ -29,8 +30,8 @@ BEGIN
         RETURN;
     END IF;
 
-    INSERT INTO public."Client" ("name", "document", "contactInfo", "address", "mandatoryVariables", "sellerId")
-    VALUES (p_name, p_document, p_contact_info, p_address, p_mandatory_variables, p_seller_id)
+    INSERT INTO public."Client" ("name", "document", "contactInfo", "address", "mandatoryVariables", "sellerId", "isActive")
+    VALUES (p_name, p_document, p_contact_info, p_address, p_mandatory_variables, p_seller_id, COALESCE(p_is_active, true))
     RETURNING id INTO p_client_id;
 
     p_mensaje_resultado := 'SUCCESS: Cliente creado con ID ' || p_client_id;

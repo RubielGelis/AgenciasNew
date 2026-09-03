@@ -7,8 +7,9 @@ CREATE OR REPLACE PROCEDURE public.spProveedorActualizar(
     p_provider_type_id INT,
     p_airline_code TEXT,
     p_sigla TEXT,
-    p_acting_user_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_is_active BOOLEAN DEFAULT true,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
@@ -20,7 +21,8 @@ BEGIN
         "commissionConfig" = p_commission_config,
         "providerTypeId" = p_provider_type_id,
         "airlineCode" = p_airline_code,
-        "sigla" = p_sigla
+        "sigla" = p_sigla,
+        "isActive" = COALESCE(p_is_active, true)
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Proveedor actualizado.';

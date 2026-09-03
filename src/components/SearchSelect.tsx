@@ -11,7 +11,9 @@ interface SearchSelectProps {
     placeholder?: string;
     disabled?: boolean;
     labelKey?: string;
-    secondaryKey?: string; 
+    secondaryKey?: string;
+    valueKey?: string;
+    allowCustomValue?: boolean;
     hasError?: boolean;
     className?: string;
     remoteSearchEndpoint?: string;
@@ -26,6 +28,8 @@ export function SearchSelect({
     disabled = false, 
     labelKey = "name", 
     secondaryKey = "code",
+    valueKey,
+    allowCustomValue = false,
     hasError = false,
     className = "",
     remoteSearchEndpoint,
@@ -42,10 +46,12 @@ export function SearchSelect({
         existing.forEach(item => {
             if (item.id !== undefined && item.id !== null) map.set(String(item.id), item);
             else if (item.code !== undefined && item.code !== null) map.set(String(item.code), item);
+            else if (item.name !== undefined && item.name !== null) map.set(String(item.name), item);
         });
         incoming.forEach(item => {
             if (item.id !== undefined && item.id !== null) map.set(String(item.id), item);
             else if (item.code !== undefined && item.code !== null) map.set(String(item.code), item);
+            else if (item.name !== undefined && item.name !== null) map.set(String(item.name), item);
         });
         return Array.from(map.values());
     };
@@ -63,7 +69,8 @@ export function SearchSelect({
         
         const found = localOptions.find(o => 
             (o.id !== undefined && o.id !== null && String(o.id) === String(value)) ||
-            (o.code !== undefined && o.code !== null && String(o.code) === String(value))
+            (o.code !== undefined && o.code !== null && String(o.code) === String(value)) ||
+            (o[labelKey] !== undefined && o[labelKey] !== null && String(o[labelKey]).toLowerCase() === String(value).toLowerCase())
         );
 
         if (!found) {
@@ -82,7 +89,7 @@ export function SearchSelect({
             };
             fetchInitial();
         }
-    }, [value, remoteSearchEndpoint]);
+    }, [value, remoteSearchEndpoint, labelKey]);
 
     // Handle remote search
     useEffect(() => {
@@ -127,12 +134,26 @@ export function SearchSelect({
             (o.document !== undefined && o.document !== null && String(o.document) === String(value)) ||
             (secondaryKey && o[secondaryKey] !== undefined && o[secondaryKey] !== null && String(o[secondaryKey]) === String(value))
         );
-        return found;
-    }, [localOptions, value, secondaryKey]);
+        if (found) return found;
+
+        // 4. Match on labelKey (name) or valueKey
+        found = localOptions.find(o => 
+            (labelKey && o[labelKey] !== undefined && o[labelKey] !== null && String(o[labelKey]).toLowerCase() === String(value).toLowerCase()) ||
+            (valueKey && o[valueKey] !== undefined && o[valueKey] !== null && String(o[valueKey]).toLowerCase() === String(value).toLowerCase())
+        );
+        if (found) return found;
+
+        // 5. Fallback custom value option
+        if (allowCustomValue && value) {
+            return { [labelKey || 'name']: value, [secondaryKey || 'code']: '' };
+        }
+
+        return null;
+    }, [localOptions, value, secondaryKey, labelKey, valueKey, allowCustomValue]);
 
     const filteredOptions = useMemo(() => {
         if (!searchTerm) {
-            if (remoteSearchEndpoint) return [];
+            if (remoteSearchEndpoint) return localOptions;
             return localOptions;
         }
         const lowerTerm = searchTerm.toLowerCase();
@@ -196,44 +217,63 @@ export function SearchSelect({
                                         <span className="animate-spin border-2 border-blue-500 border-t-transparent rounded-full w-4 h-4" />
                                         Cargando...
                                     </div>
-                                ) : remoteSearchEndpoint && searchTerm.trim().length < minSearchLength ? (
-                                    <div className="text-center p-8 text-zinc-500 text-sm">
-                                        Ingresa al menos {minSearchLength} caracter{minSearchLength > 1 ? 'es' : ''} para buscar
-                                    </div>
-                                ) : filteredOptions.length === 0 ? (
-                                    <div className="text-center p-8 text-zinc-500 text-sm">No se encontraron resultados</div>
                                 ) : (
                                     <div className="space-y-1">
-                                        {filteredOptions.map(opt => {
-                                            const isSelected = selectedOption && (
-                                                (opt.id !== undefined && String(opt.id) === String(selectedOption.id)) ||
-                                                (opt.code !== undefined && String(opt.code) === String(selectedOption.code))
-                                            );
-                                            return (
-                                                <button
-                                                    key={opt.id || opt.code || Math.random()}
-                                                    type="button"
-                                                    onClick={() => {
-                                                        onChange(opt.code && value === String(opt.code) ? String(opt.code) : String(opt.id || opt.code));
-                                                        setIsOpen(false);
-                                                        setSearchTerm('');
-                                                    }}
-                                                    className={`w-full text-left p-2.5 sm:p-3 rounded-xl flex items-center justify-between group transition-colors ${
-                                                        isSelected 
-                                                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold' 
-                                                            : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300'
-                                                    }`}
-                                                >
-                                                    <div>
-                                                        <div className="text-xs sm:text-sm">{opt[labelKey]}</div>
-                                                        {opt[secondaryKey] && (
-                                                            <div className="text-[10px] sm:text-xs opacity-60 mt-0.5">{opt[secondaryKey]}</div>
-                                                        )}
-                                                    </div>
-                                                    {isSelected && <Check className="w-4 h-4 shrink-0" />}
-                                                </button>
-                                            )
-                                        })}
+                                        {allowCustomValue && searchTerm.trim() && !filteredOptions.some(o => String(o[labelKey || 'name']).toLowerCase() === searchTerm.trim().toLowerCase()) && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    onChange(searchTerm.trim());
+                                                    setIsOpen(false);
+                                                    setSearchTerm('');
+                                                }}
+                                                className="w-full text-left p-2.5 sm:p-3 rounded-xl flex items-center justify-between hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-medium transition-colors border border-dashed border-blue-300 dark:border-blue-700 mb-2"
+                                            >
+                                                <div className="text-xs sm:text-sm">
+                                                    Usar "<span className="font-bold">{searchTerm.trim()}</span>" como valor personalizado
+                                                </div>
+                                                <Check className="w-4 h-4 shrink-0" />
+                                            </button>
+                                        )}
+
+                                        {filteredOptions.length === 0 && (!allowCustomValue || !searchTerm.trim()) ? (
+                                            <div className="text-center p-8 text-zinc-500 text-sm">No se encontraron resultados</div>
+                                        ) : (
+                                            filteredOptions.map(opt => {
+                                                const isSelected = selectedOption && (
+                                                    (opt.id !== undefined && String(opt.id) === String(selectedOption.id)) ||
+                                                    (opt.code !== undefined && String(opt.code) === String(selectedOption.code)) ||
+                                                    (opt[labelKey] !== undefined && String(opt[labelKey]).toLowerCase() === String(selectedOption[labelKey]).toLowerCase())
+                                                );
+                                                return (
+                                                    <button
+                                                        key={opt.id || opt.code || opt[labelKey] || Math.random()}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const valToEmit = valueKey && opt[valueKey] !== undefined && opt[valueKey] !== null
+                                                                ? String(opt[valueKey])
+                                                                : (opt.code && value === String(opt.code) ? String(opt.code) : String(opt.id || opt.code || opt[labelKey] || ''));
+                                                            onChange(valToEmit);
+                                                            setIsOpen(false);
+                                                            setSearchTerm('');
+                                                        }}
+                                                        className={`w-full text-left p-2.5 sm:p-3 rounded-xl flex items-center justify-between group transition-colors ${
+                                                            isSelected 
+                                                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold' 
+                                                                : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300'
+                                                        }`}
+                                                    >
+                                                        <div>
+                                                            <div className="text-xs sm:text-sm">{opt[labelKey]}</div>
+                                                            {opt[secondaryKey] && (
+                                                                <div className="text-[10px] sm:text-xs opacity-60 mt-0.5">{opt[secondaryKey]}</div>
+                                                            )}
+                                                        </div>
+                                                        {isSelected && <Check className="w-4 h-4 shrink-0" />}
+                                                    </button>
+                                                )
+                                            })
+                                        )}
                                     </div>
                                 )}
                             </div>

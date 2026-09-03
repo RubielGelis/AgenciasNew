@@ -20,6 +20,7 @@ CREATE OR REPLACE PROCEDURE public.spClienteActualizar(
     p_mandatory_variables JSONB,
     p_acting_user_id INT,
     p_seller_id INT DEFAULT NULL,
+    p_is_active BOOLEAN DEFAULT true,
     INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 AS $BODY$
@@ -35,7 +36,8 @@ BEGIN
         "contactInfo" = p_contact_info,
         "address" = p_address,
         "mandatoryVariables" = p_mandatory_variables,
-        "sellerId" = p_seller_id
+        "sellerId" = p_seller_id,
+        "isActive" = COALESCE(p_is_active, true)
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Cliente ' || p_id || ' actualizado.';

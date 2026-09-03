@@ -15,6 +15,8 @@ BEGIN
             'isEditable', t."isEditable",
             'orden', COALESCE(t.orden, 0),
             'productIds', COALESCE(t."productIds", '[]'::jsonb),
+            'targetTaxId', t."targetTaxId",
+            'isActive', COALESCE(t."isActive", true),
             'gdsEquivalences', COALESCE((
                 SELECT string_agg(DISTINCT eq."cd_codigointe", ', ')
                 FROM public."EquivalencesInterfaces" eq

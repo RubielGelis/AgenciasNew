@@ -76,7 +76,7 @@ export async function PUT(req: NextRequest) {
             body.currentNumber ? parseInt(body.currentNumber) : 1,
             body.branchId ? parseInt(body.branchId) : null,
             body.implantId ? parseInt(body.implantId) : null,
-            body.isActive !== undefined ? Boolean(body.isActive) : true,
+            body.isActive !== undefined ? Boolean(body.isActive) : (body.inactive !== undefined ? !body.inactive : true),
             actingUserId,
             '' // p_mensaje_resultado
         );

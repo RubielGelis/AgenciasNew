@@ -50,6 +50,11 @@ export async function PUT(req: NextRequest, context: any) {
             throw new Error(message);
         }
 
+        if (body.isActive !== undefined || body.inactive !== undefined) {
+            const isAct = body.isActive !== undefined ? Boolean(body.isActive) : !body.inactive;
+            await prisma.$executeRawUnsafe(`UPDATE public."Combo" SET "isActive" = $1 WHERE id = $2`, isAct, comboId);
+        }
+
         const combo = { id: comboId, name };
 
         import('@/lib/logger').then(({ logSystemEvent }) => {

@@ -36,17 +36,18 @@ export async function GET(req: NextRequest) {
 
         const [clients, providers, prestadoras, branches, implants, products, taxes, sellers, ticketPrinters, variables, currentUser, combos, currencies, creditCards, payments, quotationStates, parameters] = await Promise.all([
             Promise.resolve([]), // Do not fetch all clients in base data
-            (prisma as any).provider?.findMany({ include: { prestadoras: true } }) || Promise.resolve([]),
-            (prisma as any).prestadora?.findMany() || Promise.resolve([]),
-            (prisma as any).branch?.findMany() || Promise.resolve([]),
-            (prisma as any).implant?.findMany({ select: { id: true, code: true, name: true, branchId: true } }) || Promise.resolve([]),
-            (prisma as any).product?.findMany() || Promise.resolve([]),
-            (prisma as any).chargeAndTax?.findMany() || Promise.resolve([]),
-            (prisma as any).seller?.findMany() || Promise.resolve([]),
-            (prisma as any).ticketPrinter?.findMany() || Promise.resolve([]),
-            (prisma as any).masterVariable?.findMany() || Promise.resolve([]),
+            (prisma as any).provider?.findMany({ where: { isActive: { not: false } }, include: { prestadoras: true } }) || Promise.resolve([]),
+            (prisma as any).prestadora?.findMany({ where: { isActive: { not: false } } }) || Promise.resolve([]),
+            (prisma as any).branch?.findMany({ where: { isActive: { not: false } } }) || Promise.resolve([]),
+            (prisma as any).implant?.findMany({ where: { isActive: { not: false } }, select: { id: true, code: true, name: true, branchId: true } }) || Promise.resolve([]),
+            (prisma as any).product?.findMany({ where: { isActive: { not: false } } }) || Promise.resolve([]),
+            (prisma as any).chargeAndTax?.findMany({ where: { isActive: { not: false } } }) || Promise.resolve([]),
+            (prisma as any).seller?.findMany({ where: { isActive: { not: false } } }) || Promise.resolve([]),
+            (prisma as any).ticketPrinter?.findMany({ where: { isActive: { not: false } } }) || Promise.resolve([]),
+            (prisma as any).masterVariable?.findMany({ where: { isActive: { not: false } } }) || Promise.resolve([]),
             actingUserId ? (prisma as any).user?.findUnique({ where: { id: actingUserId } }) : Promise.resolve(null),
             (prisma as any).combo?.findMany({
+                where: { isActive: { not: false } },
                 include: {
                     products: {
                         include: {
@@ -59,10 +60,10 @@ export async function GET(req: NextRequest) {
                 },
                 orderBy: { createdAt: 'desc' }
             }),
-            (prisma as any).currency?.findMany() || Promise.resolve([]),
-            (prisma as any).creditCard?.findMany() || Promise.resolve([]),
-            (prisma as any).payment?.findMany() || Promise.resolve([]),
-            (prisma as any).quotationState?.findMany({ orderBy: { id: 'asc' } }) || Promise.resolve([]),
+            (prisma as any).currency?.findMany({ where: { isActive: { not: false } } }) || Promise.resolve([]),
+            (prisma as any).creditCard?.findMany({ where: { isActive: { not: false } } }) || Promise.resolve([]),
+            (prisma as any).payment?.findMany({ where: { isActive: { not: false } } }) || Promise.resolve([]),
+            (prisma as any).quotationState?.findMany({ where: { isActive: { not: false } }, orderBy: { id: 'asc' } }) || Promise.resolve([]),
             (prisma as any).systemParameter?.findMany() || Promise.resolve([])
         ])
 
@@ -78,6 +79,14 @@ export async function GET(req: NextRequest) {
             where: { code: 'MOSTRAR_TOTALIZACION_COTIZACION' }
         });
         const showTotals = showTotalsParam ? showTotalsParam.value?.trim().toLowerCase() === 'true' : true;
+
+        let cities: any[] = [];
+        try {
+            const cityRecords: any = await prisma.$queryRawUnsafe('SELECT * FROM public."fnCityListar"()');
+            cities = Array.isArray(cityRecords) ? cityRecords : [];
+        } catch (e) {
+            console.error('Error fetching cities in base-data:', e);
+        }
 
         return NextResponse.json({
             clients,
@@ -97,7 +106,8 @@ export async function GET(req: NextRequest) {
             payments,
             quotationStates,
             showTotals,
-            parameters
+            parameters,
+            cities
         })
     } catch (error: any) {
         console.error('Data fetch error:', error)

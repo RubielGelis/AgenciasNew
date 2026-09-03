@@ -754,7 +754,15 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
             (item.appliedTaxes || []).forEach(tax => {
                 const rawTaxId = (tax as any).id ?? (tax as any).chargeAndTaxId;
                 const taxId = rawTaxId != null ? Number(rawTaxId) : null;
-                const master = data.taxes.find((t: any) => Number(t.id) === taxId);
+                let master = data.taxes.find((t: any) => Number(t.id) === taxId);
+
+                if (master && master.targetTaxId) {
+                    const targetMaster = data.taxes.find((t: any) => Number(t.id) === Number(master.targetTaxId));
+                    if (targetMaster) {
+                        master = targetMaster;
+                    }
+                }
+
                 const key = master ? master.name : ((tax as any).name || 'Otros');
                 const code = master ? (master.code || '') : ((tax as any).code || '');
                 const orden = master && master.orden != null ? Number(master.orden) : 9999;
@@ -1946,7 +1954,18 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-zinc-400">Destino</label>
-                                                    <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={item.destination} onChange={(e) => updateItem(index, 'destination', e.target.value)} />
+                                                    <SearchSelect
+                                                        options={data.cities || []}
+                                                        value={item.destination || ''}
+                                                        onChange={(val) => updateItem(index, 'destination', val)}
+                                                        placeholder="Buscar Destino..."
+                                                        labelKey="name"
+                                                        secondaryKey="code"
+                                                        valueKey="name"
+                                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs"
+                                                        remoteSearchEndpoint="/api/config/cities"
+                                                        allowCustomValue={true}
+                                                    />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-zinc-400">Adultos</label>

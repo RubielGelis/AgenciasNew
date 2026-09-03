@@ -6,7 +6,25 @@ import { ShieldAlert, KeyRound, CheckCircle2, AlertCircle, RefreshCw } from 'luc
 export default function LicenciaExpiradaPage() {
     const [licenseKey, setLicenseKey] = useState('');
     const [loading, setLoading] = useState(false);
+    const [checkingStatus, setCheckingStatus] = useState(true);
+    const [isUnlicensed, setIsUnlicensed] = useState(false);
     const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    React.useEffect(() => {
+        fetch('/api/config/license')
+            .then(res => res.json())
+            .then(data => {
+                if (data.isLicensed && !data.isExpired && (data.status === 'ACTIVE' || data.status === 'WARNING')) {
+                    window.location.replace('/dashboard');
+                } else {
+                    if (data.status === 'UNLICENSED' || !data.isLicensed) {
+                        setIsUnlicensed(true);
+                    }
+                    setCheckingStatus(false);
+                }
+            })
+            .catch(() => setCheckingStatus(false));
+    }, []);
 
     const handleActivate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -50,6 +68,17 @@ export default function LicenciaExpiradaPage() {
         }
     };
 
+    if (checkingStatus) {
+        return (
+            <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
+                <div className="flex items-center gap-3 text-slate-400 font-medium">
+                    <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
+                    <span>Verificando estado de licencia...</span>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-slate-900 text-slate-100 flex items-center justify-center p-4">
             <div className="max-w-xl w-full bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden p-8 space-y-6">
@@ -60,10 +89,13 @@ export default function LicenciaExpiradaPage() {
                         <ShieldAlert className="w-8 h-8" />
                     </div>
                     <h1 className="text-2xl font-bold tracking-tight text-white">
-                        Licencia del Sistema Expirada
+                        {isUnlicensed ? 'Licencia Requerida para Habilitar el Sistema' : 'Licencia del Sistema Expirada'}
                     </h1>
                     <p className="text-sm text-slate-400">
-                        El período de funcionamiento contratado para esta versión de Korex ha finalizado o requiere renovación de licencia.
+                        {isUnlicensed
+                            ? 'Esta instalación de Korex requiere ingresar la Clave de Licencia inicial para activar el servicio.'
+                            : 'El período de funcionamiento contratado para esta versión de Korex ha finalizado o requiere renovación.'
+                        }
                     </p>
                 </div>
 

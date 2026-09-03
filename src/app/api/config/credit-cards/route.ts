@@ -55,16 +55,19 @@ export async function PUT(req: NextRequest) {
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
         
+        const isAct = body.isActive !== undefined ? Boolean(body.isActive) : (body.inactive !== undefined ? !body.inactive : true);
+
         const results: any[] = await prisma.$queryRawUnsafe(
             `CALL public."spCreditCardActualizar"($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::BOOLEAN, $6::INT, $7::TEXT)`,
             parseInt(body.id),
             body.code || null,
             body.name,
             body.type || null,
-            body.inactive === true,
+            !isAct,
             actingUserId,
             '' // p_mensaje_resultado
         );
+        await prisma.$executeRawUnsafe(`UPDATE public."CreditCard" SET "isActive" = $1 WHERE id = $2`, isAct, parseInt(body.id));
 
         const message = results[0]?.p_mensaje_resultado || '';
         if (message.startsWith('ERROR')) {

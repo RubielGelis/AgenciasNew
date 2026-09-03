@@ -381,7 +381,7 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
         document.body.removeChild(link)
     }
 
-    // Get unique taxes that have been applied anywhere, and sum their amounts
+    // Get unique taxes that have been applied anywhere, and sum their amounts (redirecting taxes with targetTaxId)
     const taxSummary = React.useMemo(() => {
         const summary: Record<string, number> = {}
         if (!data?.taxes) return summary;
@@ -391,7 +391,15 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
             (item.appliedTaxes || []).forEach(tax => {
                 const rawTaxId = (tax as any).id ?? (tax as any).chargeAndTaxId;
                 const taxId = rawTaxId != null ? Number(rawTaxId) : null;
-                const master = data.taxes.find((t: any) => Number(t.id) === taxId);
+                let master = data.taxes.find((t: any) => Number(t.id) === taxId);
+
+                if (master && master.targetTaxId) {
+                    const targetMaster = data.taxes.find((t: any) => Number(t.id) === Number(master.targetTaxId));
+                    if (targetMaster) {
+                        master = targetMaster;
+                    }
+                }
+
                 const name = master ? master.name : ((tax as any).name || 'Otros');
                 summary[name] = (summary[name] || 0) + (tax.amount || 0);
             });
@@ -1101,12 +1109,16 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-2">
                                             <label className="text-sm font-semibold text-zinc-500">Destino</label>
-                                            <input 
-                                                type="text"
-                                                className="w-full h-12 bg-zinc-50 dark:bg-zinc-800 rounded-xl px-4 border border-zinc-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                                            <SearchSelect
+                                                options={data.cities || []}
                                                 value={formData.destination || ''}
-                                                onChange={(e) => updateHeaderField('destination', e.target.value)}
-                                                placeholder="Destino del viaje"
+                                                onChange={(val) => updateHeaderField('destination', val)}
+                                                placeholder="Buscar Destino / Ciudad..."
+                                                labelKey="name"
+                                                secondaryKey="code"
+                                                valueKey="name"
+                                                remoteSearchEndpoint="/api/config/cities"
+                                                allowCustomValue={true}
                                             />
                                         </div>
                                         <div className="space-y-2">
@@ -1500,7 +1512,18 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-zinc-400">Destino</label>
-                                                    <input type="text" className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs" value={item.destination} onChange={(e) => updateItem(index, 'destination', e.target.value)} />
+                                                    <SearchSelect
+                                                        options={data.cities || []}
+                                                        value={item.destination || ''}
+                                                        onChange={(val) => updateItem(index, 'destination', val)}
+                                                        placeholder="Buscar Destino..."
+                                                        labelKey="name"
+                                                        secondaryKey="code"
+                                                        valueKey="name"
+                                                        className="w-full h-9 bg-white dark:bg-zinc-900 rounded-lg px-2 border border-zinc-200 dark:border-zinc-800 outline-none text-xs"
+                                                        remoteSearchEndpoint="/api/config/cities"
+                                                        allowCustomValue={true}
+                                                    />
                                                 </div>
                                                 <div className="space-y-1">
                                                     <label className="text-[10px] uppercase font-bold text-zinc-400">Servicio / Tipo</label>

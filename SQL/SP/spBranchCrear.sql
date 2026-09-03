@@ -9,6 +9,7 @@ CREATE OR REPLACE PROCEDURE public.spBranchCrear(
     p_invoice_template BYTEA DEFAULT NULL,
     p_invoice_template_config JSONB DEFAULT NULL,
     p_invoice_html_template TEXT DEFAULT NULL,
+    p_is_active BOOLEAN DEFAULT true,
     p_acting_user_id INT DEFAULT 1,
     INOUT p_branch_id INT DEFAULT 0,
     INOUT p_mensaje_resultado TEXT DEFAULT ''
@@ -18,11 +19,11 @@ AS $$
 BEGIN
     INSERT INTO public."Branch" (
         "code", "name", "logo", "template", "templateConfig", "htmlTemplate",
-        "resolutionId", "invoiceTemplate", "invoiceTemplateConfig", "invoiceHtmlTemplate"
+        "resolutionId", "invoiceTemplate", "invoiceTemplateConfig", "invoiceHtmlTemplate", "isActive"
     )
     VALUES (
         p_code, p_name, p_logo, p_template, p_template_config, p_html_template,
-        p_resolution_id, p_invoice_template, p_invoice_template_config, p_invoice_html_template
+        p_resolution_id, p_invoice_template, p_invoice_template_config, p_invoice_html_template, COALESCE(p_is_active, true)
     )
     RETURNING id INTO p_branch_id;
 

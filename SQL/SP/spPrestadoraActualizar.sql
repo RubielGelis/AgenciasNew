@@ -6,8 +6,9 @@ CREATE OR REPLACE PROCEDURE public.spPrestadoraActualizar(
     p_location TEXT,
     p_provider_id INT,
     p_type TEXT,
-    p_acting_user_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_is_active BOOLEAN DEFAULT true,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
@@ -18,7 +19,8 @@ BEGIN
         "category" = p_category,
         "location" = p_location,
         "providerId" = p_provider_id,
-        "type" = p_type
+        "type" = p_type,
+        "isActive" = COALESCE(p_is_active, true)
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Prestadora actualizado.';

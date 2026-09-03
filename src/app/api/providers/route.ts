@@ -19,12 +19,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json()
-        const { code, name, contactInfo, commissionConfig, providerTypeId, airlineCode, sigla } = body
+        const { code, name, contactInfo, commissionConfig, providerTypeId, airlineCode, sigla, isActive } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+        const isAct = isActive !== undefined ? isActive : (body.inactive !== undefined ? !body.inactive : true);
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spProveedorCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::JSONB, $5::INT, $6::TEXT, $7::TEXT, $8::INT, $9::INT, $10::TEXT)`,
+            `CALL public.spProveedorCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::JSONB, $5::INT, $6::TEXT, $7::TEXT, $8::BOOLEAN, $9::INT, $10::INT, $11::TEXT)`,
             code || null,
             name,
             contactInfo || null,
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
             providerTypeId ? parseInt(providerTypeId) : null,
             airlineCode || null,
             sigla || null,
+            isAct,
             actingUserId,
             0, // p_provider_id
             '' // p_mensaje_resultado
@@ -60,12 +62,13 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
     try {
         const body = await req.json()
-        const { id, code, name, contactInfo, commissionConfig, providerTypeId, airlineCode, sigla } = body
+        const { id, code, name, contactInfo, commissionConfig, providerTypeId, airlineCode, sigla, isActive } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+        const isAct = isActive !== undefined ? isActive : (body.inactive !== undefined ? !body.inactive : true);
 
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spProveedorActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::JSONB, $6::INT, $7::TEXT, $8::TEXT, $9::INT, $10::TEXT)`,
+            `CALL public.spProveedorActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::JSONB, $6::INT, $7::TEXT, $8::TEXT, $9::BOOLEAN, $10::INT, $11::TEXT)`,
             parseInt(id),
             code || null,
             name,
@@ -74,6 +77,7 @@ export async function PUT(req: NextRequest) {
             providerTypeId ? parseInt(providerTypeId) : null,
             airlineCode || null,
             sigla || null,
+            isAct,
             actingUserId,
             '' // p_mensaje_resultado
         );

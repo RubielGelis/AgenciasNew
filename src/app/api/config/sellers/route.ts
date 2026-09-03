@@ -18,12 +18,14 @@ export async function POST(req: NextRequest) {
         const body = await req.json()
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+        const isAct = body.isActive !== undefined ? body.isActive : (body.inactive !== undefined ? !body.inactive : true);
         
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spSellerCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::INT, $5::INT, $6::TEXT)`,
+            `CALL public.spSellerCrear($1::TEXT, $2::TEXT, $3::TEXT, $4::BOOLEAN, $5::INT, $6::INT, $7::TEXT)`,
             body.code || null,
             body.name,
             body.email || null,
+            isAct,
             actingUserId,
             0, // p_seller_id
             '' // p_mensaje_resultado
@@ -54,13 +56,15 @@ export async function PUT(req: NextRequest) {
         const body = await req.json()
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+        const isAct = body.isActive !== undefined ? body.isActive : (body.inactive !== undefined ? !body.inactive : true);
         
         const results: any[] = await prisma.$queryRawUnsafe(
-            `CALL public.spSellerActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::INT, $6::TEXT)`,
+            `CALL public.spSellerActualizar($1::INT, $2::TEXT, $3::TEXT, $4::TEXT, $5::BOOLEAN, $6::INT, $7::TEXT)`,
             parseInt(body.id),
             body.code || null,
             body.name,
             body.email || null,
+            isAct,
             actingUserId,
             '' // p_mensaje_resultado
         );

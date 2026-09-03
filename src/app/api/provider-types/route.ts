@@ -60,6 +60,7 @@ export async function PUT(req: NextRequest) {
         const { id, code, name, isAirline, active } = body
         const userIdHeader = req.headers.get('X-User-Id')
         const actingUserId = userIdHeader ? parseInt(userIdHeader) : 1
+        const isAct = body.isActive !== undefined ? Boolean(body.isActive) : (body.inactive !== undefined ? !body.inactive : (active !== undefined ? Boolean(active) : true));
 
         const results: any[] = await prisma.$queryRawUnsafe(
             `CALL public.spProviderTypeActualizar($1::INT, $2::TEXT, $3::TEXT, $4::BOOLEAN, $5::BOOLEAN, $6::INT, $7::TEXT)`,
@@ -67,10 +68,11 @@ export async function PUT(req: NextRequest) {
             code,
             name,
             Boolean(isAirline),
-            active !== undefined ? Boolean(active) : true,
+            isAct,
             actingUserId,
             '' // p_mensaje_resultado
         );
+        await prisma.$executeRawUnsafe(`UPDATE public."ProviderType" SET "isActive" = $1 WHERE id = $2`, isAct, parseInt(id));
 
         const message = results[0]?.p_mensaje_resultado || '';
         if (message.startsWith('ERROR')) {

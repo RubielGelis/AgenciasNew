@@ -15,22 +15,28 @@ export async function middleware(req: NextRequest) {
         return NextResponse.next();
     }
 
-    // 1. Verificación de Expiración de Licencia mediante Cookie en Edge Runtime
+    // 1. Verificación de Expiración / Falta de Licencia en Edge Runtime
     const licExpCookie = req.cookies.get('korex_lic_exp')?.value;
 
-    if (licExpCookie) {
-        const expDate = new Date(`${licExpCookie}T23:59:59.999Z`);
-        const now = new Date();
+    let isLicenseBlocked = false;
 
-        if (now > expDate) {
-            if (pathname.startsWith('/api')) {
-                return NextResponse.json(
-                    { message: 'La licencia del sistema ha expirado. Por favor ingrese una nueva clave de renovación.' },
-                    { status: 402 } // Payment Required
-                );
-            }
-            return NextResponse.redirect(new URL('/licencia-expirada', req.url));
+    if (licExpCookie === 'EXPIRED' || licExpCookie === 'UNLICENSED') {
+        isLicenseBlocked = true;
+    } else if (licExpCookie) {
+        const expDate = new Date(`${licExpCookie}T23:59:59.999Z`);
+        if (isNaN(expDate.getTime()) || new Date() > expDate) {
+            isLicenseBlocked = true;
         }
+    }
+
+    if (isLicenseBlocked) {
+        if (pathname.startsWith('/api')) {
+            return NextResponse.json(
+                { message: 'La licencia del sistema ha expirado o no ha sido activada. Por favor ingrese una clave válida.' },
+                { status: 402 } // Payment Required
+            );
+        }
+        return NextResponse.redirect(new URL('/licencia-expirada', req.url));
     }
 
     // 2. Verificación de Token de Autenticación de Usuario (Si se requiere)

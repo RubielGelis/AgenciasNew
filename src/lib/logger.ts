@@ -1,7 +1,7 @@
 import prisma from '@/lib/prisma';
 
 /**
- * Registra un evento de auditoría en el sistema usando el Stored Procedure spLogRegistrar.
+ * Registra un evento de auditoría en el sistema usando Prisma.
  */
 export async function registerLog(
     userId: number | null,
@@ -29,6 +29,32 @@ export async function registerLog(
         console.error('[AuditLog_ERROR] Fallo al crear log en Prisma:', error.message);
         if (error.code) console.error('  Code:', error.code);
     }
+}
+
+/**
+ * Registra un error de sistema o excepción estructurada con metadatos extendidos.
+ */
+export async function registerErrorLog(params: {
+    userId?: number | null;
+    module: string;
+    action?: string;
+    description: string;
+    errorDetails?: string;
+    endpoint?: string;
+    statusCode?: number;
+}) {
+    return registerLog(
+        params.userId || null,
+        params.module,
+        params.action || 'ERROR',
+        params.description,
+        {
+            errorDetails: params.errorDetails || null,
+            endpoint: params.endpoint || null,
+            statusCode: params.statusCode || 500,
+            timestamp: new Date().toISOString()
+        }
+    );
 }
 
 /**

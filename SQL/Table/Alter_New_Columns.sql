@@ -792,6 +792,9 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'code') THEN
         ALTER TABLE public."ChargeAndTax" ADD COLUMN "code" text;
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'targetTaxId') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "targetTaxId" integer NULL;
+    END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Menu' AND column_name = 'id') THEN
         ALTER TABLE public."Menu" ADD COLUMN "id" integer NOT NULL;
     END IF;
@@ -2936,12 +2939,209 @@ INSERT INTO public."Menu" (code, name, action, activo) VALUES ('MAESTROS', 'Maes
 INSERT INTO public."Menu" (code, name, action, activo) VALUES ('REPORTES', 'Reportes', '/dashboard/reports', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
 
 INSERT INTO public."Menu" (code, name, action, activo) VALUES ('EJECUCIONES', 'Ejecuciones', '/dashboard/executions', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+        ALTER TABLE public."User" ADD COLUMN "canEditReports" boolean DEFAULT false;
+    END IF;
+
+    -- Parámetro estándar por defecto para Producto de Reservas GDS
+    IF NOT EXISTS (SELECT 1 FROM public."SystemParameter" WHERE "code" = 'PRODUCTO_RESERVA_GDS') THEN
+        INSERT INTO public."SystemParameter" ("code", "name", "value")
+        VALUES ('PRODUCTO_RESERVA_GDS', 'Producto por Defecto para Reservas GDS', '');
+    END IF;
+
+    -- Columnas para Orden de visualización y Asignación por Producto en ChargeAndTax
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'orden') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "orden" integer DEFAULT 0;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'ChargeAndTax' AND column_name = 'productIds') THEN
+        ALTER TABLE public."ChargeAndTax" ADD COLUMN "productIds" jsonb DEFAULT '[]'::jsonb;
+    END IF;
+
+    -- Columna para Asignación de Cargos e Impuestos por Producto en Product
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Product' AND column_name = 'taxIds') THEN
+        ALTER TABLE public."Product" ADD COLUMN "taxIds" jsonb DEFAULT '[]'::jsonb;
+    END IF;
+
+    -- Tabla de Parámetros/Reglas de Extracción de Interfaces (PNR/GDS)
+    IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'InterfaceExtractParam_id_seq') THEN
+        CREATE SEQUENCE public."InterfaceExtractParam_id_seq" START WITH 1 INCREMENT BY 1;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InterfaceExtractParam') THEN
+        CREATE TABLE public."InterfaceExtractParam" (
+            "id" integer DEFAULT nextval('"InterfaceExtractParam_id_seq"'::regclass) NOT NULL,
+            "interfaceId" integer NOT NULL,
+            "fieldCode" character varying(50) NOT NULL,
+            "fieldName" character varying(100) NOT NULL,
+            "prefix" character varying(100) NOT NULL,
+            "delimiter" character varying(20) DEFAULT '-'::character varying,
+            "startPosition" integer DEFAULT 0,
+            "length" integer DEFAULT 0,
+            "isActive" boolean DEFAULT true NOT NULL,
+            "createdAt" timestamp without time zone DEFAULT now(),
+            CONSTRAINT "InterfaceExtractParam_pkey" PRIMARY KEY ("id")
+        );
+    END IF;
+
+    -- Foreign Key de InterfaceExtractParam hacia Interfaces
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'InterfaceExtractParam_interfaceId_fkey') THEN
+        ALTER TABLE public."InterfaceExtractParam" 
+        ADD CONSTRAINT "InterfaceExtractParam_interfaceId_fkey" 
+        FOREIGN KEY ("interfaceId") REFERENCES public."Interfaces"("id") ON DELETE CASCADE;
+    END IF;
+
+    -- Columna sellerId (Vendedor por Defecto) en Client
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Client' AND column_name = 'sellerId') THEN
+        ALTER TABLE public."Client" ADD COLUMN "sellerId" integer;
+    END IF;
+
+    -- Foreign Key de Client.sellerId hacia Seller.id
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'Client_sellerId_fkey') THEN
+        ALTER TABLE public."Client" 
+        ADD CONSTRAINT "Client_sellerId_fkey" 
+        FOREIGN KEY ("sellerId") REFERENCES public."Seller"("id") ON DELETE SET NULL;
+    END IF;
+
+    -- Limpieza de duplicados existentes por combinación de interfaceId y prefix
+    DELETE FROM public."InterfaceExtractParam" a
+    USING public."InterfaceExtractParam" b
+    WHERE a.id > b.id 
+      AND a."interfaceId" = b."interfaceId" 
+      AND LOWER(TRIM(a.prefix)) = LOWER(TRIM(b.prefix));
+
+    -- Restricción de Unicidad por combinación de Interfaz y Prefijo (interfaceId + prefix)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'InterfaceExtractParam_interfaceId_prefix_key') THEN
+        ALTER TABLE public."InterfaceExtractParam" 
+        ADD CONSTRAINT "InterfaceExtractParam_interfaceId_prefix_key" 
+        UNIQUE ("interfaceId", "prefix");
+    END IF;
+
+    -- Tabla DocumentResolution (Maestro de Resoluciones de Documentos)
+    CREATE SEQUENCE IF NOT EXISTS public."DocumentResolution_id_seq";
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'DocumentResolution') THEN
+        CREATE TABLE public."DocumentResolution" (
+            "id" integer DEFAULT nextval('public."DocumentResolution_id_seq"'::regclass) NOT NULL PRIMARY KEY,
+            "branchId" integer NOT NULL,
+            "implantId" integer,
+            "resolutionNumber" character varying(100) NOT NULL,
+            "initialNumber" integer NOT NULL,
+            "finalNumber" integer NOT NULL,
+            "currentNumber" integer NOT NULL,
+            "resolutionDate" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+            "prefix" character varying(20),
+            "expirationDate" timestamp without time zone NOT NULL,
+            "isActive" boolean DEFAULT true NOT NULL,
+            "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'DocumentResolution_branchId_fkey') THEN
+        ALTER TABLE public."DocumentResolution" 
+        ADD CONSTRAINT "DocumentResolution_branchId_fkey" 
+        FOREIGN KEY ("branchId") REFERENCES public."Branch"("id") ON DELETE CASCADE;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'DocumentResolution_implantId_fkey') THEN
+        ALTER TABLE public."DocumentResolution" 
+        ADD CONSTRAINT "DocumentResolution_implantId_fkey" 
+        FOREIGN KEY ("implantId") REFERENCES public."Implant"("id") ON DELETE SET NULL;
+    END IF;
+
+    -- Tabla TransactionConsecutive (Maestro de Consecutivos de Transacciones)
+    CREATE SEQUENCE IF NOT EXISTS public."TransactionConsecutive_id_seq";
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'TransactionConsecutive') THEN
+        CREATE TABLE public."TransactionConsecutive" (
+            "id" integer DEFAULT nextval('public."TransactionConsecutive_id_seq"'::regclass) NOT NULL PRIMARY KEY,
+            "transactionType" character varying(50) NOT NULL,
+            "description" character varying(150) NOT NULL,
+            "prefix" character varying(20),
+            "initialNumber" integer,
+            "currentNumber" integer NOT NULL,
+            "branchId" integer,
+            "implantId" integer,
+            "isActive" boolean DEFAULT true NOT NULL,
+            "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+        );
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'TransactionConsecutive_branchId_fkey') THEN
+        ALTER TABLE public."TransactionConsecutive" 
+        ADD CONSTRAINT "TransactionConsecutive_branchId_fkey" 
+        FOREIGN KEY ("branchId") REFERENCES public."Branch"("id") ON DELETE SET NULL;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.table_constraints WHERE constraint_name = 'TransactionConsecutive_implantId_fkey') THEN
+        ALTER TABLE public."TransactionConsecutive" 
+        ADD CONSTRAINT "TransactionConsecutive_implantId_fkey" 
+        FOREIGN KEY ("implantId") REFERENCES public."Implant"("id") ON DELETE SET NULL;
+    END IF;
+
+    -- Columnas resolutionId e invoiceTemplate para Branch e Implant
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'resolutionId') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "resolutionId" INT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceTemplate') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceTemplate" BYTEA;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceTemplateConfig') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceTemplateConfig" JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceHtmlTemplate') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceHtmlTemplate" TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'resolutionId') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "resolutionId" INT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceTemplate') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceTemplate" BYTEA;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceTemplateConfig') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceTemplateConfig" JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceHtmlTemplate') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceHtmlTemplate" TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'SysConsecutivo') THEN
+        CREATE TABLE public."SysConsecutivo" (
+            "id" SERIAL PRIMARY KEY,
+            "codigo" VARCHAR(50) NOT NULL,
+            "nombre" VARCHAR(255) NOT NULL,
+            "branchId" INT REFERENCES public."Branch"(id) ON DELETE SET NULL,
+            "implantId" INT REFERENCES public."Implant"(id) ON DELETE SET NULL,
+            "fuente" VARCHAR(50),
+            "serie" VARCHAR(50),
+            "consecutivo" BIGINT NOT NULL DEFAULT 0,
+            "createdAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX "idx_sysconsecutivo_codigo" ON public."SysConsecutivo"("codigo");
+        CREATE INDEX "idx_sysconsecutivo_branch" ON public."SysConsecutivo"("branchId");
+        CREATE INDEX "idx_sysconsecutivo_implant" ON public."SysConsecutivo"("implantId");
+    END IF;
+END $$;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('DASHBOARD', 'Dashboard', '/dashboard', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('PRECOTIZACIONES', 'Pre-Cotizaciones', '/dashboard/prequotations', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('COTIZACIONES', 'Cotizaciones', '/dashboard/quotations/history', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('FACTURACION', 'Facturación', '/dashboard/invoices/history', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('MAESTROS', 'Maestros', '/dashboard/settings', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('REPORTES', 'Reportes', '/dashboard/reports', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('EJECUCIONES', 'Ejecuciones', '/dashboard/executions', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
 
 INSERT INTO public."Menu" (code, name, action, activo) VALUES ('MANUAL', 'Manual Operativo', '/dashboard/manual', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
 
 INSERT INTO public."Master" (code, name, "inactivo") VALUES ('Equivalences', 'equivalencias', false) ON CONFLICT (code) DO NOTHING;
 
-INSERT INTO public."SystemParameter" (code, name, value) VALUES ('LICENSE_KEY', 'Clave de Licencia del Sistema', 'KOR1.eyJjIjoiS09SRVggQUdFTkNJQSBQUlVFQkEiLCJuIjoiNzk4OTg0NTYiLCJlIjoiMjAyNi0wOS0xOCIsImkiOiIyMDI2LTA4LTE4In0.c33014ec4605e0dfe9fa66a7bfaeb738875c88e030934e9212f75e72686a99b7') ON CONFLICT (code) DO NOTHING;
+INSERT INTO public."Master" (code, name, "inactivo") VALUES ('Diagnostics', 'diagnostico', false) ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('LICENSE_KEY', 'Clave de Licencia del Sistema', 'KOR1.eyJjIjoiS09SRVggQUdFTkNJQSBQUlVFQkEiLCJuIjoiNzk4OTg0NTYiLCJlIjoiMjAyNi0wOS0xOCIsImkiOiIyMDI2LTA4LTE4In0.9ff9b9c70c96a3be611adf0c8866f8cf0340bc5311586f66e1afde9be49a9421') ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO public."SystemParameter" (code, name, value) VALUES ('LICENSE_EXPIRATION_DATE', 'Fecha de Expiración de Licencia', '2026-09-18') ON CONFLICT (code) DO NOTHING;
 
@@ -2966,3 +3166,33 @@ INSERT INTO public."SystemParameter" (code, name, value) VALUES ('BaseSQLServer'
 INSERT INTO public."SystemParameter" (code, name, value) VALUES ('AGENCY_NAME', 'Nombre o Razón Social de la Agencia', 'KOREX AGENCIA PRUEBA') ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO public."SystemParameter" (code, name, value) VALUES ('AGENCY_NIT', 'NIT de la Agencia', '79898456') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('TASA_CAMBIO_IATA', 'Tasa de Cambio IATA', '4200.00') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('TARIFA_ADMIN_OW', 'Tarifa Administrativa Nacional One Way', '29100') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('TARIFA_ADMIN_RT', 'Tarifa Administrativa Nacional Roundtrip', '52800') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('PRODUCTO_TARIFA_ADMINISTRATIVA', 'Producto por Defecto para Tarifa Administrativa', '77') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."SystemParameter" (code, name, value) VALUES ('TARIFA_ADMIN_INT_RANGES', 'Rangos Tarifa Administrativa Internacional (JSON)', '[{"min":0,"max":354,"feeUsd":15,"label":"Menores o iguales a USD 354"},{"min":354.01,"max":590,"feeUsd":28,"label":"Mayores de USD 354 hasta USD 590"},{"min":590.01,"max":944,"feeUsd":46,"label":"Mayores de USD 590 hasta USD 944"},{"min":944.01,"max":999999,"feeUsd":95,"label":"Mayores de USD 944"}]') ON CONFLICT (code) DO NOTHING;
+
+-- Columna isActive en todas las tablas maestras del sistema
+DO $$
+DECLARE
+    tbl TEXT;
+    tables TEXT[] := ARRAY[
+        'ChargeAndTax', 'Client', 'User', 'Branch', 'Provider', 'Prestadora',
+        'Seller', 'Product', 'Airport', 'City', 'Country', 'CreditCard',
+        'Currency', 'Resolucion', 'MasterVariable', 'ProviderType', 'Combo',
+        'TicketType', 'QuotationState', 'QuotationFormat', 'InterfaceExtractParam'
+    ];
+BEGIN
+    FOREACH tbl IN ARRAY tables LOOP
+        IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = tbl) THEN
+            IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = tbl AND column_name = 'isActive') THEN
+                EXECUTE 'ALTER TABLE public."' || tbl || '" ADD COLUMN "isActive" boolean DEFAULT true NOT NULL;';
+            END IF;
+        END IF;
+    END LOOP;
+END $$;

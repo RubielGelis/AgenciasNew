@@ -49,22 +49,25 @@ Esta guía previene errores recurrentes (como botones que muestran "Nuevo Implan
 
 ## 2. Capa de Base de Datos y Backend (PostgreSQL & Prisma)
 
-1. **Tabla SQL (`SQL/Table/Alter_New_Columns.sql`)**:
-   - Definir la tabla con `CREATE TABLE IF NOT EXISTS public."NombreTabla" (...)`.
-   - Asignar secuencia autoincremental `DEFAULT nextval('...')` en la columna `id`.
-   - Agregar Foreign Keys con `ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY`.
-
-2. **Funciones y Stored Procedures (SPs)**:
-   - `SQL/Function/fn<Maestro>Listar.sql`: Usar **SIEMPRE `LEFT JOIN`** para tablas relacionables.
-   - `SQL/SP/sp<Maestro>Crear.sql`: Recibir parámetros e insetar RETURNING `id`.
-   - `SQL/SP/sp<Maestro>Actualizar.sql`: Procedimiento de actualización por ID.
-   - `SQL/SP/sp<Maestro>Eliminar.sql`: Procedimiento de borrado.
-
-3. **Ejecución del Validador pre-compilación**:
-   - Ejecutar `node deploy/gen_schema_json.js` para compilar SPs, verificar `LEFT JOIN`, regenerar Prisma Client y actualizar `Actualizador.sql`.
-
-4. **API Route Next.js**:
-   - Crear `src/app/api/config/<maestro>/route.ts` con métodos `GET`, `POST`, `PUT`, `DELETE` consumiendo los SPs con `prisma.$queryRawUnsafe`.
+51: 1. **Tabla SQL (`SQL/Table/Alter_New_Columns.sql`)**:
+52:    - Definir la tabla con `CREATE TABLE IF NOT EXISTS public."NombreTabla" (...)`.
+53:    - **Campo Inactivación (`"isActive"`)**: Incluir obligatoriamente `"isActive" boolean DEFAULT true NOT NULL;`.
+54:    - Asignar secuencia autoincremental `DEFAULT nextval('...')` en la columna `id`.
+55:    - Agregar Foreign Keys con `ALTER TABLE ... ADD CONSTRAINT ... FOREIGN KEY`.
+56: 
+57: 2. **Funciones y Stored Procedures (SPs)**:
+58:    - `SQL/Function/fn<Maestro>Listar.sql`: Usar **SIEMPRE `LEFT JOIN`** para tablas relacionables y retornar `'isActive', COALESCE(t."isActive", true)`.
+59:    - `SQL/SP/sp<Maestro>Crear.sql`: Recibir parámetro `p_is_active BOOLEAN DEFAULT true` e insertar RETURNING `id`.
+60:    - `SQL/SP/sp<Maestro>Actualizar.sql`: Recibir parámetro `p_is_active BOOLEAN DEFAULT true` y actualizar por ID.
+61:    - `SQL/SP/sp<Maestro>Eliminar.sql`: **Protección Obligatoria de Borrado**: Validar antes del `DELETE` si el registro cuenta con relaciones o histórico en cotizaciones/facturas. Si cuenta con uso, retornar `ERROR: No es posible eliminar el [maestro] "[Nombre]" porque ya cuenta con transacciones asociadas. Puedes marcarlo como INACTIVO para ocultarlo en futuras operaciones.`
+62: 
+63: 3. **Ejecución del Validador pre-compilación**:
+64:    - Ejecutar `node deploy/gen_schema_json.js` para compilar SPs, verificar `LEFT JOIN`, regenerar Prisma Client y actualizar `Actualizador.sql`.
+65: 
+66: 4. **API Route Next.js**:
+67:    - Crear `src/app/api/config/<maestro>/route.ts` con métodos `GET`, `POST`, `PUT`, `DELETE`.
+68:    - En consultas para operativas (`base-data`), filtrar registros donde `isActive !== false`.
+69:    - En `DELETE`, retornar código `400` con el mensaje informativo cuando la base de datos bloquee la eliminación por histórico.
 
 ---
 
