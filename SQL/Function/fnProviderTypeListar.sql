@@ -10,7 +10,8 @@ BEGIN
             'code', pt.code,
             'name', pt.name,
             'isAirline', pt."isAirline",
-            'active', pt.active
+            'active', pt.active,
+            'isActive', COALESCE(pt."isActive", pt.active, true)
         )
     FROM public."ProviderType" pt
     ORDER BY pt.name ASC;

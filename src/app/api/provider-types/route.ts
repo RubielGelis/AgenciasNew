@@ -72,14 +72,14 @@ export async function PUT(req: NextRequest) {
             actingUserId,
             '' // p_mensaje_resultado
         );
-        await prisma.$executeRawUnsafe(`UPDATE public."ProviderType" SET "isActive" = $1 WHERE id = $2`, isAct, parseInt(id));
+        await prisma.$executeRawUnsafe(`UPDATE public."ProviderType" SET "isActive" = $1, "active" = $1 WHERE id = $2`, isAct, parseInt(id));
 
         const message = results[0]?.p_mensaje_resultado || '';
         if (message.startsWith('ERROR')) {
             throw new Error(message);
         }
 
-        const providerType = { id, code, name, isAirline, active };
+        const providerType = { id, code, name, isAirline, active: isAct, isActive: isAct };
 
         import('@/lib/logger').then(({ logSystemEvent }) => {
             logSystemEvent({ userId: actingUserId, action: 'UPDATE', module: 'PROVIDER_TYPE', description: `Tipo de Proveedor ${name} actualizado (SP).`, metadata: providerType });
