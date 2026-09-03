@@ -1392,3 +1392,5 @@ INSERT INTO public."SystemParameter" (code, name, value) VALUES ('TARIFA_ADMIN_R
 INSERT INTO public."SystemParameter" (code, name, value) VALUES ('PRODUCTO_TARIFA_ADMINISTRATIVA', 'Producto por Defecto para Tarifa Administrativa', '77') ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO public."SystemParameter" (code, name, value) VALUES ('TARIFA_ADMIN_INT_RANGES', 'Rangos Tarifa Administrativa Internacional (JSON)', '[{"min":0,"max":354,"feeUsd":15,"label":"Menores o iguales a USD 354"},{"min":354.01,"max":590,"feeUsd":28,"label":"Mayores de USD 354 hasta USD 590"},{"min":590.01,"max":944,"feeUsd":46,"label":"Mayores de USD 590 hasta USD 944"},{"min":944.01,"max":999999,"feeUsd":95,"label":"Mayores de USD 944"}]') ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO public."Master" (code, name, "inactivo") VALUES ('Diagnostics', 'diagnostico', false) ON CONFLICT (code) DO NOTHING;

@@ -127,6 +127,7 @@ model Implant {
   invoiceTemplate         Bytes?
   invoiceTemplateConfig   Json?
   invoiceHtmlTemplate     String?
+  isActive                Boolean?                 @default(true)
   cellCustomizations      CellCustomization[]
   documentResolutions     DocumentResolution[]
   branch                  Branch?                  @relation(fields: [branchId], references: [id])
@@ -153,6 +154,7 @@ model TicketPrinter {
   code          String?        @unique
   name          String
   email         String?
+  isActive      Boolean?       @default(true)
   preQuotations PreQuotation[]
   quotations    Quotation[]
   users         User[]
@@ -878,12 +880,13 @@ model Master {
 }
 
 model Payment {
-  id       Int     @id @default(autoincrement())
-  code     String  @unique
+  id       Int      @id @default(autoincrement())
+  code     String   @unique
   name     String
-  inactive Boolean @default(false)
-  iscash   Boolean @default(false)
-  iscredit Boolean @default(false)
+  inactive Boolean  @default(false)
+  iscash   Boolean  @default(false)
+  iscredit Boolean  @default(false)
+  isActive Boolean? @default(true)
 }
 
 model Report {

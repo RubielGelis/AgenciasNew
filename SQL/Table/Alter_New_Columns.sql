@@ -2916,29 +2916,29 @@ BEGIN
             "implantId" INT REFERENCES public."Implant"(id) ON DELETE SET NULL,
             "fuente" VARCHAR(50),
             "serie" VARCHAR(50),
-            "consecutivo" BIGINT NOT NULL DEFAULT 0,
-            "createdAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            "updatedAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE INDEX "idx_sysconsecutivo_codigo" ON public."SysConsecutivo"("codigo");
-        CREATE INDEX "idx_sysconsecutivo_branch" ON public."SysConsecutivo"("branchId");
-        CREATE INDEX "idx_sysconsecutivo_implant" ON public."SysConsecutivo"("implantId");
     END IF;
-END $$;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('DASHBOARD', 'Dashboard', '/dashboard', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('PRECOTIZACIONES', 'Pre-Cotizaciones', '/dashboard/prequotations', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('COTIZACIONES', 'Cotizaciones', '/dashboard/quotations/history', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('FACTURACION', 'Facturación', '/dashboard/invoices/history', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('MAESTROS', 'Maestros', '/dashboard/settings', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('REPORTES', 'Reportes', '/dashboard/reports', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('EJECUCIONES', 'Ejecuciones', '/dashboard/executions', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'passwordHash') THEN
+        ALTER TABLE public."User" ADD COLUMN "passwordHash" text NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'resetPasswordToken') THEN
+        ALTER TABLE public."User" ADD COLUMN "resetPasswordToken" text;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'resetPasswordExpires') THEN
+        ALTER TABLE public."User" ADD COLUMN "resetPasswordExpires" timestamp(3) without time zone;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'roleId') THEN
+        ALTER TABLE public."User" ADD COLUMN "roleId" integer NOT NULL;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'branchId') THEN
+        ALTER TABLE public."User" ADD COLUMN "branchId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'implantId') THEN
+        ALTER TABLE public."User" ADD COLUMN "implantId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'ticketPrinterId') THEN
+        ALTER TABLE public."User" ADD COLUMN "ticketPrinterId" integer;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'User' AND column_name = 'canEditReports') THEN
         ALTER TABLE public."User" ADD COLUMN "canEditReports" boolean DEFAULT false;
     END IF;
 
@@ -3121,20 +3121,6 @@ INSERT INTO public."Menu" (code, name, action, activo) VALUES ('EJECUCIONES', 'E
     END IF;
 END $$;
 
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('DASHBOARD', 'Dashboard', '/dashboard', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('PRECOTIZACIONES', 'Pre-Cotizaciones', '/dashboard/prequotations', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('COTIZACIONES', 'Cotizaciones', '/dashboard/quotations/history', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('FACTURACION', 'Facturación', '/dashboard/invoices/history', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('MAESTROS', 'Maestros', '/dashboard/settings', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('REPORTES', 'Reportes', '/dashboard/reports', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
-INSERT INTO public."Menu" (code, name, action, activo) VALUES ('EJECUCIONES', 'Ejecuciones', '/dashboard/executions', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
-
 INSERT INTO public."Menu" (code, name, action, activo) VALUES ('MANUAL', 'Manual Operativo', '/dashboard/manual', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
 
 INSERT INTO public."Master" (code, name, "inactivo") VALUES ('Equivalences', 'equivalencias', false) ON CONFLICT (code) DO NOTHING;
@@ -3182,10 +3168,11 @@ DO $$
 DECLARE
     tbl TEXT;
     tables TEXT[] := ARRAY[
-        'ChargeAndTax', 'Client', 'User', 'Branch', 'Provider', 'Prestadora',
+        'ChargeAndTax', 'Client', 'User', 'Branch', 'Implant', 'Provider', 'Prestadora',
         'Seller', 'Product', 'Airport', 'City', 'Country', 'CreditCard',
-        'Currency', 'Resolucion', 'MasterVariable', 'ProviderType', 'Combo',
-        'TicketType', 'QuotationState', 'QuotationFormat', 'InterfaceExtractParam'
+        'Currency', 'MasterVariable', 'ProviderType', 'Combo',
+        'TicketType', 'TicketPrinter', 'Payment', 'DocumentResolution', 'TransactionConsecutive',
+        'QuotationState', 'QuotationFormat', 'InterfaceExtractParam'
     ];
 BEGIN
     FOREACH tbl IN ARRAY tables LOOP
@@ -3196,3 +3183,17 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('DASHBOARD', 'Dashboard', '/dashboard', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('PRECOTIZACIONES', 'Pre-Cotizaciones', '/dashboard/prequotations', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('COTIZACIONES', 'Cotizaciones', '/dashboard/quotations/history', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('FACTURACION', 'Facturación', '/dashboard/invoices/history', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('MAESTROS', 'Maestros', '/dashboard/settings', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('REPORTES', 'Reportes', '/dashboard/reports', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
+
+INSERT INTO public."Menu" (code, name, action, activo) VALUES ('EJECUCIONES', 'Ejecuciones', '/dashboard/executions', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
