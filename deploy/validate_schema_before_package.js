@@ -311,6 +311,29 @@ async function validateAndPrepareSchema() {
   `);
   console.log("  [OK] Todos los Parámetros del Sistema sembrados y verificados con ON CONFLICT DO NOTHING.");
 
+  // 2.11.5 Verificación y Auto-Reparación de Plantilla Predeterminada de Impresión (QuotationPrintDefaultTemplate)
+  console.log("\n[PASO 2.11.5/5] Verificando plantilla predeterminada de impresión ('QuotationPrintDefaultTemplate')...");
+  try {
+    const printDefRes = await client.query('SELECT html FROM public."QuotationPrintDefaultTemplate" ORDER BY id ASC LIMIT 1');
+    const printHtml = printDefRes.rows[0]?.html || '';
+    if (!printHtml || printHtml.length < 5000 || (!printHtml.includes('FORMATO VENTA') && !printHtml.includes('LIQUIDACION'))) {
+      console.log("  [AUTO-FIX] Regenerando plantilla predeterminada completa de impresión desde default_template.xlsx...");
+      const { generateHtmlTemplate } = require(path.join(rootDir, 'src', 'lib', 'excel-to-html'));
+      const defaultTemplatePath = path.join(rootDir, 'templates', 'default_template.xlsx');
+      if (fs.existsSync(defaultTemplatePath)) {
+        const defaultBuffer = fs.readFileSync(defaultTemplatePath);
+        const fullHtml = await generateHtmlTemplate(defaultBuffer, {}, null, 1);
+        await client.query('DELETE FROM public."QuotationPrintDefaultTemplate"');
+        await client.query('INSERT INTO public."QuotationPrintDefaultTemplate" (name, html, "createdAt", "updatedAt") VALUES ($1, $2, NOW(), NOW())', ['Default', fullHtml]);
+        console.log("  [OK] Plantilla predeterminada completa de impresión regenerada exitosamente.");
+      }
+    } else {
+      console.log("  [OK] Plantilla predeterminada de impresión verificada.");
+    }
+  } catch (printTplErr) {
+    console.warn(`  [WARN] Error verificando plantilla predeterminada de impresión: ${printTplErr.message}`);
+  }
+
   // 2.12 AUDITORÍA AUTOMÁTICA Y AUTO-CORRECCIÓN UNIVERSAL DE ARCHIVOS DE MIGRACIÓN (Inicial.sql y Alter_New_Columns.sql)
   console.log("\n[PASO 2.12/5] Auditoría y Sincronización Automática Universal de Catálogos (Menu, Master, SystemParameter)...");
   try {
