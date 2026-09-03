@@ -340,9 +340,18 @@ async function validateAndPrepareSchema(customConnStr) {
     const printHtml = printDefRes.rows[0]?.html || '';
     if (!printHtml || printHtml.length < 5000 || (!printHtml.includes('FORMATO VENTA') && !printHtml.includes('LIQUIDACION'))) {
       console.log("  [AUTO-FIX] Regenerando plantilla predeterminada completa de impresión desde default_template.xlsx...");
-      const { generateHtmlTemplate } = require(path.join(rootDir, 'src', 'lib', 'excel-to-html'));
+      let generateHtmlTemplate;
+      try {
+        generateHtmlTemplate = require(path.join(rootDir, 'src', 'lib', 'excel-to-html')).generateHtmlTemplate;
+      } catch (e) {
+        try {
+          require('ts-node/register');
+          generateHtmlTemplate = require(path.join(rootDir, 'src', 'lib', 'excel-to-html')).generateHtmlTemplate;
+        } catch (e2) {}
+      }
+
       const defaultTemplatePath = path.join(rootDir, 'templates', 'default_template.xlsx');
-      if (fs.existsSync(defaultTemplatePath)) {
+      if (generateHtmlTemplate && fs.existsSync(defaultTemplatePath)) {
         const defaultBuffer = fs.readFileSync(defaultTemplatePath);
         const fullHtml = await generateHtmlTemplate(defaultBuffer, {}, null, 1);
         await client.query('DELETE FROM public."QuotationPrintDefaultTemplate"');
