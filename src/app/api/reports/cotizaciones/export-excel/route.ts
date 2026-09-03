@@ -1004,6 +1004,7 @@ export async function GET(req: Request) {
                     );
                     const templateConfigRaw = dbInfo?.implant?.templateConfig || dbInfo?.branch?.templateConfig;
                     const branchTemplateBuffer = dbInfo?.implant?.template || dbInfo?.branch?.template;
+                    const branchHtmlTemplate = dbInfo?.implant?.htmlTemplate || dbInfo?.branch?.htmlTemplate;
                     templateBuffer = branchTemplateBuffer ? Buffer.from(branchTemplateBuffer) : null;
 
                     if (templateBuffer) {
@@ -1018,8 +1019,23 @@ export async function GET(req: Request) {
                             ...(physicalConfig || {}) 
                         };
                     }
+
+                    if (!htmlTemplate && branchHtmlTemplate && branchHtmlTemplate.trim().length > 200) {
+                        htmlTemplate = branchHtmlTemplate;
+                    }
                 }
 
+                // 3. If no htmlTemplate yet, try auto-generating from Branch / Implant Excel template
+                if (!htmlTemplate && templateBuffer) {
+                    try {
+                        const logoBuf = dbInfo?.implant?.logo || dbInfo?.branch?.logo;
+                        htmlTemplate = await generateHtmlTemplate(Buffer.from(templateBuffer), config, logoBuf ? Buffer.from(logoBuf) : null, q.products.length);
+                    } catch (err) {
+                        console.error(`Error auto-generating htmlTemplate for quotation ${q.idCotizacion} from branch template:`, err);
+                    }
+                }
+
+                // 4. System default template fallback (only if no quotation, format, or branch template exists)
                 if (!htmlTemplate) {
                     const defaultSystemTemplate = await prisma.quotationPrintDefaultTemplate.findFirst({
                         orderBy: { id: 'asc' }
@@ -1029,16 +1045,7 @@ export async function GET(req: Request) {
                     }
                 }
 
-                if (!htmlTemplate) {
-                    if (templateBuffer) {
-                        try {
-                            htmlTemplate = await generateHtmlTemplate(Buffer.from(templateBuffer), config, null, q.products.length);
-                        } catch (err) {
-                            console.error(`Error auto-generating htmlTemplate for quotation ${q.idCotizacion}:`, err);
-                        }
-                    }
-                }
-
+                // 5. Final fallback to default_template.xlsx file
                 if (!htmlTemplate) {
                     try {
                         const defaultTemplatePath = path.join(process.cwd(), 'templates', 'default_template.xlsx');
