@@ -337,7 +337,22 @@ BEGIN
     END LOOP;
 
     -- Calcular y actualizar el totalAmount y los nuevos campos financieros
-    SELECT COALESCE(SUM(qp.cost), 0.0), COALESCE(SUM(qp.price * qp.quantity), 0.0)
+    SELECT 
+        COALESCE(SUM(qp.cost), 0.0), 
+        COALESCE(SUM(
+            qp.price * qp.quantity + COALESCE((
+                SELECT SUM(qpt2."explicitAmount")
+                FROM public."QuotationProductTax" qpt2
+                JOIN public."ChargeAndTax" ct2 ON ct2.id = qpt2."chargeAndTaxId"
+                LEFT JOIN public."ChargeAndTax" target_ct ON target_ct.id = ct2."targetTaxId"
+                WHERE qpt2."quotationProductId" = qp.id
+                  AND qpt2."isMain" = false
+                  AND ct2."targetTaxId" IS NOT NULL
+                  AND (
+                      target_ct.type = 'PRINCIPAL' OR target_ct."isEditable" = false OR target_ct.code = 'TAR' OR target_ct.name ILIKE '%TARIFA%' OR target_ct.id = qp."mainTaxId"
+                  )
+            ), 0.0)
+        ), 0.0)
     INTO v_costo_total, v_valor_base
     FROM public."QuotationProduct" qp
     WHERE qp."quotationId" = v_quotation_id;
