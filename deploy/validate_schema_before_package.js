@@ -205,6 +205,28 @@ async function validateAndPrepareSchema() {
   }
   console.log("  [OK] Restricciones UNIQUE para operaciones de Upsert verificadas.");
 
+  // 2.6.5 Verificación y Auto-Inyección de Columna "isActive" en Tablas Maestras
+  console.log("\n[PASO 2.6.5/5] Verificando presencia de la columna 'isActive' en tablas maestras...");
+  const masterTablesForIsActive = [
+    'ChargeAndTax', 'Client', 'User', 'Branch', 'Implant', 'Provider', 'Prestadora',
+    'Seller', 'Product', 'Airports', 'Airport', 'Cities', 'City', 'Countries', 'Country', 'CreditCard',
+    'Currency', 'MasterVariable', 'ProviderType', 'Combo', 'EquivalencesInterfaces', 'Equivalences',
+    'TicketType', 'TicketPrinter', 'Payment', 'DocumentResolution', 'Resolution', 'TransactionConsecutive', 'SysConsecutivo',
+    'QuotationState', 'QuotationFormat', 'InterfaceExtractParam', 'Role'
+  ];
+
+  for (const tbl of masterTablesForIsActive) {
+    const tblExists = await client.query(`SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = $1`, [tbl]);
+    if (tblExists.rows.length > 0) {
+      const colExists = await client.query(`SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = $1 AND column_name = 'isActive'`, [tbl]);
+      if (colExists.rows.length === 0) {
+        console.log(`  [AUTO-FIX] Agregando columna 'isActive' a public."${tbl}"...`);
+        await client.query(`ALTER TABLE public."${tbl}" ADD COLUMN "isActive" boolean DEFAULT true NOT NULL;`);
+      }
+    }
+  }
+  console.log("  [OK] Columna 'isActive' verificada y garantizada en todas las tablas maestras.");
+
   // 2.7 Verificación de Prisma Schema y Regeneración del Cliente Prisma Client
   console.log("\n[PASO 2.7/5] Verificando Prisma Schema y regenerando Prisma Client...");
   const prismaSchemaPath = path.join(rootDir, 'prisma', 'schema.prisma');

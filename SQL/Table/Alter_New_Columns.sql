@@ -3169,10 +3169,10 @@ DECLARE
     tbl TEXT;
     tables TEXT[] := ARRAY[
         'ChargeAndTax', 'Client', 'User', 'Branch', 'Implant', 'Provider', 'Prestadora',
-        'Seller', 'Product', 'Airport', 'City', 'Country', 'CreditCard',
-        'Currency', 'MasterVariable', 'ProviderType', 'Combo',
-        'TicketType', 'TicketPrinter', 'Payment', 'DocumentResolution', 'TransactionConsecutive',
-        'QuotationState', 'QuotationFormat', 'InterfaceExtractParam'
+        'Seller', 'Product', 'Airports', 'Airport', 'Cities', 'City', 'Countries', 'Country', 'CreditCard',
+        'Currency', 'MasterVariable', 'ProviderType', 'Combo', 'EquivalencesInterfaces', 'Equivalences',
+        'TicketType', 'TicketPrinter', 'Payment', 'DocumentResolution', 'Resolution', 'TransactionConsecutive', 'SysConsecutivo',
+        'QuotationState', 'QuotationFormat', 'InterfaceExtractParam', 'Role'
     ];
 BEGIN
     FOREACH tbl IN ARRAY tables LOOP
