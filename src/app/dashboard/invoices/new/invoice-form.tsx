@@ -2182,8 +2182,20 @@ export default function InvoiceForm({ invoiceId, quotationId, initialData, onCan
                                                                             }
                                                                         }}
                                                                     />
-                                                                    <span>{tax.name}</span>
-                                                                    {isPrincipal && <span className="ml-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded text-[9px] uppercase tracking-wider font-extrabold">Principal</span>}
+                                                                    <span>
+                                                                        {tax.name}
+                                                                        {isPrincipal && <span className="ml-1 px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded text-[9px] uppercase tracking-wider font-extrabold">Principal</span>}
+                                                                        {(() => {
+                                                                            if (!tax.targetTaxId) return null;
+                                                                            const targetTax = data?.taxes?.find((t: any) => Number(t.id) === Number(tax.targetTaxId));
+                                                                            const targetName = targetTax?.name || 'TARIFA';
+                                                                            return (
+                                                                                <span className="text-[9px] bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 font-extrabold px-1.5 py-0.5 rounded ml-1.5 uppercase inline-flex items-center gap-0.5">
+                                                                                    ↳ Suma en {targetName}
+                                                                                </span>
+                                                                            );
+                                                                        })()}
+                                                                    </span>
                                                                 </label>
                                                             </div>
                                                             

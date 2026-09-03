@@ -694,7 +694,19 @@ BEGIN
         COALESCE(target_ct.code, ct.code, '') as cd_cargosdesc, 
         COALESCE(target_ct.name, ct.name, '') as ds_cargonm, 
         B'0' as bl_noshow, 
-        t."explicitAmount" as am_contado, 
+        (
+            t."explicitAmount" +
+            CASE WHEN (t."isMain" = true OR ct.type = 'PRINCIPAL' OR ct.code = 'TAR' OR ct.name ILIKE '%TARIFA%' OR ct.id = cs.mainTaxId) THEN
+                COALESCE((
+                    SELECT SUM(sub_t."explicitAmount")
+                    FROM public."QuotationProductTax" sub_t
+                    JOIN public."ChargeAndTax" sub_ct ON sub_t."chargeAndTaxId" = sub_ct.id
+                    WHERE sub_t."quotationProductId" = t."quotationProductId"
+                      AND sub_t."isMain" = false
+                      AND sub_ct."targetTaxId" = ct.id
+                ), 0)
+            ELSE 0 END
+        ) as am_contado, 
         0 as am_credito, 
         0 as am_contado_ME, 
         0 as am_credito_ME, 

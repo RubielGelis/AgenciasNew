@@ -699,9 +699,45 @@ BEGIN
         COALESCE(ct.name, 'Tarifa') AS ds_nombre,
         CASE WHEN t."isMain" = true THEN 'C' ELSE 'I' END AS cd_tipo,
         COALESCE(ct.value, 0) AS am_porcentaje,
-        t."explicitAmount" AS am_valor,
-        CASE WHEN itm.cd_FormasPago='EFE' THEN t."explicitAmount" ELSE 0 END AS am_contado,
-        CASE WHEN itm.cd_FormasPago='TC' THEN t."explicitAmount" ELSE 0 END AS am_credito,
+        (
+            t."explicitAmount" +
+            CASE WHEN (t."isMain" = true OR ct.type = 'PRINCIPAL' OR ct.code = 'TAR' OR ct.name ILIKE '%TARIFA%') THEN
+                COALESCE((
+                    SELECT SUM(sub_t."explicitAmount")
+                    FROM public."InvoicesProductTax" sub_t
+                    JOIN public."ChargeAndTax" sub_ct ON sub_t."chargeAndTaxId" = sub_ct.id
+                    WHERE sub_t."invoiceProductId" = t."invoiceProductId"
+                      AND sub_t."isMain" = false
+                      AND sub_ct."targetTaxId" = ct.id
+                ), 0)
+            ELSE 0 END
+        ) AS am_valor,
+        CASE WHEN itm.cd_FormasPago='EFE' THEN (
+            t."explicitAmount" +
+            CASE WHEN (t."isMain" = true OR ct.type = 'PRINCIPAL' OR ct.code = 'TAR' OR ct.name ILIKE '%TARIFA%') THEN
+                COALESCE((
+                    SELECT SUM(sub_t."explicitAmount")
+                    FROM public."InvoicesProductTax" sub_t
+                    JOIN public."ChargeAndTax" sub_ct ON sub_t."chargeAndTaxId" = sub_ct.id
+                    WHERE sub_t."invoiceProductId" = t."invoiceProductId"
+                      AND sub_t."isMain" = false
+                      AND sub_ct."targetTaxId" = ct.id
+                ), 0)
+            ELSE 0 END
+        ) ELSE 0 END AS am_contado,
+        CASE WHEN itm.cd_FormasPago='TC' THEN (
+            t."explicitAmount" +
+            CASE WHEN (t."isMain" = true OR ct.type = 'PRINCIPAL' OR ct.code = 'TAR' OR ct.name ILIKE '%TARIFA%') THEN
+                COALESCE((
+                    SELECT SUM(sub_t."explicitAmount")
+                    FROM public."InvoicesProductTax" sub_t
+                    JOIN public."ChargeAndTax" sub_ct ON sub_t."chargeAndTaxId" = sub_ct.id
+                    WHERE sub_t."invoiceProductId" = t."invoiceProductId"
+                      AND sub_t."isMain" = false
+                      AND sub_ct."targetTaxId" = ct.id
+                ), 0)
+            ELSE 0 END
+        ) ELSE 0 END AS am_credito,
         ct.id AS id_carg,
         ct.id AS id_imp,
         CASE WHEN ct.code = 'IVA' THEN B'1' ELSE B'0' END AS bl_iva,
