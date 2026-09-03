@@ -5,14 +5,14 @@ const { Client } = require('pg');
 
 const rootDir = path.join(__dirname, '..');
 
-async function validateAndPrepareSchema() {
+async function validateAndPrepareSchema(customConnStr) {
   console.log("================================================================");
   console.log("  VALIDADOR PRE-COMPILACION DE BASE DE DATOS - AGENCIASNEW");
   console.log("================================================================");
 
   // 1. Desplegar todos los archivos SQL locales a la BD PostgreSQL local
   console.log("\n[PASO 1/4] Desplegando funciones y SPs a PostgreSQL local...");
-  const connectionString = process.env.DATABASE_URL;
+  const connectionString = customConnStr || process.env.DATABASE_URL;
   if (!connectionString) {
     console.error("  [ERROR] DATABASE_URL no está configurada en .env");
     process.exit(1);
@@ -196,7 +196,7 @@ async function validateAndPrepareSchema() {
       const constraintName = `${u.table}_${u.column}_key`;
       await client.query(`
         DO $$ BEGIN
-          IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = '${constraintName}') THEN
+          IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = '${constraintName}') AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = '${constraintName}') THEN
             ALTER TABLE public."${u.table}" ADD CONSTRAINT "${constraintName}" UNIQUE ("${u.column}");
           END IF;
         END $$;
@@ -445,7 +445,11 @@ async function validateAndPrepareSchema() {
   console.log("================================================================\n");
 }
 
-validateAndPrepareSchema().catch(err => {
-  console.error("ERROR FATAL EN VALIDACION PRE-COMPILACION:", err);
-  process.exit(1);
-});
+module.exports = { validateAndPrepareSchema };
+
+if (require.main === module) {
+  validateAndPrepareSchema().catch(err => {
+    console.error("ERROR FATAL EN VALIDACION PRE-COMPILACION:", err);
+    process.exit(1);
+  });
+}

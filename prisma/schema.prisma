@@ -13,6 +13,7 @@ model Role {
   name        String  @unique
   description String?
   permissions Json?
+  isActive    Boolean @default(true)
   users       User[]
 }
 
@@ -572,11 +573,12 @@ model TicketType {
 }
 
 model Airports {
-  id       Int    @id @default(autoincrement())
-  code     String @unique @db.VarChar(10)
-  name     String @db.VarChar(150)
+  id       Int     @id @default(autoincrement())
+  code     String  @unique @db.VarChar(10)
+  name     String  @db.VarChar(150)
   citiesId Int
-  Cities   Cities @relation(fields: [citiesId], references: [id], onDelete: Cascade)
+  isActive Boolean @default(true)
+  Cities   Cities  @relation(fields: [citiesId], references: [id], onDelete: Cascade)
 }
 
 model BookingGDS {
@@ -783,6 +785,7 @@ model Cities {
   countriesId Int
   statecode   String?    @db.VarChar(25)
   iata        String?    @db.VarChar(10)
+  isActive    Boolean    @default(true)
   Airports    Airports[]
   Countries   Countries  @relation(fields: [countriesId], references: [id], onDelete: Cascade)
 }
@@ -795,6 +798,7 @@ model Countries {
   region    String?   @db.VarChar(50)
   prefix    String?   @db.VarChar(10)
   curencyId Int?
+  isActive  Boolean   @default(true)
   Cities    Cities[]
   Currency  Currency? @relation(fields: [curencyId], references: [id])
 }
@@ -817,6 +821,7 @@ model EquivalencesInterfaces {
   cd_codigo     String
   cd_codigointe String
   dt_fecha      DateTime?  @default(now()) @db.Timestamp(6)
+  isActive      Boolean    @default(true)
   Interfaces    Interfaces @relation(fields: [id_interfaces], references: [id])
   Master        Master     @relation(fields: [id_master], references: [id])
 }
@@ -1165,6 +1170,7 @@ model Resolution {
   day      Int?
   permitir Boolean?  @default(false)
   activo   Boolean?  @default(true)
+  isActive Boolean   @default(true)
 }
 
 model SysConsecutivo {
@@ -1178,6 +1184,7 @@ model SysConsecutivo {
   consecutivo BigInt   @default(0)
   createdAt   DateTime @default(now()) @db.Timestamp(6)
   updatedAt   DateTime @default(now()) @db.Timestamp(6)
+  isActive    Boolean  @default(true)
   Branch      Branch?  @relation(fields: [branchId], references: [id], onUpdate: NoAction)
   Implant     Implant? @relation(fields: [implantId], references: [id], onUpdate: NoAction)
 
