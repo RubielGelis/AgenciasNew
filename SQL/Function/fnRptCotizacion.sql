@@ -224,18 +224,20 @@ BEGIN
         COALESCE(pre.location, '')::text AS "prestadoraUbicacion",
 
         -- Valores financieros del producto
-        COALESCE(
-            NULLIF(qp.price, 0),
-            (
+        (
+            COALESCE(qp.price, 0) +
+            COALESCE((
                 SELECT SUM(qpt2."explicitAmount")
                 FROM "QuotationProductTax" qpt2
                 JOIN "ChargeAndTax" ct2 ON ct2.id = qpt2."chargeAndTaxId"
+                LEFT JOIN "ChargeAndTax" target_ct ON target_ct.id = ct2."targetTaxId"
                 WHERE qpt2."quotationProductId" = qp.id
-                  AND qpt2."isMain" = true
-                  AND ct2.type = 'CHARGE'
-            ),
-            qp.cost,
-            0
+                  AND qpt2."isMain" = false
+                  AND ct2."targetTaxId" IS NOT NULL
+                  AND (
+                      target_ct.type = 'PRINCIPAL' OR target_ct."isEditable" = false OR target_ct.code = 'TAR' OR target_ct.name ILIKE '%TARIFA%' OR target_ct.id = qp."mainTaxId"
+                  )
+            ), 0)
         )::double precision AS "tarifaNeta",
 
         COALESCE(
@@ -254,9 +256,15 @@ BEGIN
                 SELECT SUM(qpt2."explicitAmount")
                 FROM "QuotationProductTax" qpt2
                 JOIN "ChargeAndTax" ct2 ON ct2.id = qpt2."chargeAndTaxId"
+                LEFT JOIN "ChargeAndTax" target_ct ON target_ct.id = ct2."targetTaxId"
                 WHERE qpt2."quotationProductId" = qp.id
                   AND qpt2."isMain" = false
                   AND ct2.type = 'CHARGE'
+                  AND NOT (
+                      ct2."targetTaxId" IS NOT NULL AND (
+                          target_ct.type = 'PRINCIPAL' OR target_ct."isEditable" = false OR target_ct.code = 'TAR' OR target_ct.name ILIKE '%TARIFA%' OR target_ct.id = qp."mainTaxId"
+                      )
+                  )
             ), 0
         )::double precision AS "adicionalesServ",
 

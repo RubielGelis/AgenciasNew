@@ -6,10 +6,15 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
     try {
+        const { searchParams } = new URL(req.url)
+        const includeInactive = searchParams.get('includeInactive') === 'true'
         const results: any[] = await prisma.$queryRawUnsafe(
             `SELECT * FROM public.fnProveedorListar()`
         );
-        const providers = results.map(row => row.fnproveedorlistar);
+        let providers = results.map(row => row.fnproveedorlistar);
+        if (!includeInactive) {
+            providers = providers.filter(p => p.isActive !== false);
+        }
         return NextResponse.json(paginateArray(req, providers, p => [p.code, p.name, p.sigla, p.airlineCode]))
     } catch (error) {
         return NextResponse.json({ message: 'Error retrieving providers' }, { status: 500 })

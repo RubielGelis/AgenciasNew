@@ -485,7 +485,19 @@ BEGIN
         '' AS cd_cencosto,
         '' AS cd_auxiliar,
         '' AS cd_item,
-        COALESCE((SELECT SUM("explicitAmount") FROM public."InvoicesProductTax" ipt WHERE ipt."invoiceProductId" = ep.id AND ipt."isMain" = true), 0) AS am_tarifa,
+        COALESCE((
+            SELECT SUM(ipt."explicitAmount")
+            FROM public."InvoicesProductTax" ipt
+            LEFT JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId"
+            LEFT JOIN public."ChargeAndTax" target_ct ON target_ct.id = ct."targetTaxId"
+            WHERE ipt."invoiceProductId" = ep.id
+              AND (
+                  ipt."isMain" = true OR
+                  (ipt."isMain" = false AND ct."targetTaxId" IS NOT NULL AND (
+                      target_ct.type = 'PRINCIPAL' OR target_ct."isEditable" = false OR target_ct.code = 'TAR' OR target_ct.name ILIKE '%TARIFA%' OR target_ct.id = ep."mainTaxId"
+                  ))
+              )
+        ), 0) AS am_tarifa,
         COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'IVA'), 0) AS am_iva,
         COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'TUA'), 0) AS am_tua,
         COALESCE((SELECT SUM(ipt."explicitAmount") FROM public."InvoicesProductTax" ipt JOIN public."ChargeAndTax" ct ON ct.id = ipt."chargeAndTaxId" WHERE ipt."invoiceProductId" = ep.id AND ct.code = 'CMB'), 0) AS am_comb,
@@ -561,7 +573,21 @@ BEGIN
         COALESCE(pr."serviceType", '') AS cd_tiposservicio,
         SUBSTRING(COALESCE(prov.code, prov.name, ''), 1, 25) AS cd_proveedores,
         SUBSTRING(COALESCE(ep."servicios", ''), 1, 250) AS ds_servicio,
-        ep.price AS am_valorprov,
+        (
+            COALESCE(ep.price, 0) +
+            COALESCE((
+                SELECT SUM(ipt2."explicitAmount")
+                FROM public."InvoicesProductTax" ipt2
+                JOIN public."ChargeAndTax" ct2 ON ct2.id = ipt2."chargeAndTaxId"
+                LEFT JOIN public."ChargeAndTax" target_ct ON target_ct.id = ct2."targetTaxId"
+                WHERE ipt2."invoiceProductId" = ep.id
+                  AND ipt2."isMain" = false
+                  AND ct2."targetTaxId" IS NOT NULL
+                  AND (
+                      target_ct.type = 'PRINCIPAL' OR target_ct."isEditable" = false OR target_ct.code = 'TAR' OR target_ct.name ILIKE '%TARIFA%' OR target_ct.id = ep."mainTaxId"
+                  )
+            ), 0)
+        ) AS am_valorprov,
         '' AS cd_monedaprov,
         COALESCE(ep."checkInDate", e.date) AS dt_llegada,
         COALESCE(ep."checkOutDate", e.date) AS dt_salida,
@@ -682,8 +708,14 @@ BEGIN
         1 AS in_orden
     FROM public."InvoicesProductTax" t
     JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
+    LEFT JOIN public."ChargeAndTax" target_ct ON target_ct.id = ct."targetTaxId"
     JOIN Item itm ON t."invoiceProductId" = itm.id_referencia_origen
-    JOIN Facturacion f ON itm.id_factura = f.id_factura;
+    JOIN Facturacion f ON itm.id_factura = f.id_factura
+    WHERE NOT (
+        t."isMain" = false AND ct."targetTaxId" IS NOT NULL AND (
+            target_ct.type = 'PRINCIPAL' OR target_ct."isEditable" = false OR target_ct.code = 'TAR' OR target_ct.name ILIKE '%TARIFA%' OR target_ct.id = (SELECT ep."mainTaxId" FROM public."InvoicesProduct" ep WHERE ep.id = t."invoiceProductId")
+        )
+    );
 
     -- 9. Poblar Tabla Formaspago
     INSERT INTO Formaspago (

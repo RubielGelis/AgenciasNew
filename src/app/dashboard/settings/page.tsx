@@ -841,6 +841,7 @@ export default function SettingsPage() {
             const queryParams = new URLSearchParams();
             queryParams.append('page', pageNum.toString());
             queryParams.append('limit', limitNum.toString());
+            queryParams.append('includeInactive', 'true');
             if (searchVal) {
                 queryParams.append('search', searchVal);
             }

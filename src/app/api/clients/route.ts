@@ -18,9 +18,13 @@ export async function GET(req: NextRequest) {
             return NextResponse.json(client)
         }
 
-        const clients = await prisma.$queryRawUnsafe<any[]>(
+        const includeInactive = searchParams.get('includeInactive') === 'true'
+        let clients = await prisma.$queryRawUnsafe<any[]>(
             `SELECT * FROM public.fnClienteListar()`
         )
+        if (!includeInactive) {
+            clients = clients.filter(c => c.isActive !== false)
+        }
         return NextResponse.json(paginateArray(req, clients, c => [c.name, c.document]))
     } catch (error: any) {
         console.error('Error retrieving clients:', error);

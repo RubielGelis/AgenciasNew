@@ -411,7 +411,25 @@ export default function QuotationForm({ quotationId }: { quotationId?: string })
 
     const showTotals = data?.showTotals ?? true;
     const costoTotal = formData.items.reduce((sum, item) => sum + (item.cost || 0), 0);
-    const valorBase = formData.items.reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 1), 0);
+    const valorBase = React.useMemo(() => {
+        let baseSum = 0;
+        formData.items.forEach(item => {
+            let itemBase = (item.price || 0) * (item.quantity || 1);
+            (item.appliedTaxes || []).forEach((tax: any) => {
+                const rawTaxId = tax.id ?? tax.chargeAndTaxId;
+                const taxId = rawTaxId != null ? Number(rawTaxId) : null;
+                const master = data?.taxes?.find((t: any) => Number(t.id) === taxId);
+                if (master && master.targetTaxId) {
+                    const targetMaster = data?.taxes?.find((t: any) => Number(t.id) === Number(master.targetTaxId));
+                    if (targetMaster && (targetMaster.type === 'PRINCIPAL' || targetMaster.isEditable === false || targetMaster.code === 'TAR' || targetMaster.name?.toUpperCase().includes('TARIFA') || Number(targetMaster.id) === Number(item.mainTaxId))) {
+                        itemBase += Number(tax.amount || 0);
+                    }
+                }
+            });
+            baseSum += itemBase;
+        });
+        return baseSum;
+    }, [formData.items, data?.taxes]);
     const utilidad = valorBase - costoTotal;
     const porcentajeComisionUtilidad = valorBase > 0 ? parseFloat(((utilidad / valorBase) * 100).toFixed(2)) : 0;
     const comisionPropiaPercentage = showTotals

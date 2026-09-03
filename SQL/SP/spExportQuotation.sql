@@ -483,7 +483,21 @@ BEGIN
         '' as cd_cencosto, 
         '' as cd_auxiliar, 
         '' as cd_item, 
-        qp.price as am_valorprov, 
+        (
+            COALESCE(qp.price, 0) +
+            COALESCE((
+                SELECT SUM(qpt2."explicitAmount")
+                FROM public."QuotationProductTax" qpt2
+                JOIN public."ChargeAndTax" ct2 ON ct2.id = qpt2."chargeAndTaxId"
+                LEFT JOIN public."ChargeAndTax" target_ct ON target_ct.id = ct2."targetTaxId"
+                WHERE qpt2."quotationProductId" = qp.id
+                  AND qpt2."isMain" = false
+                  AND ct2."targetTaxId" IS NOT NULL
+                  AND (
+                      target_ct.type = 'PRINCIPAL' OR target_ct."isEditable" = false OR target_ct.code = 'TAR' OR target_ct.name ILIKE '%TARIFA%' OR target_ct.id = qp."mainTaxId"
+                  )
+            ), 0)
+        ) as am_valorprov, 
         qt.currency as cd_monedaprov,
         '' as ds_InfoAdicional, 
         '' as cd_carrental, 
@@ -690,7 +704,12 @@ BEGIN
     JOIN public."ChargeAndTax" ct ON t."chargeAndTaxId" = ct.id
     LEFT JOIN public."ChargeAndTax" target_ct ON ct."targetTaxId" = target_ct.id
     JOIN CotizacionServicios cs ON t."quotationProductId" = cs.orig_id_ref
-    WHERE COALESCE(target_ct.type, ct.type) <> 'TAX';
+    WHERE COALESCE(target_ct.type, ct.type) <> 'TAX'
+      AND NOT (
+          t."isMain" = false AND ct."targetTaxId" IS NOT NULL AND (
+              target_ct.type = 'PRINCIPAL' OR target_ct."isEditable" = false OR target_ct.code = 'TAR' OR target_ct.name ILIKE '%TARIFA%' OR target_ct.id = cs.mainTaxId
+          )
+      );
 
     INSERT INTO CotizacionImpuestos (
         cd_CotizacionCargos, cd_CotizacionImpuestos, cd_ImpRet, ds_Impas, cd_impcta, am_porcentaje,
