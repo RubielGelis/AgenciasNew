@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict NCUCHLfrmV8QWkEtTcBx1CVm6YdPSVB2ozosxg15POO4blc5Y2IOQaOfrf0x1Tk
+\restrict fmXhg5DqTyfn5WsN9J3G4fVc9yO55C0CkYdsjLOAxJoCY0V4KfMtzpTzAjlluAw
 
 -- Dumped from database version 18.2
 -- Dumped by pg_dump version 18.2
@@ -17802,8 +17802,8 @@ INSERT INTO public."Provider" VALUES (1, '73009263', 'Rubiel', NULL, NULL, NULL,
 -- Data for Name: QuotationState; Type: TABLE DATA; Schema: public; Owner: -
 --
 
-INSERT INTO public."QuotationState" VALUES (1, 'NUEVO', 'Nuevo', 'blue', '2026-09-03 17:53:59.381714', true);
-INSERT INTO public."QuotationState" VALUES (2, 'ENVIADO', 'ENVIADO', 'emerald', '2026-09-03 17:53:59.381714', true);
+INSERT INTO public."QuotationState" VALUES (1, 'NUEVO', 'Nuevo', 'blue', '2026-09-03 17:55:30.883781', true);
+INSERT INTO public."QuotationState" VALUES (2, 'ENVIADO', 'ENVIADO', 'emerald', '2026-09-03 17:55:30.883781', true);
 
 
 --
@@ -20110,5 +20110,5 @@ ALTER TABLE ONLY public."User"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NCUCHLfrmV8QWkEtTcBx1CVm6YdPSVB2ozosxg15POO4blc5Y2IOQaOfrf0x1Tk
+\unrestrict fmXhg5DqTyfn5WsN9J3G4fVc9yO55C0CkYdsjLOAxJoCY0V4KfMtzpTzAjlluAw
 

@@ -207,6 +207,25 @@ VALUES
     ('MAD', 'Adolfo Suarez Madrid-Barajas', (SELECT id FROM public."Cities" WHERE code = 'MAD'))
 ON CONFLICT (code) DO NOTHING;
 
+-- 14.5 Formas de Pago Iniciales
+INSERT INTO public."Payment" (code, name, "isActive")
+VALUES
+    ('EFECTIVO',      'Efectivo',                    true),
+    ('TARJETA',       'Tarjeta de Crédito',          true),
+    ('TRANSFERENCIA', 'Transferencia Bancaria',      true),
+    ('CHEQUE',        'Cheque',                      true),
+    ('CREDITO',       'Crédito / Cuenta por Cobrar', true)
+ON CONFLICT (code) DO NOTHING;
+
+-- 14.6 Tarjetas de Crédito Iniciales
+INSERT INTO public."CreditCard" (code, name, "isActive")
+VALUES
+    ('VISA',   'Visa',             true),
+    ('MC',     'MasterCard',       true),
+    ('AMEX',   'American Express', true),
+    ('DINERS', 'Diners Club',      true)
+ON CONFLICT (code) DO NOTHING;
+
 -- DATOS EXTRAIDOS DE SQL SERVER
 
 -- 15. Monedas Adicionales (desde Paises)
