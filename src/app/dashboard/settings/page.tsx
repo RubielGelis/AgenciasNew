@@ -2193,6 +2193,7 @@ export default function SettingsPage() {
                                         <td className="px-8 py-6 font-bold text-zinc-900 dark:text-white">{item.name}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.exchangeRate}</td>
                                         <td className="px-8 py-6 font-bold text-zinc-700 dark:text-zinc-300">{item.decimals ?? 2}</td>
+                                        {renderMasterStatusTd(item)}
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button onClick={() => handleOpenModal(item)} className="p-2 text-zinc-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all"><Edit2 className="w-5 h-5" /></button>

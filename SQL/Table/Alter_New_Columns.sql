@@ -3184,6 +3184,12 @@ BEGIN
     END LOOP;
 END $$;
 
+UPDATE public."Currency" 
+SET "isActive" = CASE 
+    WHEN UPPER(TRIM(code)) IN ('COP', 'USD', 'EUR') THEN true 
+    ELSE false 
+END;
+
 INSERT INTO public."Menu" (code, name, action, activo) VALUES ('DASHBOARD', 'Dashboard', '/dashboard', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
 
 INSERT INTO public."Menu" (code, name, action, activo) VALUES ('PRECOTIZACIONES', 'Pre-Cotizaciones', '/dashboard/prequotations', true) ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name, action = EXCLUDED.action;
