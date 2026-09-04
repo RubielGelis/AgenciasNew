@@ -11,7 +11,11 @@ import {
     CheckCircle2,
     XCircle,
     FileMinus,
-    Loader2
+    Loader2,
+    ChevronLeft,
+    ChevronRight,
+    ChevronsLeft,
+    ChevronsRight
 } from 'lucide-react'
 import { format } from 'date-fns'
 
@@ -57,6 +61,12 @@ export default function UnreferencedCreditNotesPage() {
     const [selectedIds, setSelectedIds] = useState<number[]>([])
     const [observaciones, setObservaciones] = useState('Nota Credito No Referenciada')
 
+    // Paginación (por defecto 1000 en 1000)
+    const [page, setPage] = useState(1)
+    const [pageSize, setPageSize] = useState(1000)
+    const [totalInvoices, setTotalInvoices] = useState(0)
+    const [totalPages, setTotalPages] = useState(1)
+
     // Filtros
     const [fechaDesde, setFechaDesde] = useState('')
     const [fechaHasta, setFechaHasta] = useState('')
@@ -90,12 +100,14 @@ export default function UnreferencedCreditNotesPage() {
             .finally(() => setLoadingFilters(false))
     }, [])
 
-    // Cargar facturas
-    const fetchInvoices = async () => {
+    // Cargar facturas paginadas
+    const fetchInvoices = async (targetPage = page, targetPageSize = pageSize) => {
         setLoading(true)
         setErrorMessage(null)
         try {
             const params = new URLSearchParams()
+            params.append('page', targetPage.toString())
+            params.append('pageSize', targetPageSize.toString())
             if (fechaDesde) params.append('fechaDesde', fechaDesde)
             if (fechaHasta) params.append('fechaHasta', fechaHasta)
             if (selectedCliente) params.append('cliente', selectedCliente)
@@ -103,14 +115,29 @@ export default function UnreferencedCreditNotesPage() {
             if (selectedConcepto) params.append('idConcepto', selectedConcepto)
 
             const res = await fetch(`/api/credit-notes/unreferenced/invoices?${params.toString()}`)
-            const data = await res.json()
-            if (res.ok && Array.isArray(data)) {
-                setInvoices(data)
-                setSelectedIds([])
+            const json = await res.json()
+
+            if (res.ok) {
+                if (json && Array.isArray(json.data)) {
+                    setInvoices(json.data)
+                    setTotalInvoices(json.total || 0)
+                    setTotalPages(json.totalPages || 1)
+                    setPage(json.page || targetPage)
+                } else if (Array.isArray(json)) {
+                    setInvoices(json)
+                    setTotalInvoices(json.length)
+                    setTotalPages(Math.ceil(json.length / targetPageSize) || 1)
+                } else {
+                    setInvoices([])
+                    setTotalInvoices(0)
+                    setTotalPages(1)
+                }
                 setErrorMessage(null)
             } else {
                 setInvoices([])
-                setErrorMessage(data.message || 'Error al consultar facturas en SQL Server.')
+                setTotalInvoices(0)
+                setTotalPages(1)
+                setErrorMessage(json.message || 'Error al consultar facturas en SQL Server.')
             }
         } catch (error: any) {
             console.error('Error fetching invoices:', error)
@@ -121,17 +148,37 @@ export default function UnreferencedCreditNotesPage() {
     }
 
     useEffect(() => {
-        fetchInvoices()
+        fetchInvoices(1, pageSize)
     }, [])
+
+    // Handler para aplicar filtros (reinicia a página 1)
+    const handleApplyFilters = () => {
+        setPage(1)
+        fetchInvoices(1, pageSize)
+    }
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= totalPages && newPage !== page) {
+            setPage(newPage)
+            fetchInvoices(newPage, pageSize)
+        }
+    }
+
+    const handlePageSizeChange = (newSize: number) => {
+        setPageSize(newSize)
+        setPage(1)
+        fetchInvoices(1, newSize)
+    }
 
     // Filtrar conceptos según tipo seleccionado
     const availableConceptos = selectedTipoConcepto
         ? filterOptions.conceptos.filter(c => c.id_tipo_concepto === parseInt(selectedTipoConcepto))
         : filterOptions.conceptos
 
-    // Facturas filtradas por término de búsqueda rápido
+    // Facturas filtradas por término de búsqueda rápido local
     const filteredInvoices = invoices.filter(inv => {
         const term = searchTerm.toLowerCase()
+        if (!term) return true
         return (
             (inv.numero && inv.numero.toLowerCase().includes(term)) ||
             (inv.consecutivo && inv.consecutivo.toLowerCase().includes(term)) ||
@@ -151,11 +198,13 @@ export default function UnreferencedCreditNotesPage() {
 
     const eligibleInvoices = filteredInvoices.filter(isEligible)
 
-    const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleSelectAllCurrentPage = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.checked) {
-            setSelectedIds(eligibleInvoices.map(i => i.id_factura))
+            const pageEligibleIds = eligibleInvoices.map(i => i.id_factura)
+            setSelectedIds(prev => Array.from(new Set([...prev, ...pageEligibleIds])))
         } else {
-            setSelectedIds([])
+            const pageIds = new Set(filteredInvoices.map(i => i.id_factura))
+            setSelectedIds(prev => prev.filter(id => !pageIds.has(id)))
         }
     }
 
@@ -172,6 +221,11 @@ export default function UnreferencedCreditNotesPage() {
         }
 
         const facturasAProcesar = invoices.filter(inv => selectedIds.includes(inv.id_factura))
+
+        if (facturasAProcesar.length === 0) {
+            alert('Las facturas seleccionadas no están en la página actual. Se procesarán las facturas visibles seleccionadas.')
+            return
+        }
 
         if (!confirm(`¿Estás seguro de generar Notas Crédito para las ${facturasAProcesar.length} facturas seleccionadas?`)) {
             return
@@ -198,7 +252,8 @@ export default function UnreferencedCreditNotesPage() {
             }
 
             setResultModal({ open: true, data })
-            fetchInvoices()
+            setSelectedIds(prev => prev.filter(id => !facturasAProcesar.some(f => f.id_factura === id)))
+            fetchInvoices(page, pageSize)
         } catch (error: any) {
             console.error('Error generating credit notes:', error)
             alert('Error en la comunicación con el servidor: ' + error.message)
@@ -206,6 +261,8 @@ export default function UnreferencedCreditNotesPage() {
             setProcessing(false)
         }
     }
+
+    const isAllPageSelected = eligibleInvoices.length > 0 && eligibleInvoices.every(i => selectedIds.includes(i.id_factura))
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-6">
@@ -219,7 +276,7 @@ export default function UnreferencedCreditNotesPage() {
                         <div>
                             <h1 className="text-2xl font-bold dark:text-white">Notas Crédito No Referenciadas</h1>
                             <p className="text-sm text-zinc-500">
-                                Consulta facturas de SQL Server (Agencias) y genera Notas Crédito en lote con sincronización a Postgres
+                                Consulta facturas de SQL Server (Agencias) paginadas de 1,000 en 1,000 y genera Notas Crédito en lote
                             </p>
                         </div>
                     </div>
@@ -227,7 +284,7 @@ export default function UnreferencedCreditNotesPage() {
 
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={fetchInvoices}
+                        onClick={() => fetchInvoices(page, pageSize)}
                         disabled={loading}
                         className="p-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-all flex items-center gap-2 text-sm font-medium"
                         title="Recargar datos"
@@ -262,7 +319,7 @@ export default function UnreferencedCreditNotesPage() {
                     <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-600 dark:text-rose-400" />
                     <div className="flex-1 font-medium">{errorMessage}</div>
                     <button
-                        onClick={fetchInvoices}
+                        onClick={() => fetchInvoices(page, pageSize)}
                         className="px-3 py-1 bg-rose-100 dark:bg-rose-900/60 hover:bg-rose-200 dark:hover:bg-rose-900 text-rose-800 dark:text-rose-200 rounded-lg text-xs font-semibold transition-all"
                     >
                         Reintentar
@@ -351,7 +408,7 @@ export default function UnreferencedCreditNotesPage() {
                         <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5" />
                         <input
                             type="text"
-                            placeholder="Buscar en resultados..."
+                            placeholder="Buscar en esta página..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-9 pr-3 py-1.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -367,13 +424,15 @@ export default function UnreferencedCreditNotesPage() {
                                 setSelectedTipoConcepto('')
                                 setSelectedConcepto('')
                                 setSearchTerm('')
+                                setPage(1)
+                                fetchInvoices(1, pageSize)
                             }}
                             className="px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
                         >
                             Limpiar Filtros
                         </button>
                         <button
-                            onClick={fetchInvoices}
+                            onClick={handleApplyFilters}
                             className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-medium transition-all"
                         >
                             Aplicar Filtros
@@ -394,7 +453,7 @@ export default function UnreferencedCreditNotesPage() {
                             <p className="text-xs text-blue-700 dark:text-blue-400">Se ejecutará el SP spza_FacturaRemision_NotaCredito para cada una</p>
                         </div>
                     </div>
-                    <div className="w-full md:w-96">
+                    <div className="w-full md:w-96 flex items-center gap-2">
                         <input
                             type="text"
                             placeholder="Observación / Motivo de la Nota Crédito..."
@@ -402,22 +461,29 @@ export default function UnreferencedCreditNotesPage() {
                             onChange={(e) => setObservaciones(e.target.value)}
                             className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-blue-300 dark:border-blue-800 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
+                        <button
+                            onClick={() => setSelectedIds([])}
+                            className="px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl font-medium whitespace-nowrap"
+                        >
+                            Deseleccionar
+                        </button>
                     </div>
                 </div>
             )}
 
             {/* Tabla de Facturas */}
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto max-h-[600px]">
                     <table className="w-full text-left text-xs">
-                        <thead className="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-500 uppercase tracking-wider font-semibold border-b border-zinc-200 dark:border-zinc-800">
+                        <thead className="bg-zinc-50 dark:bg-zinc-800/60 text-zinc-500 uppercase tracking-wider font-semibold border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-10 backdrop-blur-md">
                             <tr>
                                 <th className="p-4 w-10 text-center">
                                     <input
                                         type="checkbox"
-                                        checked={eligibleInvoices.length > 0 && selectedIds.length === eligibleInvoices.length}
-                                        onChange={handleSelectAll}
+                                        checked={isAllPageSelected}
+                                        onChange={handleSelectAllCurrentPage}
                                         className="rounded border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                        title="Seleccionar todas las elegibles de esta página"
                                     />
                                 </th>
                                 <th className="p-4">Fuente / Serie / Consecutivo</th>
@@ -432,19 +498,19 @@ export default function UnreferencedCreditNotesPage() {
                         <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={8} className="p-12 text-center text-zinc-500">
-                                        <div className="flex flex-col items-center justify-center gap-2">
-                                            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-                                            <span>Consultando facturas en SQL Server...</span>
+                                    <td colSpan={8} className="p-16 text-center text-zinc-500">
+                                        <div className="flex flex-col items-center justify-center gap-3">
+                                            <Loader2 className="w-9 h-9 animate-spin text-blue-600" />
+                                            <span className="font-medium text-sm">Consultando lote de facturas en SQL Server...</span>
                                         </div>
                                     </td>
                                 </tr>
                             ) : filteredInvoices.length === 0 ? (
                                 <tr>
-                                    <td colSpan={8} className="p-12 text-center text-zinc-500">
+                                    <td colSpan={8} className="p-16 text-center text-zinc-500">
                                         <div className="flex flex-col items-center justify-center gap-2">
-                                            <AlertCircle className="w-8 h-8 text-zinc-400" />
-                                            <span>No se encontraron facturas con los filtros seleccionados.</span>
+                                            <AlertCircle className="w-9 h-9 text-zinc-400" />
+                                            <span className="font-medium text-sm">No se encontraron facturas con los filtros seleccionados.</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -566,12 +632,81 @@ export default function UnreferencedCreditNotesPage() {
                     </table>
                 </div>
 
-                {/* Footer tabla */}
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/40 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-500">
-                    <div>
-                        Total facturas: <strong className="text-zinc-700 dark:text-zinc-300">{invoices.length}</strong> | 
-                        Elegibles para NC: <strong className="text-zinc-700 dark:text-zinc-300">{eligibleInvoices.length}</strong> | 
-                        Seleccionadas: <strong className="text-blue-600">{selectedIds.length}</strong>
+                {/* Footer tabla con controles de paginación */}
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/60 border-t border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
+                    <div className="flex items-center gap-4 flex-wrap">
+                        <div>
+                            Mostrando <strong className="text-zinc-800 dark:text-zinc-200">{totalInvoices > 0 ? (page - 1) * pageSize + 1 : 0}</strong> - <strong className="text-zinc-800 dark:text-zinc-200">{Math.min(page * pageSize, totalInvoices)}</strong> de <strong className="text-zinc-800 dark:text-zinc-200">{totalInvoices.toLocaleString()}</strong> facturas
+                        </div>
+                        <div className="text-zinc-300 dark:text-zinc-700">|</div>
+                        <div>
+                            Elegibles página: <strong className="text-zinc-700 dark:text-zinc-300">{eligibleInvoices.length}</strong>
+                        </div>
+                        <div className="text-zinc-300 dark:text-zinc-700">|</div>
+                        <div>
+                            Seleccionadas total: <strong className="text-blue-600">{selectedIds.length}</strong>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-wrap">
+                        {/* Selector de tamaño de página */}
+                        <div className="flex items-center gap-1.5">
+                            <span>Mostrar:</span>
+                            <select
+                                value={pageSize}
+                                onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+                                className="px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            >
+                                <option value={1000}>1,000 por página</option>
+                                <option value={500}>500 por página</option>
+                                <option value={200}>200 por página</option>
+                                <option value={100}>100 por página</option>
+                                <option value={50}>50 por página</option>
+                            </select>
+                        </div>
+
+                        {/* Botones de navegación */}
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => handlePageChange(1)}
+                                disabled={page <= 1 || loading}
+                                className="p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                title="Primera página"
+                            >
+                                <ChevronsLeft className="w-4 h-4" />
+                            </button>
+
+                            <button
+                                onClick={() => handlePageChange(page - 1)}
+                                disabled={page <= 1 || loading}
+                                className="p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                title="Página anterior"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+
+                            <span className="px-3 py-1 font-medium text-zinc-700 dark:text-zinc-300">
+                                Página <strong>{page}</strong> de <strong>{totalPages}</strong>
+                            </span>
+
+                            <button
+                                onClick={() => handlePageChange(page + 1)}
+                                disabled={page >= totalPages || loading}
+                                className="p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                title="Página siguiente"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+
+                            <button
+                                onClick={() => handlePageChange(totalPages)}
+                                disabled={page >= totalPages || loading}
+                                className="p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                title="Última página"
+                            >
+                                <ChevronsRight className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
