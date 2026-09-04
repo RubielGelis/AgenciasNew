@@ -264,6 +264,90 @@ export default function UnreferencedCreditNotesPage() {
 
     const isAllPageSelected = eligibleInvoices.length > 0 && eligibleInvoices.every(i => selectedIds.includes(i.id_factura))
 
+    // Componente reutilizable de barra de paginación
+    const renderPaginationControls = (positionLabel: string) => (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+            <div className="flex items-center gap-3 flex-wrap">
+                <div className="text-zinc-600 dark:text-zinc-400 font-medium">
+                    Mostrando <strong className="text-zinc-900 dark:text-zinc-100">{totalInvoices > 0 ? (page - 1) * pageSize + 1 : 0}</strong> - <strong className="text-zinc-900 dark:text-zinc-100">{Math.min(page * pageSize, totalInvoices)}</strong> de <strong className="text-blue-600 font-bold">{totalInvoices.toLocaleString()}</strong> facturas
+                </div>
+                <div className="text-zinc-300 dark:text-zinc-700 hidden sm:block">|</div>
+                <div className="text-zinc-500">
+                    Elegibles: <strong className="text-zinc-700 dark:text-zinc-300 font-semibold">{eligibleInvoices.length}</strong>
+                </div>
+                <div className="text-zinc-300 dark:text-zinc-700 hidden sm:block">|</div>
+                <div className="text-zinc-500">
+                    Seleccionadas: <strong className="text-blue-600 font-semibold">{selectedIds.length}</strong>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap justify-end">
+                {/* Selector de tamaño de página */}
+                <div className="flex items-center gap-1.5">
+                    <span className="text-zinc-500 font-medium">Mostrar:</span>
+                    <select
+                        value={pageSize}
+                        onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
+                        className="px-2.5 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 text-zinc-800 dark:text-zinc-200 shadow-sm cursor-pointer"
+                    >
+                        <option value={1000}>1,000 por página</option>
+                        <option value={500}>500 por página</option>
+                        <option value={200}>200 por página</option>
+                        <option value={100}>100 por página</option>
+                        <option value={50}>50 por página</option>
+                    </select>
+                </div>
+
+                {/* Botones de navegación Anterior / Siguiente */}
+                <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700">
+                    <button
+                        onClick={() => handlePageChange(1)}
+                        disabled={page <= 1 || loading}
+                        className="px-2 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-1 text-zinc-700 dark:text-zinc-300 shadow-sm"
+                        title="Primera página"
+                    >
+                        <ChevronsLeft className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline text-[11px]">Inicio</span>
+                    </button>
+
+                    <button
+                        onClick={() => handlePageChange(page - 1)}
+                        disabled={page <= 1 || loading}
+                        className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-1 text-zinc-700 dark:text-zinc-300 shadow-sm"
+                        title="Página anterior"
+                    >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span className="text-[11px] font-semibold">Anterior</span>
+                    </button>
+
+                    <div className="px-3 py-1 text-zinc-700 dark:text-zinc-300 font-medium whitespace-nowrap text-[11px]">
+                        Pág. <strong className="text-blue-600 font-bold">{page}</strong> de <strong className="text-zinc-900 dark:text-zinc-100">{totalPages}</strong>
+                    </div>
+
+                    <button
+                        onClick={() => handlePageChange(page + 1)}
+                        disabled={page >= totalPages || loading}
+                        className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-1 text-zinc-700 dark:text-zinc-300 shadow-sm"
+                        title="Página siguiente"
+                    >
+                        <span className="text-[11px] font-semibold">Siguiente</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                        onClick={() => handlePageChange(totalPages)}
+                        disabled={page >= totalPages || loading}
+                        className="px-2 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-1 text-zinc-700 dark:text-zinc-300 shadow-sm"
+                        title="Última página"
+                    >
+                        <span className="hidden sm:inline text-[11px]">Fin</span>
+                        <ChevronsRight className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-6">
             {/* Header */}
@@ -471,6 +555,11 @@ export default function UnreferencedCreditNotesPage() {
                 </div>
             )}
 
+            {/* Barra de Paginación Superior */}
+            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm">
+                {renderPaginationControls('top')}
+            </div>
+
             {/* Tabla de Facturas */}
             <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
                 <div className="overflow-x-auto max-h-[600px]">
@@ -632,82 +721,9 @@ export default function UnreferencedCreditNotesPage() {
                     </table>
                 </div>
 
-                {/* Footer tabla con controles de paginación */}
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/60 border-t border-zinc-200 dark:border-zinc-800 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-zinc-500">
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <div>
-                            Mostrando <strong className="text-zinc-800 dark:text-zinc-200">{totalInvoices > 0 ? (page - 1) * pageSize + 1 : 0}</strong> - <strong className="text-zinc-800 dark:text-zinc-200">{Math.min(page * pageSize, totalInvoices)}</strong> de <strong className="text-zinc-800 dark:text-zinc-200">{totalInvoices.toLocaleString()}</strong> facturas
-                        </div>
-                        <div className="text-zinc-300 dark:text-zinc-700">|</div>
-                        <div>
-                            Elegibles página: <strong className="text-zinc-700 dark:text-zinc-300">{eligibleInvoices.length}</strong>
-                        </div>
-                        <div className="text-zinc-300 dark:text-zinc-700">|</div>
-                        <div>
-                            Seleccionadas total: <strong className="text-blue-600">{selectedIds.length}</strong>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 flex-wrap">
-                        {/* Selector de tamaño de página */}
-                        <div className="flex items-center gap-1.5">
-                            <span>Mostrar:</span>
-                            <select
-                                value={pageSize}
-                                onChange={(e) => handlePageSizeChange(parseInt(e.target.value))}
-                                className="px-2 py-1 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            >
-                                <option value={1000}>1,000 por página</option>
-                                <option value={500}>500 por página</option>
-                                <option value={200}>200 por página</option>
-                                <option value={100}>100 por página</option>
-                                <option value={50}>50 por página</option>
-                            </select>
-                        </div>
-
-                        {/* Botones de navegación */}
-                        <div className="flex items-center gap-1">
-                            <button
-                                onClick={() => handlePageChange(1)}
-                                disabled={page <= 1 || loading}
-                                className="p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                title="Primera página"
-                            >
-                                <ChevronsLeft className="w-4 h-4" />
-                            </button>
-
-                            <button
-                                onClick={() => handlePageChange(page - 1)}
-                                disabled={page <= 1 || loading}
-                                className="p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                title="Página anterior"
-                            >
-                                <ChevronLeft className="w-4 h-4" />
-                            </button>
-
-                            <span className="px-3 py-1 font-medium text-zinc-700 dark:text-zinc-300">
-                                Página <strong>{page}</strong> de <strong>{totalPages}</strong>
-                            </span>
-
-                            <button
-                                onClick={() => handlePageChange(page + 1)}
-                                disabled={page >= totalPages || loading}
-                                className="p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                title="Página siguiente"
-                            >
-                                <ChevronRight className="w-4 h-4" />
-                            </button>
-
-                            <button
-                                onClick={() => handlePageChange(totalPages)}
-                                disabled={page >= totalPages || loading}
-                                className="p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                                title="Última página"
-                            >
-                                <ChevronsRight className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
+                {/* Footer tabla con controles de paginación inferiores */}
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/60 border-t border-zinc-200 dark:border-zinc-800">
+                    {renderPaginationControls('bottom')}
                 </div>
             </div>
 
