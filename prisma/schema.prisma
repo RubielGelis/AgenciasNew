@@ -1192,3 +1192,40 @@ model SysConsecutivo {
   @@index([codigo], map: "idx_sysconsecutivo_codigo")
   @@index([implantId], map: "idx_sysconsecutivo_implant")
 }
+
+model QuotationState {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(50)
+  color     String?  @db.VarChar(20)
+  createdAt DateTime @default(now()) @db.Timestamp(6)
+  code      String   @unique @db.VarChar(25)
+}
+
+model QuotationStateHistory {
+  id          Int       @id @default(autoincrement())
+  quotationId Int
+  state       String    @db.VarChar(25)
+  description String?
+  createdAt   DateTime  @default(now()) @db.Timestamp(6)
+  userId      Int?
+  Quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  User        User?     @relation(fields: [userId], references: [id])
+
+  @@index([quotationId])
+}
+
+model NotasCreditoNoRef {
+  id             Int       @id @default(autoincrement())
+  fuente         String?   @db.VarChar(10)
+  serie          String?   @db.VarChar(10)
+  consecutivo    String?   @db.VarChar(50)
+  factura_fuente String?   @db.VarChar(10)
+  factura_serie  String?   @db.VarChar(10)
+  factura_numero String?   @db.VarChar(50)
+  fecha          DateTime? @default(now()) @db.Timestamptz(6)
+  createdAt      DateTime? @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([consecutivo], map: "idx_notas_credito_no_ref_consecutivo")
+  @@index([factura_fuente, factura_serie, factura_numero], map: "idx_notas_credito_no_ref_factura")
+}

@@ -7,11 +7,18 @@ VALUES
     ('PRECOTIZACIONES', 'Pre-Cotizaciones', NULL, '/dashboard/prequotations', true),
     ('COTIZACIONES', 'Cotizaciones', NULL, '/dashboard/quotations/history', true),
     ('FACTURACION', 'Facturación', NULL, '/dashboard/invoices/history', true),
+    ('NOTAS_CREDITO', 'Notas Crédito', NULL, '/dashboard/credit-notes/unreferenced', true),
+    ('NOTAS_CREDITO_NO_REF', 'Notas Crédito No Referenciadas', (SELECT id FROM public."Menu" WHERE code = 'NOTAS_CREDITO' LIMIT 1), '/dashboard/credit-notes/unreferenced', true),
     ('MAESTROS', 'Maestros', NULL, '/dashboard/settings', true),
     ('REPORTES', 'Reportes', NULL, '/dashboard/reports', true),
     ('EJECUCIONES', 'Ejecuciones', NULL, '/dashboard/executions', true),
     ('MANUAL', 'Manual Operativo', NULL, '/dashboard/manual', true)
 ON CONFLICT (code) DO UPDATE SET 
-    name = EXCLUDED.name,
-    parent = EXCLUDED.parent,
-    action = EXCLUDED.action;
+    action = EXCLUDED.action,
+    activo = EXCLUDED.activo;
+
+-- Actualizar parent de NOTAS_CREDITO_NO_REF si fue insertado
+UPDATE public."Menu" 
+SET parent = (SELECT id FROM public."Menu" WHERE code = 'NOTAS_CREDITO' LIMIT 1)
+WHERE code = 'NOTAS_CREDITO_NO_REF';
+

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { LayoutDashboard, Users, FileText, ShoppingCart, Settings, LogOut, Search, PlusCircle, PieChart, Receipt, Shield, Compass, Play, Database, BookOpen, FilePlus } from 'lucide-react'
+import { LayoutDashboard, Users, FileText, ShoppingCart, Settings, LogOut, Search, PlusCircle, PieChart, Receipt, Shield, Compass, Play, Database, BookOpen, FilePlus, ChevronDown, FileMinus } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 
@@ -21,6 +21,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const [menuList, setMenuList] = useState<MenuItemData[]>([])
     const [loadingMenu, setLoadingMenu] = useState(true)
     const [isLicenseValid, setIsLicenseValid] = useState<boolean | null>(null)
+    const [expandedMenus, setExpandedMenus] = useState<Record<number, boolean>>({})
 
     const checkLicenseStatus = () => {
         fetch('/api/config/license')
@@ -76,14 +77,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { id: 8, code: 'PRECOTIZACIONES', name: 'Pre-Cotizaciones', parent: null, action: '/dashboard/prequotations', activo: true },
         { id: 2, code: 'COTIZACIONES', name: 'Cotizaciones', parent: null, action: '/dashboard/quotations/history', activo: true },
         { id: 3, code: 'FACTURACION', name: 'Facturación', parent: null, action: '/dashboard/invoices/history', activo: true },
-        { id: 4, code: 'MAESTROS', name: 'Maestros', parent: null, action: '/dashboard/settings', activo: true },
-        { id: 5, code: 'REPORTES', name: 'Reportes', parent: null, action: '/dashboard/reports', activo: true },
-        { id: 6, code: 'EJECUCIONES', name: 'Ejecuciones', parent: null, action: '/dashboard/executions', activo: true },
-        { id: 7, code: 'MANUAL', name: 'Manual Operativo', parent: null, action: '/dashboard/manual', activo: true }
+        { id: 4, code: 'NOTAS_CREDITO', name: 'Notas Crédito', parent: null, action: '/dashboard/credit-notes/unreferenced', activo: true },
+        { id: 5, code: 'NOTAS_CREDITO_NO_REF', name: 'Notas Crédito No Referenciadas', parent: 4, action: '/dashboard/credit-notes/unreferenced', activo: true },
+        { id: 6, code: 'MAESTROS', name: 'Maestros', parent: null, action: '/dashboard/settings', activo: true },
+        { id: 7, code: 'REPORTES', name: 'Reportes', parent: null, action: '/dashboard/reports', activo: true },
+        { id: 9, code: 'EJECUCIONES', name: 'Ejecuciones', parent: null, action: '/dashboard/executions', activo: true },
+        { id: 10, code: 'MANUAL', name: 'Manual Operativo', parent: null, action: '/dashboard/manual', activo: true }
     ]
 
-    const itemsToRender = menuList.length > 0 ? menuList : defaultMenuItems.filter(i => i.activo)
+    const allItems = menuList.length > 0 ? menuList : defaultMenuItems
 
+    // Organizar elementos principales y submenús
+    const rootItems = allItems.filter(item => !item.parent)
+    const getChildren = (parentId: number) => allItems.filter(item => item.parent === parentId)
 
     const getMenuIcon = (code: string, action: string) => {
         const uCode = (code || '').toUpperCase()
@@ -94,6 +100,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         if (uCode.includes('DASHBOARD') || uAction === '/dashboard') return <LayoutDashboard className="w-5 h-5" />
         if (uCode.includes('COTIZACION') || uAction.includes('quotations')) return <FileText className="w-5 h-5" />
         if (uCode.includes('FACTURA') || uAction.includes('invoices')) return <Receipt className="w-5 h-5" />
+        if (uCode.includes('NOTAS_CREDITO') || uAction.includes('credit-notes')) return <FileMinus className="w-5 h-5" />
         if (uCode.includes('MAESTRO') || uCode.includes('SETTING') || uAction.includes('settings')) return <Settings className="w-5 h-5" />
         if (uCode.includes('REPORTE') || uAction.includes('reports')) return <PieChart className="w-5 h-5" />
         if (uCode.includes('EJECUCION') || uAction.includes('executions')) return <Play className="w-5 h-5" />
@@ -102,10 +109,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
 
     const isItemActive = (action: string) => {
-        if (!action) return false
+        if (!action || action === '#') return false
         if (action === '/dashboard') return pathname === '/dashboard'
         if (action.includes('/quotations')) return pathname.includes('/dashboard/quotations')
         if (action.includes('/invoices')) return pathname.includes('/dashboard/invoices')
+        if (action.includes('/credit-notes')) return pathname.includes('/dashboard/credit-notes')
         if (action.includes('/settings')) return pathname.includes('/dashboard/settings')
         if (action.includes('/reports')) return pathname.includes('/dashboard/reports')
         if (action.includes('/executions')) return pathname.includes('/dashboard/executions')
@@ -113,11 +121,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         return pathname === action
     }
 
-    const handleMenuClick = (e: React.MouseEvent, item: MenuItemData) => {
-        const act = item.action ? item.action.trim() : ''
-        if (!act) return
+    const toggleExpand = (id: number) => {
+        setExpandedMenus(prev => ({ ...prev, [id]: !prev[id] }))
+    }
 
-        // If action is a Javascript statement/code (e.g. alert(...) or custom JS execution)
+    const handleMenuClick = (e: React.MouseEvent, item: MenuItemData, hasSubmenu: boolean) => {
+        if (hasSubmenu) {
+            e.preventDefault()
+            toggleExpand(item.id)
+            return
+        }
+
+        const act = item.action ? item.action.trim() : ''
+        if (!act || act === '#') {
+            e.preventDefault()
+            return
+        }
+
         if (act.startsWith('javascript:') || (!act.startsWith('/') && !act.startsWith('http') && !act.startsWith('#'))) {
             e.preventDefault()
             try {
@@ -129,7 +149,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             return
         }
 
-        // Standard internal URL route navigation
         if (!act.startsWith('http')) {
             e.preventDefault()
             router.push(act)
@@ -165,32 +184,62 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </div>
 
                     <nav className="space-y-1">
-                        {itemsToRender.map((item) => {
-                            const active = isItemActive(item.action)
+                        {rootItems.map((item) => {
+                            const subItems = getChildren(item.id)
+                            const hasSubmenu = subItems.length > 0
+                            const isExpanded = expandedMenus[item.id] ?? (hasSubmenu && subItems.some(sub => isItemActive(sub.action)))
+                            const active = isItemActive(item.action) || (hasSubmenu && subItems.some(sub => isItemActive(sub.action)))
                             const icon = getMenuIcon(item.code, item.action)
                             const isExternalUrl = item.action.startsWith('http')
 
                             return (
-                                <a
-                                    key={item.id || item.code}
-                                    href={item.action}
-                                    onClick={(e) => handleMenuClick(e, item)}
-                                    target={isExternalUrl ? '_blank' : undefined}
-                                    rel={isExternalUrl ? 'noopener noreferrer' : undefined}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${active
-                                        ? 'bg-blue-600/10 text-blue-600 font-semibold'
-                                        : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium'
-                                        }`}
-                                >
-                                    {icon}
-                                    <span>{item.name}</span>
-                                    {active && (
-                                        <motion.div
-                                            layoutId="active"
-                                            className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600"
-                                        />
+                                <div key={item.id || item.code} className="space-y-1">
+                                    <a
+                                        href={item.action}
+                                        onClick={(e) => handleMenuClick(e, item, hasSubmenu)}
+                                        target={isExternalUrl ? '_blank' : undefined}
+                                        rel={isExternalUrl ? 'noopener noreferrer' : undefined}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all cursor-pointer ${active
+                                            ? 'bg-blue-600/10 text-blue-600 font-semibold'
+                                            : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-medium'
+                                            }`}
+                                    >
+                                        {icon}
+                                        <span className="flex-1 text-left">{item.name}</span>
+                                        {hasSubmenu && (
+                                            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                                        )}
+                                        {active && !hasSubmenu && (
+                                            <motion.div
+                                                layoutId="active"
+                                                className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600"
+                                            />
+                                        )}
+                                    </a>
+
+                                    {/* Submenús */}
+                                    {hasSubmenu && isExpanded && (
+                                        <div className="pl-6 space-y-1">
+                                            {subItems.map(subItem => {
+                                                const subActive = isItemActive(subItem.action)
+                                                return (
+                                                    <a
+                                                        key={subItem.id || subItem.code}
+                                                        href={subItem.action}
+                                                        onClick={(e) => handleMenuClick(e, subItem, false)}
+                                                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all cursor-pointer ${subActive
+                                                            ? 'bg-blue-600/15 text-blue-600 font-semibold'
+                                                            : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                                            }`}
+                                                    >
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${subActive ? 'bg-blue-600' : 'bg-zinc-300 dark:bg-zinc-600'}`} />
+                                                        <span>{subItem.name}</span>
+                                                    </a>
+                                                )
+                                            })}
+                                        </div>
                                     )}
-                                </a>
+                                </div>
                             )
                         })}
                     </nav>
@@ -214,4 +263,3 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
     )
 }
-
