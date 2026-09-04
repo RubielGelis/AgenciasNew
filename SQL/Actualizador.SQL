@@ -1698,6 +1698,8 @@ BEGIN
     CREATE UNIQUE INDEX IF NOT EXISTS gds_name_key ON public."GDS" USING btree (name) WITH (fillfactor='100', deduplicate_items='true');
     CREATE UNIQUE INDEX IF NOT EXISTS interfaces_code_key ON public."Interfaces" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
     CREATE UNIQUE INDEX IF NOT EXISTS master_code_key ON public."Master" USING btree (code) WITH (fillfactor='100', deduplicate_items='true');
+END $$;
+
     DO $con$
     BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Airports_citiesId_fkey') THEN
@@ -2046,9 +2048,6 @@ BEGIN
             ALTER TABLE ONLY public."User" ADD CONSTRAINT "User_ticketPrinterId_fkey" FOREIGN KEY ("ticketPrinterId") REFERENCES public."TicketPrinter"(id) ON UPDATE CASCADE ON DELETE SET NULL;
         END IF;
     END $con$;
-
-END $$; 
-
 
 -- >>> 1.1. ADICIÓN DE COLUMNAS A TABLAS EXISTENTES (ALTER COLUMNS) <<<
 
@@ -3742,9 +3741,503 @@ BEGIN
         ALTER TABLE public."User" ADD COLUMN "ticketPrinterId" integer;
     END IF;
 
+    -- 7. Columnas resolutionId e invoiceTemplate para Branch e Implant
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'resolutionId') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "resolutionId" INT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceTemplate') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceTemplate" BYTEA;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceTemplateConfig') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceTemplateConfig" JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'invoiceHtmlTemplate') THEN
+        ALTER TABLE public."Branch" ADD COLUMN "invoiceHtmlTemplate" TEXT;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'resolutionId') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "resolutionId" INT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceTemplate') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceTemplate" BYTEA;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceTemplateConfig') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceTemplateConfig" JSONB;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Implant' AND column_name = 'invoiceHtmlTemplate') THEN
+        ALTER TABLE public."Implant" ADD COLUMN "invoiceHtmlTemplate" TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'SysConsecutivo') THEN
+        CREATE TABLE public."SysConsecutivo" (
+            "id" SERIAL PRIMARY KEY,
+            "codigo" VARCHAR(50) NOT NULL,
+            "nombre" VARCHAR(255) NOT NULL,
+            "branchId" INT REFERENCES public."Branch"(id) ON DELETE SET NULL,
+            "implantId" INT REFERENCES public."Implant"(id) ON DELETE SET NULL,
+            "fuente" VARCHAR(50),
+            "serie" VARCHAR(50),
+            "consecutivo" BIGINT NOT NULL DEFAULT 0,
+            "createdAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX "idx_sysconsecutivo_codigo" ON public."SysConsecutivo"("codigo");
+        CREATE INDEX "idx_sysconsecutivo_branch" ON public."SysConsecutivo"("branchId");
+        CREATE INDEX "idx_sysconsecutivo_implant" ON public."SysConsecutivo"("implantId");
+    END IF;
 END $$;
 
--- >>> 2. FUNCIONES <<<
+-- >>> 1.2. OTRAS TABLAS Y ESQUEMAS <<<
+
+-- Archivo: Branch.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Branch') THEN
+        CREATE TABLE public."Branch" (
+            id SERIAL PRIMARY KEY,
+            code VARCHAR(255) UNIQUE NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            logo BYTEA,
+            template BYTEA,
+            "templateConfig" JSONB,
+            "htmlTemplate" TEXT
+        );
+    END IF;
+END $$;
+
+-- Archivo: Invoices.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Invoices') THEN
+        CREATE TABLE public."Invoices" (
+            "id" SERIAL PRIMARY KEY,
+            "internalNumber" VARCHAR(255) UNIQUE NOT NULL,
+            "date" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "clientId" INT NOT NULL,
+            "currency" VARCHAR(50) NOT NULL,
+            "exchangeRate" FLOAT NOT NULL,
+            "branchId" INT NOT NULL,
+            "implantId" INT,
+            "sellerId" INT,
+            "ticketPrinterId" INT,
+            "baseCommissionable" FLOAT NOT NULL,
+            "commissionPercentage" FLOAT NOT NULL,
+            "chargesAndTaxes" FLOAT NOT NULL,
+            "totalAmount" FLOAT NOT NULL,
+            "userId" INT,
+            "state" VARCHAR(25) DEFAULT 'NUEVO'
+        );
+    END IF;
+END $$;
+
+-- Archivo: InvoicesProduct.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProduct') THEN
+        CREATE TABLE public."InvoicesProduct" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceId" INT NOT NULL,
+            "productId" INT NOT NULL,
+            "quantity" INT NOT NULL,
+            "price" FLOAT NOT NULL,
+            "cost" FLOAT DEFAULT 0,
+            "providerId" INT,
+            "prestadoraId" INT,
+            "checkInDate" TIMESTAMP,
+            "checkOutDate" TIMESTAMP,
+            "nights" INT,
+            "paxAdults" INT,
+            "paxChildren" INT,
+            "serviceType" VARCHAR(255),
+            "destination" VARCHAR(255),
+            "reservationCode" VARCHAR(255),
+            "sellerCommission" FLOAT,
+            "ticketPrinterCommission" FLOAT,
+            "comboId" INT,
+            "mainTaxId" INT,
+            "inNationality" INT DEFAULT 1,
+            
+            -- Nuevos campos solicitados
+            "servicios" TEXT,
+            "descripcion" TEXT,
+            "itinerary" TEXT,
+            "class" VARCHAR(100),
+            "ticketTypeId" INT,
+            "airline" VARCHAR(100)
+        );
+    END IF;
+END $$;
+
+-- Archivo: InvoicesProductCombo.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductCombo') THEN
+        CREATE TABLE public."InvoicesProductCombo" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceId" INT NOT NULL,
+            "comboId" INT NOT NULL
+        );
+    END IF;
+END $$;
+
+-- Archivo: InvoicesProductItinerary.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductItinerary') THEN
+        CREATE TABLE public."InvoicesProductItinerary" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceProductId" INT NOT NULL,
+            "orden" INT,
+            "origin" VARCHAR(255) NOT NULL,
+            "destination" VARCHAR(255) NOT NULL,
+            "class" VARCHAR(255),
+            "checkInDate" TIMESTAMP,
+            "checkOutDate" TIMESTAMP,
+            "terminal" VARCHAR(255),
+            "prestadoraCode" VARCHAR(255),
+            "farebasis" VARCHAR(255),
+            "Numflight" VARCHAR(25),
+            "Typeflight" VARCHAR(1),
+            "amount" FLOAT,
+            "co2" DECIMAL(10,4),
+            CONSTRAINT "InvoicesProductItinerary_invoiceProductId_fkey" FOREIGN KEY ("invoiceProductId") REFERENCES public."InvoicesProduct" (id) ON UPDATE CASCADE ON DELETE CASCADE
+        );
+    END IF;
+END $$;
+
+-- Archivo: InvoicesProductPasenger.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductPasenger') THEN
+        CREATE TABLE public."InvoicesProductPasenger" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceProductId" INT NOT NULL,
+            "name" VARCHAR(255) NOT NULL,
+            "document" VARCHAR(255) NOT NULL
+        );
+    END IF;
+END $$;
+
+-- Archivo: InvoicesProductPayment.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductPayment') THEN
+        CREATE TABLE public."InvoicesProductPayment" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceProductId" INT NOT NULL,
+            "amount" FLOAT NOT NULL,
+            "paymentMethod" VARCHAR(100),
+            "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            "reference" VARCHAR(255)
+        );
+    END IF;
+END $$;
+
+-- Archivo: InvoicesProductTax.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductTax') THEN
+        CREATE TABLE public."InvoicesProductTax" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceProductId" INT NOT NULL,
+            "chargeAndTaxId" INT NOT NULL,
+            "valueSnapshot" FLOAT NOT NULL,
+            "valueTypeSnapshot" VARCHAR(50) NOT NULL,
+            "explicitAmount" FLOAT,
+            "isMain" BOOLEAN DEFAULT false
+        );
+    END IF;
+END $$;
+
+-- Archivo: InvoicesProductVariable.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'InvoicesProductVariable') THEN
+        CREATE TABLE public."InvoicesProductVariable" (
+            "id" SERIAL PRIMARY KEY,
+            "invoiceProductId" INT NOT NULL,
+            "masterVariableId" INT NOT NULL,
+            "value" VARCHAR(255) NOT NULL
+        );
+    END IF;
+END $$;
+
+-- Archivo: Menu.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Menu') THEN
+        CREATE TABLE public."Menu" (
+            id SERIAL PRIMARY KEY,
+            code VARCHAR(100) UNIQUE NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            parent INT NULL,
+            action VARCHAR(500) NOT NULL,
+            activo BOOLEAN DEFAULT true
+        );
+    END IF;
+END $$;
+
+-- Archivo: NotasCreditoNoRef.sql
+-- Tabla: public.NotasCreditoNoRef
+CREATE TABLE IF NOT EXISTS public."NotasCreditoNoRef" (
+    id SERIAL PRIMARY KEY,
+    fuente VARCHAR(10),
+    serie VARCHAR(10),
+    consecutivo VARCHAR(50),
+    factura_fuente VARCHAR(10),
+    factura_serie VARCHAR(10),
+    factura_numero VARCHAR(50),
+    fecha TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS "idx_notas_credito_no_ref_consecutivo" ON public."NotasCreditoNoRef"(consecutivo);
+CREATE INDEX IF NOT EXISTS "idx_notas_credito_no_ref_factura" ON public."NotasCreditoNoRef"(factura_fuente, factura_serie, factura_numero);
+
+-- Archivo: Quotation.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Quotation') THEN
+        CREATE TABLE public."Quotation" (
+            id SERIAL PRIMARY KEY,
+            "internalNumber" TEXT NOT NULL,
+            date TIMESTAMP(3) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "clientId" INTEGER NOT NULL,
+            currency TEXT NOT NULL,
+            "exchangeRate" DOUBLE PRECISION NOT NULL,
+            "branchId" INTEGER NOT NULL,
+            "implantId" INTEGER,
+            "sellerId" INTEGER,
+            "ticketPrinterId" INTEGER,
+            "baseCommissionable" DOUBLE PRECISION NOT NULL,
+            "commissionPercentage" DOUBLE PRECISION NOT NULL,
+            "chargesAndTaxes" DOUBLE PRECISION NOT NULL,
+            "totalAmount" DOUBLE PRECISION NOT NULL,
+            "userId" INTEGER,
+            "state" VARCHAR(25) DEFAULT 'NUEVO'
+        );
+    END IF;
+END $$;
+
+-- Archivo: QuotationProduct.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationProduct') THEN
+        CREATE TABLE public."QuotationProduct" (
+            id SERIAL PRIMARY KEY,
+            "quotationId" INT NOT NULL,
+            "productId" INT NOT NULL,
+            quantity INT NOT NULL,
+            price FLOAT NOT NULL,
+            cost FLOAT DEFAULT 0,
+            "providerId" INT,
+            "prestadoraId" INT,
+            "checkInDate" TIMESTAMP,
+            "checkOutDate" TIMESTAMP,
+            nights INT,
+            "paxAdults" INT,
+            "paxChildren" INT,
+            "serviceType" VARCHAR(255),
+            destination VARCHAR(255),
+            "reservationCode" VARCHAR(255),
+            "sellerCommission" FLOAT,
+            "ticketPrinterCommission" FLOAT,
+            "comboId" INT,
+            "mainTaxId" INT,
+            "inNationality" INT DEFAULT 1,
+            "service" TEXT,
+            "servicios" TEXT,
+            "descripcion" TEXT
+        );
+    END IF;
+END $$;
+
+-- Archivo: QuotationProductPayment.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationProductPayment') THEN
+        CREATE TABLE public."QuotationProductPayment" (
+            "id" SERIAL PRIMARY KEY,
+            "quotationProductId" INT NOT NULL,
+            "amount" FLOAT NOT NULL,
+            "paymentMethod" VARCHAR(100),
+            "date" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            "reference" VARCHAR(255),
+            "creditCardId" INT,
+            "cardNumber" VARCHAR(20),
+            "authorizationCode" VARCHAR(50),
+            "voucher" VARCHAR(50),
+            "expirationDate" VARCHAR(10),
+            CONSTRAINT "QuotationProductPayment_quotationProductId_fkey" FOREIGN KEY ("quotationProductId") REFERENCES public."QuotationProduct" (id) ON UPDATE CASCADE ON DELETE CASCADE
+        );
+    END IF;
+END $$;
+
+-- Archivo: QuotationProduct_Alter.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'service') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "service" TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'servicios') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "servicios" TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'QuotationProduct' AND column_name = 'descripcion') THEN
+        ALTER TABLE public."QuotationProduct" ADD COLUMN "descripcion" TEXT;
+    END IF;
+END $$;
+
+-- Archivo: QuotationState.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'QuotationState') THEN
+        CREATE TABLE public."QuotationState" (
+            "id" SERIAL PRIMARY KEY,
+            "name" VARCHAR(50) NOT NULL,
+            "color" VARCHAR(20),
+            "createdAt" TIMESTAMP(6) WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "code" VARCHAR(25) UNIQUE NOT NULL
+        );
+    END IF;
+END $$;
+
+-- Archivo: Report.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Report') THEN
+        CREATE TABLE public."Report" (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            base_table VARCHAR(100),
+            description TEXT,
+            custom_sql TEXT,
+            created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+    END IF;
+END $$;
+
+-- Archivo: ReportColumns.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ReportColumns') THEN
+        CREATE TABLE public."ReportColumns" (
+            id SERIAL PRIMARY KEY,
+            report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+            table_alias VARCHAR(20),
+            column_name VARCHAR(100) NOT NULL,
+            alias VARCHAR(150),
+            is_calculated BOOLEAN DEFAULT false,
+            is_visible BOOLEAN DEFAULT true,
+            formula_expression TEXT,
+            sort_order INTEGER DEFAULT 0
+        );
+    END IF;
+END $$;
+
+-- Archivo: ReportFilters.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ReportFilters') THEN
+        CREATE TABLE public."ReportFilters" (
+            id SERIAL PRIMARY KEY,
+            report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+            table_alias VARCHAR(20),
+            column_name VARCHAR(100) NOT NULL,
+            filter_label VARCHAR(150),
+            filter_type VARCHAR(50) NOT NULL,
+            operator VARCHAR(20) DEFAULT '=',
+            sort_order INTEGER DEFAULT 0
+        );
+    END IF;
+END $$;
+
+-- Archivo: ReportJoins.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ReportJoins') THEN
+        CREATE TABLE public."ReportJoins" (
+            id SERIAL PRIMARY KEY,
+            report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+            table_name VARCHAR(100) NOT NULL,
+            alias VARCHAR(20) NOT NULL,
+            join_type VARCHAR(50) NOT NULL DEFAULT 'INNER JOIN',
+            join_condition TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0
+        );
+    END IF;
+END $$;
+
+-- Archivo: ReportSorts.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ReportSorts') THEN
+        CREATE TABLE public."ReportSorts" (
+            id SERIAL PRIMARY KEY,
+            report_id INTEGER NOT NULL REFERENCES public."Report"(id) ON DELETE CASCADE,
+            column_expr TEXT NOT NULL,
+            direction VARCHAR(10) DEFAULT 'ASC',
+            sort_order INTEGER DEFAULT 0
+        );
+    END IF;
+END $$;
+
+-- Archivo: Resolution.sql
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Resolution') THEN
+        CREATE TABLE public."Resolution" (
+            id SERIAL PRIMARY KEY,
+            code VARCHAR(255) UNIQUE NOT NULL,
+            name VARCHAR(255) NOT NULL,
+            "date" TIMESTAMP WITH TIME ZONE,
+            expira TIMESTAMP WITH TIME ZONE,
+            inicial BIGINT,
+            "end" BIGINT,
+            autoriza VARCHAR(255),
+            prefijo VARCHAR(50),
+            alerta INT,
+            "day" INT,
+            permitir BOOLEAN DEFAULT false,
+            activo BOOLEAN DEFAULT true
+        );
+    END IF;
+END $$;
+
+-- Archivo: SysConsecutivo.sql
+-- Tabla: public.SysConsecutivo
+CREATE TABLE IF NOT EXISTS public."SysConsecutivo" (
+    "id" SERIAL PRIMARY KEY,
+    "codigo" VARCHAR(50) NOT NULL,
+    "nombre" VARCHAR(255) NOT NULL,
+    "branchId" INT REFERENCES public."Branch"(id) ON DELETE SET NULL,
+    "implantId" INT REFERENCES public."Implant"(id) ON DELETE SET NULL,
+    "fuente" VARCHAR(50),
+    "serie" VARCHAR(50),
+    "consecutivo" BIGINT NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS "idx_sysconsecutivo_codigo" ON public."SysConsecutivo"("codigo");
+CREATE INDEX IF NOT EXISTS "idx_sysconsecutivo_branch" ON public."SysConsecutivo"("branchId");
+CREATE INDEX IF NOT EXISTS "idx_sysconsecutivo_implant" ON public."SysConsecutivo"("implantId");
+
+-- Archivo: TicketType.sql
+-- Script para la tabla maestra TicketType
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'TicketType') THEN
+        CREATE TABLE public."TicketType" (
+            "id" SERIAL PRIMARY KEY,
+            "code" VARCHAR(50) UNIQUE NOT NULL,
+            "name" VARCHAR(255) NOT NULL,
+            "description" TEXT,
+            "isActive" BOOLEAN DEFAULT true
+        );
+    END IF;
+END $$;
+
+-- >>> 2. FUNCIONES (POSTGRESQL) <<<
 
 -- Archivo: fnAirportListar.sql
 CREATE OR REPLACE FUNCTION public."fnAirportListar"()
@@ -3764,7 +4257,6 @@ BEGIN
     SELECT * FROM public."Branch" ORDER BY name ASC;
 END;
 $$;
-
 
 -- Archivo: fnCellCustomizationListar.sql
 CREATE OR REPLACE FUNCTION public.fnCellCustomizationListar(
@@ -3798,7 +4290,6 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: fnCityListar.sql
 CREATE OR REPLACE FUNCTION public."fnCityListar"()
 RETURNS TABLE(id integer, code text, name text, "countriesId" integer, statecode text, iata text, "countryName" text)
@@ -3817,7 +4308,6 @@ BEGIN
     SELECT * FROM public."Client" ORDER BY name ASC;
 END;
 $$;
-
 
 -- Archivo: fnComboListar.sql
 CREATE OR REPLACE FUNCTION public.fnComboListar()
@@ -3878,7 +4368,6 @@ BEGIN
     ORDER BY c."createdAt" DESC;
 END;
 $$;
-
 
 -- Archivo: fnCotizacion.sql
 CREATE OR REPLACE FUNCTION public.fnCotizacion(p_quotation_id INT)
@@ -4002,7 +4491,6 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: fnCotizacionHistorial.sql
 DROP FUNCTION IF EXISTS public.fnCotizacionHistorial();
 
@@ -4068,7 +4556,6 @@ BEGIN
     ORDER BY q.date DESC;
 END;
 $$;
-
 
 -- Archivo: fnCotizacionListar.sql
 DROP FUNCTION IF EXISTS public.fnCotizacionListar();
@@ -4164,7 +4651,6 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: fnCountryListar.sql
 CREATE OR REPLACE FUNCTION public."fnCountryListar"()
 RETURNS TABLE(id integer, code text, name text, dane text, region text, prefix text, "curencyId" integer)
@@ -4196,7 +4682,6 @@ BEGIN
     ORDER BY c.id ASC;
 END;
 $function$;
-
 
 -- Archivo: fnEquivalenceInterface.sql
 CREATE OR REPLACE FUNCTION public."fnEquivalenceInterface"(
@@ -4237,7 +4722,6 @@ $BODY$;
 
 ALTER FUNCTION public."fnEquivalenceInterface"(integer, integer, text) OWNER TO postgres;
 
-
 -- Archivo: fnGetSQLServerConfig.sql
 CREATE OR REPLACE FUNCTION "fnGetSQLServerConfig"()
 RETURNS TABLE (
@@ -4258,7 +4742,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
 -- Archivo: fnImplantListar.sql
 CREATE OR REPLACE FUNCTION public.fnImplantListar()
 RETURNS SETOF public."Implant"
@@ -4270,7 +4753,6 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: fnImpuestoListar.sql
 CREATE OR REPLACE FUNCTION public.fnImpuestoListar()
 RETURNS SETOF public."ChargeAndTax"
@@ -4281,7 +4763,6 @@ BEGIN
     SELECT * FROM public."ChargeAndTax" ORDER BY name ASC;
 END;
 $$;
-
 
 -- Archivo: fnInterfacesList.sql
 DROP FUNCTION IF EXISTS public."fnInterfacesList"();
@@ -4321,7 +4802,6 @@ $BODY$;
 
 ALTER FUNCTION public."fnInterfacesList"() OWNER TO postgres;
 
-
 -- Archivo: fnMasterList.sql
 CREATE OR REPLACE FUNCTION public."fnMasterList"()
 RETURNS TABLE(
@@ -4346,7 +4826,6 @@ $BODY$;
 
 ALTER FUNCTION public."fnMasterList"() OWNER TO postgres;
 
-
 -- Archivo: fnMenu.sql
 CREATE OR REPLACE FUNCTION public.fnMenu()
 RETURNS SETOF public."Menu"
@@ -4359,7 +4838,6 @@ BEGIN
     ORDER BY id ASC;
 END;
 $$;
-
 
 -- Archivo: fnMonedaListar.sql
 CREATE OR REPLACE FUNCTION public.fnMonedaListar(
@@ -4388,7 +4866,6 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: fnParameterListar.sql
 CREATE OR REPLACE FUNCTION public.fnParameterListar()
 RETURNS SETOF public."SystemParameter"
@@ -4399,7 +4876,6 @@ BEGIN
     SELECT * FROM public."SystemParameter" ORDER BY name ASC;
 END;
 $$;
-
 
 -- Archivo: fnPaymentListar.sql
 CREATE OR REPLACE FUNCTION public."fnPaymentListar"()
@@ -4435,7 +4911,6 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: fnProductoListar.sql
 CREATE OR REPLACE FUNCTION public.fnProductoListar()
 RETURNS SETOF public."Product"
@@ -4446,7 +4921,6 @@ BEGIN
     SELECT * FROM public."Product" ORDER BY id DESC;
 END;
 $$;
-
 
 -- Archivo: fnProveedorListar.sql
 CREATE OR REPLACE FUNCTION public.fnProveedorListar()
@@ -4473,16 +4947,13 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: fnQuotationStateListar.sql
-
 CREATE OR REPLACE FUNCTION public."fnQuotationStateListar"()
 RETURNS TABLE(id integer, code text, name text, color text, "createdAt" timestamp)
 LANGUAGE plpgsql AS $function$
 BEGIN
     RETURN QUERY SELECT t.id, t.code::text, t.name::text, t.color::text, t."createdAt"::timestamp FROM public."QuotationState" t ORDER BY t.name ASC;
 END; $function$;
-
 
 -- Archivo: fnReportDinamic.sql
 DROP FUNCTION IF EXISTS public."fnReportDinamic"(INTEGER);
@@ -4640,6 +5111,16 @@ BEGIN
 END;
 $$;
 
+-- Archivo: fnResolucionListar.sql
+CREATE OR REPLACE FUNCTION public.fnResolucionListar()
+RETURNS SETOF public."Resolution"
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM public."Resolution" ORDER BY name ASC;
+END;
+$$;
 
 -- Archivo: fnRptCotizacion.sql
 CREATE OR REPLACE FUNCTION public."fnRptCotizacion"(
@@ -4815,7 +5296,6 @@ BEGIN
 END;
 $BODY$;
 
-
 -- Archivo: fnSellerListar.sql
 CREATE OR REPLACE FUNCTION public.fnSellerListar()
 RETURNS SETOF public."Seller"
@@ -4827,6 +5307,45 @@ BEGIN
 END;
 $$;
 
+-- Archivo: fnSysConsecutivoListar.sql
+CREATE OR REPLACE FUNCTION public.fnSysConsecutivoListar()
+RETURNS TABLE (
+    id INT,
+    codigo VARCHAR,
+    nombre VARCHAR,
+    "branchId" INT,
+    "branchName" VARCHAR,
+    "implantId" INT,
+    "implantName" VARCHAR,
+    fuente VARCHAR,
+    serie VARCHAR,
+    consecutivo BIGINT,
+    "createdAt" TIMESTAMP,
+    "updatedAt" TIMESTAMP
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        sc.id,
+        sc.codigo,
+        sc.nombre,
+        sc."branchId",
+        b.name AS "branchName",
+        sc."implantId",
+        imp.name AS "implantName",
+        sc.fuente,
+        sc.serie,
+        sc.consecutivo,
+        sc."createdAt",
+        sc."updatedAt"
+    FROM public."SysConsecutivo" sc
+    LEFT JOIN public."Branch" b ON b.id = sc."branchId"
+    LEFT JOIN public."Implant" imp ON imp.id = sc."implantId"
+    ORDER BY sc.id DESC;
+END;
+$$;
 
 -- Archivo: fnTicketPrinterListar.sql
 CREATE OR REPLACE FUNCTION public.fnTicketPrinterListar()
@@ -4839,16 +5358,13 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: fnTicketTypeListar.sql
-
 CREATE OR REPLACE FUNCTION public."fnTicketTypeListar"()
 RETURNS TABLE(id integer, code text, name text, description text, "isActive" boolean)
 LANGUAGE plpgsql AS $function$
 BEGIN
     RETURN QUERY SELECT t.id, t.code::text, t.name::text, t.description::text, t."isActive" FROM public."TicketType" t ORDER BY t.name ASC;
 END; $function$;
-
 
 -- Archivo: fnUsuarioListar.sql
 CREATE OR REPLACE FUNCTION public.fnUsuarioListar()
@@ -4892,7 +5408,6 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: fnVariableListar.sql
 CREATE OR REPLACE FUNCTION public.fnVariableListar()
 RETURNS SETOF public."MasterVariable"
@@ -4903,7 +5418,6 @@ BEGIN
     SELECT * FROM public."MasterVariable" ORDER BY name ASC;
 END;
 $$;
-
 
 -- Archivo: fn_obtener_historial_estados.sql
 -- Crear función para obtener el historial de estados de una cotización
@@ -4932,8 +5446,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
--- >>> 3. PROCEDIMIENTOS ALMACENADOS (SP) <<<
+-- >>> 3. PROCEDIMIENTOS ALMACENADOS (POSTGRESQL) <<<
 
 -- Archivo: spAirportActualizar.sql
 CREATE OR REPLACE PROCEDURE public."spAirportActualizar"(IN p_id integer, IN p_code text, IN p_name text, IN p_citiesId integer, IN p_user_id integer, INOUT p_mensaje_resultado text)
@@ -4975,8 +5488,12 @@ CREATE OR REPLACE PROCEDURE public.spBranchActualizar(
     p_template BYTEA,
     p_template_config JSONB,
     p_html_template TEXT,
-    p_acting_user_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_resolution_id INT DEFAULT NULL,
+    p_invoice_template BYTEA DEFAULT NULL,
+    p_invoice_template_config JSONB DEFAULT NULL,
+    p_invoice_html_template TEXT DEFAULT NULL,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
@@ -4992,7 +5509,11 @@ BEGIN
         "logo" = COALESCE(p_logo, "logo"),
         "template" = COALESCE(p_template, "template"),
         "templateConfig" = COALESCE(p_template_config, "templateConfig"),
-        "htmlTemplate" = COALESCE(p_html_template, "htmlTemplate")
+        "htmlTemplate" = COALESCE(p_html_template, "htmlTemplate"),
+        "resolutionId" = p_resolution_id,
+        "invoiceTemplate" = COALESCE(p_invoice_template, "invoiceTemplate"),
+        "invoiceTemplateConfig" = COALESCE(p_invoice_template_config, "invoiceTemplateConfig"),
+        "invoiceHtmlTemplate" = COALESCE(p_invoice_html_template, "invoiceHtmlTemplate")
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Sucursal actualizada exitosamente.';
@@ -5002,7 +5523,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spBranchCrear.sql
 CREATE OR REPLACE PROCEDURE public.spBranchCrear(
     p_code TEXT,
@@ -5011,15 +5531,25 @@ CREATE OR REPLACE PROCEDURE public.spBranchCrear(
     p_template BYTEA,
     p_template_config JSONB,
     p_html_template TEXT,
-    p_acting_user_id INT,
-    INOUT p_branch_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_resolution_id INT DEFAULT NULL,
+    p_invoice_template BYTEA DEFAULT NULL,
+    p_invoice_template_config JSONB DEFAULT NULL,
+    p_invoice_html_template TEXT DEFAULT NULL,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_branch_id INT DEFAULT 0,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO public."Branch" ("code", "name", "logo", "template", "templateConfig", "htmlTemplate")
-    VALUES (p_code, p_name, p_logo, p_template, p_template_config, p_html_template)
+    INSERT INTO public."Branch" (
+        "code", "name", "logo", "template", "templateConfig", "htmlTemplate",
+        "resolutionId", "invoiceTemplate", "invoiceTemplateConfig", "invoiceHtmlTemplate"
+    )
+    VALUES (
+        p_code, p_name, p_logo, p_template, p_template_config, p_html_template,
+        p_resolution_id, p_invoice_template, p_invoice_template_config, p_invoice_html_template
+    )
     RETURNING id INTO p_branch_id;
 
     p_mensaje_resultado := 'SUCCESS: Sucursal creada con ID ' || p_branch_id;
@@ -5028,7 +5558,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spBranchEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spBranchEliminar(
@@ -5052,7 +5581,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spCellCustomizationDelete.sql
 CREATE OR REPLACE PROCEDURE public.spCellCustomizationDelete(
     p_code text,
@@ -5071,7 +5599,6 @@ BEGIN
     END IF;
 END;
 $$;
-
 
 -- Archivo: spCellCustomizationUpsert.sql
 CREATE OR REPLACE PROCEDURE public.spCellCustomizationUpsert(
@@ -5097,7 +5624,6 @@ BEGIN
     END IF;
 END;
 $$;
-
 
 -- Archivo: spCityActualizar.sql
 CREATE OR REPLACE PROCEDURE public."spCityActualizar"(IN p_id integer, IN p_code text, IN p_name text, IN p_countriesId integer, IN p_statecode text, IN p_iata text, IN p_user_id integer, INOUT p_mensaje_resultado text)
@@ -5165,7 +5691,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spClienteCrear.sql
 CREATE OR REPLACE PROCEDURE public.spClienteCrear(
     p_name TEXT,
@@ -5196,7 +5721,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spClienteEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spClienteEliminar(
     p_id INT,
@@ -5214,7 +5738,6 @@ EXCEPTION
         ROLLBACK;
 END;
 $$;
-
 
 -- Archivo: spComboActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spComboActualizar(
@@ -5283,7 +5806,6 @@ AS $$
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
     END;
 $$;
-
 
 -- Archivo: spComboCrear.sql
 CREATE OR REPLACE PROCEDURE public.spComboCrear(
@@ -5354,7 +5876,6 @@ AS $$
     END;
 $$;
 
-
 -- Archivo: spComboEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spComboEliminar(
     p_id INT,
@@ -5371,7 +5892,6 @@ EXCEPTION
         ROLLBACK;
 END;
 $$;
-
 
 -- Archivo: spCotizacionActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spCotizacionActualizar(
@@ -5716,7 +6236,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spCotizacionActualizarEstado.sql
 CREATE OR REPLACE PROCEDURE public.spCotizacionActualizarEstado(
     p_response JSONB
@@ -5791,7 +6310,6 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: spCotizacionActualizarEstadoManual.sql
 CREATE OR REPLACE PROCEDURE public.spCotizacionActualizarEstadoManual(
     p_quotation_id INT,
@@ -5847,7 +6365,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spCotizacionCrear.sql
 CREATE OR REPLACE PROCEDURE public.spCotizacionCrear(
@@ -6198,7 +6715,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spCotizacionEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spCotizacionEliminar(
     p_quotation_id INT,
@@ -6224,7 +6740,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spCountryActualizar.sql
 CREATE OR REPLACE PROCEDURE public."spCountryActualizar"(IN p_id integer, IN p_code text, IN p_name text, IN p_dane text, IN p_region text, IN p_prefix text, IN p_curencyId integer, IN p_user_id integer, INOUT p_mensaje_resultado text)
@@ -6310,7 +6825,6 @@ EXCEPTION
 END;
 $procedure$;
 
-
 -- Archivo: spCreditCardCrear.sql
 CREATE OR REPLACE PROCEDURE public."spCreditCardCrear"(
     IN p_code text,
@@ -6362,7 +6876,6 @@ EXCEPTION
 END;
 $procedure$;
 
-
 -- Archivo: spCreditCardEliminar.sql
 CREATE OR REPLACE PROCEDURE public."spCreditCardEliminar"(
     IN p_id integer,
@@ -6395,7 +6908,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $procedure$;
-
 
 -- Archivo: spEquivalencesInterfacesConsultar.sql
 CREATE OR REPLACE PROCEDURE public."spEquivalencesInterfacesConsultar"(
@@ -6456,7 +6968,6 @@ BEGIN
 END;
 $BODY$;
 
-
 -- Archivo: spEquivalencesInterfacesCrear.sql
 CREATE OR REPLACE PROCEDURE public."spEquivalencesInterfacesCrear"(
     IN p_id_interfaces integer,
@@ -6504,7 +7015,6 @@ BEGIN
 END;
 $BODY$;
 
-
 -- Archivo: spEquivalencesInterfacesEliminar.sql
 CREATE OR REPLACE PROCEDURE public."spEquivalencesInterfacesEliminar"(
     IN p_id integer,
@@ -6536,7 +7046,6 @@ BEGIN
     END IF;
 END;
 $BODY$;
-
 
 -- Archivo: spExportInvoices (2).sql
 CREATE OR REPLACE PROCEDURE public."spExportInvoices"(
@@ -8273,7 +8782,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spExportQuotation.sql
 CREATE OR REPLACE PROCEDURE public.spExportQuotation(
     Quotation_id TEXT,
@@ -8326,19 +8834,19 @@ BEGIN
 		cd_cliente_codigo VARCHAR(25) ,
 		ds_cliente_nombre VARCHAR(250) ,
 		ds_cliente_dir VARCHAR(250) ,
-		ds_cliente_ciudad VARCHAR(40) ,
+		ds_cliente_ciudad VARCHAR(100) ,
 		ds_cliente_tel VARCHAR(25) ,
 		ds_cliente_dirdesp VARCHAR(250) ,
 		ds_cliente_email VARCHAR(60) ,
-		ds_cliente_contacto VARCHAR(40) ,
+		ds_cliente_contacto VARCHAR(100) ,
 		ds_cliente_contacto_email VARCHAR(60) ,
 		cd_monedas_IATA VARCHAR(25),
-		cd_vendedor CHAR(25) ,
+		cd_vendedor VARCHAR(25) ,
 		cd_tiqueteador VARCHAR(25) ,
 		bn_anexo BYTEA ,
 		am_tcambio DECIMAL ,
 		am_tcambiousd DECIMAL ,
-		cd_cencosto CHAR(16) ,
+		cd_cencosto VARCHAR(16) ,
 		ds_observacion VARCHAR(8000) ,
 		ds_Campo_libre1 VARCHAR(500) ,
 		ds_Campo_libre2 VARCHAR(500) ,
@@ -8387,15 +8895,15 @@ BEGIN
 		cd_fac_remision VARCHAR(25) ,
 		cd_proveedores VARCHAR(25) ,
 		ds_tiposervnm VARCHAR(50) ,
-		cd_prov_hotel CHAR(10) ,
-		cd_prov_car CHAR(10) ,
-		cd_prov_air CHAR(10) ,
+		cd_prov_hotel VARCHAR(10) ,
+		cd_prov_car VARCHAR(10) ,
+		cd_prov_air VARCHAR(10) ,
 		ds_destino VARCHAR(30) ,
 		ds_servicio VARCHAR(250) ,
 		ds_descrip VARCHAR(4000) ,
 		ds_paxname VARCHAR(20) ,
 		ds_paxape VARCHAR(20) ,
-		cd_paxtype CHAR(25) ,
+		cd_paxtype VARCHAR(25) ,
 		in_nacionalidad INT ,
 		cd_voucher VARCHAR(20) ,
 		in_cantpax INT ,
@@ -8410,10 +8918,10 @@ BEGIN
 		cd_carrental VARCHAR(25) ,
 		cd_hoteles VARCHAR(25) ,
 		bl_anulado BIT(1) DEFAULT B'0' ,
-		cd_tiquete CHAR(11) ,
-		cd_fuente_anul CHAR(2) ,
-		cd_serie_anul CHAR(2) ,
-		cd_consecutivo_anul CHAR(8) ,
+		cd_tiquete VARCHAR(11) ,
+		cd_fuente_anul VARCHAR(2) ,
+		cd_serie_anul VARCHAR(2) ,
+		cd_consecutivo_anul VARCHAR(8) ,
 		cd_usuario_anul VARCHAR(25),
 		cd_sucursal_anul VARCHAR(25) ,
 		cd_implante_anul VARCHAR(25) ,
@@ -8424,7 +8932,7 @@ BEGIN
 		Valor_Comision DECIMAL ,
 		Valor_Recaudo DECIMAL ,
 		dias_recaudo INT ,
-		ds_paxClasificacion CHAR(7) ,
+		ds_paxClasificacion VARCHAR(7) ,
 		cd_tipoplan VARCHAR(25) ,
 		cd_acomodacion VARCHAR(25) ,
 		in_dias INT ,
@@ -8576,6 +9084,30 @@ BEGIN
 		ds_proveedores varchar(250)
 	) ON COMMIT DROP;
 
+	CREATE TEMP TABLE IF NOT EXISTS CotizacionServiciosFormasPago(
+		id INT GENERATED ALWAYS AS IDENTITY,
+		cd_Cotizacion VARCHAR(25),
+		cd_CotizacionServicios VARCHAR(25),
+		cd_codigo VARCHAR(3),
+		ds_FPnm VARCHAR(100),
+		bl_FPrepresenta BIT(1) DEFAULT B'0',
+		id_TarjetasCredito INT,
+		cd_tccode VARCHAR(10),
+		ds_tcnumber VARCHAR(16),
+		ds_tcvoucher VARCHAR(25),
+		cd_idbanco VARCHAR(3),
+		ds_cheque VARCHAR(30),
+		ds_referencia VARCHAR(50),
+		am_valor DECIMAL,
+		ds_tcexp VARCHAR(7),
+		ds_plaza VARCHAR(3),
+		ds_Poliza VARCHAR(20),
+		ds_PolAnexo VARCHAR(20),
+		am_valor_ME DECIMAL DEFAULT 0,
+		ds_tcautorizacion VARCHAR(25),
+		in_tccuotas INT
+	) ON COMMIT DROP;
+
     -- 4. Poblar Tablas Temporales (POBLANDO TODAS LAS COLUMNAS CON NOMBRES EXPLÍCITOS)
     
     INSERT INTO Cotizacion (
@@ -8597,25 +9129,25 @@ BEGIN
         COALESCE(b.code, '') as cd_sucursal, 
         COALESCE(i.code, '') as cd_implante, 
         'Q' || LPAD(q."id"::text, 7, '0') as cd_consecutivo, 
-        v_nombre_usuario as cd_usuario, 
+        public."fnQuitarEspeciales"(v_nombre_usuario) as cd_usuario, 
         q.date as dt_fechacont, 
         q.date as dt_fecha,
-        v_nombre_usuario as cd_usuarioAct, 
+        public."fnQuitarEspeciales"(v_nombre_usuario) as cd_usuarioAct, 
         q.date as dt_fechaAct, 
         COALESCE(c.document, '') as cd_tercero_codigo, 
-        c.name as ds_tercero_nombre, 
+        public."fnQuitarEspeciales"(c.name) as ds_tercero_nombre, 
         COALESCE(c.document, '') as cd_cliente_codigo,
-        c.name as ds_cliente_nombre, 
-        COALESCE(c.address, '') as ds_cliente_dir, 
+        public."fnQuitarEspeciales"(c.name) as ds_cliente_nombre, 
+        public."fnQuitarEspeciales"(COALESCE(c.address, '')) as ds_cliente_dir, 
         '' as ds_cliente_ciudad, 
         '' as ds_cliente_tel, 
         '' as ds_cliente_dirdesp, 
         COALESCE(u.email, '') as ds_cliente_email, 
-        c.name as ds_cliente_contacto, 
+        public."fnQuitarEspeciales"(c.name) as ds_cliente_contacto, 
         '' as ds_cliente_contacto_email, 
         q.currency as cd_monedas_IATA,
         COALESCE(s.code, '') as cd_vendedor, 
-        COALESCE(t.code, '') as cd_tiqueteador, 
+        public."fnQuitarEspeciales"(COALESCE(t.code, '')) as cd_tiqueteador, 
         NULL as bn_anexo, 
         q."exchangeRate" as am_tcambio, 
         q."exchangeRate" as am_tcambiousd, 
@@ -8641,7 +9173,14 @@ BEGIN
         '' as cd_usuario_Bloqueo, 
         '' as ds_AlertaSolicitud, 
         B'0' as bl_comisiona, 
-        '' as ds_FormaDePago, 
+        COALESCE((
+            SELECT string_agg(DISTINCT qpmt."paymentMethod", ', ' ORDER BY qpmt."paymentMethod")
+            FROM public."QuotationProduct" qp2
+            JOIN public."QuotationProductPayment" qpmt ON qpmt."quotationProductId" = qp2.id
+            WHERE qp2."quotationId" = q.id
+              AND qpmt."paymentMethod" IS NOT NULL
+              AND qpmt."paymentMethod" <> ''
+        ), '') as ds_FormaDePago, 
         '' as ds_records, 
         B'0' as bl_entregadoCliente, 
         q.date as dt_entregadoCliente, 
@@ -9000,7 +9539,40 @@ BEGIN
 	FROM public."QuotationProduct" qp
 	JOIN Cotizacion q ON qp."quotationId" = q.orig_id_ref
 	LEFT JOIN public."Prestadora" pre ON pre."id" = qp."prestadoraId";
-	
+
+	-- Poblar formas de pago por servicio desde QuotationProductPayment
+	INSERT INTO CotizacionServiciosFormasPago(
+		cd_Cotizacion,
+		cd_CotizacionServicios,
+		cd_codigo,
+		ds_FPnm,
+		bl_FPrepresenta,
+		ds_tcnumber,
+		ds_tcvoucher,
+		ds_referencia,
+		am_valor,
+		ds_tcexp,
+		am_valor_ME,
+		ds_tcautorizacion
+	)
+	SELECT
+		cs.cd_Cotizacion,
+		cs.cd_Consecutivo_VARiablesAdicionales AS cd_CotizacionServicios,
+		COALESCE(p.code,'') AS cd_codigo,
+		COALESCE(qpmt."paymentMethod", '') AS ds_FPnm,
+		B'0' AS bl_FPrepresenta,
+		COALESCE(qpmt."cardNumber", '') AS ds_tcnumber,
+		COALESCE(qpmt."voucher", '') AS ds_tcvoucher,
+		COALESCE(qpmt."reference", '') AS ds_referencia,
+		COALESCE(qpmt."amount", 0) AS am_valor,
+		COALESCE(qpmt."expirationDate", '') AS ds_tcexp,
+		0 AS am_valor_ME,
+		COALESCE(qpmt."authorizationCode", '') AS ds_tcautorizacion
+	FROM CotizacionServicios cs
+	JOIN public."QuotationProductPayment" qpmt ON qpmt."quotationProductId" = cs.orig_id_ref
+	LEFT JOIN public."Payment" p ON LOWER(p.name)=LOWER(qpmt."paymentMethod")  
+	WHERE qpmt."paymentMethod" IS NOT NULL AND qpmt."paymentMethod" <> '';
+
     -- 5. Generar XML
     SELECT xmlroot(
         xmlelement(name "Cotizaciones",
@@ -9159,6 +9731,28 @@ BEGIN
                                     )				
 									FROM CotizacionServicios_TipoProv PRE
 									WHERE PRE.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales			
+								),
+								(
+									SELECT xmlagg(
+										xmlelement(name "CotizacionServiciosFormasPago",
+											xmlforest(
+												FP.cd_Cotizacion AS cd_Cotizacion,
+												FP.cd_CotizacionServicios AS cd_CotizacionServicios,
+												FP.cd_codigo AS cd_codigo,
+												FP.ds_FPnm AS ds_FPnm,
+												FP.bl_FPrepresenta::int AS bl_FPrepresenta,
+												FP.ds_tcnumber AS ds_tcnumber,
+												FP.ds_tcvoucher AS ds_tcvoucher,
+												FP.ds_referencia AS ds_referencia,
+												FP.am_valor AS am_valor,
+												FP.ds_tcexp AS ds_tcexp,
+												FP.am_valor_ME AS am_valor_ME,
+												FP.ds_tcautorizacion AS ds_tcautorizacion
+											)
+										)
+									)
+									FROM CotizacionServiciosFormasPago FP
+									WHERE FP.cd_CotizacionServicios = s.cd_Consecutivo_VARiablesAdicionales
 								)
                             )
                         )
@@ -9217,7 +9811,6 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: spImplantActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spImplantActualizar(
     p_id INT,
@@ -9228,8 +9821,12 @@ CREATE OR REPLACE PROCEDURE public.spImplantActualizar(
     p_template_config JSONB,
     p_html_template TEXT,
     p_branch_id INT,
-    p_acting_user_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_resolution_id INT DEFAULT NULL,
+    p_invoice_template BYTEA DEFAULT NULL,
+    p_invoice_template_config JSONB DEFAULT NULL,
+    p_invoice_html_template TEXT DEFAULT NULL,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
@@ -9246,7 +9843,11 @@ BEGIN
         "template" = COALESCE(p_template, "template"),
         "templateConfig" = COALESCE(p_template_config, "templateConfig"),
         "htmlTemplate" = COALESCE(p_html_template, "htmlTemplate"),
-        "branchId" = p_branch_id
+        "branchId" = p_branch_id,
+        "resolutionId" = p_resolution_id,
+        "invoiceTemplate" = COALESCE(p_invoice_template, "invoiceTemplate"),
+        "invoiceTemplateConfig" = COALESCE(p_invoice_template_config, "invoiceTemplateConfig"),
+        "invoiceHtmlTemplate" = COALESCE(p_invoice_html_template, "invoiceHtmlTemplate")
     WHERE id = p_id;
 
     p_mensaje_resultado := 'SUCCESS: Implant actualizado exitosamente.';
@@ -9255,7 +9856,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spImplantCrear.sql
 CREATE OR REPLACE PROCEDURE public.spImplantCrear(
@@ -9266,15 +9866,25 @@ CREATE OR REPLACE PROCEDURE public.spImplantCrear(
     p_template_config JSONB,
     p_html_template TEXT,
     p_branch_id INT,
-    p_acting_user_id INT,
-    INOUT p_implant_id INT,
-    INOUT p_mensaje_resultado TEXT
+    p_resolution_id INT DEFAULT NULL,
+    p_invoice_template BYTEA DEFAULT NULL,
+    p_invoice_template_config JSONB DEFAULT NULL,
+    p_invoice_html_template TEXT DEFAULT NULL,
+    p_acting_user_id INT DEFAULT 1,
+    INOUT p_implant_id INT DEFAULT 0,
+    INOUT p_mensaje_resultado TEXT DEFAULT ''
 )
 LANGUAGE plpgsql
 AS $$
 BEGIN
-    INSERT INTO public."Implant" ("code", "name", "logo", "template", "templateConfig", "htmlTemplate", "branchId")
-    VALUES (p_code, p_name, p_logo, p_template, p_template_config, p_html_template, p_branch_id)
+    INSERT INTO public."Implant" (
+        "code", "name", "logo", "template", "templateConfig", "htmlTemplate", "branchId",
+        "resolutionId", "invoiceTemplate", "invoiceTemplateConfig", "invoiceHtmlTemplate"
+    )
+    VALUES (
+        p_code, p_name, p_logo, p_template, p_template_config, p_html_template, p_branch_id,
+        p_resolution_id, p_invoice_template, p_invoice_template_config, p_invoice_html_template
+    )
     RETURNING id INTO p_implant_id;
 
     p_mensaje_resultado := 'SUCCESS: Implant creado con ID ' || p_implant_id;
@@ -9283,7 +9893,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spImplantEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spImplantEliminar(
@@ -9306,7 +9915,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spImportInvoices.sql
 CREATE OR REPLACE PROCEDURE public."spImportInvoices"(
@@ -9842,7 +10450,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spImportQuotation.sql
 CREATE OR REPLACE PROCEDURE public."spImportQuotation"(
     IN p_text_data TEXT,
@@ -10243,8 +10850,6 @@ EXCEPTION
 END;
 $$;
 
-
-
 -- Archivo: spImpuestoActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spImpuestoActualizar(
     p_id INT,
@@ -10276,7 +10881,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spImpuestoCrear.sql
 CREATE OR REPLACE PROCEDURE public.spImpuestoCrear(
     p_code TEXT,
@@ -10303,7 +10907,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spImpuestoEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spImpuestoEliminar(
     p_id INT,
@@ -10320,7 +10923,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spInvoicesActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spInvoicesActualizar(
@@ -10525,7 +11127,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spInvoicesCrear.sql
 CREATE OR REPLACE PROCEDURE public.spInvoicesCrear(
     p_data JSONB,
@@ -10549,6 +11150,17 @@ DECLARE
     v_real_product_id INT;
     v_existing_invoice_number TEXT;
     v_temp_msg TEXT;
+    v_fuente TEXT;
+    v_serie TEXT;
+    v_consecutivo TEXT;
+    v_consec_id INT;
+    v_next_num BIGINT;
+    v_billing_code TEXT;
+    v_branch_id INT;
+    v_implant_id INT;
+    v_resolution_id INT;
+    v_res RECORD;
+    v_consec_num BIGINT;
 BEGIN
     -- Validaciones
     IF NULLIF(p_data->>'clientId', '') IS NULL THEN
@@ -10561,7 +11173,127 @@ BEGIN
         RETURN;
     END IF;
 
+    v_branch_id := NULLIF(p_data->>'branchId', '')::INT;
+    v_implant_id := NULLIF(p_data->>'implantId', '')::INT;
+    v_resolution_id := NULLIF(p_data->>'resolutionId', '')::INT;
+
     v_internal_number := 'INV-' || to_char(CURRENT_DATE, 'YYYYMMDD') || '-' || floor(random() * 1000)::text;
+
+    v_fuente := NULLIF(p_data->>'fuente', '');
+    v_serie := NULLIF(p_data->>'serie', '');
+    v_consecutivo := NULLIF(p_data->>'consecutivo', '');
+
+    -- Lógica de asignación de consecutivo automático desde SysConsecutivo si consecutivo es nulo o vacío
+    IF v_consecutivo IS NULL THEN
+        v_billing_code := COALESCE(
+            NULLIF(p_data->>'codigo', ''), 
+            NULLIF(p_data->>'codigoFacturacion', ''), 
+            NULLIF(p_data->>'billingCode', ''), 
+            v_fuente, 
+            'FACT'
+        );
+
+        SELECT id, NULLIF(fuente, ''), NULLIF(serie, '') 
+        INTO v_consec_id, v_fuente, v_serie
+        FROM public."SysConsecutivo"
+        WHERE LOWER(codigo) = LOWER(v_billing_code)
+           OR (v_branch_id IS NOT NULL AND "branchId" = v_branch_id AND ("implantId" IS NULL OR "implantId" = v_implant_id))
+        ORDER BY 
+            (CASE WHEN LOWER(codigo) = LOWER(v_billing_code) THEN 1 ELSE 2 END),
+            (CASE WHEN "implantId" IS NOT NULL THEN 1 WHEN "branchId" IS NOT NULL THEN 2 ELSE 3 END),
+            id DESC
+        LIMIT 1;
+
+        IF v_consec_id IS NOT NULL THEN
+            UPDATE public."SysConsecutivo"
+            SET consecutivo = consecutivo + 1,
+                "updatedAt" = CURRENT_TIMESTAMP
+            WHERE id = v_consec_id
+            RETURNING consecutivo INTO v_next_num;
+
+            v_consecutivo := LPAD(v_next_num::TEXT, 8, '0');
+        ELSE
+            SELECT COALESCE(MAX(consecutivo::BIGINT), 0) + 1 INTO v_next_num 
+            FROM public."Invoices" 
+            WHERE consecutivo ~ '^[0-9]+$';
+
+            v_consecutivo := LPAD(v_next_num::TEXT, 8, '0');
+        END IF;
+    END IF;
+
+    -- Resolución y Validación de Rango de Numeración
+    IF v_resolution_id IS NULL AND v_implant_id IS NOT NULL THEN
+        SELECT "resolutionId" INTO v_resolution_id FROM public."Implant" WHERE id = v_implant_id;
+    END IF;
+
+    IF v_resolution_id IS NULL AND v_branch_id IS NOT NULL THEN
+        SELECT "resolutionId" INTO v_resolution_id FROM public."Branch" WHERE id = v_branch_id;
+    END IF;
+
+    IF v_resolution_id IS NULL AND v_serie IS NOT NULL THEN
+        SELECT id INTO v_resolution_id FROM public."Resolution" WHERE activo = TRUE AND prefijo ILIKE v_serie ORDER BY id DESC LIMIT 1;
+    END IF;
+
+    IF v_resolution_id IS NULL THEN
+        SELECT id INTO v_resolution_id FROM public."Resolution" WHERE activo = TRUE ORDER BY id DESC LIMIT 1;
+    END IF;
+
+    IF v_resolution_id IS NOT NULL THEN
+        SELECT * INTO v_res FROM public."Resolution" WHERE id = v_resolution_id;
+    END IF;
+
+    IF v_res.id IS NOT NULL THEN
+        -- 1. Validar estado de la resolución
+        IF v_res.activo IS FALSE THEN
+            p_mensaje_resultado := 'ERROR: La resolución de facturación "' || v_res.name || '" (' || v_res.code || ') se encuentra inactiva.';
+            RETURN;
+        END IF;
+
+        -- 2. Validar vigencia / expiración de la resolución
+        IF v_res.expira IS NOT NULL AND v_res.expira::DATE < CURRENT_DATE THEN
+            IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
+                p_mensaje_resultado := 'ERROR: La resolución de facturación "' || v_res.name || '" (' || v_res.code || ') se encuentra vencida desde el ' || to_char(v_res.expira, 'YYYY-MM-DD') || '.';
+                RETURN;
+            END IF;
+        END IF;
+
+        -- 3. Validar rango numérico autorizado del consecutivo
+        IF v_consecutivo IS NOT NULL AND v_consecutivo ~ '^[0-9]+$' THEN
+            v_consec_num := v_consecutivo::BIGINT;
+
+            IF v_res.inicial IS NOT NULL AND v_consec_num < v_res.inicial THEN
+                IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
+                    p_mensaje_resultado := 'ERROR: El consecutivo generado (' || v_consec_num || ') es menor al rango inicial autorizado (' || v_res.inicial || ') para la resolución "' || v_res.name || '".';
+                    RETURN;
+                END IF;
+            END IF;
+
+            IF v_res."end" IS NOT NULL AND v_consec_num > v_res."end" THEN
+                IF COALESCE(v_res.permitir, FALSE) IS FALSE THEN
+                    p_mensaje_resultado := 'ERROR: El consecutivo generado (' || v_consec_num || ') supera el rango final autorizado (' || v_res."end" || ') para la resolución "' || v_res.name || '".';
+                    RETURN;
+                END IF;
+            END IF;
+        END IF;
+
+        -- 4. Asignar prefijo de resolución a la serie si no fue provisto
+        IF v_serie IS NULL AND NULLIF(v_res.prefijo, '') IS NOT NULL THEN
+            v_serie := v_res.prefijo;
+        END IF;
+    END IF;
+
+    -- 5. Validar unicidad del consecutivo (evitar duplicidad)
+    IF v_consecutivo IS NOT NULL THEN
+        IF EXISTS (
+            SELECT 1 FROM public."Invoices"
+            WHERE consecutivo = v_consecutivo
+              AND COALESCE(serie, '') = COALESCE(v_serie, '')
+              AND COALESCE(fuente, '') = COALESCE(v_fuente, '')
+        ) THEN
+            p_mensaje_resultado := 'ERROR: Ya existe una factura emitida con la numeración ' || COALESCE(v_fuente || '-', '') || COALESCE(v_serie || '-', '') || v_consecutivo || '.';
+            RETURN;
+        END IF;
+    END IF;
 
     INSERT INTO public."Invoices" (
         "internalNumber", "date", "clientId", "currency", "exchangeRate", 
@@ -10569,11 +11301,11 @@ BEGIN
         "baseCommissionable", "commissionPercentage", "chargesAndTaxes", 
         "totalAmount", "userId", "state", "fuente", "serie", "consecutivo"
     ) VALUES (
-        v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, p_data->>'currency', NULLIF(p_data->>'exchangeRate', '')::FLOAT,
-        NULLIF(p_data->>'branchId', '')::INT, NULLIF(p_data->>'implantId', '')::INT, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
-        0, NULLIF(p_data->>'commissionPercentage', '')::FLOAT, NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT,
-        NULLIF(p_data->>'totalAmount', '')::FLOAT, p_acting_user_id, 'NUEVO',
-        NULLIF(p_data->>'fuente', ''), NULLIF(p_data->>'serie', ''), NULLIF(p_data->>'consecutivo', '')
+        v_internal_number, CURRENT_TIMESTAMP, NULLIF(p_data->>'clientId', '')::INT, COALESCE(NULLIF(p_data->>'currency', ''), 'COP'), COALESCE(NULLIF(p_data->>'exchangeRate', '')::FLOAT, 1.0),
+        COALESCE(v_branch_id, 1), v_implant_id, NULLIF(p_data->>'sellerId', '')::INT, NULLIF(p_data->>'ticketPrinterId', '')::INT,
+        0, COALESCE(NULLIF(p_data->>'commissionPercentage', '')::FLOAT, 0), COALESCE(NULLIF(p_data->>'chargesAndTaxes', '')::FLOAT, 0),
+        COALESCE(NULLIF(p_data->>'totalAmount', '')::FLOAT, 0), p_acting_user_id, 'NUEVO',
+        v_fuente, v_serie, v_consecutivo
     ) RETURNING id INTO v_invoice_id;
 
     FOR v_combo IN SELECT * FROM jsonb_to_recordset(p_data->'combos') AS x("comboId" INT, "id" INT)
@@ -10720,7 +11452,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spInvoicesEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spInvoicesEliminar(
     p_id INT,
@@ -10744,7 +11475,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spLogListar.sql
 -- sploglistar.sql
@@ -10788,7 +11518,6 @@ BEGIN
     OFFSET p_offset;
 END;
 $$;
-
 
 -- Archivo: spLogRegistrar.sql
 CREATE OR REPLACE PROCEDURE public."spLogRegistrar"(
@@ -11007,7 +11736,6 @@ BEGIN
 END;
 $$;
 
-
 -- Archivo: spMonedaActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spMonedaActualizar(
     p_id            INT,
@@ -11045,7 +11773,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spMonedaCrear.sql
 CREATE OR REPLACE PROCEDURE public.spMonedaCrear(
     p_code         TEXT,
@@ -11074,7 +11801,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spMonedaEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spMonedaEliminar(
     p_id              INT,
@@ -11097,7 +11823,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spMonedaListar.sql
 CREATE OR REPLACE PROCEDURE public.spMonedaListar(
@@ -11129,6 +11854,92 @@ EXCEPTION
 END;
 $$;
 
+-- Archivo: spNotaCreditoNoRef_Insertar.sql
+CREATE OR REPLACE PROCEDURE public.spNotaCreditoNoRef_Insertar(
+    p_data JSONB,
+    INOUT p_inserted_count INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_item RECORD;
+    v_count INT := 0;
+BEGIN
+    p_inserted_count := 0;
+    p_mensaje_resultado := '';
+
+    IF p_data IS NULL THEN
+        p_mensaje_resultado := 'ERROR: No se recibieron datos para insertar.';
+        RETURN;
+    END IF;
+
+    -- Soportar tanto array JSONB como objeto individual
+    IF jsonb_typeof(p_data) = 'array' THEN
+        FOR v_item IN 
+            SELECT * FROM jsonb_to_recordset(p_data) AS x(
+                fuente TEXT,
+                serie TEXT,
+                consecutivo TEXT,
+                factura_fuente TEXT,
+                factura_serie TEXT,
+                factura_numero TEXT,
+                fecha TEXT
+            )
+        LOOP
+            INSERT INTO public."NotasCreditoNoRef" (
+                fuente,
+                serie,
+                consecutivo,
+                factura_fuente,
+                factura_serie,
+                factura_numero,
+                fecha
+            ) VALUES (
+                v_item.fuente,
+                v_item.serie,
+                v_item.consecutivo,
+                v_item.factura_fuente,
+                v_item.factura_serie,
+                v_item.factura_numero,
+                CASE 
+                    WHEN v_item.fecha IS NOT NULL AND v_item.fecha <> '' THEN v_item.fecha::TIMESTAMP WITH TIME ZONE 
+                    ELSE CURRENT_TIMESTAMP 
+                END
+            );
+            v_count := v_count + 1;
+        END LOOP;
+    ELSE
+        INSERT INTO public."NotasCreditoNoRef" (
+            fuente,
+            serie,
+            consecutivo,
+            factura_fuente,
+            factura_serie,
+            factura_numero,
+            fecha
+        ) VALUES (
+            NULLIF(p_data->>'fuente', ''),
+            NULLIF(p_data->>'serie', ''),
+            NULLIF(p_data->>'consecutivo', ''),
+            NULLIF(p_data->>'factura_fuente', ''),
+            NULLIF(p_data->>'factura_serie', ''),
+            NULLIF(p_data->>'factura_numero', ''),
+            CASE 
+                WHEN NULLIF(p_data->>'fecha', '') IS NOT NULL THEN (p_data->>'fecha')::TIMESTAMP WITH TIME ZONE 
+                ELSE CURRENT_TIMESTAMP 
+            END
+        );
+        v_count := 1;
+    END IF;
+
+    p_inserted_count := v_count;
+    p_mensaje_resultado := 'SUCCESS: Se insertaron ' || v_count || ' registro(s) en NotasCreditoNoRef.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
 
 -- Archivo: spParameterActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spParameterActualizar(
@@ -11160,7 +11971,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spParameterCrear.sql
 CREATE OR REPLACE PROCEDURE public.spParameterCrear(
     p_code TEXT,
@@ -11184,7 +11994,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spParameterEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spParameterEliminar(
     p_id INT,
@@ -11206,7 +12015,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spPaymentActualizar.sql
 CREATE OR REPLACE PROCEDURE public."spPaymentActualizar"(IN p_id integer, IN p_code text, IN p_name text, IN p_iscash boolean, IN p_iscredit boolean, IN p_inactive boolean, IN p_user_id integer, INOUT p_mensaje_resultado text)
@@ -11270,7 +12078,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spPrestadoraCrear.sql
 CREATE OR REPLACE PROCEDURE public.spPrestadoraCrear(
     p_code TEXT,
@@ -11297,7 +12104,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spPrestadoraEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spPrestadoraEliminar(
     p_id INT,
@@ -11314,7 +12120,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spProductoActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spProductoActualizar(
@@ -11354,7 +12159,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spProductoCrear.sql
 CREATE OR REPLACE PROCEDURE public.spProductoCrear(
     p_code TEXT,
@@ -11382,7 +12186,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spProductoEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spProductoEliminar(
     p_id INT,
@@ -11399,7 +12202,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spProveedorActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spProveedorActualizar(
@@ -11428,7 +12230,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spProveedorCrear.sql
 CREATE OR REPLACE PROCEDURE public.spProveedorCrear(
     p_code TEXT,
@@ -11453,7 +12254,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spProveedorEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spProveedorEliminar(
     p_id INT,
@@ -11471,9 +12271,7 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spQuotationStateActualizar.sql
-
 CREATE OR REPLACE PROCEDURE public."spQuotationStateActualizar"(
     p_id INT,
     p_code TEXT,
@@ -11497,9 +12295,7 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END; $$;
 
-
 -- Archivo: spQuotationStateCrear.sql
-
 CREATE OR REPLACE PROCEDURE public."spQuotationStateCrear"(
     p_code TEXT,
     p_name TEXT,
@@ -11521,9 +12317,7 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END; $$;
 
-
 -- Archivo: spQuotationStateEliminar.sql
-
 CREATE OR REPLACE PROCEDURE public."spQuotationStateEliminar"(
     p_id INT,
     p_acting_user_id INT,
@@ -11538,6 +12332,111 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END; $$;
 
+-- Archivo: spResolucionActualizar.sql
+CREATE OR REPLACE PROCEDURE public.spResolucionActualizar(
+    p_id INT,
+    p_code TEXT,
+    p_name TEXT,
+    p_date TIMESTAMP WITH TIME ZONE,
+    p_expira TIMESTAMP WITH TIME ZONE,
+    p_inicial BIGINT,
+    p_end BIGINT,
+    p_autoriza TEXT,
+    p_prefijo TEXT,
+    p_alerta INT,
+    p_day INT,
+    p_permitir BOOLEAN,
+    p_activo BOOLEAN,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."Resolution" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Resolución con ID ' || p_id || ' no encontrada.';
+        RETURN;
+    END IF;
+
+    UPDATE public."Resolution"
+    SET "code" = p_code,
+        "name" = p_name,
+        "date" = p_date,
+        "expira" = p_expira,
+        "inicial" = p_inicial,
+        "end" = p_end,
+        "autoriza" = p_autoriza,
+        "prefijo" = p_prefijo,
+        "alerta" = p_alerta,
+        "day" = p_day,
+        "permitir" = COALESCE(p_permitir, false),
+        "activo" = COALESCE(p_activo, true)
+    WHERE id = p_id;
+
+    p_mensaje_resultado := 'SUCCESS: Resolución actualizada exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+-- Archivo: spResolucionCrear.sql
+CREATE OR REPLACE PROCEDURE public.spResolucionCrear(
+    p_code TEXT,
+    p_name TEXT,
+    p_date TIMESTAMP WITH TIME ZONE,
+    p_expira TIMESTAMP WITH TIME ZONE,
+    p_inicial BIGINT,
+    p_end BIGINT,
+    p_autoriza TEXT,
+    p_prefijo TEXT,
+    p_alerta INT,
+    p_day INT,
+    p_permitir BOOLEAN,
+    p_activo BOOLEAN,
+    p_acting_user_id INT,
+    INOUT p_resolution_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO public."Resolution" (
+        "code", "name", "date", "expira", "inicial", "end", "autoriza", "prefijo", "alerta", "day", "permitir", "activo"
+    )
+    VALUES (
+        p_code, p_name, p_date, p_expira, p_inicial, p_end, p_autoriza, p_prefijo, p_alerta, p_day, COALESCE(p_permitir, false), COALESCE(p_activo, true)
+    )
+    RETURNING id INTO p_resolution_id;
+
+    p_mensaje_resultado := 'SUCCESS: Resolución creada con ID ' || p_resolution_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+-- Archivo: spResolucionEliminar.sql
+CREATE OR REPLACE PROCEDURE public.spResolucionEliminar(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM public."Resolution" WHERE id = p_id) THEN
+        p_mensaje_resultado := 'ERROR: Resolución con ID ' || p_id || ' no encontrada.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."Resolution" WHERE id = p_id;
+    p_mensaje_resultado := 'SUCCESS: Resolución eliminada exitosamente.';
+EXCEPTION
+    WHEN OTHERS THEN
+        p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
 
 -- Archivo: spSellerActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spSellerActualizar(
@@ -11569,7 +12468,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spSellerCrear.sql
 CREATE OR REPLACE PROCEDURE public.spSellerCrear(
     p_code TEXT,
@@ -11593,7 +12491,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spSellerEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spSellerEliminar(
     p_id INT,
@@ -11616,6 +12513,125 @@ EXCEPTION
 END;
 $$;
 
+-- Archivo: spSysConsecutivoActualizar.sql
+CREATE OR REPLACE PROCEDURE public.spSysConsecutivoActualizar(
+    p_id INT,
+    p_codigo VARCHAR,
+    p_nombre VARCHAR,
+    p_branch_id INT,
+    p_implant_id INT,
+    p_fuente VARCHAR,
+    p_serie VARCHAR,
+    p_consecutivo BIGINT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_id IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El ID del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    IF NULLIF(TRIM(p_codigo), '') IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El código del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    IF NULLIF(TRIM(p_nombre), '') IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El nombre del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    UPDATE public."SysConsecutivo"
+    SET 
+        "codigo" = TRIM(p_codigo),
+        "nombre" = TRIM(p_nombre),
+        "branchId" = p_branch_id,
+        "implantId" = p_implant_id,
+        "fuente" = TRIM(p_fuente),
+        "serie" = TRIM(p_serie),
+        "consecutivo" = COALESCE(p_consecutivo, 0),
+        "updatedAt" = CURRENT_TIMESTAMP
+    WHERE id = p_id;
+
+    IF NOT FOUND THEN
+        p_mensaje_resultado := 'ERROR: No se encontró el consecutivo con ID ' || p_id;
+        RETURN;
+    END IF;
+
+    p_mensaje_resultado := 'SUCCESS: Consecutivo actualizado exitosamente.';
+EXCEPTION WHEN OTHERS THEN
+    p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+-- Archivo: spSysConsecutivoCrear.sql
+CREATE OR REPLACE PROCEDURE public.spSysConsecutivoCrear(
+    p_codigo VARCHAR,
+    p_nombre VARCHAR,
+    p_branch_id INT,
+    p_implant_id INT,
+    p_fuente VARCHAR,
+    p_serie VARCHAR,
+    p_consecutivo BIGINT,
+    p_acting_user_id INT,
+    INOUT p_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NULLIF(TRIM(p_codigo), '') IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El código del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    IF NULLIF(TRIM(p_nombre), '') IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El nombre del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    INSERT INTO public."SysConsecutivo" (
+        "codigo", "nombre", "branchId", "implantId", "fuente", "serie", "consecutivo", "createdAt", "updatedAt"
+    ) VALUES (
+        TRIM(p_codigo), TRIM(p_nombre), p_branch_id, p_implant_id, TRIM(p_fuente), TRIM(p_serie), COALESCE(p_consecutivo, 0), CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+    ) RETURNING id INTO p_id;
+
+    p_mensaje_resultado := 'SUCCESS: Consecutivo creado exitosamente.';
+EXCEPTION WHEN OTHERS THEN
+    p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
+
+-- Archivo: spSysConsecutivoEliminar.sql
+CREATE OR REPLACE PROCEDURE public.spSysConsecutivoEliminar(
+    p_id INT,
+    p_acting_user_id INT,
+    INOUT p_mensaje_resultado TEXT
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF p_id IS NULL THEN
+        p_mensaje_resultado := 'ERROR: El ID del consecutivo es obligatorio.';
+        RETURN;
+    END IF;
+
+    DELETE FROM public."SysConsecutivo"
+    WHERE id = p_id;
+
+    IF NOT FOUND THEN
+        p_mensaje_resultado := 'ERROR: No se encontró el consecutivo con ID ' || p_id;
+        RETURN;
+    END IF;
+
+    p_mensaje_resultado := 'SUCCESS: Consecutivo eliminado exitosamente.';
+EXCEPTION WHEN OTHERS THEN
+    p_mensaje_resultado := 'ERROR: ' || SQLERRM;
+END;
+$$;
 
 -- Archivo: spTicketPrinterActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spTicketPrinterActualizar(
@@ -11647,7 +12663,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spTicketPrinterCrear.sql
 CREATE OR REPLACE PROCEDURE public.spTicketPrinterCrear(
     p_code TEXT,
@@ -11671,7 +12686,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spTicketPrinterEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spTicketPrinterEliminar(
     p_id INT,
@@ -11694,9 +12708,7 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spTicketTypeActualizar.sql
-
 CREATE OR REPLACE PROCEDURE public."spTicketTypeActualizar"(
     p_id INT,
     p_code TEXT,
@@ -11722,9 +12734,7 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END; $$;
 
-
 -- Archivo: spTicketTypeCrear.sql
-
 CREATE OR REPLACE PROCEDURE public."spTicketTypeCrear"(
     p_code TEXT,
     p_name TEXT,
@@ -11747,9 +12757,7 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END; $$;
 
-
 -- Archivo: spTicketTypeEliminar.sql
-
 CREATE OR REPLACE PROCEDURE public."spTicketTypeEliminar"(
     p_id INT,
     p_acting_user_id INT,
@@ -11763,7 +12771,6 @@ EXCEPTION
     WHEN OTHERS THEN
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END; $$;
-
 
 -- Archivo: spUsuarioActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spUsuarioActualizar(
@@ -11812,7 +12819,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spUsuarioConsultar.sql
 CREATE OR REPLACE FUNCTION public.spUsuarioConsultar(
     p_id INT DEFAULT NULL,
@@ -11845,7 +12851,6 @@ BEGIN
     ORDER BY u.id ASC;
 END;
 $$;
-
 
 -- Archivo: spUsuarioCrear.sql
 CREATE OR REPLACE PROCEDURE public.spUsuarioCrear(
@@ -11896,7 +12901,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spUsuarioEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spUsuarioEliminar(
     p_user_id INT,
@@ -11920,7 +12924,6 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 
 -- Archivo: spVariableActualizar.sql
 CREATE OR REPLACE PROCEDURE public.spVariableActualizar(
@@ -11950,7 +12953,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spVariableCrear.sql
 CREATE OR REPLACE PROCEDURE public.spVariableCrear(
     p_code TEXT,
@@ -11973,7 +12975,6 @@ EXCEPTION
 END;
 $$;
 
-
 -- Archivo: spVariableEliminar.sql
 CREATE OR REPLACE PROCEDURE public.spVariableEliminar(
     p_id INT,
@@ -11995,5 +12996,4 @@ EXCEPTION
         p_mensaje_resultado := 'ERROR: ' || SQLERRM;
 END;
 $$;
-
 

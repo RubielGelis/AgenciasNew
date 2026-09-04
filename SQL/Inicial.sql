@@ -66,7 +66,7 @@ INSERT INTO public."SystemParameter" (code, name, value)
 VALUES
     ('ServidorSQLServer',                'Host de SQL Server',                           'Rubiel/RUBIEL'),
     ('UsuarioSQLServer',                 'Usuario SQL Server',                           'sa'),
-    ('ClaveSQLServer',                   'Contraseña SQL Server',                        '111985*'),
+    ('ClaveSQLServer',                   'Contraseña SQL Server',                        '111985'),
     ('BaseSQLServer',                    'Base de Datos SQL Server',                     'Agencias'),
     ('PuertoSQLServer',                  'Puerto SQL Server',                            ''),
     ('EnviarCotizacionesAutoSQLserver',  'Envío automático de cotizaciones a SQL Server (1: Sí, 0: No)', '1'),
@@ -1312,6 +1312,8 @@ VALUES
     ('DASHBOARD', 'Dashboard', NULL, '/dashboard', true),
     ('COTIZACIONES', 'Cotizaciones', NULL, '/dashboard/quotations/history', true),
     ('FACTURACION', 'Facturación', NULL, '/dashboard/invoices/history', true),
+    ('NOTAS_CREDITO', 'Notas Crédito', NULL, '/dashboard/credit-notes/unreferenced', true),
+    ('NOTAS_CREDITO_NO_REF', 'Notas Crédito No Referenciadas', (SELECT id FROM public."Menu" WHERE code = 'NOTAS_CREDITO' LIMIT 1), '/dashboard/credit-notes/unreferenced', true),
     ('MAESTROS', 'Maestros', NULL, '/dashboard/settings', true),
     ('REPORTES', 'Reportes', NULL, '/dashboard/reports', true)
 ON CONFLICT (code) DO UPDATE SET 
@@ -1319,6 +1321,10 @@ ON CONFLICT (code) DO UPDATE SET
     parent = EXCLUDED.parent,
     action = EXCLUDED.action,
     activo = EXCLUDED.activo;
+
+UPDATE public."Menu" 
+SET parent = (SELECT id FROM public."Menu" WHERE code = 'NOTAS_CREDITO' LIMIT 1)
+WHERE code = 'NOTAS_CREDITO_NO_REF';
 
 -- 12. Estados de Cotización Iniciales
 INSERT INTO public."QuotationState" (code, name, color)

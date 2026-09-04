@@ -950,3 +950,19 @@ model QuotationStateHistory {
 
   @@index([quotationId])
 }
+
+model NotasCreditoNoRef {
+  id             Int       @id @default(autoincrement())
+  fuente         String?   @db.VarChar(10)
+  serie          String?   @db.VarChar(10)
+  consecutivo    String?   @db.VarChar(50)
+  factura_fuente String?   @db.VarChar(10)
+  factura_serie  String?   @db.VarChar(10)
+  factura_numero String?   @db.VarChar(50)
+  fecha          DateTime? @default(now()) @db.Timestamptz(6)
+  createdAt      DateTime? @default(now()) @db.Timestamptz(6)
+  updatedAt      DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([consecutivo], map: "idx_notas_credito_no_ref_consecutivo")
+  @@index([factura_fuente, factura_serie, factura_numero], map: "idx_notas_credito_no_ref_factura")
+}

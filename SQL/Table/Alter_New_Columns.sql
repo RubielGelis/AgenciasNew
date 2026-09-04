@@ -1688,7 +1688,6 @@ BEGIN
         ALTER TABLE public."User" ADD COLUMN "ticketPrinterId" integer;
     END IF;
 
-END $$;
     -- 7. Columnas resolutionId e invoiceTemplate para Branch e Implant
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'Branch' AND column_name = 'resolutionId') THEN
         ALTER TABLE public."Branch" ADD COLUMN "resolutionId" INT;

@@ -66,7 +66,7 @@ INSERT INTO public."SystemParameter" (code, name, value)
 VALUES
     ('ServidorSQLServer',                'Host de SQL Server',                           'Rubiel/RUBIEL'),
     ('UsuarioSQLServer',                 'Usuario SQL Server',                           'sa'),
-    ('ClaveSQLServer',                   'Contraseña SQL Server',                        '111985*'),
+    ('ClaveSQLServer',                   'Contraseña SQL Server',                        '111985'),
     ('BaseSQLServer',                    'Base de Datos SQL Server',                     'Agencias'),
     ('PuertoSQLServer',                  'Puerto SQL Server',                            ''),
     ('EnviarCotizacionesAutoSQLserver',  'Envío automático de cotizaciones a SQL Server (1: Sí, 0: No)', '1'),
